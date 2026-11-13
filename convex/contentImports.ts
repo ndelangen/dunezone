@@ -20,7 +20,7 @@ import { canonicalJson } from './lib/canonicalJson';
 import {
   requireAssetUpdate,
   requireAssignableGroup,
-  requireFactionUpdate,
+  requireFactionSave,
   requireGroupReassignment,
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
@@ -286,7 +286,7 @@ async function authorizeSubject(
     return;
   }
   if (item.kind === 'faction') {
-    await requireFactionUpdate(ctx, subject.id as Id<'factions'>, { name: itemName(data) });
+    await requireFactionSave(ctx, subject.id as Id<'factions'>, data);
   } else {
     await requireAssetUpdate(ctx, subject.id as Id<'assets'>, itemName(data));
   }
