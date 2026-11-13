@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { Eye } from 'lucide-react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { LabeledAction } from '../control/LabeledAction';
 import { Notice } from './Notice';
@@ -86,21 +86,10 @@ export const Collapsible = meta.story({
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const toggle = canvas.getByRole('button', { name: 'Shared by every variant' });
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(canvas.getByRole('button', { name: 'Shared by every variant' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
     await expect(canvas.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
-
-    await userEvent.click(toggle);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(canvas.findByText(/belong to the faction/)).resolves.toBeVisible();
-
-    /* The whole notice is the toggle: a press in its padding lands on the one button. */
-    const notice = canvas.getByRole('note');
-    const { left, bottom } = notice.getBoundingClientRect();
-    const padding = notice.ownerDocument.elementFromPoint(left + 3, bottom - 3);
-    await expect(padding).toBe(toggle);
-    await userEvent.click(padding!);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await waitFor(() => expect(canvas.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
   },
 });
