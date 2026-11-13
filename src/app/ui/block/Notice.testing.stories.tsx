@@ -25,7 +25,8 @@ export const CollapsibleOpensAndShuts = meta.story({
 
     await userEvent.click(toggle);
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(canvas.findByText(/belong to the faction/)).resolves.toBeVisible();
+    /* The panel opens with a short animation, so wait for the words to show. */
+    await waitFor(() => expect(canvas.getByText(/belong to the faction/)).toBeVisible());
 
     /* The whole notice is the toggle: a press in its padding lands on the one button. */
     const notice = canvas.getByRole('note');
