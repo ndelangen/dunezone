@@ -7,7 +7,6 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
-import { assertVariantAddress } from './lib/factionAddresses';
 import { syncFactionFamily } from './lib/factionFamilies';
 
 const STAMP = '2026-01-01T00:00:00.000Z';
@@ -102,24 +101,25 @@ describe('faction and variant addresses (#2909)', () => {
       await ctx.db.patch(factionId, { slug: 'ix' });
       return factionId;
     });
-    await expect(t.run(async (ctx) => await assertVariantAddress(ctx, (await ctx.db.get(id))!))).rejects.toThrow(
-      /no address of its own/
-    );
-
-    const ids = ['faction_variant_addresses_v1', 'faction_variant_addresses_verify_v1'];
-    const migrate = async () => {
+    const migrate = async (ids: string[]) => {
       vi.useFakeTimers();
       await t.mutation(internal.migrations.runRequired, { ids });
       await t.finishAllScheduledFunctions(vi.runAllTimers, 100);
       vi.useRealTimers();
       return await t.query(internal.migrations.assertReadyForNarrow, { required: ids });
     };
-    await expect(migrate()).resolves.toMatchObject({ ok: true });
+    /* The verify step alone refuses a variant still at its faction's address. */
+    await expect(migrate(['faction_variant_addresses_verify_v1'])).rejects.toThrow(
+      /faction_variant_addresses_verify_v1\(failed/
+    );
+
+    const ids = ['faction_variant_addresses_v1', 'faction_variant_addresses_verify_v1'];
+    await expect(migrate(ids)).resolves.toMatchObject({ ok: true });
     const moved = await t.run(async (ctx) => await ctx.db.get(id));
     expect(moved?.slug).toBe('ix-original');
     expect((await page('ix'))._id).toBe(id);
 
-    await migrate();
+    await migrate(ids);
     expect(await t.run(async (ctx) => await ctx.db.get(id))).toEqual(moved);
   });
 });
