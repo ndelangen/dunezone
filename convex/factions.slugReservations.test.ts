@@ -30,7 +30,7 @@ describe('faction slug reservations', () => {
     const occupied = await createFaction(asUser, 'Create 1');
     await asUser.mutation(api.factions.softDelete, { id: occupied._id });
     const created = await createFaction(asUser, 'Create');
-    expect(created.slug).toBe('create-2');
+    expect(created.slug).toBe('create-2-original');
     expect((await asUser.query(api.factions.pageBySlug, { slug: created.slug })).faction._id).toBe(created._id);
     const updated = await asUser.mutation(api.factions.update, {
       id: created._id,
@@ -40,7 +40,7 @@ describe('faction slug reservations', () => {
     const renamed = await createFaction(asUser, 'Another Faction');
     expect(
       (await asUser.mutation(api.factions.update, { id: renamed._id, data: { ...renamed.data, name: 'create!' } })).slug
-    ).toBe('create-3');
+    ).toBe('create-3-original');
     expect(await asUser.query(api.factions.slugTaken, { slug: 'create' })).toBeNull();
   });
 
@@ -67,7 +67,7 @@ describe('faction slug reservations', () => {
       id: faction._id,
       data: { ...faction.data, name: 'Create' },
     });
-    expect(updated.slug).toBe('create-1');
+    expect(updated.slug).toBe('create-1-original');
     expect((await asUser.query(api.factions.pageBySlug, { slug: updated.slug })).faction.data.name).toBe('Create');
   });
 
@@ -96,7 +96,11 @@ describe('faction slug reservations', () => {
     for (let i = 0; i < 3; i += 1) {
       factions.push(await createFaction(asUser, 'House Atreides'));
     }
-    expect(factions.map((faction) => faction.slug)).toEqual(['house-atreides', 'house-atreides-1', 'house-atreides-2']);
+    expect(factions.map((faction) => faction.slug)).toEqual([
+      'house-atreides-original',
+      'house-atreides-1-original',
+      'house-atreides-2-original',
+    ]);
     for (const faction of factions) {
       const page = await asUser.query(api.factions.pageBySlug, { slug: faction.slug });
       expect(page.faction._id).toBe(faction._id);
@@ -109,19 +113,19 @@ describe('faction slug reservations', () => {
     const reserved = await createFaction(asUser, 'Reserved Faction');
     await asUser.mutation(api.factions.softDelete, { id: reserved._id });
     const created = await createFaction(asUser, 'Reserved Faction');
-    expect(created.slug).toBe('reserved-faction-1');
+    expect(created.slug).toBe('reserved-faction-1-original');
     const active = await createFaction(asUser, 'Active Faction');
     const renamed = await asUser.mutation(api.factions.update, {
       id: active._id,
       data: { ...active.data, name: 'Reserved Faction' },
     });
-    expect(renamed.slug).toBe('reserved-faction-2');
+    expect(renamed.slug).toBe('reserved-faction-2-original');
     expect(renamed.data.name).toBe('Reserved Faction');
     await expect(
       asUser.query(api.formerAddresses.resolve, {
         address: { kind: 'faction', slug: active.slug },
       })
-    ).resolves.toBe('/factions/reserved-faction-2');
+    ).resolves.toBe('/factions/reserved-faction-2-original');
     expect(await asUser.query(api.factions.slugTaken, { slug: reserved.slug })).toBe('deleted');
   });
 

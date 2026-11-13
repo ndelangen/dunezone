@@ -9,6 +9,7 @@ import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
+import { assertVariantAddress, moveToVariantAddress } from './lib/factionAddresses';
 import { syncFactionCard } from './lib/factionCards';
 import { assertFactionFamily, syncFactionFamily } from './lib/factionFamilies';
 import { requireAdminUserId } from './lib/policy';
@@ -77,6 +78,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_cards_v1: internal.migrations.faction_cards_v1,
   faction_families_v1: internal.migrations.faction_families_v1,
   faction_families_verify_v1: internal.migrations.faction_families_verify_v1,
+  faction_variant_addresses_v1: internal.migrations.faction_variant_addresses_v1,
+  faction_variant_addresses_verify_v1: internal.migrations.faction_variant_addresses_verify_v1,
   standings_profiles_v1: internal.migrations.standings_profiles_v1,
   standings_groups_v1: internal.migrations.standings_groups_v1,
 };
@@ -686,5 +689,27 @@ export const faction_families_verify_v1 = migrations.define({
   batchSize: 25,
   migrateOne: async (ctx, faction) => {
     await assertFactionFamily(ctx, faction);
+  },
+});
+
+/**
+ * Moves every variant, deleted ones included, from its faction's address to one of its own under it (#2926, #2909):
+ * `/factions/atreides` becomes the faction's, leading to its default variant, and the variant moves to `/factions/atreides-<variant>`.
+ * Rerunning it writes nothing, and it is permanent like `faction_families_v1`, which a snapshot replay runs first.
+ */
+export const faction_variant_addresses_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await moveToVariantAddress(ctx, faction);
+  },
+});
+
+/** Proves every variant answers at an address of its own under its faction's, so a partial backfill cannot pass. */
+export const faction_variant_addresses_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await assertVariantAddress(ctx, faction);
   },
 });

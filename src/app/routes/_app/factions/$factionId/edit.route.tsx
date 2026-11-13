@@ -17,7 +17,7 @@ import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } fr
 import { isFactionNotFound, loadFaction } from '@db/factions';
 import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
-import { redirectFromFormerAddress } from '@app/routes/formerAddress';
+import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
@@ -49,7 +49,9 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   },
   loader: async ({ params, location }) => {
     try {
-      return await loadFaction(params.factionId);
+      const page = await loadFaction(params.factionId);
+      redirectToOwnFactionAddress(params.factionId, page.faction.slug, location, '/edit');
+      return page;
     } catch (error) {
       /* A rename moves the faction, and an old edit link follows it there, as the faction page's own link does. */
       if (isFactionNotFound(error)) {

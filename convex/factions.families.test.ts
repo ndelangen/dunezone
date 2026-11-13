@@ -82,8 +82,9 @@ describe('Faction families', () => {
     const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
 
     expect(await variant(faction._id)).toMatchObject({ variant_name: 'Original', variant_slug: 'original' });
-    expect(await familyOf(faction._id)).toMatchObject({
-      slug: faction.slug,
+    const family = await familyOf(faction._id);
+    expect(faction.slug).toBe(`${family?.slug}-original`);
+    expect(family).toMatchObject({
       data: SHARED,
       owner_id: ownerId,
       group_id: null,
@@ -136,7 +137,7 @@ describe('Faction families', () => {
     const { t, owner, familyOf } = await familiesFixture();
     const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
     const family = (await familyOf(faction._id))!;
-    await t.run(async (ctx) => await ctx.db.patch(family._id, { slug: 'drifted' }));
+    await t.run(async (ctx) => await ctx.db.patch(family._id, { updated_at: 'drifted' }));
     await expect(
       t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!))
     ).rejects.toThrow(/does not mirror/);

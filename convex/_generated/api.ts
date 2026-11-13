@@ -74,6 +74,7 @@ import type * as lib_discordRest from "../lib/discordRest.js";
 import type * as lib_discordRetry from "../lib/discordRetry.js";
 import type * as lib_discordStatus from "../lib/discordStatus.js";
 import type * as lib_discordVoiceSnapshot from "../lib/discordVoiceSnapshot.js";
+import type * as lib_factionAddresses from "../lib/factionAddresses.js";
 import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
@@ -276,6 +277,7 @@ const fullApi: ApiFromModules<{
   "lib/discordRetry": typeof lib_discordRetry;
   "lib/discordStatus": typeof lib_discordStatus;
   "lib/discordVoiceSnapshot": typeof lib_discordVoiceSnapshot;
+  "lib/factionAddresses": typeof lib_factionAddresses;
   "lib/factionCards": typeof lib_factionCards;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;

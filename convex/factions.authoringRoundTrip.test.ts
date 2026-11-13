@@ -287,7 +287,7 @@ describe('faction authoring full-field round trip', () => {
       data: createdInput,
       group_id: null,
     });
-    expect(createdRow.slug).toBe('complete-authoring-proof');
+    expect(createdRow.slug).toBe('complete-authoring-proof-original');
     expect(CanonicalFactionStoredObject.parse(createdRow.data)).toEqual(createdInput);
 
     const createdJob = await t.run(
@@ -385,7 +385,7 @@ describe('faction authoring full-field round trip', () => {
       data: editedInput,
     });
 
-    expect(updatedRow.slug).toBe('complete-authoring-proof-revised');
+    expect(updatedRow.slug).toBe('complete-authoring-proof-revised-original');
     const canonicalEditPage = await t.query(api.factions.pageBySlug, {
       slug: updatedRow.slug,
     });
@@ -405,7 +405,7 @@ describe('faction authoring full-field round trip', () => {
       attempt_counter: 0,
       asset_data: {
         factionId: createdRow._id,
-        slug: 'complete-authoring-proof-revised',
+        slug: 'complete-authoring-proof-revised-original',
         faction: {
           name: 'Complete Authoring Proof Revised',
         },

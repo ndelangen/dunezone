@@ -6,6 +6,7 @@ import { slugify } from '../../src/shared/slugify';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
+import { allocateVariantAddress } from './factionAddresses';
 import { parseStoredFactionForRead } from './factionInput';
 
 /** The variant name a faction gets when no live ruleset links it. */
@@ -39,10 +40,10 @@ function sharedData(faction: Doc<'factions'>) {
 /**
  * Mirrored from the family's single variant until a Faction can hold several (#2927).
  * The Group is not: a Faction keeps its own, which starts as its first variant's and then changes only on the Faction (#2910).
+ * Nor is the address: the Faction keeps the one its variant had, and the variant moves to one of its own under it (#2909).
  */
 function mirroredFields(faction: Doc<'factions'>) {
   return {
-    slug: faction.slug,
     data: sharedData(faction),
     owner_id: faction.owner_id,
     is_deleted: faction.is_deleted,
@@ -67,15 +68,19 @@ async function firstVariantName(ctx: Pick<QueryCtx, 'db'>, factionId: Id<'factio
 async function createFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
   const familyId = await ctx.db.insert('faction_families', {
     ...mirroredFields(faction),
+    slug: faction.slug,
     group_id: faction.group_id,
     default_variant_id: faction._id,
     is_open: false,
   });
   const variantName = await firstVariantName(ctx, faction._id);
+  const variantSlug = slugify(variantName) || ORIGINAL_VARIANT_SLUG;
+  /* The faction keeps the address it was made at, and the variant moves under it (#2909). */
   await ctx.db.patch(faction._id, {
     family_id: familyId,
     variant_name: variantName,
-    variant_slug: slugify(variantName) || ORIGINAL_VARIANT_SLUG,
+    variant_slug: variantSlug,
+    slug: await allocateVariantAddress(ctx, faction.slug, faction._id, variantSlug),
   });
 }
 
@@ -108,7 +113,15 @@ export async function syncFactionFamily(ctx: MutationCtx, id: Id<'factions'>, fa
  * Every family field that is not mirrored must be left out here, or each sync would patch it.
  */
 function mirrors(family: Doc<'faction_families'>, fields: ReturnType<typeof mirroredFields>) {
-  const { _id, _creationTime, default_variant_id: _default, is_open: _open, group_id: _group, ...stored } = family;
+  const {
+    _id,
+    _creationTime,
+    default_variant_id: _default,
+    is_open: _open,
+    group_id: _group,
+    slug: _slug,
+    ...stored
+  } = family;
   return canonicalJson(stored) === canonicalJson(fields);
 }
 
