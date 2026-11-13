@@ -1,6 +1,11 @@
 import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
 import { FactionNameSchema } from '@shared/factions/schema';
-import { normalizeInheritedFields, readField, resolveVariantData } from '@shared/factions/variantFields';
+import {
+  normalizeInheritedFields,
+  readField,
+  resolveVariantData,
+  withUniqueMemberIds,
+} from '@shared/factions/variantFields';
 import type { InheritableField } from '@shared/factions/variantFields';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -92,8 +97,9 @@ export function useFactionAuthoring({
   });
 
   /*
-   * A field switched to its parent takes the parent's value at once, so the previews show what the save will store.
-   * Switched back to custom it keeps that value, as the place the author's own edits start from.
+   * A field switched to its parent takes the parent's current value at once, so the previews show what the save will store.
+   * Switched back to custom it starts from the parent's current value too, as the place the author's own edits start from.
+   * A leader that would then share an identity with another gets a fresh one, as the server's save does.
    */
   const draftInheritance: FactionInheritance | undefined = inheritance && {
     parentName: inheritance.parentName,
@@ -101,13 +107,15 @@ export function useFactionAuthoring({
     inherited: inheritedDraft ?? inheritance.saved,
     onChange: (field, followsParent) => {
       const current = inheritedDraft ?? inheritance.saved;
-      setInheritedDraft(
-        normalizeInheritedFields(
-          followsParent ? [...current, field] : current.filter((candidate) => candidate !== field)
-        )
+      const next = normalizeInheritedFields(
+        followsParent ? [...current, field] : current.filter((candidate) => candidate !== field)
       );
-      if (followsParent) {
-        form.setFieldValue(field, readField(inheritance.parent, field) as never);
+      setInheritedDraft(next);
+      form.setFieldValue(field, readField(inheritance.parent, field) as never);
+      if (field === 'factionLeader' || field === 'leaders') {
+        const { factionLeader, leaders } = withUniqueMemberIds(form.state.values as never, next);
+        form.setFieldValue('factionLeader', factionLeader as never);
+        form.setFieldValue('leaders', leaders as never);
       }
     },
   };

@@ -76,7 +76,8 @@ export function resolveVariantData(
   return recalculateFactionComplexity(withUniqueMemberIds(resolved, inherited));
 }
 
-function withUniqueMemberIds(data: StoredFaction, inherited: readonly InheritableField[]): StoredFaction {
+/** A leader that would share its identity with an inherited one gets a fresh identity, since identities are unique within a faction. */
+export function withUniqueMemberIds(data: StoredFaction, inherited: readonly InheritableField[]): StoredFaction {
   if (inherited.includes('leaders')) {
     const taken = new Set(data.leaders.map((leader) => leader.memberId));
     return taken.has(data.factionLeader.memberId)
