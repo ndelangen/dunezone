@@ -562,7 +562,14 @@ function VariantProblemsNotice({ page }: Readonly<{ page: FactionDetailPageData 
   const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
   return (
     <Notice tone="caution">
-      <Accordion>
+      <Accordion
+        classNames={{
+          item: styles.problemsItem,
+          control: styles.problemsControl,
+          label: styles.problemsLabel,
+          content: styles.problemsContent,
+        }}
+      >
         <Accordion.Item value="problems">
           <Accordion.Control>
             <Text inherit truncate>{`${count} since ${parentName} changed`}</Text>

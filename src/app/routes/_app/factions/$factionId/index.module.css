@@ -144,6 +144,41 @@
   aspect-ratio: 1;
 }
 
+/*
+ * The problems notice is one Accordion item inside a Notice, and the Notice is the only box.
+ * The item gives up its divider, its padding and its hover infill, and the control is set as the Alert sets a title.
+ * The colour is the one the Alert gives its own title, so it follows the Notice's tone.
+ */
+.problemsItem {
+  border: 0;
+}
+
+.problemsControl {
+  padding: 0;
+  color: var(--alert-color);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: var(--mantine-font-weight-bold);
+}
+
+.problemsControl:hover,
+.problemsControl:active {
+  background-color: transparent;
+}
+
+/* The Alert clips what leaves its message, so the focus ring is drawn inside the control. */
+.problemsControl:focus-visible {
+  outline-offset: -2px;
+}
+
+.problemsLabel {
+  padding: 0;
+  font-weight: inherit;
+}
+
+.problemsContent {
+  padding: var(--space-xs) 0 0;
+}
+
 @container (width < 48rem) {
   .troopTile {
     flex-basis: 100%;
