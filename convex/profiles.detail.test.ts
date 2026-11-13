@@ -472,7 +472,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(answered.list_details).toMatchObject({
       accepted_answer: { excerpt: 'Accepted explanation from another contributor.' },
       answerers: [{ slug: 'asker' }],
-      references: [{ kind: 'faction', slug: 'atreides', name: 'Atreides' }],
+      references: [{ kind: 'faction', slug: 'atreides-original', name: 'Atreides' }],
     });
     expect(answered.faq_answers).toHaveLength(3);
     expect(answered.ruleset).toEqual({ id: seed.advancedRulesetId, slug: 'advanced', name: 'Advanced' });

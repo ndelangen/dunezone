@@ -763,7 +763,7 @@ describe('collaborative access moderation commands', () => {
       id: ids.factionId,
       data: { ...stored, name: 'Member Renamed Faction', themeColor: '#123456' },
     });
-    expect(renamed).toMatchObject({ slug: 'member-renamed-faction' });
+    expect(renamed).toMatchObject({ slug: 'member-renamed-faction-collaborative-ruleset' });
 
     await expect(member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })).rejects.toThrow(
       'Not authorized'

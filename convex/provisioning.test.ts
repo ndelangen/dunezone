@@ -68,7 +68,7 @@ describe('provisioning ownership remap', () => {
     await t.run(async (ctx) => {
       const faction = await ctx.db
         .query('factions')
-        .withIndex('by_slug', (q) => q.eq('slug', 'house-cloned'))
+        .withIndex('by_slug', (q) => q.eq('slug', 'house-cloned-original'))
         .unique();
       expect(faction?.owner_id).toBe(ownerId);
       expect(faction?.owner_id).not.toBe(prodUserId);

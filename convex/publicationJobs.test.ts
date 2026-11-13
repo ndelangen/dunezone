@@ -81,7 +81,7 @@ describe('Publication save coalescing', () => {
       attempt_counter: 0,
       asset_data: {
         factionId: faction._id,
-        slug: 'publication-proof-revised',
+        slug: 'publication-proof-revised-original',
         faction: { name: 'Publication proof revised' },
       },
     });
@@ -100,7 +100,7 @@ describe('Publication save coalescing', () => {
         attempt_counter: 0,
         asset_data: {
           factionId: faction._id,
-          slug: 'publication-proof',
+          slug: 'publication-proof-original',
           faction: expect.objectContaining({ name: 'Publication proof' }),
         },
       }),
@@ -122,7 +122,7 @@ describe('Publication save coalescing', () => {
         attempt_counter: 0,
         asset_data: {
           factionId: faction._id,
-          slug: 'publication-proof-revised',
+          slug: 'publication-proof-revised-original',
           faction: expect.objectContaining({ name: 'Publication proof revised' }),
         },
       }),

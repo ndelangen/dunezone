@@ -56,9 +56,9 @@ test('the load picker neither names a deleted Group nor counts its memberships',
     return userId;
   });
   const picker = await t.withIdentity({ subject: viewerId }).query(api.factions.listForLoadPicker, {});
-  const live = picker.rows.find((row) => row.slug === 'live-group')!;
+  const live = picker.rows.find((row) => row.slug === 'live-group-original')!;
   expect(live).toMatchObject({ groupLabel: 'live-group' });
-  expect(picker.rows.find((row) => row.slug === 'deleted-group')).toMatchObject({
+  expect(picker.rows.find((row) => row.slug === 'deleted-group-original')).toMatchObject({
     groupId: null,
     groupLabel: 'No group',
   });
@@ -100,6 +100,6 @@ test('the load picker does not name the owner of a deleted account', async () =>
     return viewer;
   });
   const picker = await t.withIdentity({ subject: viewerId }).query(api.factions.listForLoadPicker, {});
-  expect(picker.rows.find((row) => row.slug === 'present')).toMatchObject({ ownerUsername: 'Present' });
-  expect(picker.rows.find((row) => row.slug === 'departed')).toMatchObject({ ownerUsername: null });
+  expect(picker.rows.find((row) => row.slug === 'present-original')).toMatchObject({ ownerUsername: 'Present' });
+  expect(picker.rows.find((row) => row.slug === 'departed-original')).toMatchObject({ ownerUsername: null });
 });

@@ -11,6 +11,7 @@ import type { MutationCtx } from '../_generated/server';
 export const formerSlugValidator = v.object({
   kind: v.union(
     v.literal('faction'),
+    v.literal('faction_family'),
     v.literal('asset'),
     v.literal('group'),
     v.literal('ruleset'),
@@ -21,6 +22,7 @@ export const formerSlugValidator = v.object({
   slug: v.string(),
   record_id: v.union(
     v.id('factions'),
+    v.id('faction_families'),
     v.id('assets'),
     v.id('groups'),
     v.id('rulesets'),

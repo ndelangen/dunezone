@@ -22,3 +22,21 @@ export async function redirectFromFormerAddress(
     });
   }
 }
+
+/**
+ * Moves a page asked for at an address that only leads to its record, such as a faction's own address leading to its default variant (#2909), to the record's own one.
+ * The redirect is temporary, since what such an address leads to can change.
+ */
+export function redirectToOwnAddress(
+  requested: string,
+  own: string,
+  pathname: string,
+  location: Pick<ParsedLocation, 'searchStr' | 'hash'>
+): void {
+  if (requested !== own) {
+    throw redirect({
+      href: pathname + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : ''),
+      statusCode: 302,
+    });
+  }
+}

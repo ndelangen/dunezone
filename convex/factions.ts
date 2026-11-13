@@ -26,11 +26,11 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
+import { allocateFactionAddress, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { loadRelatedFaqPage } from './lib/faqReferences';
-import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
@@ -43,24 +43,23 @@ import {
   enqueueFactionTokenPublication,
   enqueueFactionFaces,
 } from './lib/publication';
-import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
-/**
- * Who holds this address: a living faction, a soft-deleted one whose slug stays reserved, or nobody.
- * `exceptId` is the faction doing the asking, so renaming a faction never trips over its own address.
- */
-async function factionSlugHolder(
-  ctx: QueryCtx,
-  slug: string,
-  exceptId?: Id<'factions'>
-): Promise<'live' | 'deleted' | null> {
-  const existing = await ctx.db
+/** Who holds this address: a living faction or variant, a soft-deleted one whose slug stays reserved, or nobody. */
+async function factionSlugHolder(ctx: QueryCtx, slug: string): Promise<'live' | 'deleted' | null> {
+  const variant = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!existing || existing._id === exceptId) {
+  /* A faction's own address and its variants' share one namespace (#2909). */
+  const existing =
+    variant ??
+    (await ctx.db
+      .query('faction_families')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first());
+  if (!existing) {
     return null;
   }
   return existing.is_deleted ? 'deleted' : 'live';
@@ -73,34 +72,32 @@ export const slugTaken = publicQuery({
   handler: async (ctx, args) => (args.slug === 'create' ? null : await factionSlugHolder(ctx, args.slug)),
 });
 
-async function resolveFactionSlug(ctx: MutationCtx, name: string, own?: Doc<'factions'>) {
-  const base = slugify(name);
-  /* Keep existing suffixes on ordinary saves, including after the plain address becomes free. */
-  if (own && slugify(own.data.name) === base && own.slug !== 'create') {
-    return own.slug;
-  }
-  return await allocateCounterSlug(ctx, `faction-slug:${JSON.stringify([base])}`, base, async (slug) => {
-    if (slug === 'create') {
-      return false;
-    }
-    return (await factionSlugHolder(ctx, slug, own?._id)) === null;
-  });
-}
-
 function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
 }
 
-/** The faction row a page is for: live, or NOT_FOUND. */
+/**
+ * The variant a page is for: live, or NOT_FOUND.
+ * A faction's own address answers with its default variant, whose own address the page then moves to (#2909).
+ */
 async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
-  const row = await ctx.db
-    .query('factions')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
+  const row =
+    (await ctx.db
+      .query('factions')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()) ?? (await defaultVariantAt(ctx, slug));
   if (!row || row.is_deleted) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
   return row;
+}
+
+async function defaultVariantAt(ctx: QueryCtx, slug: string) {
+  const family = await ctx.db
+    .query('faction_families')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .first();
+  return family && !family.is_deleted ? await ctx.db.get('factions', family.default_variant_id) : null;
 }
 
 /** Faction detail page bundle (view, edit, and sheet preview): the same for every viewer. */
@@ -429,7 +426,7 @@ export const create = mutation({
 
     const data = factionInputForWrite(args.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, []);
-    const slug = await resolveFactionSlug(ctx, data.name);
+    const slug = await allocateFactionAddress(ctx, slugify(data.name));
 
     const now = nowIso();
     const _id = await ctx.db.insert('factions', {
@@ -461,15 +458,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { data, ...access } = await requireFactionSave(ctx, args.id, args.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
-    const slug = await resolveFactionSlug(ctx, data.name, access.subject);
-    if (slug !== access.subject.slug) {
-      await recordFormerSlug(ctx, {
-        kind: 'faction',
-        scope: '',
-        slug: access.subject.slug,
-        record_id: access.subject._id,
-      });
-    }
+    const slug = await variantAddressAfterSave(ctx, access.subject, data.name);
 
     await ctx.db.patch(access.subject._id, {
       data,
