@@ -16,27 +16,28 @@ export async function redirectFromFormerAddress(
 ): Promise<void> {
   const pathname = await loadCurrentAddress(address);
   if (pathname) {
-    throw redirect({
-      href: pathname + suffix + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : ''),
-      statusCode: 301,
-    });
+    throw redirect({ href: withLocation(pathname + suffix, location), statusCode: 301 });
   }
 }
 
 /**
- * Moves a page asked for at an address that only leads to its record, such as a faction's own address leading to its default variant (#2909), to the record's own one.
+ * Moves a faction page asked for at an address that only leads to its variant, such as the faction's own address leading to its default variant (#2909), to the variant's own one.
  * The redirect is temporary, since what such an address leads to can change.
  */
-export function redirectToOwnAddress(
+export function redirectToOwnFactionAddress(
   requested: string,
-  own: string,
-  pathname: string,
-  location: Pick<ParsedLocation, 'searchStr' | 'hash'>
+  ownSlug: string,
+  location: Pick<ParsedLocation, 'searchStr' | 'hash'>,
+  suffix = ''
 ): void {
-  if (requested !== own) {
+  if (requested !== ownSlug) {
     throw redirect({
-      href: pathname + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : ''),
+      href: withLocation(`/factions/${encodeURIComponent(ownSlug)}${suffix}`, location),
       statusCode: 302,
     });
   }
+}
+
+function withLocation(pathname: string, location: Pick<ParsedLocation, 'searchStr' | 'hash'>) {
+  return pathname + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : '');
 }

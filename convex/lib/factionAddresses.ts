@@ -1,6 +1,6 @@
 import { slugify } from '../../src/shared/slugify';
 import type { Doc, Id } from '../_generated/dataModel';
-import type { MutationCtx } from '../_generated/server';
+import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { recordFormerSlug } from './formerSlugs';
 import { allocateCounterSlug } from './slugCounters';
 
@@ -14,6 +14,26 @@ import { allocateCounterSlug } from './slugCounters';
 /** The records an address may already belong to without being taken: the faction and variant asking for it. */
 type Own = { factionId?: Id<'factions'>; familyId?: Id<'faction_families'> };
 
+type Reader = Pick<QueryCtx, 'db'>;
+
+/** The faction that holds this address as its own, live or deleted. */
+export async function familyAt(ctx: Reader, slug: string) {
+  return await ctx.db
+    .query('faction_families')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .first();
+}
+
+/** The variant a faction's own address leads to: its default one, while both are live. */
+export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_families'> | null) {
+  const variant = family && !family.is_deleted ? await ctx.db.get('factions', family.default_variant_id) : null;
+  return variant && !variant.is_deleted ? variant : null;
+}
+
+async function familyOf(ctx: Reader, faction: Doc<'factions'>) {
+  return faction.family_id ? await ctx.db.get(faction.family_id) : null;
+}
+
 async function addressFree(ctx: MutationCtx, slug: string, own: Own) {
   if (slug === 'create') {
     return false;
@@ -25,10 +45,7 @@ async function addressFree(ctx: MutationCtx, slug: string, own: Own) {
   if (variant && variant._id !== own.factionId) {
     return false;
   }
-  const family = await ctx.db
-    .query('faction_families')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .first();
+  const family = await familyAt(ctx, slug);
   return !family || family._id === own.familyId;
 }
 
@@ -42,26 +59,23 @@ export async function allocateFactionAddress(ctx: MutationCtx, base: string, own
 /** A free address for the variant under its faction's. */
 export async function allocateVariantAddress(
   ctx: MutationCtx,
-  family: Doc<'faction_families'>,
-  faction: Doc<'factions'>,
+  familySlug: string,
+  factionId: Id<'factions'>,
   variantSlug: string
 ) {
-  return await allocateFactionAddress(ctx, `${family.slug}-${variantSlug}`, {
-    factionId: faction._id,
-    familyId: family._id,
-  });
+  return await allocateFactionAddress(ctx, `${familySlug}-${variantSlug}`, { factionId });
 }
 
 /** The variant's family and its own slug, once the variant has both. */
 async function placeInFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
+  const family = await familyOf(ctx, faction);
   return family && faction.variant_slug ? { family, variantSlug: faction.variant_slug } : null;
 }
 
 type PlaceInFamily = NonNullable<Awaited<ReturnType<typeof placeInFamily>>>;
 
 /**
- * Moves a variant that still answers at its faction's own address to an address of its own.
+ * Moves a variant that still answers at its faction's own address to an address of its own, for factions made before variants had addresses.
  * The faction keeps the old address and leads it to its default variant, so no link breaks and nothing is recorded.
  * Rerunning it on a variant that already moved writes nothing.
  */
@@ -71,7 +85,7 @@ export async function moveToVariantAddress(ctx: MutationCtx, faction: Doc<'facti
     return;
   }
   await ctx.db.patch(faction._id, {
-    slug: await allocateVariantAddress(ctx, place.family, faction, place.variantSlug),
+    slug: await allocateVariantAddress(ctx, place.family.slug, faction._id, place.variantSlug),
   });
 }
 
@@ -82,14 +96,16 @@ export async function moveToVariantAddress(ctx: MutationCtx, faction: Doc<'facti
  */
 export async function variantAddressAfterSave(ctx: MutationCtx, faction: Doc<'factions'>, name: string) {
   const base = slugify(name);
-  if (slugify((faction.data as { name: string }).name) === base && faction.slug !== 'create') {
+  if (slugify(faction.data.name) === base && faction.slug !== 'create') {
     return faction.slug;
   }
   const place = await placeInFamily(ctx, faction);
   const slug = place
     ? await renameFamily(ctx, place, faction, base)
     : await allocateFactionAddress(ctx, base, { factionId: faction._id });
-  await recordFormerSlug(ctx, { kind: 'faction', scope: '', slug: faction.slug, record_id: faction._id });
+  if (slug !== faction.slug) {
+    await recordFormerSlug(ctx, { kind: 'faction', scope: '', slug: faction.slug, record_id: faction._id });
+  }
   return slug;
 }
 
@@ -101,14 +117,16 @@ async function renameFamily(
   base: string
 ) {
   const familySlug = await allocateFactionAddress(ctx, base, { familyId: family._id, factionId: faction._id });
-  await recordFormerSlug(ctx, { kind: 'faction_family', scope: '', slug: family.slug, record_id: family._id });
-  await ctx.db.patch(family._id, { slug: familySlug });
-  return await allocateVariantAddress(ctx, { ...family, slug: familySlug }, faction, variantSlug);
+  if (familySlug !== family.slug) {
+    await recordFormerSlug(ctx, { kind: 'faction_family', scope: '', slug: family.slug, record_id: family._id });
+    await ctx.db.patch(family._id, { slug: familySlug });
+  }
+  return await allocateVariantAddress(ctx, familySlug, faction._id, variantSlug);
 }
 
 /** Throws unless the variant answers at an address of its own under its faction's. */
-export async function assertVariantAddress(ctx: Pick<MutationCtx, 'db'>, faction: Doc<'factions'>) {
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
+export async function assertVariantAddress(ctx: Reader, faction: Doc<'factions'>) {
+  const family = await familyOf(ctx, faction);
   if (!family || !faction.slug.startsWith(`${family.slug}-`)) {
     throw new Error(`Faction ${faction._id} has no address of its own under its family's`);
   }

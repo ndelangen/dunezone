@@ -6,7 +6,7 @@ import { slugify } from '../../src/shared/slugify';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
-import { moveToVariantAddress } from './factionAddresses';
+import { allocateVariantAddress } from './factionAddresses';
 import { parseStoredFactionForRead } from './factionInput';
 
 /** The variant name a faction gets when no live ruleset links it. */
@@ -74,12 +74,14 @@ async function createFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
     is_open: false,
   });
   const variantName = await firstVariantName(ctx, faction._id);
+  const variantSlug = slugify(variantName) || ORIGINAL_VARIANT_SLUG;
+  /* The faction keeps the address it was made at, and the variant moves under it (#2909). */
   await ctx.db.patch(faction._id, {
     family_id: familyId,
     variant_name: variantName,
-    variant_slug: slugify(variantName) || ORIGINAL_VARIANT_SLUG,
+    variant_slug: variantSlug,
+    slug: await allocateVariantAddress(ctx, faction.slug, faction._id, variantSlug),
   });
-  await moveToVariantAddress(ctx, (await ctx.db.get(faction._id))!);
 }
 
 /**

@@ -3,6 +3,7 @@ import type { Infer } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { publicQuery } from './functions';
+import { familyAt, liveDefaultVariant } from './lib/factionAddresses';
 import type { QueryCtx } from './types';
 
 const addressValidator = v.union(
@@ -73,12 +74,6 @@ async function rulebookAt(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slug: string
   return await liveAt(holder, () => formerRecord(ctx, 'rulebooks', 'rulebook', rulesetId, slug));
 }
 
-/** The variant a faction's own address leads to: its default one, while both are live. */
-async function defaultVariant(ctx: QueryCtx, family: Doc<'faction_families'> | null) {
-  const variant = family && !family.is_deleted ? await ctx.db.get('factions', family.default_variant_id) : null;
-  return variant && !variant.is_deleted ? variant : null;
-}
-
 /**
  * The variant a `/factions/` address leads to (#2909).
  * A variant's own address and a faction's share one namespace, so at most one current holder answers;
@@ -92,15 +87,14 @@ async function factionAt(ctx: QueryCtx, slug: string) {
   if (holder) {
     return holder.is_deleted ? null : holder;
   }
-  const family = await ctx.db
-    .query('faction_families')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .first();
+  const family = await familyAt(ctx, slug);
   if (family) {
-    return await defaultVariant(ctx, family);
+    return await liveDefaultVariant(ctx, family);
   }
   const former = await formerRecord(ctx, 'factions', 'faction', '', slug);
-  return former ?? (await defaultVariant(ctx, await formerRecord(ctx, 'faction_families', 'faction_family', '', slug)));
+  return (
+    former ?? (await liveDefaultVariant(ctx, await formerRecord(ctx, 'faction_families', 'faction_family', '', slug)))
+  );
 }
 
 async function assetAt(ctx: QueryCtx, type: string, slug: string) {

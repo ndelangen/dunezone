@@ -34,7 +34,7 @@ import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail } from '@d
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
-import { redirectFromFormerAddress, redirectToOwnAddress } from '@app/routes/formerAddress';
+import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { detailError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -63,8 +63,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
       await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location);
       throw notFound();
     }
-    const own = page.faction.slug;
-    redirectToOwnAddress(params.factionId, own, `/factions/${encodeURIComponent(own)}`, location);
+    redirectToOwnFactionAddress(params.factionId, page.faction.slug, location);
     return page;
   },
   pendingComponent: FactionDetailPending,

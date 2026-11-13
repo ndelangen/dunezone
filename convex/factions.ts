@@ -26,7 +26,7 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { allocateFactionAddress, variantAddressAfterSave } from './lib/factionAddresses';
+import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
@@ -53,12 +53,7 @@ async function factionSlugHolder(ctx: QueryCtx, slug: string): Promise<'live' | 
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
   /* A faction's own address and its variants' share one namespace (#2909). */
-  const existing =
-    variant ??
-    (await ctx.db
-      .query('faction_families')
-      .withIndex('by_slug', (q) => q.eq('slug', slug))
-      .first());
+  const existing = variant ?? (await familyAt(ctx, slug));
   if (!existing) {
     return null;
   }
@@ -85,19 +80,11 @@ async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
     (await ctx.db
       .query('factions')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
-      .unique()) ?? (await defaultVariantAt(ctx, slug));
+      .unique()) ?? (await liveDefaultVariant(ctx, await familyAt(ctx, slug)));
   if (!row || row.is_deleted) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
   return row;
-}
-
-async function defaultVariantAt(ctx: QueryCtx, slug: string) {
-  const family = await ctx.db
-    .query('faction_families')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .first();
-  return family && !family.is_deleted ? await ctx.db.get('factions', family.default_variant_id) : null;
 }
 
 /** Faction detail page bundle (view, edit, and sheet preview): the same for every viewer. */
