@@ -91,17 +91,6 @@ function withUniqueMemberIds(data: StoredFaction, inherited: readonly Inheritabl
   };
 }
 
-/** Whether every inherited field already holds its parent's value. */
-export function followsParent(
-  parent: StoredFaction,
-  child: StoredFaction,
-  inherited: readonly InheritableField[]
-): boolean {
-  return inherited.every(
-    (field) => JSON.stringify(readField(parent, field)) === JSON.stringify(readField(child, field))
-  );
-}
-
 /**
  * What a save would refuse in the variant's resolved data, in words for its page (#2908).
  * A parent's change still reaches the variant;
