@@ -158,6 +158,8 @@
   color: var(--alert-color);
   font-size: var(--mantine-font-size-sm);
   font-weight: var(--mantine-font-weight-bold);
+  /* The Alert's own line height, so the title sits level with the glyph and the chevron. */
+  line-height: var(--mantine-line-height);
 }
 
 .problemsControl:hover,
