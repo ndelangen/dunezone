@@ -60,7 +60,8 @@ export const SolidSoftSubtle = meta.story({
 
 /**
  * A background shown to someone who may not change it, such as a Faction's background to a maintainer of one variant.
- * Every control that edits it is disabled; a layer card still opens, to show what the layer holds.
+ * Every control that edits it is disabled;
+ * a layer card still opens, to show what the layer holds.
  */
 export const ReadOnly = meta.story({
   args: {

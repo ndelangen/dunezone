@@ -30,7 +30,13 @@ import { Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactionAccess } from '@db/factions';
+import {
+  isFactionNotFound,
+  loadPublicFactionDetail,
+  useFactionDetail,
+  useFactionAccess,
+  useFactionSharedFieldsAccess,
+} from '@db/factions';
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
@@ -422,11 +428,14 @@ function FactionDetailContent({
 }) {
   const navigate = Route.useNavigate();
   const { resolved, viewerAccess } = useFactionAccess(page);
+  const sharedFields = useFactionSharedFieldsAccess(page);
   const { faction, owner, assetPublishing } = page;
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
-  const canEdit = settled && viewerAccess.capabilities.edit;
+  /* The editor opens for the variant's maintainers and for the Faction's, who keep its shared fields there. */
+  const maintains = viewerAccess.capabilities.edit || sharedFields.canEdit;
+  const canEdit = settled && maintains;
   const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';

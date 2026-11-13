@@ -10,6 +10,7 @@ import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { ListOrdered, PackagePlus, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -31,7 +32,6 @@ import { FactionFormSectionComplexity } from './FactionFormSectionComplexity';
 import { FactionExtrasProof, FactionFormSectionExtras } from './FactionFormSectionExtras';
 import { FactionFormSectionFactionLeader } from './FactionFormSectionFactionLeader';
 import { FactionFormSectionIdentity } from './FactionFormSectionIdentity';
-import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import { FactionFormSectionLeaders } from './FactionFormSectionLeaders';
 import type { StrengthRefusalProps } from './FactionFormSectionLeaders';
 import { FactionFormSectionPhases, phaseRowLabel } from './FactionFormSectionPhases';
@@ -42,6 +42,11 @@ import type { FactionFormApi } from './factionFormTypes';
 import { FactionPhaseSequence } from './FactionPhaseSequence';
 
 export type { FactionFormApi } from './factionFormTypes';
+
+/**
+ * Which side of the faction the page's viewer may change: the fields its Faction shares with every variant, and the rest, which belongs to this variant.
+ */
+export type FactionEditRights = { shared: boolean; variant: boolean };
 
 export interface FactionFormFieldsHandle {
   focusWarning: (warning: FactionAuthoringWarning) => void;
@@ -449,7 +454,13 @@ export const FactionFormFields = forwardRef<
     form: FactionFormApi;
     warnings: FactionAuthoringWarning[];
     nameError?: string;
-    nameField?: FactionIdentityNameField;
+    /** Heads the Faction chapter: that its fields are shared by every variant, or who may change them. */
+    factionNotice?: ReactNode;
+    /**
+     * Without the shared right the Faction chapter's controls are disabled.
+     * Without the variant right the rail holds the Faction chapter alone, since nothing in the others is the viewer's to change.
+     */
+    rights?: FactionEditRights;
     /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
     onSettle?: () => void;
     /** The background composer's colour-mode memory, owned by the authoring session so a Reset discards it. */
@@ -464,7 +475,8 @@ export const FactionFormFields = forwardRef<
     form,
     warnings,
     nameError,
-    nameField,
+    factionNotice,
+    rights = { shared: true, variant: true },
     onSettle,
     backgroundModeMemory,
     onBackgroundModeMemoryChange,
@@ -501,11 +513,13 @@ export const FactionFormFields = forwardRef<
     <>
       {chapter === 'identity' ? (
         <>
-          <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
+          {factionNotice}
+          <FactionFormSectionIdentity form={form} nameError={nameError} showIntro={false} disabled={!rights.shared} />
           <FactionFormSectionBackground
             form={form}
             modeMemory={backgroundModeMemory}
             onModeMemoryChange={onBackgroundModeMemoryChange}
+            disabled={!rights.shared}
           />
         </>
       ) : null}
@@ -564,7 +578,12 @@ export const FactionFormFields = forwardRef<
     </>
   );
 
-  const connectedTabItems = factionAuthoringChapters.map((chapter) => {
+  const chapters = rights.variant
+    ? factionAuthoringChapters
+    : factionAuthoringChapters.filter((chapter) => chapter.id === 'identity');
+  /* A warning may name a chapter the rail does not hold; the Faction chapter stays open then. */
+  const shownChapter = rights.variant ? activeChapter : 'identity';
+  const connectedTabItems = chapters.map((chapter) => {
     const chapterWarnings = forChapter(chapter.id);
     return {
       value: chapter.id,
@@ -594,7 +613,7 @@ export const FactionFormFields = forwardRef<
     <div className={styles.workbench} onBlur={() => onSettle?.()}>
       <ConnectedTabs
         className={styles.connectedTabs}
-        value={activeChapter}
+        value={shownChapter}
         onValueChange={(chapter) => {
           setActiveChapter(chapter);
           onSettle?.();
@@ -604,7 +623,7 @@ export const FactionFormFields = forwardRef<
       />
       <Box className={styles.artifactColumn}>
         <ArtifactProof
-          activeChapter={activeChapter}
+          activeChapter={shownChapter}
           form={form}
           selectedItem={selectedItem}
           troopSide={troopSideByIndex}

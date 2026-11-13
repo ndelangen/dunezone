@@ -74,7 +74,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue('');
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
     await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription(/Unsaved changes/);
 
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
@@ -86,7 +86,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
   await test.step('warning focus, name blocking, review, and artifact proof use the loaded draft', async () => {
     await loadFactionDraft(page, factionBName);
 
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await expect(page.getByRole('button', { name: /^Faction identity:/ })).toHaveCount(0);
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
@@ -96,7 +96,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(factionLeaderName).toBeFocused();
     await factionLeaderName.fill(importedLeaderName);
 
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
@@ -151,7 +151,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
      */
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
 
     const savedFactionName = page.getByRole('textbox', { name: 'Faction name' });
     await savedFactionName.fill(`${factionAName} local`);
@@ -183,7 +183,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     /* The section tabs collapse to the picker so the preview can stay beside the form. */
     const sections = page.getByRole('combobox', { name: 'Faction editor sections' });
-    await expect(sections).toContainText('Identity & Appearance');
+    await expect(sections).toContainText('Faction');
     const preview = page.getByRole('region', { name: 'Background composite live preview' });
     await expect(preview).toBeVisible();
     const sectionsBounds = await sections.boundingBox();
