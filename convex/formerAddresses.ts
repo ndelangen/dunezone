@@ -77,7 +77,7 @@ async function rulebookAt(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slug: string
 /**
  * The variant a `/factions/` address leads to (#2909).
  * A variant's own address and a faction's share one namespace, so at most one current holder answers;
- * only when neither does are the renames away from it followed, the variant's first.
+ * only when neither does are the renames away from it followed: a variant's former address first, then a faction's.
  */
 async function factionAt(ctx: QueryCtx, slug: string) {
   const holder = await ctx.db

@@ -7,6 +7,12 @@ import type { MutationCtx } from '../_generated/server';
  * One address a record left when a rename moved it.
  * `scope` is what the slug is unique within: the Asset type the address used, the Ruleset for a Rulebook, and nothing for the global kinds.
  * The row names the record rather than its new slug, so a later rename still resolves the old address to the record's current one.
+ *
+ * Two kinds cover `/factions/` addresses:
+ * `faction` is a variant's own former address (`atreides-original`) and names that variant;
+ * `faction_family` is a faction's former address (`atreides`) and names the faction itself,
+ * so the old link leads to whichever variant is its default today, and stays with the faction
+ * when the default changes or a variant is deleted or moved to another faction.
  */
 export const formerSlugValidator = v.object({
   kind: v.union(
