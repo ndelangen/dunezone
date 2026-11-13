@@ -2,6 +2,7 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -596,4 +597,43 @@ test('only a signed-in reader learns which sign-in methods are connected, for si
   expect(
     await t.withIdentity({ subject: `${reader.userId}|${reader.sessionId}` }).query(api.accounts.connectedMethods, {})
   ).toEqual(['google']);
+});
+
+test('a merge hands the merged account’s factions to the kept account, even where another variant is the default', async () => {
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  const source = await account(t, 'source', 'discord');
+  const target = await account(t, 'target', 'google', true);
+  const familyId = await t.run(async (raw) => {
+    const ctx = applicationTriggers.wrapDB(raw);
+    const factionId = await ctx.db.insert('factions', {
+      owner_id: source.userId,
+      data: { ...assetPublishingFaction, name: 'Merged faction' },
+      slug: 'merged-faction',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_deleted: false,
+      group_id: null,
+    });
+    const familyId = (await ctx.db.get(factionId))!.family_id!;
+    /* A variant someone else owns as the default: the faction's owner no longer follows it. */
+    const otherId = await ctx.db.insert('factions', {
+      owner_id: target.userId,
+      data: { ...assetPublishingFaction, name: 'Merged faction' },
+      slug: 'merged-faction-other',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_deleted: false,
+      group_id: null,
+      family_id: familyId,
+      variant_name: 'Other',
+      variant_slug: 'other',
+    });
+    await ctx.db.patch(familyId, { default_variant_id: otherId });
+    return familyId;
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  expect(await t.run(async (ctx) => (await ctx.db.get(familyId))?.owner_id)).toBe(target.userId);
 });

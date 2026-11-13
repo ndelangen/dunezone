@@ -19,6 +19,7 @@ import { docValidator, pickableProfileValidator } from './lib/collaborativeAcces
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS, directOwnershipKindValidator } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
+import { firstLiveVariant } from './lib/factionFamilies';
 import { pickableProfileForUser } from './lib/groupInvitations';
 import type { PickableProfile } from './lib/groupInvitations';
 import { queueHomepageBanCutoff } from './lib/homepageBanCutoff';
@@ -771,6 +772,48 @@ async function applyItem(
   await ctx.db.patch(item._id, { state: 'applied', updated_at: nowIso() });
 }
 
+/**
+ * The account a Faction passes to when its owner leaves: the owner of its first live variant, in variant order, whose account is active, else the replacement owner (#2928).
+ * Null when neither exists, and the Faction is then deleted with the rest of the account's content.
+ */
+async function nextFactionOwner(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  family: Doc<'faction_families'>
+) {
+  const variant = await firstLiveVariant(ctx, family, async ({ owner_id }) => {
+    const owner = owner_id === operation.source_user_id ? null : await ctx.db.get('users', owner_id);
+    return !!owner && accountStateOf(owner) === 'active';
+  });
+  return variant?.owner_id ?? operation.replacement_user_id;
+}
+
+/**
+ * Hands on the Factions the account owns, after its variants have gone to the replacement or been deleted, so the Faction follows them.
+ * Without a replacement only the live Factions move, as only live content is deleted;
+ * with one, deleted Factions pass on too, as every owned record does.
+ * Each Faction handed on leaves the range read, so the next pass reads the next one.
+ * True once none is left.
+ */
+async function handOverFactions(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>) {
+  const replacement = operation.replacement_user_id;
+  const families = await ctx.db
+    .query('faction_families')
+    .withIndex('by_owner_deleted', (q) => {
+      const owner = q.eq('owner_id', operation.source_user_id);
+      return replacement ? owner : owner.eq('is_deleted', false);
+    })
+    .take(APPLY_BATCH_SIZE);
+  for (const family of families) {
+    const owner = family.is_deleted ? replacement : await nextFactionOwner(ctx, operation, family);
+    await ctx.db.patch(family._id, owner ? { owner_id: owner } : { is_deleted: true });
+    if (!hasApplyHeadroom(await ctx.meta.getTransactionMetrics())) {
+      return false;
+    }
+  }
+  return families.length < APPLY_BATCH_SIZE;
+}
+
 function hasApplyHeadroom(metrics: Awaited<ReturnType<MutationCtx['meta']['getTransactionMetrics']>>) {
   return (
     metrics.bytesRead.remaining > TRANSACTION_RESERVE.bytesRead &&
@@ -901,7 +944,7 @@ export const applyBatch = internalMutation({
       .query('account_deletion_items')
       .withIndex('by_operation_state', (q) => q.eq('operation_id', operation._id).eq('state', 'captured'))
       .take(1);
-    if (remainingItems.length > 0) {
+    if (remainingItems.length > 0 || !(await handOverFactions(ctx, operation))) {
       await ctx.db.patch(operation._id, { phase: 'applying', updated_at: nowIso() });
       return { next: 'apply' as const };
     }
@@ -1022,9 +1065,24 @@ async function restoreRecord(
     return;
   }
   await ctx.db.patch(record._id, { is_deleted: false, updated_at: nowIso() });
+  if (item.kind === 'faction') {
+    await restoreFactionFamily(ctx, operation, record as Doc<'factions'>);
+  }
   if (item.kind === 'asset') {
     await refreshTokenEmbeddings(ctx, record as Doc<'assets'>);
     await refreshReturningCard(ctx, record as Doc<'assets'>);
+  }
+}
+
+/** A variant that comes back brings back the Faction the deletion took with it: one the account still owns, deleted while the variant was live. */
+async function restoreFactionFamily(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>,
+  variant: Doc<'factions'>
+) {
+  const family = variant.family_id ? await ctx.db.get('faction_families', variant.family_id) : null;
+  if (family?.is_deleted && family.owner_id === operation.source_user_id) {
+    await ctx.db.patch(family._id, { is_deleted: false });
   }
 }
 

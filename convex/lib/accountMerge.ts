@@ -209,6 +209,18 @@ async function moveFactions(ctx: MutationCtx, operation: Doc<'account_merge_oper
   });
 }
 
+/** The Factions the source owns, which no longer follow their default variant's owner (#2928). */
+async function moveFactionFamilies(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const rows = await ctx.db
+    .query('faction_families')
+    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', operation.source_user_id))
+    .take(BATCH);
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { owner_id: operation.target_user_id });
+  }
+  return rows.length;
+}
+
 async function moveAssets(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
@@ -508,6 +520,7 @@ const MERGE_BATCHES = [
   moveAuthAccounts,
   revokeSourceSessions,
   moveLinkedAccountProfiles,
+  moveFactionFamilies,
 ] as const;
 
 /** Every phase drains an indexed source range, so retries need no cursor and never repeat user-visible writes. */
