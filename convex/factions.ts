@@ -14,6 +14,7 @@ import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   liveGroupOrNull,
+  loadFactionFamilyAccess,
   requireFactionSoftDelete,
   requireFactionSave,
   requireGroupReassignment,
@@ -500,6 +501,13 @@ export const setGroup = mutation({
   },
 });
 
+/**
+ * Deletes a variant;
+ * its owner alone may.
+ * Were it the default, the Faction's next live variant becomes the default in this same transaction (#2928).
+ * Deleting the last live variant deletes the Faction too, when the one deleting it owns the Faction;
+ * otherwise the Faction stays for its owner to delete.
+ */
 export const softDelete = mutation({
   args: { id: v.id('factions') },
   handler: async (ctx, args) => {
@@ -509,5 +517,17 @@ export const softDelete = mutation({
       is_deleted: true,
       updated_at: nowIso(),
     });
+    await deleteEmptiedFamily(ctx, access.subject.family_id);
   },
 });
+
+/** Deletes the Faction once it holds no live variant, if the viewer is the one who may delete it. */
+async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'> | undefined) {
+  const family = familyId ? await ctx.db.get(familyId) : null;
+  if (!family || family.is_deleted || (await liveDefaultVariant(ctx, family))) {
+    return;
+  }
+  if ((await loadFactionFamilyAccess(ctx, family)).capabilities.delete) {
+    await ctx.db.patch(family._id, { is_deleted: true });
+  }
+}

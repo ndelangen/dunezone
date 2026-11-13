@@ -344,7 +344,8 @@ export default defineSchema({
   /**
    * A Faction family: the faction the catalogue shows, holding what its variants share (#2925).
    * Every `factions` row is one variant of a family.
-   * While each family has a single variant, a trigger on that variant mirrors its owner, deletion and shared fields here;
+   * A trigger on the default variant mirrors its shared fields and `updated_at` here;
+   * the owner, Group, deletion, default, order and opening are the Faction's own (#2910, #2928).
    * `slug` is the faction's own address, which leads to its default variant, and shares one namespace with the variants' addresses (#2909).
    * `data` is null while the variant's stored data does not parse, as with its card.
    */
@@ -356,12 +357,19 @@ export default defineSchema({
     default_variant_id: v.id('factions'),
     /** Whether people other than the faction's maintainers may add variants. Every family starts closed. */
     is_open: v.boolean(),
+    /**
+     * The order its maintainers gave the variants (#2928).
+     * Listings put the default variant first, then these, then any variant the order does not name, oldest first;
+     * absent until the order is first set.
+     */
+    variant_order: v.optional(v.array(v.id('factions'))),
     is_deleted: v.boolean(),
     created_at: v.string(),
     updated_at: v.string(),
   })
     .index('by_default_variant', ['default_variant_id'])
-    .index('by_slug', ['slug']),
+    .index('by_slug', ['slug'])
+    .index('by_owner_deleted', ['owner_id', 'is_deleted']),
   /**
    * Community assets, one table for every Asset category (cards, decks, tokens, boards).
    * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);
