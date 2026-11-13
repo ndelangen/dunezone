@@ -47,6 +47,54 @@ describe('a faction’s variant order, default and deletion (#2928)', () => {
     expect((await t.query(api.factions.pageBySlug, { slug: 'atreides' })).faction._id).toBe(second.id);
   });
 
+  test('the switcher gives each variant the live rulesets it is linked to, with their cover thumbs', async () => {
+    const { t, root, addVariant } = await variantsFixture();
+    const dreamrules = await addVariant('Dreamrules');
+    const unlinked = await addVariant('Unlinked');
+    const ownerId = (await t.run(async (ctx) => await ctx.db.get(root._id)))!.owner_id;
+    const ruleset = (name: string, cover: { image_cover: string | null; is_deleted?: boolean }) =>
+      t.run(
+        async (ctx) =>
+          await ctx.db.insert('rulesets', {
+            name,
+            slug: name.toLowerCase().replaceAll(' ', '-'),
+            about: '',
+            created_at: '2026-11-13T00:00:00.000Z',
+            updated_at: '2026-11-13T00:00:00.000Z',
+            owner_id: ownerId,
+            group_id: null,
+            is_deleted: false,
+            ...cover,
+          })
+      );
+    const base = await ruleset('Base game', { image_cover: 'https://covers.example/base.webp' });
+    const house = await ruleset('House rules', { image_cover: null });
+    const retired = await ruleset('Retired rules', { image_cover: null, is_deleted: true });
+    await t.run(async (ctx) => {
+      await ctx.db.insert('ruleset_factions', { ruleset_id: base, faction_id: root._id, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: house, faction_id: dreamrules.id, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: base, faction_id: dreamrules.id, position: 1 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: retired, faction_id: dreamrules.id, position: 0 });
+    });
+
+    /* Every variant's page gets the same answer, whichever one asks. */
+    const switcher = await t.query(api.factionVariants.switcher, { faction_id: unlinked.id });
+    expect(switcher?.variants.map((variant) => [variant.name, variant.rulesets])).toEqual([
+      [
+        'Original',
+        [{ id: base, name: 'Base game', slug: 'base-game', coverThumbUrl: 'https://covers.example/base.webp' }],
+      ],
+      [
+        'Dreamrules',
+        [
+          { id: house, name: 'House rules', slug: 'house-rules', coverThumbUrl: null },
+          { id: base, name: 'Base game', slug: 'base-game', coverThumbUrl: 'https://covers.example/base.webp' },
+        ],
+      ],
+      ['Unlinked', []],
+    ]);
+  });
+
   test('the order and the default name only this faction’s variants, and the default only a live one', async () => {
     const { owner, root, addVariant, familyId } = await variantsFixture();
     const gone = await addVariant('Gone');

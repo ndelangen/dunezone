@@ -7,6 +7,7 @@ import { internalMutation, mutation, publicQuery, viewerQuery } from './function
 import { loadCollaborativeAccess, loadFactionFamilyAccess } from './lib/collaborativeAccess';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { allocateFactionAddress } from './lib/factionAddresses';
+import { listFactionRulesetCovers } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { liveVariantsInOrder, ORIGINAL_VARIANT_NAME, variantsOf } from './lib/factionFamilies';
 import { parseStoredFactionForRead } from './lib/factionInput';
@@ -77,6 +78,7 @@ async function familyOf(ctx: QueryCtx, variant: Doc<'factions'>) {
 
 /**
  * The variant switcher on a variant's page (#2928): its Faction's live variants in variant order, the default first, each with the address its page lives at.
+ * Each variant carries the live rulesets it is linked to, with their cover thumbs, so a reader sees where each one is played.
  * The same for every viewer;
  * `isOpen` tells the page whether anyone signed in may add a variant.
  * Null for an unknown or deleted variant, or one whose Faction is deleted.
@@ -90,7 +92,21 @@ export const switcher = publicQuery({
       familySlug: v.string(),
       isOpen: v.boolean(),
       defaultVariantId: v.id('factions'),
-      variants: v.array(v.object({ _id: v.id('factions'), name: v.string(), slug: v.string() })),
+      variants: v.array(
+        v.object({
+          _id: v.id('factions'),
+          name: v.string(),
+          slug: v.string(),
+          rulesets: v.array(
+            v.object({
+              id: v.id('rulesets'),
+              name: v.string(),
+              slug: v.string(),
+              coverThumbUrl: v.union(v.string(), v.null()),
+            })
+          ),
+        })
+      ),
     })
   ),
   handler: async (ctx, args) => {
@@ -105,7 +121,14 @@ export const switcher = publicQuery({
       familySlug: family.slug,
       isOpen: family.is_open,
       defaultVariantId: family.default_variant_id,
-      variants: variants.map((row) => ({ _id: row._id, name: variantName(row), slug: row.slug })),
+      variants: await Promise.all(
+        variants.map(async (row) => ({
+          _id: row._id,
+          name: variantName(row),
+          slug: row.slug,
+          rulesets: await listFactionRulesetCovers(ctx, row._id),
+        }))
+      ),
     };
   },
 });
