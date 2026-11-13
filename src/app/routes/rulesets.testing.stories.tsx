@@ -192,7 +192,7 @@ export const QuestionReferences = meta.story({
     await expect(question).toHaveValue('An unsaved question draft?');
     await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(
       'href',
-      '/factions/house-atreides'
+      '/factions/house-atreides-original'
     );
     await userEvent.click(remove);
     await waitFor(() =>
