@@ -428,7 +428,6 @@ function FactionDetailContent({
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
-  /* The editor opens for the variant's maintainers and for the Faction's, who keep its shared fields there. */
   const canEdit = settled && canOpenEditor;
   const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;

@@ -13,7 +13,7 @@ import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { isFactionNotFound, loadFaction } from '@db/factions';
 import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
@@ -37,7 +37,6 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import { draftWithinRights } from '../factionEditRights';
 import { rawFactionLoad } from '../rawFactionLoad';
 import { useFactionEditRights } from '../useFactionEditRights';
 
@@ -90,8 +89,7 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { viewerAccess } = useFactionAccess(page);
-  const { resolved: viewerResolved, rights, canOpenEditor } = useFactionEditRights(page);
+  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = useFactionEditRights(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
@@ -99,11 +97,7 @@ function FactionEditPage() {
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
     persistence: {
-      save: async (draft) =>
-        await updateFaction.mutateAsync({
-          input: draftWithinRights(draft, authoringFaction.data, rights),
-          id: authoringFaction._id,
-        }),
+      save: async (draft) => await updateFaction.mutateAsync({ input: withinRights(draft), id: authoringFaction._id }),
       isPending: updateFaction.isPending,
       error: updateFaction.error,
       hasSaved: updateFaction.data !== undefined,
@@ -192,9 +186,7 @@ function FactionEditPage() {
               disabled: updateFaction.isPending,
               raw: rawFactionLoad(faction.data.name, rights.shared),
               source: factionLoadSource({ slug: faction.slug, name: faction.data.name }),
-              onLoaded: validationHeader.releasing((draft) =>
-                authoring.actions.loadDraft(draftWithinRights(draft, faction.data, rights))
-              ),
+              onLoaded: validationHeader.releasing((draft) => authoring.actions.loadDraft(withinRights(draft))),
             }}
             status={{
               isDirty: authoring.editing.isDirty,
