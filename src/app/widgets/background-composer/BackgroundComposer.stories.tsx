@@ -9,7 +9,7 @@ import type { BackgroundData } from '@game/data/backgrounds';
 import { BackgroundComposer, emptyBackgroundModeMemory } from './BackgroundComposer';
 
 /* The fixture owns the mode memory beside the value, which is what every real caller does. */
-function BackgroundStudioFixture({ background }: { background: BackgroundData }) {
+function BackgroundStudioFixture({ background, disabled }: { background: BackgroundData; disabled?: boolean }) {
   const [value, setValue] = useState<BackgroundData>(() => structuredClone(background));
   const [modeMemory, setModeMemory] = useState(emptyBackgroundModeMemory);
   return (
@@ -20,6 +20,7 @@ function BackgroundStudioFixture({ background }: { background: BackgroundData })
         usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
         modeMemory={modeMemory}
         onModeMemoryChange={setModeMemory}
+        disabled={disabled}
       />
     </Box>
   );
@@ -54,6 +55,54 @@ export const SolidSoftSubtle = meta.story({
       definition: 0,
       influence: 0.15,
     },
+  },
+});
+
+/**
+ * A background shown to someone who may not change it, such as a Faction's background to a maintainer of one variant.
+ * Every control that edits it is disabled; a layer card still opens, to show what the layer holds.
+ */
+export const ReadOnly = meta.story({
+  args: {
+    disabled: true,
+    background: {
+      image: '/image/texture/021.jpg',
+      colors: [
+        '#17383d',
+        {
+          type: 'linear',
+          angle: 35,
+          stops: [
+            ['#e7c66d', 0],
+            ['#874b2a', 1],
+          ],
+        },
+      ],
+      invert: false,
+      definition: 0.4,
+      influence: 0.6,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const page = await openLayer(canvasElement, 'pattern');
+    const disabled = [
+      page.getByRole('button', { name: 'Random pattern' }),
+      page.getByRole('button', { name: 'Random treatment' }),
+      page.getByRole('button', { name: 'Random colors' }),
+      page.getByRole('switch', { name: 'Invert' }),
+      page.getByRole('radio', { name: 'Solid' }),
+      await page.findByRole('textbox', { name: 'Gradient angle' }),
+      page.getByRole('textbox', { name: 'Stop 1 color' }),
+      page.getByRole('button', { name: 'Add stop' }),
+      page.getByRole('button', { name: 'Remove last stop' }),
+    ];
+    for (const control of disabled) {
+      await expect(control).toBeDisabled();
+    }
+    /* A labelled action stays focusable so it can say why; it reports itself disabled instead. */
+    for (const name of ['Browse', 'Random all']) {
+      await expect(page.getByRole('button', { name })).toHaveAttribute('aria-disabled', 'true');
+    }
   },
 });
 

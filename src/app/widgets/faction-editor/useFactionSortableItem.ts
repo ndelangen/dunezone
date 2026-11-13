@@ -7,9 +7,9 @@ import type { CSSProperties } from 'react';
  * Editor-domain drag behavior without owning the surrounding presentation.
  * Each collection composes its own box, actions, and accessible handle directly.
  */
-export function useFactionSortableItem(id: string) {
+export function useFactionSortableItem(id: string, { disabled = false }: { disabled?: boolean } = {}) {
   const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging, isOver } =
-    useSortable({ id });
+    useSortable({ id, disabled });
   const { active } = useDndContext();
   const shouldApplyMotion = active != null || isDragging;
 

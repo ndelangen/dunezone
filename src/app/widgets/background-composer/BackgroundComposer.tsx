@@ -41,10 +41,11 @@ import {
 } from './backgroundRandomizer';
 import { clampInfluence, influenceToSliderPosition, sliderPositionToInfluence } from './influenceScale';
 
-function RandomButton({ label, onClick }: { label: string; onClick: () => void }) {
+function RandomButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
   return (
     <IconAction
       label={label}
+      disabled={disabled}
       emphasis="standard"
       intent="neutral"
       size="sm"
@@ -127,17 +128,19 @@ function TreatmentControls({
   value,
   onChange,
   onRandom,
+  disabled,
 }: {
   value: BackgroundData;
   onChange: (background: BackgroundData) => void;
   onRandom: () => void;
+  disabled: boolean;
 }) {
   const exactInfluence = clampInfluence(value.influence);
   return (
     <Box className={styles.pipelineStage}>
       <ControlBlock
         title="02 · Treatment"
-        tool={<RandomButton label="Random treatment" onClick={onRandom} />}
+        tool={<RandomButton label="Random treatment" onClick={onRandom} disabled={disabled} />}
         input={
           <Stack gap="lg">
             <Stack gap="xs">
@@ -154,6 +157,7 @@ function TreatmentControls({
                 max={1}
                 step={0.01}
                 value={value.definition}
+                disabled={disabled}
                 label={(current) => current.toFixed(2)}
                 marks={[{ value: 0 }, { value: 1 }]}
                 onChange={(definition) => onChange({ ...value, definition })}
@@ -185,6 +189,7 @@ function TreatmentControls({
                 max={100}
                 step={0.5}
                 value={influenceToSliderPosition(exactInfluence)}
+                disabled={disabled}
                 label={(position) => sliderPositionToInfluence(position).toFixed(2)}
                 marks={[{ value: 0 }, { value: 50 }, { value: 100 }]}
                 onChange={(position) => onChange({ ...value, influence: sliderPositionToInfluence(position) })}
@@ -281,6 +286,7 @@ function ColorLayerEditor({
   value,
   onChange,
   onRemember,
+  disabled,
 }: {
   label: string;
   description: string;
@@ -288,6 +294,7 @@ function ColorLayerEditor({
   value: ColorLayer;
   onChange: (value: ColorLayer) => void;
   onRemember: (memory: LayerModeMemory) => void;
+  disabled: boolean;
 }) {
   const mode = typeof value === 'string' ? 'solid' : value.type;
 
@@ -319,7 +326,12 @@ function ColorLayerEditor({
         {description}
       </Text>
 
-      <Radio.Group value={mode} onChange={changeMode} label={<VisuallyHidden>{`${label} color mode`}</VisuallyHidden>}>
+      <Radio.Group
+        value={mode}
+        onChange={changeMode}
+        disabled={disabled}
+        label={<VisuallyHidden>{`${label} color mode`}</VisuallyHidden>}
+      >
         <Group gap="lg" wrap="wrap">
           {[
             { value: 'solid', label: 'Solid' },
@@ -335,11 +347,18 @@ function ColorLayerEditor({
         <ControlBlock
           title={`${label} color`}
           input={(fieldProps) => (
-            <ColorInput {...fieldProps} value={value} format="hex" swatchesPerRow={6} onChange={onChange} />
+            <ColorInput
+              {...fieldProps}
+              disabled={disabled}
+              value={value}
+              format="hex"
+              swatchesPerRow={6}
+              onChange={onChange}
+            />
           )}
         />
       ) : (
-        <GradientLayerFields label={label} value={value} onChange={onChange} />
+        <GradientLayerFields label={label} value={value} onChange={onChange} disabled={disabled} />
       )}
     </Stack>
   );
@@ -349,10 +368,12 @@ function GradientLayerFields({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value: GradientLayer;
   onChange: (value: ColorLayer) => void;
+  disabled: boolean;
 }) {
   const updateStops = (stops: ColorStop[]) => onChange({ ...value, stops } as GradientLayer);
 
@@ -365,6 +386,7 @@ function GradientLayerFields({
           input={(fieldProps) => (
             <NumberInput
               {...fieldProps}
+              disabled={disabled}
               min={0}
               max={360}
               step={1}
@@ -397,6 +419,7 @@ function GradientLayerFields({
               input={(fieldProps) => (
                 <NumberInput
                   {...fieldProps}
+                  disabled={disabled}
                   placeholder="Renderer default"
                   value={value[property] ?? ''}
                   decimalScale={2}
@@ -427,7 +450,8 @@ function GradientLayerFields({
           <ListLengthActions
             addLabel="Add stop"
             removeLabel="Remove last stop"
-            removeDisabled={value.stops.length === 0}
+            addDisabled={disabled}
+            removeDisabled={disabled || value.stops.length === 0}
             onAdd={() => {
               const last = value.stops.at(-1);
               // The first stop lands at 0 and the second at 1, so a fresh
@@ -454,6 +478,7 @@ function GradientLayerFields({
                   input={(fieldProps) => (
                     <ColorInput
                       {...fieldProps}
+                      disabled={disabled}
                       value={stop[0]}
                       format="hex"
                       onChange={(color) => {
@@ -470,6 +495,7 @@ function GradientLayerFields({
                 input={(fieldProps) => (
                   <NumberInput
                     {...fieldProps}
+                    disabled={disabled}
                     w={110}
                     min={0}
                     max={1}
@@ -502,11 +528,13 @@ function BackgroundColors({
   onChange,
   modeMemory,
   onModeMemoryChange,
+  disabled,
 }: {
   value: BackgroundData;
   onChange: (background: BackgroundData) => void;
   modeMemory: BackgroundModeMemory;
   onModeMemoryChange: (memory: BackgroundModeMemory) => void;
+  disabled: boolean;
 }) {
   const [selected, setSelected] = useState<0 | 1 | null>(null);
 
@@ -561,6 +589,7 @@ function BackgroundColors({
             value={value.colors[selected]}
             onChange={(layer) => setLayer(selected, layer)}
             onRemember={(memory) => rememberLayerMemory(selected, memory)}
+            disabled={disabled}
           />
         )}
       </Collapse>
@@ -582,6 +611,7 @@ export function BackgroundComposer({
   usedOn,
   modeMemory,
   onModeMemoryChange,
+  disabled = false,
 }: {
   value: BackgroundData;
   onChange: (background: BackgroundData) => void;
@@ -590,8 +620,14 @@ export function BackgroundComposer({
   /** What each layer last held per colour mode; `emptyBackgroundModeMemory()` is where a fresh draft starts. */
   modeMemory: BackgroundModeMemory;
   onModeMemoryChange: (memory: BackgroundModeMemory) => void;
+  /**
+   * Shows the background to someone who may not change it: every control that edits it is disabled.
+   * The two colour-layer cards still open, since they only disclose what a layer holds.
+   */
+  disabled?: boolean;
 }) {
   const resolve = useAssetResolver();
+  const readOnlyReason = disabled ? 'This background is not yours to change.' : undefined;
   const [libraryOpen, setLibraryOpen] = useState(false);
   /*
    * A random recipe replaces both colour layers outright and four of the six carry a gradient, so it
@@ -620,7 +656,13 @@ export function BackgroundComposer({
             <Box className={styles.pipelineStage}>
               <ControlBlock
                 title="01 · Pattern"
-                tool={<RandomButton label="Random pattern" onClick={() => onChange(withRandomPattern(value))} />}
+                tool={
+                  <RandomButton
+                    label="Random pattern"
+                    onClick={() => onChange(withRandomPattern(value))}
+                    disabled={disabled}
+                  />
+                }
                 input={
                   <Stack gap="xs">
                     <Box className={styles.selectedPattern}>
@@ -645,11 +687,13 @@ export function BackgroundComposer({
                         label="Invert"
                         size="sm"
                         checked={value.invert}
+                        disabled={disabled}
                         onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
                       />
                       <LabeledAction
                         size="compact-sm"
                         icon={<LayoutGrid size={14} />}
+                        disabledReason={readOnlyReason}
                         onClick={() => setLibraryOpen(true)}
                       >
                         Browse
@@ -664,6 +708,7 @@ export function BackgroundComposer({
               value={value}
               onChange={onChange}
               onRandom={() => onChange(randomizeBackgroundTreatment(value))}
+              disabled={disabled}
             />
           </Box>
 
@@ -676,6 +721,7 @@ export function BackgroundComposer({
               tool={
                 <RandomButton
                   label="Random colors"
+                  disabled={disabled}
                   onClick={() => {
                     rememberColorLayers();
                     onChange(randomizeBackgroundColors(value));
@@ -688,6 +734,7 @@ export function BackgroundComposer({
                   onChange={onChange}
                   modeMemory={modeMemory}
                   onModeMemoryChange={onModeMemoryChange}
+                  disabled={disabled}
                 />
               }
             />
@@ -707,6 +754,7 @@ export function BackgroundComposer({
         <LabeledAction
           size="compact-sm"
           icon={<Shuffle size={14} />}
+          disabledReason={readOnlyReason}
           onClick={() => {
             rememberColorLayers();
             onChange(randomizeBackground(value));

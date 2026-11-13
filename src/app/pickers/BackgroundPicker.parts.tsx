@@ -108,6 +108,7 @@ export function BackgroundPickerView({
   presets,
   factionValue,
   onDropdownChange,
+  disabled,
 }: Readonly<{
   label: string;
   value: BackgroundData | null;
@@ -117,6 +118,7 @@ export function BackgroundPickerView({
   factionValue?: BackgroundData;
   presets: SharedBackgroundPreset[];
   onDropdownChange?: (opened: boolean) => void;
+  disabled?: boolean;
 }>) {
   const key = value ? choiceKey(value) : 'faction';
   const selected = presets.find((preset) => preset.key === key);
@@ -135,6 +137,7 @@ export function BackgroundPickerView({
       getPreviewSrc={() => null}
       renderPreview={(id, size) => backgroundPreview(previews.get(id) ?? (id === key ? current : null), size)}
       allowDeselect={false}
+      disabled={disabled}
       onDropdownChange={onDropdownChange}
       onChange={(next) => {
         if (next === 'faction') {
