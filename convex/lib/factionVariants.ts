@@ -120,11 +120,15 @@ export async function pushSharedFields(ctx: MutationCtx, faction: Doc<'factions'
   });
 }
 
-/** Gives one variant its Faction's current shared fields; a variant that already has them is left alone. */
-export async function takeSharedFields(ctx: MutationCtx, family: Doc<'faction_families'>, variant: Doc<'factions'>) {
+/** Gives one variant its Faction's shared fields, as `shared` holds them; a variant that already has them is left alone. */
+export async function takeSharedFields(
+  ctx: MutationCtx,
+  shared: Doc<'faction_families'>['data'],
+  variant: Doc<'factions'>
+) {
   const current = parseStoredFactionForRead(variant.data);
-  const next = { ...current, ...family.data };
-  if (family.data && canonicalJson(next) !== canonicalJson(current)) {
+  const next = { ...current, ...shared };
+  if (shared && canonicalJson(next) !== canonicalJson(current)) {
     await storeVariantData(ctx, variant, next);
   }
 }

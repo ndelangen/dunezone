@@ -3,12 +3,12 @@ import { ConvexError, v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalMutation, mutation, viewerQuery } from './functions';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { loadCollaborativeAccess, loadFactionFamilyAccess } from './lib/collaborativeAccess';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { allocateFactionAddress } from './lib/factionAddresses';
 import { factionDataValidator } from './lib/factionData';
-import { ORIGINAL_VARIANT_NAME } from './lib/factionFamilies';
+import { liveVariantsInOrder, ORIGINAL_VARIANT_NAME, variantsOf } from './lib/factionFamilies';
 import { parseStoredFactionForRead } from './lib/factionInput';
 import { followParent, insertVariant, takeSharedFields } from './lib/factionVariants';
 import { requireAuthUserId } from './lib/policy';
@@ -35,11 +35,6 @@ async function parentFor(ctx: MutationCtx, base: Doc<'factions'>, parentId: Id<'
   return parent;
 }
 
-/** Every variant of the Faction, the soft-deleted ones too, oldest first. */
-function variantsOf(ctx: QueryCtx, familyId: Id<'faction_families'>) {
-  return ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId));
-}
-
 /** The new variant's own slug, which no other variant of the Faction may already use. */
 async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
   const variantSlug = slugify(name);
@@ -54,27 +49,59 @@ async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>
   return variantSlug;
 }
 
-/** The most variants the create popover offers as a parent. */
-const VARIANT_CHOICE_LIMIT = 200;
-
 /** The name a variant goes by; one made before variants had names is the Original. */
 function variantName(variant: Doc<'factions'>) {
   return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
 }
 
-/** The Faction's live variants, oldest first, with the deleted ones passed over before the limit counts. */
-async function liveVariantChoices(ctx: QueryCtx, familyId: Id<'faction_families'>) {
-  const choices: { _id: Id<'factions'>; name: string }[] = [];
-  for await (const row of variantsOf(ctx, familyId)) {
-    if (!row.is_deleted) {
-      choices.push({ _id: row._id, name: variantName(row) });
-    }
-    if (choices.length === VARIANT_CHOICE_LIMIT) {
-      break;
-    }
-  }
-  return choices;
+/** The Faction's live variants a new one may take as its parent, in the Faction's variant order. */
+async function liveVariantChoices(ctx: QueryCtx, family: Doc<'faction_families'>) {
+  return (await liveVariantsInOrder(ctx, family)).map((row) => ({ _id: row._id, name: variantName(row) }));
 }
+
+/** The variant's Faction, which every variant has once `faction_families_v1` ran. */
+async function familyOf(ctx: QueryCtx, variant: Doc<'factions'>) {
+  const family = variant.family_id ? await ctx.db.get(variant.family_id) : null;
+  if (!family) {
+    throw new Error(`Faction ${variant._id} has no family`);
+  }
+  return family;
+}
+
+/**
+ * The variant switcher on a variant's page (#2928): its Faction's live variants in variant order, the default first, each with the address its page lives at.
+ * The same for every viewer;
+ * `isOpen` tells the page whether anyone signed in may add a variant.
+ * Null for an unknown or deleted variant, or one whose Faction is deleted.
+ */
+export const switcher = publicQuery({
+  args: { faction_id: v.id('factions') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      familyId: v.id('faction_families'),
+      familySlug: v.string(),
+      isOpen: v.boolean(),
+      defaultVariantId: v.id('factions'),
+      variants: v.array(v.object({ _id: v.id('factions'), name: v.string(), slug: v.string() })),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const variant = await ctx.db.get(args.faction_id);
+    const family = variant?.family_id ? await ctx.db.get(variant.family_id) : null;
+    if (!variant || variant.is_deleted || !family || family.is_deleted) {
+      return null;
+    }
+    const variants = await liveVariantsInOrder(ctx, family);
+    return {
+      familyId: family._id,
+      familySlug: family.slug,
+      isOpen: family.is_open,
+      defaultVariantId: family.default_variant_id,
+      variants: variants.map((row) => ({ _id: row._id, name: variantName(row), slug: row.slug })),
+    };
+  },
+});
 
 /**
  * What editing a variant needs beyond its public page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent (#2927).
@@ -105,7 +132,7 @@ export const editorContext = viewerQuery({
     const parent = variant.parent_id ? await ctx.db.get(variant.parent_id) : null;
     return {
       parent: parent && { name: variantName(parent), data: parseStoredFactionForRead(parent.data) },
-      variants: await liveVariantChoices(ctx, family._id),
+      variants: await liveVariantChoices(ctx, family),
       familySlug: family.slug,
     };
   },
@@ -113,8 +140,8 @@ export const editorContext = viewerQuery({
 
 /**
  * Adds a variant to a Faction, optionally following one parent variant, fixed from now on (#2927).
- * Its maintainers may add variants;
- * opening a Faction to everyone comes with #2928.
+ * Its maintainers may always add variants;
+ * anyone signed in may add one to an open Faction, with no approval (#2928).
  */
 export const create = mutation({
   args: {
@@ -128,11 +155,11 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const base = await liveVariant(ctx, args.faction_id);
-    const family = base.family_id ? await ctx.db.get(base.family_id) : null;
-    if (!family) {
-      throw new Error(`Faction ${args.faction_id} has no family`);
+    const family = await familyOf(ctx, base);
+    if (family.is_deleted) {
+      throw new ConvexError('That faction no longer exists.');
     }
-    if (!(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
+    if (!family.is_open && !(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
       throw new Error('Not authorized');
     }
     const parent = await parentFor(ctx, base, args.parent_id);
@@ -199,7 +226,7 @@ export const pushSharedFields = internalMutation({
       return null;
     }
     const cursor = await visitNextVariant(variantsOf(ctx, family._id), args.cursor, (variant) =>
-      takeSharedFields(ctx, family, variant)
+      takeSharedFields(ctx, family.data, variant)
     );
     if (cursor !== null) {
       await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, { ...args, cursor });
