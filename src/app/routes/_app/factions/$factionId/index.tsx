@@ -489,11 +489,12 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
       <Stack gap="md">
         <ControlBlock
           title="Variant name"
-          description={`Shown beside ${faction.data.name}, and part of the variant's address.`}
+          description={`What sets this variant apart from the others.\nIt is always shown beside ${faction.data.name}, so leave that name out.`}
           input={(control) => (
             <TextInput
               {...control}
               data-autofocus
+              placeholder="e.g. Homebrew, Tournament rules"
               value={draft.name}
               onChange={(event) => dispatch({ type: 'named', name: event.currentTarget.value })}
             />
