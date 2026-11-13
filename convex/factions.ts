@@ -28,11 +28,7 @@ import {
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import {
-  factionInputForWrite,
-  factionRowForClient,
-  parseStoredFactionForRead,
-} from './lib/factionInput';
+import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
 import {

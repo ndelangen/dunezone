@@ -1,6 +1,7 @@
 import type { Triggers } from 'convex-helpers/server/triggers';
 import { z } from 'zod';
 
+import { splitSharedFields } from '../../src/shared/factions/sharedFields';
 import { slugify } from '../../src/shared/slugify';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
@@ -12,11 +13,6 @@ export const ORIGINAL_VARIANT_NAME = 'Original';
 const ORIGINAL_VARIANT_SLUG = slugify(ORIGINAL_VARIANT_NAME);
 
 type FactionData = ReturnType<typeof parseStoredFactionForRead>;
-
-/** A faction's data split into what its Faction shares with every variant and what belongs to the variant alone (#2905). */
-export function splitSharedFields({ name, emblem, background, themeColor, colors, ...variant }: FactionData) {
-  return { shared: { name, emblem, background, themeColor, colors }, variant };
-}
 
 /** Which side of the split a save changes, so each side is authorized by whoever maintains it. */
 export function factionDataChange(stored: FactionData, proposed: FactionData) {
