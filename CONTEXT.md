@@ -22,7 +22,7 @@ A Group its owner has deleted. It survives with its memberships and asset associ
 _Avoid_: Archived group, removed group
 
 **Group-associated asset**:
-A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may rename it, delete it, or change its Group association. Renaming is the owner's for every kind because it recalculates the slug and moves the public URL with no redirect behind it, which makes it an identity change rather than an edit. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
+A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may rename it, delete it, or change its Group association. Renaming is the owner's for every kind because it recalculates the slug and moves the public URL with no redirect behind it, which makes it an identity change rather than an edit. A faction is the exception: its name is a shared field of its Faction, so the Faction's owner and the Faction's own Group rename it, and a variant's Group alone may not. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
 
 **FAQ question**:
 A ruleset question owned by its author, who may edit or remove it and moderate its answers regardless of the ruleset's Group association.
