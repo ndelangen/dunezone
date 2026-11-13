@@ -330,11 +330,8 @@ export function useCreateFaction() {
  * Read only while `enabled`, by someone who may edit the variant or its Faction;
  * undefined while loading or not enabled, and null for a viewer the server does not tell.
  */
-export function useFactionVariantContext(factionId: string, enabled: boolean) {
-  const raw = useQuery(
-    api.factionVariants.editorContext,
-    enabled ? { faction_id: factionId as FactionRow['_id'] } : 'skip'
-  );
+export function useFactionVariantContext(factionId: string) {
+  const raw = useQuery(api.factionVariants.editorContext, { faction_id: factionId as FactionRow['_id'] });
   return useMemo(
     () =>
       raw && {

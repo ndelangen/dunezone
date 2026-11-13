@@ -459,7 +459,7 @@ function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>
 function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
   const navigate = Route.useNavigate();
   const createVariant = useCreateFactionVariant();
-  const context = useFactionVariantContext(faction._id, true);
+  const context = useFactionVariantContext(faction._id);
   const [draft, dispatch] = useReducer(variantDraftReducer, { name: '', parent: faction._id });
   if (!context) {
     return <Pending>Loading variants</Pending>;
@@ -556,7 +556,7 @@ function VariantProblemsNotice({ page, factionId }: Readonly<{ page: FactionDeta
   const count = problems.length === 1 ? '1 problem' : `${problems.length} problems`;
   const variantName = page.faction.variant_name ?? 'This variant';
   /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
-  const parentName = useFactionVariantContext(page.faction._id, true)?.parent?.name ?? 'its parent variant';
+  const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
   return (
     <Notice
       tone="caution"

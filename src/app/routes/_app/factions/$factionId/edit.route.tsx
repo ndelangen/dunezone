@@ -102,13 +102,9 @@ function FactionEditPage() {
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
-  /* Only a variant with a parent has anything to ask, and only once the viewer is known to be one of its editors. */
-  const followsAParent = authoringFaction.parent_id !== undefined;
-  const variantContext = useFactionVariantContext(
-    authoringFaction._id,
-    followsAParent && viewerResolved && rights.variant
-  );
-  const parent = variantContext?.parent;
+  /* The context answers only the variant's editors, and only a variant with a parent has anything to ask. */
+  const variantContext = useFactionVariantContext(authoringFaction._id);
+  const parent = authoringFaction.parent_id === undefined ? undefined : variantContext?.parent;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
@@ -186,7 +182,7 @@ function FactionEditPage() {
   }
 
   /* The editor of a variant with a parent waits for that parent, so no inherited field ever shows as the variant's own. */
-  if (followsAParent && rights.variant && variantContext === undefined) {
+  if (authoringFaction.parent_id !== undefined && rights.variant && variantContext === undefined) {
     return (
       <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
         Loading the parent variant.
