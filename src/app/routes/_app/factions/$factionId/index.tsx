@@ -30,7 +30,7 @@ import { Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactionAccess } from '@db/factions';
+import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail } from '@db/factions';
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
@@ -422,8 +422,7 @@ function FactionDetailContent({
   membershipWorkflow: ReturnType<typeof useGroupMembershipWorkflow>;
 }) {
   const navigate = Route.useNavigate();
-  const { resolved, viewerAccess } = useFactionAccess(page);
-  const { canOpenEditor } = useFactionEditRights(page);
+  const { resolved, viewerAccess, canOpenEditor } = useFactionEditRights(page);
   const { faction, owner, assetPublishing } = page;
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
