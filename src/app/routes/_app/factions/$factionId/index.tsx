@@ -175,6 +175,8 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
 type Troop = FactionData['troops'][number];
 type TroopFace = TroopFaceBattleValues<NonNullable<Troop['back']>>;
 
+type VariantFaction = FactionDetailPageData['faction'];
+
 function troopFaceName(face: TroopFace): string {
   return `${face.face.name}${face.side === 'back' ? ', reverse side' : ''}`;
 }
@@ -184,7 +186,7 @@ function troopFaceName(face: TroopFace): string {
  * What a parent's change left comes first, in the server's words, because a save is refused until it is fixed.
  * After it come the troop sides without battle strengths, then the blanks the editor warns about.
  */
-function variantProblemList(faction: FactionDetailPageData['faction']): { fromParent: string[]; all: string[] } {
+function variantProblemList(faction: VariantFaction): { fromParent: string[]; all: string[] } {
   const fromParent = faction.problems ?? [];
   const withoutStrengths = troopBattleFaces(faction.data.troops)
     .filter(lacksBattleValues)
@@ -210,8 +212,7 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
     return <StatusMark label="Cannot participate in battle" icon={<TopicIcon topic="cannotBattle" size={15} />} />;
   }
-  /* The same question the problems notice asks, so the mark and the notice cannot disagree. */
-  if (lacksBattleValues(face) || face.values === null) {
+  if (!face.values) {
     return (
       <StatusMark
         tone="caution"
@@ -445,8 +446,6 @@ function variantDraftReducer(draft: VariantDraft, event: VariantDraftEvent): Var
   }
 }
 
-type VariantFaction = FactionDetailPageData['faction'];
-
 /**
  * Starts a new variant of the page's Faction from the toolbar (#2927).
  * The form mounts with the popover, so the Faction's variants are read only while it is open.
@@ -576,13 +575,13 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
  * It is one line until pressed, because it is an extra on a page that is about the faction, and the way to the editor is the toolbar's Edit.
  */
 function VariantProblemsNotice({
-  page,
+  faction,
   problems,
-}: Readonly<{ page: FactionDetailPageData; problems: ReturnType<typeof variantProblemList> }>) {
+}: Readonly<{ faction: VariantFaction; problems: ReturnType<typeof variantProblemList> }>) {
   const count = problems.all.length === 1 ? '1 problem' : `${problems.all.length} problems`;
-  const variantName = page.faction.variant_name ?? 'This variant';
+  const variantName = faction.variant_name ?? 'This variant';
   /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
-  const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
+  const parentName = useFactionVariantContext(faction._id)?.parent?.name ?? 'its parent variant';
   const fromParent = problems.fromParent.length;
   return (
     <Notice tone="caution" title={`${count} to fix in this variant`} collapsible>
@@ -806,7 +805,7 @@ function FactionDetailContent({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {showsProblems ? <VariantProblemsNotice page={page} problems={problems} /> : null}
+          {showsProblems ? <VariantProblemsNotice faction={faction} problems={problems} /> : null}
           {membershipWorkflow.request.isError ? (
             <FormError title="Membership request failed">
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}

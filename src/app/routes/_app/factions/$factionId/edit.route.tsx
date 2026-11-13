@@ -102,9 +102,9 @@ function FactionEditPage() {
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
-  /* The context answers only the variant's editors, and only a variant with a parent has anything to ask. */
+  /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
   const variantContext = useFactionVariantContext(authoringFaction._id);
-  const parent = authoringFaction.parent_id === undefined ? undefined : variantContext?.parent;
+  const parent = variantContext?.parent;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
