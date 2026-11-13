@@ -37,7 +37,7 @@ export const RetainsManualComplexityAcrossChapters = meta.story({
     await expect(slider).toHaveAttribute('aria-valuenow', '7');
 
     await userEvent.click(manualSwitch);
-    await userEvent.click(canvas.getByRole('tab', { name: /Identity/ }));
+    await userEvent.click(canvas.getByRole('tab', { name: /^Faction(?! leader)/ }));
     await userEvent.click(canvas.getByRole('tab', { name: /Complexity/ }));
     await userEvent.click(canvas.getByRole('switch', { name: 'Set the rating manually' }));
 

@@ -175,3 +175,53 @@ export const currentSheetWithAFailedReplacement = db((baseline) => {
     updated_at: Date.parse('2026-01-01T13:10:00.000Z'),
   });
 });
+
+const FACTION_GROUP = 'group:landsraad-archivists';
+const VARIANT_GROUP = 'group:arrakeen-rules-council';
+
+/**
+ * House Atreides owned by another member, with its Faction held by one Group and its one variant since moved to another.
+ * A Faction keeps the Group its first variant started in, so the row is seeded in the Faction's Group and patched into the variant's.
+ * The viewer belongs to the Arrakeen Rules Council alone, so naming it on either side decides which half of the editor is theirs.
+ */
+function maintainedByTwoGroups(groups: { faction: string; variant: string }) {
+  return db((baseline) => {
+    baseline.users.push({ $key: 'faction-owner', name: 'Chani Kynes' });
+    baseline.profiles.push({
+      user_id: ref('faction-owner'),
+      username: 'Chani Kynes',
+      slug: 'chani-kynes',
+      avatar_url: null,
+      account_state: 'active',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    });
+    baseline.groups.push({
+      $key: FACTION_GROUP,
+      name: 'Landsraad Archivists',
+      slug: 'landsraad-archivists',
+      created_at: '2026-01-01T00:00:00Z',
+      created_by: ref('faction-owner'),
+      is_deleted: false,
+    });
+    baseline.factions[0] = {
+      ...baseline.factions[0]!,
+      $key: 'faction:house-atreides',
+      owner_id: ref('faction-owner'),
+      group_id: ref(groups.faction),
+      $patch: { group_id: ref(groups.variant) },
+    };
+  });
+}
+
+/** The viewer maintains the variant through its Group, and has no part in the Faction's. */
+export const variantMaintainerOutsideTheFactionGroup = maintainedByTwoGroups({
+  faction: FACTION_GROUP,
+  variant: VARIANT_GROUP,
+});
+
+/** The viewer maintains the Faction through its Group, and has no part in the variant's. */
+export const factionMaintainerOutsideTheVariantGroup = maintainedByTwoGroups({
+  faction: VARIANT_GROUP,
+  variant: FACTION_GROUP,
+});

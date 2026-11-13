@@ -80,18 +80,20 @@ function TtsColorRow({
   itemId,
   options,
   onChange,
+  disabled,
 }: {
   color: TtsColor;
   index: number;
   itemId: string;
   options: TtsColor[];
   onChange: (color: TtsColor) => void;
+  disabled: boolean;
 }) {
   const {
     setNodeRef,
     style,
     handle: { setActivatorNodeRef, attributes, listeners },
-  } = useFactionSortableItem(itemId);
+  } = useFactionSortableItem(itemId, { disabled });
   return (
     <Box ref={setNodeRef} style={style} className={styles.unifiedRow}>
       <Select
@@ -100,6 +102,7 @@ function TtsColorRow({
         size="sm"
         variant="unstyled"
         value={color}
+        disabled={disabled}
         allowDeselect={false}
         data={options}
         leftSection={<ColorDot color={color} />}
@@ -117,6 +120,7 @@ function TtsColorRow({
         {...attributes}
         {...listeners}
         className={styles.dragHandle}
+        disabled={disabled}
         emphasis="silent"
         intent="neutral"
         size="lg"
@@ -129,9 +133,11 @@ function TtsColorRow({
 export function TtsColorsEditor({
   value,
   onChange,
+  disabled = false,
 }: {
   value: Faction['colors'];
   onChange: (next: Faction['colors']) => void;
+  disabled?: boolean;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -149,8 +155,8 @@ export function TtsColorsEditor({
         <ListLengthActions
           removeLabel="Remove last TTS color"
           addLabel="Add TTS color"
-          removeDisabled={value.length === 0}
-          addDisabled={nextAvailableColor == null}
+          removeDisabled={disabled || value.length === 0}
+          addDisabled={disabled || nextAvailableColor == null}
           onRemove={() => onChange(removeLastTtsColor(value))}
           onAdd={() => {
             if (nextAvailableColor) {
@@ -187,6 +193,7 @@ export function TtsColorsEditor({
                     index={index}
                     itemId={itemId}
                     options={availableTtsColors(value, index)}
+                    disabled={disabled}
                     onChange={(nextColor) => {
                       const next = [...value];
                       next[index] = nextColor;

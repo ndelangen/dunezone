@@ -13,8 +13,9 @@ import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { isFactionNotFound, loadFaction } from '@db/factions';
+import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
@@ -26,6 +27,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
 import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
 import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
+import type { FactionEditRights } from '@app/widgets/faction-editor/FactionFormFields';
 import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
 import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
 import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
@@ -35,8 +37,8 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import { factionNameField } from '../factionNameField';
 import { rawFactionLoad } from '../rawFactionLoad';
+import { useFactionEditRights } from '../useFactionEditRights';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -87,7 +89,7 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { resolved: viewerResolved, viewerAccess } = useFactionAccess(page);
+  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = useFactionEditRights(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
@@ -95,7 +97,7 @@ function FactionEditPage() {
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
     persistence: {
-      save: async (draft) => await updateFaction.mutateAsync({ input: draft, id: authoringFaction._id }),
+      save: async (draft) => await updateFaction.mutateAsync({ input: withinRights(draft), id: authoringFaction._id }),
       isPending: updateFaction.isPending,
       error: updateFaction.error,
       hasSaved: updateFaction.data !== undefined,
@@ -111,7 +113,6 @@ function FactionEditPage() {
       }
     },
   });
-  const nameField = factionNameField(viewerAccess.capabilities.rename);
   const validationHeader = useEditPageHeader({
     warnings: authoring.editing.warnings,
     onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
@@ -148,7 +149,7 @@ function FactionEditPage() {
     );
   }
 
-  if (!viewerAccess.capabilities.edit) {
+  if (!canOpenEditor) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <PageState kind="absent" title="You cannot edit this faction">
@@ -183,9 +184,9 @@ function FactionEditPage() {
               scopeKey: faction._id,
               mode: 'replace',
               disabled: updateFaction.isPending,
-              raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
+              raw: rawFactionLoad(faction.data.name, rights.shared),
               source: factionLoadSource({ slug: faction.slug, name: faction.data.name }),
-              onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
+              onLoaded: validationHeader.releasing((draft) => authoring.actions.loadDraft(withinRights(draft))),
             }}
             status={{
               isDirty: authoring.editing.isDirty,
@@ -242,7 +243,8 @@ function FactionEditPage() {
             <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
             <ActionError subject="Group access" verb="change" error={setFactionGroup.error} />
             <FactionEditor
-              nameField={nameField}
+              factionNotice={<FactionChapterNotice page={page} rights={rights} />}
+              rights={rights}
               key={faction._id}
               ref={viewRef}
               form={authoring.form}
@@ -261,6 +263,35 @@ function FactionEditPage() {
         </PageLayout.Content>
       </PageLayout>
     </BackgroundLibrary>
+  );
+}
+
+/** Who may change the shared fields, in words: the Faction's owner, and its Group when it has one. */
+function factionMaintainers({ owner, family }: FactionDetailPageData) {
+  const ownerName = owner?.username ?? 'The faction owner';
+  const group = family?.assignedGroup;
+  return group ? `${ownerName} and the members of ${group.name}` : ownerName;
+}
+
+/**
+ * Heads the Faction chapter, whose fields the Faction shares with every variant.
+ * It says what a change there reaches, or names who may make one when the viewer may not.
+ */
+function FactionChapterNotice({ page, rights }: Readonly<{ page: FactionDetailPageData; rights: FactionEditRights }>) {
+  const factionName = page.faction.data.name;
+  const variantName = page.faction.variant_name ?? 'Original';
+  if (!rights.shared) {
+    return (
+      <Notice title={`Only the maintainers of ${factionName} can change these`}>
+        {`The name, emblem, colors and background are shared by every variant. ${factionMaintainers(page)} can change them. Everything in the other tabs belongs to the ${variantName} variant, which you can edit.`}
+      </Notice>
+    );
+  }
+  return (
+    <Notice tone="info" title="Shared by every variant">
+      {`The name, emblem, colors and background belong to ${factionName}, not to this variant. A change here updates the page, cards and publications of every variant.`}
+      {rights.variant ? null : ` The rest of the ${variantName} variant is for its own owner and Group to edit.`}
+    </Notice>
   );
 }
 

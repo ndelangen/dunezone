@@ -4,7 +4,8 @@ import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { Faction } from '@db/factions';
 
 export const factionAuthoringChapters = [
-  { id: 'identity', label: 'Identity & Appearance' },
+  /* The fields the Faction shares with every variant; the chapters after it belong to the variant alone. */
+  { id: 'identity', label: 'Faction' },
   { id: 'factionLeader', label: 'Faction leader' },
   { id: 'leaders', label: 'Leaders' },
   /* Two ordering dependencies: Planets precedes Troops because a troop's planet

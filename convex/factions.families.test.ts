@@ -6,7 +6,9 @@ import { ensureFactionComponentIds } from '../src/shared/factions/componentIdent
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 import { assertFactionFamily } from './lib/factionFamilies';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
@@ -138,6 +140,27 @@ describe('Faction families', () => {
     await expect(
       t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!))
     ).rejects.toThrow(/does not mirror/);
+  });
+
+  test('a variant moved to another Group leaves its Faction with the Group it started with', async () => {
+    const { t, owner, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const groupId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('groups', {
+          name: 'Later group',
+          slug: 'later-group',
+          created_at: STAMP,
+          created_by: faction.owner_id,
+          is_deleted: false,
+        })
+    );
+    await t.run(async (ctx) => {
+      await applicationTriggers.wrapDB(ctx as unknown as MutationCtx).db.patch(faction._id, { group_id: groupId });
+    });
+
+    expect(await familyOf(faction._id)).toMatchObject({ group_id: null });
+    await t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!));
   });
 
   test('edits and deletion of the variant reach its family, and a later ruleset link keeps the variant name', async () => {

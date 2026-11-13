@@ -18,6 +18,8 @@ import type {
   publicViewerValidator,
   rulesetViewerAccessValidator,
 } from './collaborativeAccessValidators';
+import { factionDataChange } from './factionFamilies';
+import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
 
 /** The viewer as a page is told about them: signed in with a membership, or anonymous. Never carries an id, which is why it is safe on the wire. */
 export type PublicViewer = Infer<typeof publicViewerValidator>;
@@ -133,6 +135,24 @@ function groupAccessFromLoaded(
   };
 }
 
+/** The rules' answer for a faction-kind subject: a variant, or the Faction that holds its shared fields. */
+function factionViewerAccess(
+  subject: { owner_id: Id<'users'>; is_deleted: boolean },
+  assignedGroup: Doc<'groups'> | null,
+  viewerId: Id<'users'> | null,
+  viewerMembership: Doc<'group_members'> | null
+) {
+  return evaluateCollaborativeAccess({
+    kind: 'faction',
+    resource: { available: !subject.is_deleted },
+    group: {
+      eligible: assignedGroup !== null,
+      summary: assignedGroup ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug } : null,
+    },
+    viewer: viewerFacts(viewerId, subject.owner_id, viewerMembership),
+  }) as Extract<CollaborativeAccess, { kind: 'faction' }>;
+}
+
 function factionAccessFromLoaded(
   subject: Doc<'factions'>,
   assignedGroup: Doc<'groups'> | null,
@@ -144,15 +164,7 @@ function factionAccessFromLoaded(
     assignedGroup,
     viewerMembership,
     viewerId,
-    viewerAccess: evaluateCollaborativeAccess({
-      kind: 'faction',
-      resource: { available: !subject.is_deleted },
-      group: {
-        eligible: assignedGroup !== null,
-        summary: assignedGroup ? { id: assignedGroup._id, name: assignedGroup.name, slug: assignedGroup.slug } : null,
-      },
-      viewer: viewerFacts(viewerId, subject.owner_id, viewerMembership),
-    }) as Extract<CollaborativeAccess, { kind: 'faction' }>,
+    viewerAccess: factionViewerAccess(subject, assignedGroup, viewerId, viewerMembership),
   };
 }
 
@@ -370,23 +382,58 @@ export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'gr
  * The gate for saving a faction, which needs the proposed name as well as the id.
  * Editing and renaming are separate capabilities: a collaborator may edit a faction they cannot rename, so the name is compared against the stored one and only a change demands `rename`.
  */
-export async function requireFactionUpdate(
-  ctx: MutationCtx,
-  factionId: Id<'factions'>,
-  proposedData: { name: string }
-) {
+/**
+ * The viewer's access to a Faction, the container of a variant's shared fields.
+ * Its owner and its own Group maintain it;
+ * a variant's Group grants nothing on it (#2910).
+ */
+export async function loadFactionFamilyAccess(ctx: AnyCtx, family: Doc<'faction_families'>) {
+  const viewerId = await optionalActiveUserId(ctx);
+  const assignedGroup = liveGroupOrNull(family.group_id ? await ctx.db.get('groups', family.group_id) : null);
+  const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
+  return factionViewerAccess(family, assignedGroup, viewerId, viewerMembership);
+}
+
+/** Whether the viewer may change the shared fields of this variant's Faction; a variant not yet given one falls back to its owner. */
+async function canEditSharedFields(ctx: MutationCtx, access: LoadedFactionAccess) {
+  const family = access.subject.family_id ? await ctx.db.get('faction_families', access.subject.family_id) : null;
+  if (!family) {
+    return access.viewerAccess.capabilities.rename;
+  }
+  return (await loadFactionFamilyAccess(ctx, family)).capabilities.edit;
+}
+
+/** The variant's access for a save, refusing a deleted one. */
+async function loadFactionForSave(ctx: MutationCtx, factionId: Id<'factions'>) {
   await requireAuthenticatedViewerId(ctx);
   const access = await loadCollaborativeAccess(ctx, { kind: 'faction', id: factionId });
   if (access.subject.is_deleted) {
     throw new Error(`Faction with id ${factionId} not found`);
   }
-  if (!access.viewerAccess.capabilities.edit) {
-    throw new Error('Not authorized');
-  }
-  if (proposedData.name !== access.subject.data.name && !access.viewerAccess.capabilities.rename) {
-    throw new Error('Not authorized');
-  }
   return access;
+}
+
+/**
+ * Authorizes a save of a variant's data, each side by who maintains it: the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
+ * A save that changes nothing needs either right, so a Faction's maintainer can press Save on an unchanged draft.
+ * Returns the access with the data as it will be stored.
+ * An import's preview runs it too, so a preview never offers an update its apply step would refuse.
+ */
+export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
+  const access = await loadFactionForSave(ctx, factionId);
+  const data = factionInputForWrite(proposedData, access.subject.data);
+  const change = factionDataChange(parseStoredFactionForRead(access.subject.data), data);
+  const canEditVariant = access.viewerAccess.capabilities.edit;
+  const unchanged = !change.shared && !change.variant;
+  const unchangedWithoutVariantRight = unchanged && !canEditVariant;
+  const needsSharedRight = change.shared || unchangedWithoutVariantRight;
+  if (needsSharedRight && !(await canEditSharedFields(ctx, access))) {
+    throw new Error('Not authorized');
+  }
+  if (change.variant && !canEditVariant) {
+    throw new Error('Not authorized');
+  }
+  return { ...access, data };
 }
 
 /**

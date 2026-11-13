@@ -5,10 +5,22 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { syncFactionFamily } from './lib/factionFamilies';
 import { factionPageAs, groupPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
 
 const now = '2026-08-05T00:00:00.000Z';
+
+/* The fixture inserts its rows raw, past the triggers, so a test that needs a Faction gives the variant one as the backfill would. */
+async function giveFamilies(t: ReturnType<typeof applicationTest>, factionId: Id<'factions'>) {
+  await t.run(async (ctx) => {
+    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
+    await syncFactionFamily(wrapped, factionId, await ctx.db.get(factionId));
+  });
+}
 
 async function groupAccessFixture() {
   const t = applicationTest();
@@ -740,39 +752,81 @@ describe('collaborative access moderation commands', () => {
     );
   });
 
-  test('a collaborator edits a faction but cannot rename, reassign or delete it', async () => {
+  test('a collaborator edits a faction and, through its Faction Group, renames it, but cannot reassign or delete it', async () => {
     const { t, ids } = await groupAccessFixture();
+    await giveFamilies(t, ids.factionId);
     const member = t.withIdentity({ subject: ids.activeId });
     const stored = structuredClone(assetPublishingFaction);
 
-    await expect(
-      member.mutation(api.factions.update, {
-        id: ids.factionId,
-        data: { ...stored, name: 'Member Renamed Faction' },
-      })
-    ).rejects.toThrow('Not authorized');
-
-    /*
-     * The same save with the stored name goes through, which is the half that proves the refusal
-     * above is about the name rather than about the collaborator: `edit` and `rename` are separate
-     * capabilities and a collaborator keeps the first (#605).
-     */
-    const edited = await member.mutation(api.factions.update, {
+    /* The Faction's Group starts as its first variant's, and a Faction Group member maintains the shared fields, the name among them (#2910). */
+    const renamed = await member.mutation(api.factions.update, {
       id: ids.factionId,
-      data: { ...stored, name: 'Collaborative Faction', themeColor: '#123456' },
+      data: { ...stored, name: 'Member Renamed Faction', themeColor: '#123456' },
     });
-    expect(edited).toMatchObject({ slug: 'collaborative-faction' });
+    expect(renamed).toMatchObject({ slug: 'member-renamed-faction' });
 
     await expect(member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })).rejects.toThrow(
       'Not authorized'
     );
     await expect(member.mutation(api.factions.softDelete, { id: ids.factionId })).rejects.toThrow('Not authorized');
+  });
 
-    const renamed = await t.withIdentity({ subject: ids.assetOwnerId }).mutation(api.factions.update, {
-      id: ids.factionId,
-      data: { ...stored, name: 'Owner Renamed Faction' },
+  test('a variant’s Group edits the variant but not the shared fields, which stay with the Faction’s Group', async () => {
+    const { t, ids } = await groupAccessFixture();
+    await giveFamilies(t, ids.factionId);
+    const { variantGroupMemberId } = await t.run(async (ctx) => {
+      const variantGroupMemberId = await ctx.db.insert('users', { name: 'Variant group member' });
+      const variantGroupId = await ctx.db.insert('groups', {
+        name: 'Variant group',
+        slug: 'variant-group',
+        created_at: now,
+        created_by: ids.assetOwnerId,
+        is_deleted: false,
+      });
+      await ctx.db.insert('group_members', {
+        group_id: variantGroupId,
+        user_id: variantGroupMemberId,
+        status: 'active',
+        requested_at: now,
+        approved_at: now,
+        approved_by: ids.assetOwnerId,
+      });
+      await ctx.db.patch(ids.factionId, { group_id: variantGroupId });
+      return { variantGroupMemberId };
     });
-    expect(renamed).toMatchObject({ slug: 'owner-renamed-faction' });
+    const stored = structuredClone(assetPublishingFaction);
+    const saved = { ...stored, name: 'Collaborative Faction' };
+    const leaderRenamed = {
+      ...saved,
+      leaders: saved.leaders.map((leader, index) => (index === 0 ? { ...leader, name: 'Renamed leader' } : leader)),
+    };
+    const variantMember = t.withIdentity({ subject: variantGroupMemberId });
+    const factionMember = t.withIdentity({ subject: ids.activeId });
+
+    await variantMember.mutation(api.factions.update, { id: ids.factionId, data: leaderRenamed });
+    await expect(
+      variantMember.mutation(api.factions.update, {
+        id: ids.factionId,
+        data: { ...leaderRenamed, themeColor: '#123456' },
+      })
+    ).rejects.toThrow('Not authorized');
+
+    /* The Faction's Group keeps the shared fields, though it no longer holds the variant. */
+    await factionMember.mutation(api.factions.update, {
+      id: ids.factionId,
+      data: { ...leaderRenamed, themeColor: '#123456' },
+    });
+    await expect(
+      factionMember.mutation(api.factions.update, {
+        id: ids.factionId,
+        data: { ...leaderRenamed, themeColor: '#123456', leaders: saved.leaders },
+      })
+    ).rejects.toThrow('Not authorized');
+    /* Saving an unchanged draft is open to either side's maintainers. */
+    await factionMember.mutation(api.factions.update, {
+      id: ids.factionId,
+      data: { ...leaderRenamed, themeColor: '#123456' },
+    });
   });
 
   test('add, owner-removal denial, and reassignment target eligibility are authoritative', async () => {

@@ -30,7 +30,7 @@ import { Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactionAccess } from '@db/factions';
+import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail } from '@db/factions';
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
@@ -47,6 +47,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
+import { useFactionEditRights } from '../useFactionEditRights';
 import styles from './index.module.css';
 
 const FACTION_KIND = 'Custom faction';
@@ -421,12 +422,12 @@ function FactionDetailContent({
   membershipWorkflow: ReturnType<typeof useGroupMembershipWorkflow>;
 }) {
   const navigate = Route.useNavigate();
-  const { resolved, viewerAccess } = useFactionAccess(page);
+  const { resolved, viewerAccess, canOpenEditor } = useFactionEditRights(page);
   const { faction, owner, assetPublishing } = page;
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
-  const canEdit = settled && viewerAccess.capabilities.edit;
+  const canEdit = settled && canOpenEditor;
   const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';

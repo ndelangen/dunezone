@@ -183,6 +183,7 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
     owner: raw.owner,
     assetPublishing: raw.assetPublishing,
     assignedGroup: raw.assignedGroup,
+    family: raw.family,
     rulesets: raw.rulesets,
   };
 }
@@ -217,6 +218,20 @@ export function useFaction(
  */
 export function useFactionAccess(page: FactionDetailPageData) {
   return useAssetAccess(assetSubjectFacts('faction', page.faction, page.assignedGroup));
+}
+
+/**
+ * Whether the current viewer may change the shared fields, which the variant's Faction holds: its owner and its own Group may, a variant's Group alone may not (#2910).
+ * A variant not yet given a Faction leaves them to its owner, as the server does.
+ */
+export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {
+  const { family } = page;
+  const { resolved, viewerAccess } = useAssetAccess(
+    family
+      ? assetSubjectFacts('faction', family, family.assignedGroup)
+      : assetSubjectFacts('faction', page.faction, page.assignedGroup)
+  );
+  return { resolved, canEdit: family ? viewerAccess.capabilities.edit : viewerAccess.capabilities.rename };
 }
 
 /** A Play seat's faction page address by its id; undefined while loading, null when the faction is gone. */
