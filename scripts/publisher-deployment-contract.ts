@@ -116,17 +116,36 @@ export async function verifyHomepageShowcases(fetcher: typeof fetch = fetch): Pr
   ];
   invariant(links.length > 0 && links.length <= 8, 'Homepage showcase verification requires one to eight destinations');
   for (const href of links) {
-    const response = await fetcher(`${APPLICATION_ORIGIN}${href}`, {
-      redirect: 'error',
-      signal: AbortSignal.timeout(15_000),
-    });
-    try {
-      invariant(response.status === 200, `Homepage showcase ${href} is unavailable`);
-      const queries = response.headers.get('X-Public-Metadata-Queries');
-      invariant(queries === '0' || queries === '1', `Homepage showcase ${href} exceeded its one metadata query budget`);
-    } finally {
-      await response.body?.cancel();
+    const variant = await verifyShowcaseHop(fetcher, href, true);
+    if (variant) {
+      await verifyShowcaseHop(fetcher, variant, false);
     }
+  }
+}
+
+/*
+ * A faction's own address leads to its default variant with a temporary redirect (#2909), so a showcase naming a faction takes one hop to a variant under it.
+ * Any other redirect, such as a permanent one from a former address, means the homepage names a stale address.
+ * Each hop answers within the one metadata query budget. Returns the variant's address when the showcase hopped to one.
+ */
+async function verifyShowcaseHop(fetcher: typeof fetch, href: string, mayLeadToVariant: boolean) {
+  const response = await fetcher(`${APPLICATION_ORIGIN}${href}`, {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(15_000),
+  });
+  try {
+    const faction = /^\/factions\/([^/?]+)\/?$/.exec(href)?.[1];
+    const location = response.headers.get('Location');
+    const variant =
+      mayLeadToVariant && faction && response.status === 302 && location?.startsWith(`/factions/${faction}-`)
+        ? location
+        : null;
+    invariant(response.status === 200 || variant, `Homepage showcase ${href} is unavailable`);
+    const queries = response.headers.get('X-Public-Metadata-Queries');
+    invariant(queries === '0' || queries === '1', `Homepage showcase ${href} exceeded its one metadata query budget`);
+    return variant;
+  } finally {
+    await response.body?.cancel();
   }
 }
 

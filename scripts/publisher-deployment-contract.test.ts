@@ -428,9 +428,61 @@ describe('production homepage showcase budget', () => {
       `${APPLICATION_ORIGIN}/rulesets/dreamrules`,
       `${APPLICATION_ORIGIN}/factions/space-orks`,
     ]);
-    for (const [, options] of fetcher.mock.calls) {
-      expect(options?.redirect).toBe('error');
+    expect(fetcher.mock.calls[0]![1]?.redirect).toBe('error');
+    for (const [, options] of fetcher.mock.calls.slice(1)) {
+      expect(options?.redirect).toBe('manual');
     }
+  });
+
+  test("follows a faction's own address to its default variant, holding each hop to the budget", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('<a href="/factions/space-orks">Orks</a>'))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { Location: '/factions/space-orks-original', 'X-Public-Metadata-Queries': '1' },
+        })
+      )
+      .mockResolvedValueOnce(new Response('<h1>Orks</h1>', { headers: { 'X-Public-Metadata-Queries': '1' } }));
+    await verifyHomepageShowcases(fetcher);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      `${APPLICATION_ORIGIN}/`,
+      `${APPLICATION_ORIGIN}/factions/space-orks`,
+      `${APPLICATION_ORIGIN}/factions/space-orks-original`,
+    ]);
+  });
+
+  test.each([
+    ['a permanent move', 301, '/factions/space-orks-original'],
+    ['a temporary move outside the faction', 302, '/factions/other-original'],
+  ])('refuses a faction showcase with %s', async (_, status, location) => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('<a href="/factions/space-orks">Orks</a>'))
+      .mockResolvedValue(new Response(null, { status, headers: { Location: location } }));
+    await expect(verifyHomepageShowcases(fetcher)).rejects.toThrow('unavailable');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  test("refuses a faction's default variant that redirects again", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('<a href="/factions/space-orks">Orks</a>'))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { Location: '/factions/space-orks-original', 'X-Public-Metadata-Queries': '1' },
+        })
+      )
+      .mockResolvedValue(
+        new Response(null, {
+          status: 302,
+          headers: { Location: '/factions/space-orks-original-2', 'X-Public-Metadata-Queries': '1' },
+        })
+      );
+    await expect(verifyHomepageShowcases(fetcher)).rejects.toThrow('unavailable');
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
   test.each([302, 404, 503])('refuses an unavailable or moved showcase with HTTP %i', async (status) => {
