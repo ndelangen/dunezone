@@ -172,6 +172,16 @@
   outline-offset: -2px;
 }
 
+/*
+ * The whole notice opens and shuts it, its padding and its glyph included.
+ * The control stays the one button, and its hit area is stretched over the Alert, which is the nearest positioned box.
+ */
+.problemsControl::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
 .problemsLabel {
   padding: 0;
   font-weight: inherit;

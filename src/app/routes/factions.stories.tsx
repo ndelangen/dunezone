@@ -213,7 +213,7 @@ const LOAD = { timeout: 30_000 };
 /**
  * The editor of a variant with a parent (#2927).
  * Every field the variant may take from its parent says in its own header whether it does.
- * A field that follows the parent shows the parent's value read-only, and a custom one keeps its controls.
+ * A field that follows the parent keeps the parent's value, read-only, behind one line, and a custom one keeps its controls.
  */
 export const EditVariantWithAParent = meta.story({
   args: { path: `${DREAMRULES_PATH}/edit` },
@@ -226,7 +226,13 @@ export const EditVariantWithAParent = meta.story({
     await expect(followsParent).toHaveLength(5);
     await expect(followsParent.filter((choice) => (choice as HTMLInputElement).checked)).toHaveLength(4);
     const inherited = rules.getByRole('group', { name: 'Starting instructions, from Original, read-only' });
-    await expect(within(inherited).getByText('From Original, the parent variant. Read-only here.')).toBeVisible();
+    /* The parent's value stays shut until its line is pressed. */
+    const toggle = within(inherited).getByRole('button', {
+      name: 'From Original, the parent variant. Read-only here.',
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(within(inherited).queryByRole('region')).toBeNull();
     await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
     await expect(rules.getByRole('textbox', { name: 'Revival instructions' })).toHaveTextContent('3 troops free.');
   },
@@ -256,7 +262,7 @@ export const DetailCreateVariant = meta.story({
 
 /**
  * A parent's change left the variant with fields a save would refuse (#2908), and its troops have no battle strengths yet.
- * Those who may edit the variant see every problem in one notice on top of its page: one line, which opens to the list, the parent's first.
+ * Those who may edit the variant see every problem in one notice on top of its page: one line until it is pressed.
  * The way to the editor is the toolbar's Edit, so the notice does not repeat it.
  */
 export const DetailVariantWithProblems = meta.story({
@@ -267,21 +273,8 @@ export const DetailVariantWithProblems = meta.story({
     const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, LOAD);
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
-    await userEvent.click(toggle);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    const problems = within(await page.findByRole('list', { name: 'Problems' })).getAllByRole('listitem');
-    await expect(problems.map((problem) => problem.textContent)).toEqual([
-      'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
-      'The troop "House guard" names the planet "Caladan", which this variant does not have.',
-      'Fedaykin: battle strengths have not been set, so this side is unavailable in battle plans.',
-      'House guard: battle strengths have not been set, so this side is unavailable in battle plans.',
-    ]);
-    await expect(page.findByText(/The first 2 came from changes to Original/, undefined, LOAD)).resolves.toBeVisible();
     /* The badge is for readers who cannot fix anything; an editor has the notice. */
     await expect(page.queryByText('Not ready for play')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
-    /* Leave the story as a reader first meets it: one line, closed. */
-    await userEvent.click(toggle);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   },
 });

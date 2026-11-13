@@ -1,4 +1,4 @@
-import { Checkbox, Group, Stack, Text } from '@mantine/core';
+import { Accordion, Checkbox, Stack, Text } from '@mantine/core';
 import type { InheritableField } from '@shared/factions/variantFields';
 import { complexityOutOfTen } from '@ui/content/complexity';
 import { EmptyNote } from '@ui/content/EmptyNote';
@@ -156,20 +156,30 @@ export function useInheritableField(field: InheritableField, title: string) {
         title={title}
         tool={choice}
         input={
-          <Stack
-            gap="xs"
+          <div
             className={styles.inherited}
             role="group"
             aria-label={`${title}, from ${inheritance.parentName}, read-only`}
           >
-            <Group gap="xs" wrap="nowrap">
-              <CornerDownRight size={14} aria-hidden />
-              <Text size="xs" c="dimmed">
-                {`From ${inheritance.parentName}, the parent variant. Read-only here.`}
-              </Text>
-            </Group>
-            {parentValues[field](inheritance.parent)}
-          </Stack>
+            {/* One line until pressed, as the variant problems notice is: the value is for deciding, not for reading every time. */}
+            <Accordion
+              classNames={{
+                item: styles.parentItem,
+                control: styles.parentControl,
+                label: styles.parentLabel,
+                content: styles.parentContent,
+              }}
+            >
+              <Accordion.Item value="parent">
+                <Accordion.Control icon={<CornerDownRight size={14} aria-hidden />}>
+                  <Text inherit truncate>
+                    {`From ${inheritance.parentName}, the parent variant. Read-only here.`}
+                  </Text>
+                </Accordion.Control>
+                <Accordion.Panel>{parentValues[field](inheritance.parent)}</Accordion.Panel>
+              </Accordion.Item>
+            </Accordion>
+          </div>
         }
       />
     </div>

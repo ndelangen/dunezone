@@ -814,6 +814,49 @@ export const EditVariantResetRestoresWhichFieldsFollowTheParent = meta.story({
   },
 });
 
+/** The parent's value opens from its one line, and shuts again from the same line. */
+export const EditVariantOpensAndShutsTheParentValue = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const inherited = within(
+      await rules.findByRole('group', { name: 'Starting instructions, from Original, read-only' }, { timeout: 30_000 })
+    );
+    const toggle = inherited.getByRole('button', { name: 'From Original, the parent variant. Read-only here.' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(inherited.queryByRole('region')).toBeNull();
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const value = await inherited.findByRole('region');
+    await expect(value).toBeVisible();
+    await expect(value).not.toBeEmptyDOMElement();
+
+    /* The whole dashed box is the toggle: a press in its padding shuts it, and another opens it. */
+    const box = toggle.closest('[role="group"]');
+    await expect(box).not.toBeNull();
+    const padding = () => {
+      box!.scrollIntoView({ block: 'center' });
+      const { left, bottom } = box!.getBoundingClientRect();
+      return box!.ownerDocument.elementFromPoint(left + 3, bottom - 3);
+    };
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(inherited.queryByRole('region')).toBeNull());
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(inherited.queryByRole('region')).toBeNull());
+  },
+});
+
 /** A variant without a parent has no choice to offer: every field is its own. */
 export const EditVariantWithoutAParentOffersNoChoice = meta.story({
   args: { path: '/factions/house-atreides/edit' },
@@ -867,6 +910,49 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
       { timeout: 30_000 }
     );
     await expect(page.queryByRole('form', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/**
+ * The problems notice opens to the list, the parent's first, and shuts again (#2908).
+ * The whole notice is the toggle, its padding included.
+ */
+export const DetailVariantProblemsOpenAndShut = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, { timeout: 30_000 });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const problems = within(await page.findByRole('list', { name: 'Problems' })).getAllByRole('listitem');
+    await expect(problems.map((problem) => problem.textContent)).toEqual([
+      'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
+      'The troop "House guard" names the planet "Caladan", which this variant does not have.',
+      'Fedaykin: battle strengths have not been set, so this side is unavailable in battle plans.',
+      'House guard: battle strengths have not been set, so this side is unavailable in battle plans.',
+    ]);
+    await expect(
+      page.findByText(/The first 2 came from changes to Original/, undefined, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    /* The whole notice is the toggle: a press in its padding shuts it, and another opens it. */
+    const notice = toggle.closest('[role="note"]');
+    await expect(notice).not.toBeNull();
+    const paddingOf = (box: Element) => {
+      box.scrollIntoView({ block: 'center' });
+      const { left, bottom } = box.getBoundingClientRect();
+      return box.ownerDocument.elementFromPoint(left + 3, bottom - 3);
+    };
+    await expect(paddingOf(notice!)).toBe(toggle);
+    await userEvent.click(paddingOf(notice!)!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(paddingOf(notice!)).toBe(toggle);
+    await userEvent.click(paddingOf(notice!)!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    /* Leave the story as a reader first meets it: one line, closed. */
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   },
 });
 
