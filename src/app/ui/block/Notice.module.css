@@ -1,46 +1,14 @@
 /*
- * A collapsible notice is one Accordion item inside the Alert, and the Alert is the only box.
- * The item gives up its divider, its padding and its hover infill, and the control is set as the Alert sets a title.
- * The colour is the one the Alert gives its own title, so it follows the notice's tone.
+ * A collapsible notice is a Disclosure inside the Alert, and the Alert is the box it stretches its toggle over.
+ * The title is set as the Alert sets its own, in the colour the Alert gives it, so it follows the notice's tone.
  */
-.item {
-  border: 0;
+.collapsible {
+  --disclosure-color: var(--alert-color);
+  --disclosure-font-size: var(--mantine-font-size-sm);
+  --disclosure-font-weight: var(--mantine-font-weight-bold);
 }
 
-.control {
-  padding: 0;
-  color: var(--alert-color);
-  font-size: var(--mantine-font-size-sm);
-  font-weight: var(--mantine-font-weight-bold);
-  /* The Alert's own line height, so the title sits level with the glyph and the chevron. */
-  line-height: var(--mantine-line-height);
-}
-
-.control:hover,
-.control:active {
-  background-color: transparent;
-}
-
-/* The Alert clips what leaves its message, so the focus ring is drawn inside the control. */
-.control:focus-visible {
+/* The Alert clips what leaves its message, so the focus ring is drawn inside the toggle. */
+.collapsible button:focus-visible {
   outline-offset: -2px;
-}
-
-/*
- * The whole notice opens and shuts it, its padding and its glyph included.
- * The control stays the one button, and its hit area is stretched over the Alert, which is the nearest positioned box.
- */
-.control::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-}
-
-.label {
-  padding: 0;
-  font-weight: inherit;
-}
-
-.content {
-  padding: var(--space-xs) 0 0;
 }

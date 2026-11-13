@@ -1,7 +1,8 @@
-import { Accordion, Alert, Stack, Text } from '@mantine/core';
+import { Alert, Stack } from '@mantine/core';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { Disclosure } from './Disclosure';
 import styles from './Notice.module.css';
 
 /**
@@ -79,32 +80,19 @@ export function Notice({
   collapsible = false,
 }: NoticeProps) {
   const { color, icon } = TONE[tone];
+  /* Mantine's Alert is an assertive live region by default; a notice is a note unless it follows the reader's own action. */
+  const alert = { color, variant: 'light', icon: <span aria-hidden>{icon}</span>, role: live ? 'status' : 'note' };
   if (collapsible) {
     return (
-      <Alert color={color} variant="light" icon={<span aria-hidden>{icon}</span>} role={live ? 'status' : 'note'}>
-        <Accordion
-          classNames={{ item: styles.item, control: styles.control, label: styles.label, content: styles.content }}
-        >
-          <Accordion.Item value="notice">
-            <Accordion.Control>
-              <Text inherit truncate>
-                {title}
-              </Text>
-            </Accordion.Control>
-            <Accordion.Panel>{children}</Accordion.Panel>
-          </Accordion.Item>
-        </Accordion>
+      <Alert {...alert} className={styles.collapsible}>
+        <Disclosure title={title ?? ''}>{children}</Disclosure>
       </Alert>
     );
   }
   return (
     <Alert
-      color={color}
-      variant="light"
+      {...alert}
       title={title}
-      icon={<span aria-hidden>{icon}</span>}
-      /* Mantine's Alert is an assertive live region by default; a notice is a note unless it follows the reader's own action. */
-      role={live ? 'status' : 'note'}
       {...(onDismiss ? { withCloseButton: true, closeButtonLabel: 'Dismiss', onClose: onDismiss } : {})}
     >
       {action ? (

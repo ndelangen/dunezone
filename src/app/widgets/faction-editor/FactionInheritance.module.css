@@ -9,42 +9,6 @@
   border: 1px dashed var(--mantine-color-default-border);
   border-radius: var(--mantine-radius-sm);
   padding: var(--space-sm);
-  /* The box the toggle's hit area is stretched over. */
+  /* The box the Disclosure stretches its toggle over. */
   position: relative;
-}
-
-/*
- * The parent's value is one Accordion item inside the dashed box, and the dashed box is the only box.
- * The item gives up its divider, its padding and its hover infill, as the variant problems notice has it.
- */
-.parentItem {
-  border: 0;
-}
-
-.parentControl {
-  padding: 0;
-  color: var(--mantine-color-dimmed);
-  font-size: var(--mantine-font-size-xs);
-  /* The body's line height, so the words sit level with the arrow and the chevron. */
-  line-height: var(--mantine-line-height);
-}
-
-.parentControl:hover,
-.parentControl:active {
-  background-color: transparent;
-}
-
-/* The whole dashed box opens and shuts the value, and the control stays the one button. */
-.parentControl::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-}
-
-.parentLabel {
-  padding: 0;
-}
-
-.parentContent {
-  padding: var(--space-xs) 0 0;
 }

@@ -1,5 +1,6 @@
-import { Accordion, Checkbox, Stack, Text } from '@mantine/core';
+import { Checkbox, Stack, Text } from '@mantine/core';
 import type { InheritableField } from '@shared/factions/variantFields';
+import { Disclosure } from '@ui/block/Disclosure';
 import { complexityOutOfTen } from '@ui/content/complexity';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource } from '@ui/content/FormattedText';
@@ -162,23 +163,12 @@ export function useInheritableField(field: InheritableField, title: string) {
             aria-label={`${title}, from ${inheritance.parentName}, read-only`}
           >
             {/* One line until pressed, as the variant problems notice is: the value is for deciding, not for reading every time. */}
-            <Accordion
-              classNames={{
-                item: styles.parentItem,
-                control: styles.parentControl,
-                label: styles.parentLabel,
-                content: styles.parentContent,
-              }}
+            <Disclosure
+              title={`From ${inheritance.parentName}, the parent variant. Read-only here.`}
+              icon={<CornerDownRight size={14} aria-hidden />}
             >
-              <Accordion.Item value="parent">
-                <Accordion.Control icon={<CornerDownRight size={14} aria-hidden />}>
-                  <Text inherit truncate>
-                    {`From ${inheritance.parentName}, the parent variant. Read-only here.`}
-                  </Text>
-                </Accordion.Control>
-                <Accordion.Panel>{parentValues[field](inheritance.parent)}</Accordion.Panel>
-              </Accordion.Item>
-            </Accordion>
+              {parentValues[field](inheritance.parent)}
+            </Disclosure>
           </div>
         }
       />

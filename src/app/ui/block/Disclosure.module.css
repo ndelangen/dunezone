@@ -1,0 +1,37 @@
+/*
+ * One Accordion item inside the caller's box, which is the only box.
+ * The item gives up its divider, its padding and its hover infill.
+ */
+.item {
+  border: 0;
+}
+
+.control {
+  padding: 0;
+  color: var(--disclosure-color, var(--mantine-color-dimmed));
+  font-size: var(--disclosure-font-size, var(--mantine-font-size-xs));
+  font-weight: var(--disclosure-font-weight, var(--mantine-font-weight-regular));
+  /* The body's line height, so the title sits level with the glyph and the chevron. */
+  line-height: var(--mantine-line-height);
+}
+
+.control:hover,
+.control:active {
+  background-color: transparent;
+}
+
+/* The whole box opens and shuts it, and the control stays the one button. */
+.control::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.label {
+  padding: 0;
+  font-weight: inherit;
+}
+
+.content {
+  padding: var(--space-xs) 0 0;
+}
