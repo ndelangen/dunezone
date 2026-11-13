@@ -327,8 +327,9 @@ export function useCreateFaction() {
 
 /**
  * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
- * Read only while `enabled`, by someone who may edit the variant or its Faction;
- * undefined while loading or not enabled, and null for a viewer the server does not tell.
+ * An access query, so it stays apart from the public page query: the server answers only someone who may edit the variant or its Faction,
+ * and keeping that check out of the page query lets every viewer share the public result.
+ * Undefined while loading, and null for a viewer the server does not tell.
  */
 export function useFactionVariantContext(factionId: string) {
   const raw = useQuery(api.factionVariants.editorContext, { faction_id: factionId as FactionRow['_id'] });
