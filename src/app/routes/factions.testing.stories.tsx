@@ -759,15 +759,17 @@ export const EditVariantSavesWhichFieldsFollowTheParent = meta.story({
     await expect(save).toHaveAccessibleDescription(/^No unsaved changes/);
 
     /* A custom field starts from the parent's value, so the choice alone is the unsaved change. */
-    const spice = rules.getByRole('group', { name: 'Starting spice: use parent variant or custom' });
-    await userEvent.click(within(spice).getByRole('radio', { name: 'Custom' }));
+    const spice = rules.getByRole('checkbox', { name: 'Use parent variant for Starting spice' });
+    await expect(spice).toBeChecked();
+    await userEvent.click(spice);
     await expect(rules.findByRole('textbox', { name: 'Starting spice' })).resolves.toHaveValue(
       String(original.faction.data.rules.spiceCount)
     );
     await expect(save).toHaveAccessibleDescription(/^Unsaved changes/);
 
-    const revival = rules.getByRole('group', { name: 'Revival instructions: use parent variant or custom' });
-    await userEvent.click(within(revival).getByRole('radio', { name: 'Use parent variant' }));
+    const revival = rules.getByRole('checkbox', { name: 'Use parent variant for Revival instructions' });
+    await expect(revival).not.toBeChecked();
+    await userEvent.click(revival);
     await expect(
       rules.findByRole('group', { name: 'Revival instructions, from Original, read-only' })
     ).resolves.toBeVisible();
@@ -800,8 +802,9 @@ export const EditVariantResetRestoresWhichFieldsFollowTheParent = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
     const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
-    const start = rules.getByRole('group', { name: 'Starting instructions: use parent variant or custom' });
-    await userEvent.click(within(start).getByRole('radio', { name: 'Custom' }));
+    const start = rules.getByRole('checkbox', { name: 'Use parent variant for Starting instructions' });
+    await expect(start).toBeChecked();
+    await userEvent.click(start);
     await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
     await expect(
@@ -820,7 +823,7 @@ export const EditVariantWithoutAParentOffersNoChoice = meta.story({
     await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
     const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
     await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
-    await expect(rules.queryByRole('radio', { name: 'Use parent variant' })).toBeNull();
+    await expect(rules.queryByRole('checkbox', { name: /^Use parent variant/ })).toBeNull();
   },
 });
 

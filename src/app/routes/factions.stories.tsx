@@ -222,7 +222,7 @@ export const EditVariantWithAParent = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, LOAD));
     const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, LOAD));
-    const followsParent = await rules.findAllByRole('radio', { name: 'Use parent variant' }, LOAD);
+    const followsParent = await rules.findAllByRole('checkbox', { name: /^Use parent variant for / }, LOAD);
     await expect(followsParent).toHaveLength(5);
     await expect(followsParent.filter((choice) => (choice as HTMLInputElement).checked)).toHaveLength(4);
     const inherited = rules.getByRole('group', { name: 'Starting instructions, from Original, read-only' });

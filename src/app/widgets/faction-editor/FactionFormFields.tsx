@@ -463,7 +463,7 @@ export const FactionFormFields = forwardRef<
      * Without the variant right the rail holds the Faction chapter alone, since nothing in the others is the viewer's to change.
      */
     rights?: FactionEditRights;
-    /** What a variant with a parent takes from it; each inheritable field then offers Use parent variant or Custom. */
+    /** What a variant with a parent takes from it; each inheritable field then offers a Use parent variant checkbox. */
     inheritance?: FactionInheritance;
     /** Fires on field blur and chapter switch so the route's validation header can settle closed. */
     onSettle?: () => void;

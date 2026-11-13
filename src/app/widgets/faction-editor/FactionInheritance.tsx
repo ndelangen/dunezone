@@ -1,4 +1,4 @@
-import { Group, Radio, Stack, Text } from '@mantine/core';
+import { Checkbox, Group, Stack, Text } from '@mantine/core';
 import type { InheritableField } from '@shared/factions/variantFields';
 import { complexityOutOfTen } from '@ui/content/complexity';
 import { EmptyNote } from '@ui/content/EmptyNote';
@@ -117,19 +117,21 @@ function InheritanceChoice({
   onChange: (followsParent: boolean) => void;
 }) {
   return (
-    <Radio.Group value={followsParent ? 'parent' : 'custom'} onChange={(value) => onChange(value === 'parent')}>
-      {/* Named here because Mantine puts a label given to the group on a wrapper that has no role. */}
-      <Group gap="md" wrap="nowrap" role="group" aria-label={`${title}: use parent variant or custom`}>
-        <Radio size="xs" value="parent" label="Use parent variant" color="selected" />
-        <Radio size="xs" value="custom" label="Custom" color="selected" />
-      </Group>
-    </Radio.Group>
+    <Checkbox
+      size="xs"
+      color="selected"
+      label="Use parent variant"
+      /* The field's name follows the visible words, so one choice can be told from the next without seeing the page. */
+      aria-label={`Use parent variant for ${title}`}
+      checked={followsParent}
+      onChange={(event) => onChange(event.currentTarget.checked)}
+    />
   );
 }
 
 /**
  * One field a variant may take from its parent, for a chapter that places the choice in the field's own header (#2927).
- * `choice` is the Use parent variant or Custom control, and `parentValue` replaces the field's controls while it follows the parent: the parent's value, read-only.
+ * `choice` is the Use parent variant checkbox, which unchecked leaves the field custom, and `parentValue` replaces the field's controls while it follows the parent: the parent's value, read-only.
  * Both are null outside a variant with a parent, where every field is the variant's own.
  */
 export function useInheritableField(field: InheritableField, title: string) {

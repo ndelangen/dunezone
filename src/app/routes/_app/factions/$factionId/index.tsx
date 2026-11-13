@@ -525,7 +525,7 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
         />
         <Text size="xs" c="dimmed">
           {parent
-            ? `Starts with all ${INHERITABLE_FIELDS.length} fields using ${parent.name}. Switch any of them to Custom in the editor.`
+            ? `Starts with all ${INHERITABLE_FIELDS.length} fields using ${parent.name}. Untick Use parent variant on any of them in the editor to make it custom.`
             : `Starts as a copy of ${faction.variant_name ?? 'this variant'}, with every field its own. A variant without a parent can never be given one.`}
         </Text>
         {createVariant.error ? (
