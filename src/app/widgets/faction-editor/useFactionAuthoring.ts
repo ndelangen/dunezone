@@ -1,6 +1,6 @@
 import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
 import { FactionNameSchema } from '@shared/factions/schema';
-import { normalizeInheritedFields, readField } from '@shared/factions/variantFields';
+import { normalizeInheritedFields, readField, resolveVariantData } from '@shared/factions/variantFields';
 import type { InheritableField } from '@shared/factions/variantFields';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -12,6 +12,7 @@ import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/Back
 import { factionAuthoringWarnings, invalidPhaseRowCount } from './factionAuthoringContract';
 import { createFactionAuthoringSession } from './factionAuthoringSession';
 import type { StrengthRefusal } from './FactionFormSectionLeaders';
+import type { FactionInheritance } from './FactionInheritance';
 
 export type FactionAuthoringPersistence = {
   /** `inherited` names the fields the draft follows its parent in; absent for a variant without a parent. */
@@ -41,8 +42,8 @@ export function useFactionAuthoring({
 }: {
   sessionKey: string;
   initialData: Faction;
-  /** For a variant with a parent: the parent's current data, and the fields the saved variant follows it in. */
-  inheritance?: { parent: Faction; saved: readonly InheritableField[] };
+  /** For a variant with a parent: the parent's name and current data, and the fields the saved variant follows it in. */
+  inheritance?: { parentName: string; parent: Faction; saved: readonly InheritableField[] };
   persistence: FactionAuthoringPersistence;
   onSaved: (entry: FactionEntry) => void;
 }) {
@@ -70,12 +71,6 @@ export function useFactionAuthoring({
    * It belongs to the draft like the memories above, so the same wrapper clears it, and the draft then follows what is saved again.
    */
   const [inheritedDraft, setInheritedDraft] = useState<InheritableField[] | null>(null);
-  const inherited = inheritance ? (inheritedDraft ?? inheritance.saved) : undefined;
-
-  const latestRef = useRef({ persistence, onSaved, inherited });
-  useLayoutEffect(() => {
-    latestRef.current = { persistence, onSaved, inherited };
-  });
 
   const sessionRef = useRef<ReturnType<typeof createFactionAuthoringSession> | null>(null);
   const form = useForm<
@@ -95,6 +90,33 @@ export function useFactionAuthoring({
     defaultValues: initialBaseline,
     onSubmit: async ({ value }) => await sessionRef.current?.persistDraft(value),
   });
+
+  /*
+   * A field switched to its parent takes the parent's value at once, so the previews show what the save will store.
+   * Switched back to custom it keeps that value, as the place the author's own edits start from.
+   */
+  const draftInheritance: FactionInheritance | undefined = inheritance && {
+    parentName: inheritance.parentName,
+    parent: inheritance.parent,
+    inherited: inheritedDraft ?? inheritance.saved,
+    onChange: (field, followsParent) => {
+      const current = inheritedDraft ?? inheritance.saved;
+      setInheritedDraft(
+        normalizeInheritedFields(
+          followsParent ? [...current, field] : current.filter((candidate) => candidate !== field)
+        )
+      );
+      if (followsParent) {
+        form.setFieldValue(field, readField(inheritance.parent, field) as never);
+      }
+    },
+  };
+  const inherited = draftInheritance?.inherited;
+
+  const latestRef = useRef({ persistence, onSaved, inherited, saved: inheritance });
+  useLayoutEffect(() => {
+    latestRef.current = { persistence, onSaved, inherited, saved: inheritance };
+  }, [persistence, onSaved, inherited, inheritance]);
 
   const saveDraft = useCallback(
     (draft: Faction) => latestRef.current.persistence.save(draft, latestRef.current.inherited),
@@ -157,26 +179,25 @@ export function useFactionAuthoring({
     };
   });
 
-  /*
-   * A field switched to its parent takes the parent's value at once, so the previews show what the save will store.
-   * Switched back to custom it keeps that value, as the place the author's own edits start from.
-   */
-  const setFieldInheritance = (field: InheritableField, followsParent: boolean) => {
-    if (!inheritance || !inherited) {
-      return;
-    }
-    setInheritedDraft(
-      normalizeInheritedFields(
-        followsParent ? [...inherited, field] : inherited.filter((candidate) => candidate !== field)
+  const inheritanceChanged = inheritance !== undefined && inherited?.join() !== inheritance.saved.join();
+  /* A field that follows the parent has no inputs on screen, so a blank in it is the parent's to fill, not a warning here. */
+  const warnings = editing.warnings.filter(
+    (warning) =>
+      !inherited?.some(
+        (field) =>
+          warning.path === field || warning.path.startsWith(`${field}.`) || warning.path.startsWith(`${field}[`)
       )
-    );
-    if (followsParent) {
-      form.setFieldValue(field, readField(inheritance.parent, field) as never);
-    }
-  };
-  const inheritanceChanged = Boolean(inheritance && inherited && inherited.join() !== inheritance.saved.join());
+  );
 
-  const loadDraft = useCallback((draft: Faction) => sessionRef.current?.loadDraft(draft), []);
+  /* A loaded draft keeps to the variant's saved inheritance, as the server would on its save. */
+  const loadDraft = useCallback((draft: Faction) => {
+    const { saved } = latestRef.current;
+    sessionRef.current?.loadDraft(
+      saved
+        ? resolveVariantData(ensureFactionComponentIds(saved.parent), ensureFactionComponentIds(draft), saved.saved)
+        : draft
+    );
+  }, []);
   const reset = useCallback(() => sessionRef.current?.reset(), []);
   const submit = useCallback(async () => await form.handleSubmit(), [form]);
 
@@ -190,9 +211,8 @@ export function useFactionAuthoring({
 
   return {
     form,
-    editing: { ...editing, isDirty: editing.isDirty || inheritanceChanged },
-    inherited,
-    setFieldInheritance,
+    editing: { ...editing, warnings, isDirty: editing.isDirty || inheritanceChanged },
+    inheritance: draftInheritance,
     backgroundModeMemory,
     setBackgroundModeMemory,
     retainedManualComplexity,

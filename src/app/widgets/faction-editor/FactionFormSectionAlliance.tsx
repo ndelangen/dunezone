@@ -1,7 +1,6 @@
 import { Divider, Grid, Stack, Text } from '@mantine/core';
 import { ListChapter } from '@ui/block/ListChapter';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { CanvasScale } from '@ui/layout/CanvasScale';
@@ -13,7 +12,7 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 import { defaultDecal } from './factionFormDefaults';
 import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
-import { useInheritableField } from './FactionInheritance';
+import { InheritableControlBlock, useInheritableField } from './FactionInheritance';
 
 /* The offset is unbounded card-space pixels from the card center (card 900 wide, art band 940
    tall). The sliders span half of each dimension, center to edge, while the paired number
@@ -75,7 +74,6 @@ export function FactionFormSectionAlliance({
   form: FactionFormApi;
   showPreview?: boolean;
 }) {
-  const advantage = useInheritableField('rules.alliance', 'Alliance advantage');
   const decals = useInheritableField('decals', 'Decals');
   return (
     <Stack component="section" gap="md" aria-label="Alliance card">
@@ -86,28 +84,26 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  advantage.parentValue ?? (
-                    <ControlBlock
-                      title="Alliance advantage"
-                      tool={advantage.choice}
-                      description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
-                      inputId="rules-alliance"
-                      warning={
-                        blank
-                          ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
-                          : undefined
-                      }
-                      input={(control) => (
-                        <FormattedTextInput
-                          {...control}
-                          minRows={4}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={field.handleChange}
-                        />
-                      )}
-                    />
-                  )
+                  <InheritableControlBlock
+                    field="rules.alliance"
+                    title="Alliance advantage"
+                    description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
+                    inputId="rules-alliance"
+                    warning={
+                      blank
+                        ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
+                        : undefined
+                    }
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={4}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>

@@ -168,23 +168,9 @@ export const factionDetailPageValidator = v.object({
   /** The Faction the variant belongs to, as its access facts: who maintains the shared fields. Null until the variant is given one. */
   family: v.union(
     docValidator('faction_families')
-      .pick('_id', 'slug', 'owner_id', 'is_deleted')
+      .pick('_id', 'owner_id', 'is_deleted')
       .extend({ assignedGroup: v.union(assignedGroupSummaryValidator, v.null()) }),
     v.null()
-  ),
-  /** The variant this one follows, with its current data for the editor's read-only fields; null for a variant without a parent (#2927). */
-  parent: v.union(
-    v.object({ _id: v.id('factions'), slug: v.string(), name: v.string(), data: factionDataValidator }),
-    v.null()
-  ),
-  /** The Faction's live variants, oldest first, from which a new variant picks its parent. */
-  variants: v.array(
-    v.object({
-      _id: v.id('factions'),
-      slug: v.string(),
-      name: v.string(),
-      parent_id: v.union(v.id('factions'), v.null()),
-    })
   ),
   rulesets: v.array(rulesetSummaryValidator),
 });

@@ -31,14 +31,7 @@ import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSear
 import { factionDataValidator } from './lib/factionData';
 import { factionDataChange } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
-import {
-  inheritedFields,
-  listFamilyVariants,
-  parentVariantFacts,
-  pushSharedFields,
-  storeVariantData,
-  withInheritedFields,
-} from './lib/factionVariants';
+import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import {
   buildOwnedForGroupAssignRows,
@@ -117,8 +110,6 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
     family: await familyAccessFacts(ctx, row.family_id),
-    parent: await parentVariantFacts(ctx, row),
-    variants: await listFamilyVariants(ctx, row.family_id),
     rulesets: await listFactionRulesets(ctx, row._id),
   };
 }
@@ -131,7 +122,6 @@ async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'>
   }
   return {
     _id: family._id,
-    slug: family.slug,
     owner_id: family.owner_id,
     is_deleted: family.is_deleted,
     assignedGroup: await assignedGroupSummary(ctx, family.group_id),

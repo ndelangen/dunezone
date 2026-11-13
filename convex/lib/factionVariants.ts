@@ -11,7 +11,7 @@ import type { InheritableField } from '../../src/shared/factions/variantFields';
 import { slugify } from '../../src/shared/slugify';
 import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
-import type { MutationCtx, QueryCtx } from '../_generated/server';
+import type { MutationCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
 import {
@@ -23,45 +23,6 @@ import {
 import { nowIso } from './utils';
 
 type StoredFaction = ReturnType<typeof parseStoredFactionForRead>;
-
-/** The most variants a Faction's page lists for choosing a parent. */
-const VARIANT_LIST_LIMIT = 200;
-
-/** The name a variant goes by; one made before variants had names is the Original. */
-function variantName(variant: Doc<'factions'>) {
-  return variant.variant_name ?? 'Original';
-}
-
-/** The live variants of a Faction, oldest first: what its pages offer as the parent of a new variant (#2927). */
-export async function listFamilyVariants(ctx: QueryCtx, familyId: Id<'faction_families'> | undefined) {
-  if (!familyId) {
-    return [];
-  }
-  const rows = await ctx.db
-    .query('factions')
-    .withIndex('by_family', (q) => q.eq('family_id', familyId))
-    .take(VARIANT_LIST_LIMIT);
-  return rows
-    .filter((row) => !row.is_deleted)
-    .map((row) => ({ _id: row._id, slug: row.slug, name: variantName(row), parent_id: row.parent_id ?? null }));
-}
-
-/**
- * The parent a variant follows, with its current data, which the editor shows read-only for each inherited field.
- * A soft-deleted parent still answers, since its children keep following it (#2908).
- */
-export async function parentVariantFacts(ctx: QueryCtx, variant: Doc<'factions'>) {
-  const parent = variant.parent_id ? await ctx.db.get(variant.parent_id) : null;
-  if (!parent) {
-    return null;
-  }
-  return {
-    _id: parent._id,
-    slug: parent.slug,
-    name: variantName(parent),
-    data: parseStoredFactionForRead(parent.data),
-  };
-}
 
 /** The fields a variant follows its parent in: what the save names, else what it followed before. */
 export function inheritedFields(faction: Doc<'factions'>, proposed?: readonly string[]): InheritableField[] {
@@ -86,7 +47,7 @@ export async function withInheritedFields(
   }
   const parent = await ctx.db.get(faction.parent_id);
   if (!parent) {
-    throw new Error(`Parent variant ${faction.parent_id} not found`);
+    throw new ConvexError('This variant’s parent variant no longer exists, so it cannot be saved.');
   }
   const proposed = factionInputForWrite(proposedData, faction.data) as StoredFaction;
   return resolveVariantData(

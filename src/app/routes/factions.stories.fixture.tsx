@@ -7,7 +7,7 @@ import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
 import { expect, within } from 'storybook/test';
 
-import { db, faction, familyRef, ref, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { db, faction, ref, refText, SEED_REF_TOKEN } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
@@ -235,16 +235,12 @@ export const DREAMRULES_PATH = '/factions/house-atreides-dreamrules';
 /** The fields Dreamrules keeps as its own; it follows Original, its parent, in every other one. */
 const DREAMRULES_CUSTOM: readonly InheritableField[] = ['leaders', 'troops', 'rules.revivalText', 'rules.advantages'];
 
-type SeededFactionData = FactionInput;
-
 /**
  * House Atreides with a second variant, Dreamrules, whose parent is the Original (#2927).
  * `change` gives Dreamrules the data of its custom fields, which is all a child holds that its parent does not.
+ * Its problems are the server's own words for what a save of that data would refuse.
  */
-function withDreamrules(
-  change: (parent: SeededFactionData) => SeededFactionData,
-  problems: (data: SeededFactionData) => string[] = () => []
-) {
+function withDreamrules(change: (parent: FactionInput) => FactionInput) {
   return db((baseline) => {
     const original = baseline.factions[0]!;
     const data = change(structuredClone(original.data));
@@ -254,13 +250,12 @@ function withDreamrules(
       $patch: undefined,
       slug: 'house-atreides-dreamrules',
       data,
-      family_id: familyRef('faction:house-atreides'),
       variant_name: 'Dreamrules',
       variant_slug: 'dreamrules',
       parent_id: ref('faction:house-atreides'),
       inherited: INHERITABLE_FIELDS.filter((field) => !DREAMRULES_CUSTOM.includes(field)),
       revision: 0,
-      problems: problems(data),
+      problems: variantProblems(ensureFactionComponentIds(data)),
     });
   });
 }
@@ -275,21 +270,18 @@ export const withAChildVariant = withDreamrules((parent) => ({
 
 /**
  * Dreamrules after the Original removed Caladan, the planet both of the child's own troop types are stationed on (#2908).
- * The child follows the Original's planets, so the change reached it, and its problems are the server's own words for what a save would now refuse.
+ * The child follows the Original's planets, so the change reached it.
  */
-export const withABrokenChildVariant = withDreamrules(
-  (parent) => ({
-    ...parent,
-    planet: [],
-    troops: [
-      { ...parent.troops[0]!, name: 'Fedaykin', planet: 'Caladan' },
-      {
-        ...parent.troops[0]!,
-        troopId: 'a939da92-5f9f-4c50-a102-3bc437ffd1e6',
-        name: 'House guard',
-        planet: 'Caladan',
-      },
-    ],
-  }),
-  (data) => variantProblems(ensureFactionComponentIds(data))
-);
+export const withABrokenChildVariant = withDreamrules((parent) => ({
+  ...parent,
+  planet: [],
+  troops: [
+    { ...parent.troops[0]!, name: 'Fedaykin', planet: 'Caladan' },
+    {
+      ...parent.troops[0]!,
+      troopId: 'a939da92-5f9f-4c50-a102-3bc437ffd1e6',
+      name: 'House guard',
+      planet: 'Caladan',
+    },
+  ],
+}));

@@ -31,6 +31,7 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { Pending } from '@ui/content/Pending';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -46,11 +47,17 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Download, Eye, FileText, GitBranchPlus, Pencil, PencilLine, UserPlus } from 'lucide-react';
-import { Fragment, useId, useReducer } from 'react';
+import { Fragment, useId, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { mutationErrorMessage } from '@db/core/mutationError';
-import { isFactionNotFound, loadPublicFactionDetail, useCreateFactionVariant, useFactionDetail } from '@db/factions';
+import {
+  isFactionNotFound,
+  loadPublicFactionDetail,
+  useCreateFactionVariant,
+  useFactionDetail,
+  useFactionVariantContext,
+} from '@db/factions';
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
@@ -402,20 +409,12 @@ function FactionSpecialRule({ rule }: { rule: FactionData['rules']['fate'] }) {
 
 const NO_PARENT = 'none';
 
-type VariantDraft = { opened: boolean; name: string; parent: string };
+type VariantDraft = { name: string; parent: string };
 
-type VariantDraftEvent =
-  | { type: 'toggled' }
-  | { type: 'dismissed' }
-  | { type: 'named'; name: string }
-  | { type: 'parentChosen'; parent: string };
+type VariantDraftEvent = { type: 'named'; name: string } | { type: 'parentChosen'; parent: string };
 
 function variantDraftReducer(draft: VariantDraft, event: VariantDraftEvent): VariantDraft {
   switch (event.type) {
-    case 'toggled':
-      return { ...draft, opened: !draft.opened };
-    case 'dismissed':
-      return { ...draft, opened: false };
     case 'named':
       return { ...draft, name: event.name };
     case 'parentChosen':
@@ -423,41 +422,16 @@ function variantDraftReducer(draft: VariantDraft, event: VariantDraftEvent): Var
   }
 }
 
-/**
- * Starts a new variant of the page's Faction from the toolbar: its name, the address that name gives it, and the one parent it may follow (#2927).
- * The variant on the page is the parent offered first, and the one a variant without a parent starts as a copy of.
- */
-function CreateVariantPopover({ page }: Readonly<{ page: FactionDetailPageData }>) {
-  const navigate = Route.useNavigate();
-  const createVariant = useCreateFactionVariant();
-  const { faction, family, variants } = page;
-  const [draft, dispatch] = useReducer(variantDraftReducer, { opened: false, name: '', parent: faction._id });
-  const parent = variants.find((variant) => variant._id === draft.parent);
-  const current = variants.find((variant) => variant._id === faction._id);
-  const variantSlug = slugify(draft.name);
-  const taken = variantSlug ? variants.find((variant) => slugify(variant.name) === variantSlug) : undefined;
-  const create = async () => {
-    if (!variantSlug || taken || createVariant.isPending) {
-      return;
-    }
-    const created = await createVariant
-      .mutateAsync({ factionId: faction._id, name: draft.name, parentId: parent?._id ?? null })
-      .catch(() => null);
-    if (created) {
-      dispatch({ type: 'dismissed' });
-      void navigate({ to: '/factions/$factionId', params: { factionId: created.slug } });
-    }
-  };
+type VariantFaction = FactionDetailPageData['faction'];
 
+/**
+ * Starts a new variant of the page's Faction from the toolbar (#2927).
+ * The form mounts with the popover, so the Faction's variants are read only while it is open.
+ */
+function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>) {
+  const [opened, setOpened] = useState(false);
   return (
-    <Popover
-      opened={draft.opened}
-      onChange={(opened) => (opened ? undefined : dispatch({ type: 'dismissed' }))}
-      position="bottom-start"
-      width={340}
-      withArrow
-      trapFocus
-    >
+    <Popover opened={opened} onChange={setOpened} position="bottom-start" width={340} withArrow trapFocus>
       <Popover.Target>
         <Box component="span" display="inline-flex">
           <IconAction
@@ -465,83 +439,111 @@ function CreateVariantPopover({ page }: Readonly<{ page: FactionDetailPageData }
             emphasis="standard"
             intent="positive"
             size="lg"
-            pressed={draft.opened}
-            onClick={() => dispatch({ type: 'toggled' })}
+            pressed={opened}
+            onClick={() => setOpened((current) => !current)}
             icon={<GitBranchPlus size={17} aria-hidden />}
           />
         </Box>
       </Popover.Target>
       <Popover.Dropdown>
-        <form
-          aria-label="Create variant"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void create();
-          }}
-        >
-          <Stack gap="md">
-            <ControlBlock
-              title="Variant name"
-              description={`Shown beside ${faction.data.name}, and part of the variant's address.`}
-              input={(control) => (
-                <TextInput
-                  {...control}
-                  data-autofocus
-                  value={draft.name}
-                  error={taken ? `This faction already has a variant called “${taken.name}”.` : undefined}
-                  onChange={(event) => dispatch({ type: 'named', name: event.currentTarget.value })}
-                />
-              )}
-            />
-            <Text size="xs" c="dimmed">
-              Address:{' '}
-              <Text span ff="monospace" size="xs">
-                {`/factions/${family?.slug ?? slugify(faction.data.name)}-${variantSlug || '…'}`}
-              </Text>
-            </Text>
-            <ControlBlock
-              title="Parent variant"
-              description="The parent is chosen once and cannot be changed later."
-              input={
-                <Radio.Group
-                  value={parent ? parent._id : NO_PARENT}
-                  onChange={(value) => dispatch({ type: 'parentChosen', parent: value })}
-                >
-                  <Stack gap="xs">
-                    <Radio value={NO_PARENT} label="No parent" color="selected" />
-                    {variants.map((variant) => (
-                      <Radio key={variant._id} value={variant._id} label={variant.name} color="selected" />
-                    ))}
-                  </Stack>
-                </Radio.Group>
-              }
-            />
-            <Text size="xs" c="dimmed">
-              {parent
-                ? `Starts with all ${INHERITABLE_FIELDS.length} fields using ${parent.name}. Switch any of them to Custom in the editor.`
-                : `Starts as a copy of ${current?.name ?? 'this variant'}, with every field its own. A variant without a parent can never be given one.`}
-            </Text>
-            {createVariant.error ? (
-              <FormError title="Variant could not be created">{mutationErrorMessage(createVariant.error)}</FormError>
-            ) : null}
-            <Group justify="flex-end">
-              <LabeledAction
-                type="submit"
-                intent="positive"
-                emphasis="strong"
-                busy={createVariant.isPending}
-                disabledReason={
-                  variantSlug ? (taken ? 'Pick a name no other variant uses.' : undefined) : 'Give the variant a name.'
-                }
-                icon={<GitBranchPlus size={16} />}
-              >
-                Create variant
-              </LabeledAction>
-            </Group>
-          </Stack>
-        </form>
+        <CreateVariantForm faction={faction} />
       </Popover.Dropdown>
     </Popover>
+  );
+}
+
+/**
+ * The new variant's name, the address that name gives it, and the one parent it may follow.
+ * The variant on the page is the parent offered first, and the one a variant without a parent starts as a copy of.
+ */
+function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
+  const navigate = Route.useNavigate();
+  const createVariant = useCreateFactionVariant();
+  const context = useFactionVariantContext(faction._id, true);
+  const [draft, dispatch] = useReducer(variantDraftReducer, { name: '', parent: faction._id });
+  if (!context) {
+    return <Pending>Loading variants</Pending>;
+  }
+  const parent = context.variants.find((variant) => variant._id === draft.parent);
+  const variantSlug = slugify(draft.name);
+  const create = async () => {
+    if (!variantSlug || createVariant.isPending) {
+      return;
+    }
+    const created = await createVariant
+      .mutateAsync({ factionId: faction._id, name: draft.name, parentId: parent?._id ?? null })
+      .catch(() => null);
+    if (created) {
+      void navigate({ to: '/factions/$factionId', params: { factionId: created.slug } });
+    }
+  };
+
+  return (
+    <form
+      aria-label="Create variant"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void create();
+      }}
+    >
+      <Stack gap="md">
+        <ControlBlock
+          title="Variant name"
+          description={`Shown beside ${faction.data.name}, and part of the variant's address.`}
+          input={(control) => (
+            <TextInput
+              {...control}
+              data-autofocus
+              value={draft.name}
+              onChange={(event) => dispatch({ type: 'named', name: event.currentTarget.value })}
+            />
+          )}
+        />
+        <Text size="xs" c="dimmed">
+          Address:{' '}
+          <Text span ff="monospace" size="xs">
+            {`/factions/${context.familySlug}-${variantSlug || '…'}`}
+          </Text>
+        </Text>
+        <ControlBlock
+          title="Parent variant"
+          description="The parent is chosen once and cannot be changed later."
+          input={
+            <Radio.Group
+              value={parent ? parent._id : NO_PARENT}
+              onChange={(value) => dispatch({ type: 'parentChosen', parent: value })}
+            >
+              <Stack gap="xs">
+                <Radio value={NO_PARENT} label="No parent" color="selected" />
+                {context.variants.map((variant) => (
+                  <Radio key={variant._id} value={variant._id} label={variant.name} color="selected" />
+                ))}
+              </Stack>
+            </Radio.Group>
+          }
+        />
+        <Text size="xs" c="dimmed">
+          {parent
+            ? `Starts with all ${INHERITABLE_FIELDS.length} fields using ${parent.name}. Switch any of them to Custom in the editor.`
+            : `Starts as a copy of ${faction.variant_name ?? 'this variant'}, with every field its own. A variant without a parent can never be given one.`}
+        </Text>
+        {createVariant.error ? (
+          <FormError title="Variant could not be created">{mutationErrorMessage(createVariant.error)}</FormError>
+        ) : null}
+        <Group justify="flex-end">
+          <LabeledAction
+            type="submit"
+            intent="positive"
+            emphasis="strong"
+            busy={createVariant.isPending}
+            disabledReason={variantSlug ? undefined : 'Give the variant a name.'}
+            icon={<GitBranchPlus size={16} />}
+          >
+            Create variant
+          </LabeledAction>
+        </Group>
+      </Stack>
+    </form>
   );
 }
 
@@ -553,10 +555,12 @@ function VariantProblemsNotice({ page, factionId }: Readonly<{ page: FactionDeta
   const problems = page.faction.problems ?? [];
   const count = problems.length === 1 ? '1 problem' : `${problems.length} problems`;
   const variantName = page.faction.variant_name ?? 'This variant';
+  /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
+  const parentName = useFactionVariantContext(page.faction._id, true)?.parent?.name ?? 'its parent variant';
   return (
     <Notice
       tone="caution"
-      title={page.parent ? `${count} since ${page.parent.name} changed` : `${count} to fix`}
+      title={`${count} since ${parentName} changed`}
       action={
         <LabeledAction
           size="compact-sm"
@@ -710,7 +714,7 @@ function FactionDetailContent({
                 icon={<Pencil size={17} aria-hidden />}
               />
             ) : null}
-            {canCreateVariant ? <CreateVariantPopover key={faction._id} page={page} /> : null}
+            {canCreateVariant ? <CreateVariantPopover key={faction._id} faction={faction} /> : null}
           </Toolbar.Left>
 
           <Toolbar.Right label="Faction actions">

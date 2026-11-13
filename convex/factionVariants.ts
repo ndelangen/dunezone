@@ -2,14 +2,17 @@ import { ConvexError, v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { internalMutation, mutation } from './functions';
-import { loadFactionFamilyAccess } from './lib/collaborativeAccess';
+import { internalMutation, mutation, viewerQuery } from './functions';
+import { loadCollaborativeAccess, loadFactionFamilyAccess } from './lib/collaborativeAccess';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { allocateFactionAddress } from './lib/factionAddresses';
+import { factionDataValidator } from './lib/factionData';
+import { ORIGINAL_VARIANT_NAME } from './lib/factionFamilies';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { followParent, insertVariant, takeSharedFields } from './lib/factionVariants';
 import { requireAuthUserId } from './lib/policy';
 import { slugify } from './lib/utils';
-import type { MutationCtx } from './types';
+import type { MutationCtx, QueryCtx } from './types';
 
 async function liveVariant(ctx: MutationCtx, id: Id<'factions'>) {
   const row = await ctx.db.get(id);
@@ -44,6 +47,63 @@ async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>
   }
   return variantSlug;
 }
+
+/** The most variants the create popover offers as a parent. */
+const VARIANT_CHOICE_LIMIT = 200;
+
+/** The name a variant goes by; one made before variants had names is the Original. */
+function variantName(variant: Doc<'factions'>) {
+  return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
+}
+
+/** The Faction's live variants, oldest first, with the deleted ones passed over before the limit counts. */
+async function liveVariantChoices(ctx: QueryCtx, familyId: Id<'faction_families'>) {
+  const choices: { _id: Id<'factions'>; name: string }[] = [];
+  for await (const row of ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId))) {
+    if (!row.is_deleted) {
+      choices.push({ _id: row._id, name: variantName(row) });
+    }
+    if (choices.length === VARIANT_CHOICE_LIMIT) {
+      break;
+    }
+  }
+  return choices;
+}
+
+/**
+ * What editing a variant needs beyond its public page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent (#2927).
+ * It answers only someone who may edit the variant or its Faction, and null for anyone else, so a reader's page never carries it.
+ * A soft-deleted parent still answers, since its children keep following it (#2908).
+ */
+export const editorContext = viewerQuery({
+  args: { faction_id: v.id('factions') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      parent: v.union(v.null(), v.object({ name: v.string(), data: factionDataValidator })),
+      variants: v.array(v.object({ _id: v.id('factions'), name: v.string() })),
+      familySlug: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const variant = await ctx.db.get(args.faction_id);
+    const family = variant?.family_id ? await ctx.db.get(variant.family_id) : null;
+    if (!variant || variant.is_deleted || !family) {
+      return null;
+    }
+    const { viewerAccess } = await loadCollaborativeAccess(ctx, { kind: 'faction', id: variant._id });
+    const mayEdit = viewerAccess.capabilities.edit || (await loadFactionFamilyAccess(ctx, family)).capabilities.edit;
+    if (!mayEdit) {
+      return null;
+    }
+    const parent = variant.parent_id ? await ctx.db.get(variant.parent_id) : null;
+    return {
+      parent: parent && { name: variantName(parent), data: parseStoredFactionForRead(parent.data) },
+      variants: await liveVariantChoices(ctx, family._id),
+      familySlug: family.slug,
+    };
+  },
+});
 
 /**
  * Adds a variant to a Faction, optionally following one parent variant, fixed from now on (#2927).

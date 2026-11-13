@@ -4,6 +4,7 @@ import { complexityOutOfTen } from '@ui/content/complexity';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockProps } from '@ui/control/ControlBlock';
 import { CornerDownRight } from 'lucide-react';
 import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
@@ -29,9 +30,9 @@ const InheritanceContext = createContext<FactionInheritance | null>(null);
 /** Hands the chapters below the variant's inheritance; without it every field is the variant's own, as on a variant with no parent. */
 export const FactionInheritanceProvider = InheritanceContext.Provider;
 
-function Lines({ lines, empty }: { lines: string[]; empty: string }) {
+function Lines({ lines, empty }: { lines: string[]; empty?: string }) {
   if (lines.length === 0) {
-    return <EmptyNote>{empty}</EmptyNote>;
+    return <EmptyNote>{empty ?? 'None.'}</EmptyNote>;
   }
   return (
     <Stack gap={2}>
@@ -69,8 +70,8 @@ const parentValues: Record<InheritableField, (parent: Faction) => ReactNode> = {
   ),
   'rules.startText': (parent) => <Prose source={parent.rules.startText} />,
   'rules.revivalText': (parent) => <Prose source={parent.rules.revivalText} />,
-  'rules.spiceCount': (parent) => <Lines lines={[`${parent.rules.spiceCount} spice`]} empty="" />,
-  'rules.treacheryTracker': (parent) => <Lines lines={[parent.rules.treacheryTracker ? 'On' : 'Off']} empty="" />,
+  'rules.spiceCount': (parent) => <Lines lines={[`${parent.rules.spiceCount} spice`]} />,
+  'rules.treacheryTracker': (parent) => <Lines lines={[parent.rules.treacheryTracker ? 'On' : 'Off']} />,
   'rules.advantages': (parent) => (
     <Lines
       lines={parent.rules.advantages.map((advantage, index) => advantage.title?.trim() || `Advantage ${index + 1}`)}
@@ -102,7 +103,6 @@ const parentValues: Record<InheritableField, (parent: Faction) => ReactNode> = {
           ? 'Automatic, from the rules text.'
           : `${complexityOutOfTen(complexity.manual)}/10, set by hand.`,
       ]}
-      empty=""
     />
   ),
 };
@@ -173,6 +173,15 @@ export function useInheritableField(field: InheritableField, title: string) {
     </div>
   );
   return { choice, parentValue };
+}
+
+/** A `ControlBlock` for a field a variant may take from its parent: the choice sits in its header, and the parent's value takes its place while the field follows the parent. */
+export function InheritableControlBlock({
+  field,
+  ...block
+}: Omit<ControlBlockProps, 'tool'> & { field: InheritableField }) {
+  const { choice, parentValue } = useInheritableField(field, block.title);
+  return parentValue ?? <ControlBlock {...block} tool={choice} />;
 }
 
 /** An inheritable field whose controls have no header of their own: this gives them one, named `title`, to hold the choice. */

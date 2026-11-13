@@ -15,7 +15,7 @@ import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
 import rateLimiterSchema from '../../../../node_modules/@convex-dev/rate-limiter/src/component/schema';
-import { factionFamilySeedKey, resolveSeedValue } from '../../../shared/seedReferences';
+import { resolveSeedValue } from '../../../shared/seedReferences';
 import { STORYBOOK_NOW } from './protocol';
 import type {
   ContextConformanceResult,
@@ -128,13 +128,29 @@ type WorldRequest = Exclude<
   { operation: 'contextConformance' | 'networkProbe' | 'ping' | 'reset' | 'subworkerProbe' }
 >;
 
+/**
+ * A seeded variant with a parent joins its parent's Faction.
+ * A trigger makes that Faction when the parent is inserted, so no seed can name it.
+ */
+async function inParentsFamily<TableName extends TableNames>(
+  db: DatabaseWriter,
+  table: TableName,
+  value: WithoutSystemFields<Doc<TableName>>
+) {
+  const faction = value as Partial<Doc<'factions'>>;
+  if (table !== 'factions' || !faction.parent_id || faction.family_id) {
+    return value;
+  }
+  return { ...value, family_id: (await db.get('factions', faction.parent_id))?.family_id };
+}
+
 async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
   document: SeedDocumentFor<TableName>,
   references: Map<string, string>
 ) {
   const value = resolveSeedValue(document.value, references) as WithoutSystemFields<Doc<TableName>>;
-  return await db.insert(document.table, value);
+  return await db.insert(document.table, await inParentsFamily(db, document.table, value));
 }
 
 async function patchDocument<TableName extends TableNames>(
@@ -158,14 +174,6 @@ async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], ref
     const id = await insertDocument(db, document, references);
     if (document.key) {
       references.set(document.key, id);
-    }
-    /* The insert's trigger gave a new faction its Faction, which a later variant of it names by this key. */
-    const familyId =
-      document.key && document.table === 'factions'
-        ? (await db.get('factions', id as Id<'factions'>))?.family_id
-        : null;
-    if (document.key && familyId) {
-      references.set(factionFamilySeedKey(document.key), familyId);
     }
   }
 }

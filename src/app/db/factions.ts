@@ -168,12 +168,8 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
 
 type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.pageBySlug>;
 
-/** The variant a page's variant follows, with its current data parsed at the client boundary. */
-type FactionParentVariant = Omit<NonNullable<FactionDetailPageRaw['parent']>, 'data'> & { data: FactionData };
-
-export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction' | 'parent'> & {
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
   faction: FactionEntry;
-  parent: FactionParentVariant | null;
 };
 
 function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageData {
@@ -188,11 +184,6 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
     assetPublishing: raw.assetPublishing,
     assignedGroup: raw.assignedGroup,
     family: raw.family,
-    parent: raw.parent && {
-      ...raw.parent,
-      data: parseClientBoundary(CanonicalFactionClientSchema, raw.parent.data, 'Parent variant data'),
-    },
-    variants: raw.variants,
     rulesets: raw.rulesets,
   };
 }
@@ -332,6 +323,29 @@ export function useCreateFaction() {
       return toCreatedFactionEntry(entry);
     },
   };
+}
+
+/**
+ * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
+ * Read only while `enabled`, by someone who may edit the variant or its Faction;
+ * undefined while loading or not enabled, and null for a viewer the server does not tell.
+ */
+export function useFactionVariantContext(factionId: string, enabled: boolean) {
+  const raw = useQuery(
+    api.factionVariants.editorContext,
+    enabled ? { faction_id: factionId as FactionRow['_id'] } : 'skip'
+  );
+  return useMemo(
+    () =>
+      raw && {
+        ...raw,
+        parent: raw.parent && {
+          name: raw.parent.name,
+          data: parseClientBoundary(CanonicalFactionClientSchema, raw.parent.data, 'Parent variant data'),
+        },
+      },
+    [raw]
+  );
 }
 
 /**

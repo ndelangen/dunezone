@@ -19,7 +19,6 @@ import type { FactionInput } from '../../../shared/factions/schema';
 import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
 import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
-import { factionFamilySeedKey } from '../../../shared/seedReferences';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
 import type {
@@ -68,16 +67,6 @@ function emptyTables(): StorybookDatabase {
 
 export function ref(key: string): SeedReference {
   return { $seedRef: key };
-}
-
-/** The Faction a seeded faction row was given, for a second variant's `family_id`. */
-export function familyRef(factionKey: string): SeedReference {
-  return ref(factionFamilySeedKey(factionKey));
-}
-
-/** The keys a seeded row answers to: its own, and for a faction the Faction made with it. */
-function keysOf(table: string, key: string) {
-  return table === 'factions' ? [key, factionFamilySeedKey(key)] : [key];
 }
 
 /**
@@ -344,7 +333,7 @@ function visitReferences(value: unknown, visit: (key: string) => void) {
 
 function collectKeys(database: StorybookDatabase) {
   const keys = new Set<string>();
-  for (const [table, rows] of Object.entries(database)) {
+  for (const rows of Object.values(database)) {
     for (const row of rows as Array<{ $key?: string }>) {
       if (!row.$key) {
         continue;
@@ -352,9 +341,7 @@ function collectKeys(database: StorybookDatabase) {
       if (keys.has(row.$key)) {
         throw new Error(`Storybook database key ${row.$key} is duplicated.`);
       }
-      for (const key of keysOf(table, row.$key)) {
-        keys.add(key);
-      }
+      keys.add(row.$key);
     }
   }
   return keys;
@@ -422,8 +409,8 @@ function orderSeedDocuments(documents: SeedInsertDocument[]) {
     }
     const [document] = pending.splice(readyIndex, 1);
     ordered.push(document);
-    for (const key of document.key ? keysOf(document.table, document.key) : []) {
-      resolved.add(key);
+    if (document.key) {
+      resolved.add(document.key);
     }
   }
   return ordered;

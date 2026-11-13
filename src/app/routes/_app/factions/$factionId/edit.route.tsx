@@ -1,6 +1,5 @@
 import { Stack } from '@mantine/core';
-import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
-import { normalizeInheritedFields, resolveVariantData } from '@shared/factions/variantFields';
+import { normalizeInheritedFields } from '@shared/factions/variantFields';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -15,9 +14,15 @@ import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import {
+  useDeleteFaction,
+  useFaction,
+  useFactionVariantContext,
+  useSetFactionGroup,
+  useUpdateFaction,
+} from '@db/factions';
 import { isFactionNotFound, loadFaction } from '@db/factions';
-import type { Faction, FactionDetailPageData } from '@db/factions';
+import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
 import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
@@ -97,17 +102,23 @@ function FactionEditPage() {
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
-  const parent = page.parent;
-  const savedInherited = normalizeInheritedFields(authoringFaction.inherited ?? []);
-  /* A loaded draft keeps to the variant's saved inheritance, as the server would on its save. */
-  const followingParent = (draft: Faction): Faction =>
-    parent
-      ? resolveVariantData(ensureFactionComponentIds(parent.data), ensureFactionComponentIds(draft), savedInherited)
-      : draft;
+  /* Only a variant with a parent has anything to ask, and only once the viewer is known to be one of its editors. */
+  const followsAParent = authoringFaction.parent_id !== undefined;
+  const variantContext = useFactionVariantContext(
+    authoringFaction._id,
+    followsAParent && viewerResolved && rights.variant
+  );
+  const parent = variantContext?.parent;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
-    inheritance: parent ? { parent: parent.data, saved: savedInherited } : undefined,
+    inheritance: parent
+      ? {
+          parentName: parent.name,
+          parent: parent.data,
+          saved: normalizeInheritedFields(authoringFaction.inherited ?? []),
+        }
+      : undefined,
     persistence: {
       save: async (draft, inherited) =>
         await updateFaction.mutateAsync({ input: withinRights(draft), id: authoringFaction._id, inherited }),
@@ -174,6 +185,15 @@ function FactionEditPage() {
     );
   }
 
+  /* The editor of a variant with a parent waits for that parent, so no inherited field ever shows as the variant's own. */
+  if (followsAParent && rights.variant && variantContext === undefined) {
+    return (
+      <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
+        Loading the parent variant.
+      </RoutePending>
+    );
+  }
+
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
@@ -199,9 +219,7 @@ function FactionEditPage() {
               disabled: updateFaction.isPending,
               raw: rawFactionLoad(faction.data.name, rights.shared),
               source: factionLoadSource({ slug: faction.slug, name: faction.data.name }),
-              onLoaded: validationHeader.releasing((draft) =>
-                authoring.actions.loadDraft(followingParent(withinRights(draft)))
-              ),
+              onLoaded: validationHeader.releasing((draft) => authoring.actions.loadDraft(withinRights(draft))),
             }}
             status={{
               isDirty: authoring.editing.isDirty,
@@ -260,16 +278,7 @@ function FactionEditPage() {
             <FactionEditor
               factionNotice={<FactionChapterNotice page={page} rights={rights} />}
               rights={rights}
-              inheritance={
-                parent && authoring.inherited
-                  ? {
-                      parentName: parent.name,
-                      parent: parent.data,
-                      inherited: authoring.inherited,
-                      onChange: authoring.setFieldInheritance,
-                    }
-                  : undefined
-              }
+              inheritance={authoring.inheritance}
               key={faction._id}
               ref={viewRef}
               form={authoring.form}

@@ -785,8 +785,10 @@ export const EditVariantSavesWhichFieldsFollowTheParent = meta.story({
     );
     /* The saved choices are what the editor now shows, with nothing left to save. */
     await waitFor(() => expect(save).toHaveAccessibleDescription(/^Saved/));
-    await expect(rules.getByRole('group', { name: 'Revival instructions, from Original, read-only' })).toBeVisible();
-    await expect(rules.getByRole('textbox', { name: 'Starting spice' })).toBeVisible();
+    await expect(
+      rules.findByRole('group', { name: 'Revival instructions, from Original, read-only' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(rules.findByRole('textbox', { name: 'Starting spice' }, { timeout: 30_000 })).resolves.toBeVisible();
   },
 });
 
@@ -833,9 +835,12 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
     const name = form.getByRole('textbox', { name: 'Variant name' });
     const create = form.getByRole('button', { name: 'Create variant' });
     await expect(create).toHaveAttribute('aria-disabled', 'true');
+    /* The server refuses a name another variant has, and its words show in the popover. */
     await userEvent.type(name, 'Dreamrules');
-    await expect(form.getByText('This faction already has a variant called “Dreamrules”.')).toBeVisible();
-    await expect(create).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(create);
+    await expect(
+      form.findByText('This faction already has a variant called “Dreamrules”.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     await userEvent.clear(name);
     await userEvent.type(name, 'Tournament');
     await userEvent.click(form.getByRole('radio', { name: 'Original' }));
