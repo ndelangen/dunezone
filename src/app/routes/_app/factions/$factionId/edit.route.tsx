@@ -37,7 +37,6 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from '../factionNameField';
 import { rawFactionLoad } from '../rawFactionLoad';
-import { factionTabPrototype } from './factionTabPrototype';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -172,14 +171,6 @@ function FactionEditPage() {
       replace: true,
     });
 
-  /* PROTOTYPE (#2926): the Faction tab arrangement a story asked for; undefined everywhere else. */
-  const factionTab = factionTabPrototype({
-    factionName: faction.data.name,
-    variantName: faction.variant_name ?? 'Original',
-    owner: page.owner,
-    canEdit: viewerAccess.capabilities.rename,
-  });
-
   return (
     <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
       <PageLayout>
@@ -251,8 +242,7 @@ function FactionEditPage() {
             <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
             <ActionError subject="Group access" verb="change" error={setFactionGroup.error} />
             <FactionEditor
-              prototype={factionTab}
-              nameField={factionTab ? undefined : nameField}
+              nameField={nameField}
               key={faction._id}
               ref={viewRef}
               form={authoring.form}

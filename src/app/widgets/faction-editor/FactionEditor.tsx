@@ -9,7 +9,7 @@ import type { BackgroundModeMemory } from '@app/widgets/background-composer/Back
 import type { FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { FactionFormFields } from './FactionFormFields';
-import type { FactionEditorPrototype, FactionFormFieldsHandle } from './FactionFormFields';
+import type { FactionFormFieldsHandle } from './FactionFormFields';
 import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
 import type { StrengthRefusal } from './FactionFormSectionLeaders';
 import type { FactionFormApi } from './factionFormTypes';
@@ -34,8 +34,6 @@ export interface FactionEditorProps {
   /** Strength text a leader's field refused, from `useFactionAuthoring`, which clears it on a replace. */
   strengthRefusal: StrengthRefusal;
   onStrengthRefusalChange: (refusal: StrengthRefusal) => void;
-  /** PROTOTYPE (#2926, the Faction tab): a route-owned arrangement of the editor's pieces; remove with the prototype. */
-  prototype?: FactionEditorPrototype;
 }
 
 export interface FactionAuthoringViewHandle {
@@ -59,7 +57,6 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       onRetainedManualComplexityChange,
       strengthRefusal,
       onStrengthRefusalChange,
-      prototype,
     },
     ref
   ) => {
@@ -103,7 +100,6 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   onRetainedManualComplexityChange={onRetainedManualComplexityChange}
                   strengthRefusal={strengthRefusal}
                   onStrengthRefusalChange={onStrengthRefusalChange}
-                  prototype={prototype}
                   nameError={
                     isNameBlank
                       ? 'A faction name is required before saving because it determines the faction URL.'
