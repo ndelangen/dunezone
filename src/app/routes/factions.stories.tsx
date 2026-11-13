@@ -186,9 +186,10 @@ export const EditFactionChapterAlone = meta.story({
     /* The notice opens to say whose the other chapters are, and the story leaves it shut, as a reader first meets it. */
     const shared = page.getByRole('button', { name: 'Shared by every variant' });
     await userEvent.click(shared);
-    await expect(
-      page.findByText(/The rest of the .+ variant is for its own owner and Group to edit\./)
-    ).resolves.toBeVisible();
+    /* The panel opens with a short animation, so wait for the words to show. */
+    await waitFor(() =>
+      expect(page.getByText(/The rest of the .+ variant is for its own owner and Group to edit\./)).toBeVisible()
+    );
     await userEvent.click(shared);
     await expect(shared).toHaveAttribute('aria-expanded', 'false');
     await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
