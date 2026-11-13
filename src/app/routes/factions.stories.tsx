@@ -275,5 +275,8 @@ export const DetailVariantWithProblems = meta.story({
       'The troop "House guard" names the planet "Caladan", which this variant does not have.',
     ]);
     await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
+    /* Leave the story as a reader first meets it: one line, closed. */
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   },
 });
