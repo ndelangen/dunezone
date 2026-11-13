@@ -1,3 +1,4 @@
+import type { PaginationOptions, PaginationResult } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
 import { internal } from './_generated/api';
@@ -34,13 +35,18 @@ async function parentFor(ctx: MutationCtx, base: Doc<'factions'>, parentId: Id<'
   return parent;
 }
 
+/** Every variant of the Faction, the soft-deleted ones too, oldest first. */
+function variantsOf(ctx: QueryCtx, familyId: Id<'faction_families'>) {
+  return ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId));
+}
+
 /** The new variant's own slug, which no other variant of the Faction may already use. */
 async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
   const variantSlug = slugify(name);
   if (!variantSlug) {
     throw new ConvexError('Give the variant a name.');
   }
-  for await (const sibling of ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId))) {
+  for await (const sibling of variantsOf(ctx, familyId)) {
     if (sibling.variant_slug === variantSlug) {
       throw new ConvexError(`This faction already has a variant called “${sibling.variant_name}”.`);
     }
@@ -59,7 +65,7 @@ function variantName(variant: Doc<'factions'>) {
 /** The Faction's live variants, oldest first, with the deleted ones passed over before the limit counts. */
 async function liveVariantChoices(ctx: QueryCtx, familyId: Id<'faction_families'>) {
   const choices: { _id: Id<'factions'>; name: string }[] = [];
-  for await (const row of ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId))) {
+  for await (const row of variantsOf(ctx, familyId)) {
     if (!row.is_deleted) {
       choices.push({ _id: row._id, name: variantName(row) });
     }
@@ -146,6 +152,22 @@ export const create = mutation({
 });
 
 /**
+ * Hands `visit` the one variant at the cursor, and answers the cursor of the next, or null after the last.
+ * A push-down takes one variant per transaction, so each schedules itself again from the cursor this answers.
+ */
+async function visitNextVariant(
+  variants: { paginate: (options: PaginationOptions) => Promise<PaginationResult<Doc<'factions'>>> },
+  cursor: string | null,
+  visit: (variant: Doc<'factions'>) => Promise<void>
+) {
+  const page = await variants.paginate({ numItems: 1, cursor });
+  for (const variant of page.page) {
+    await visit(variant);
+  }
+  return page.isDone ? null : page.continueCursor;
+}
+
+/**
  * Carries a parent's save to its children, one child per transaction, then to theirs as each child saves (#2907).
  * A newer save of the parent starts its own push-down, so this one stops.
  * Soft-deleted children are followed too, so changes keep flowing through them (#2908).
@@ -158,18 +180,10 @@ export const pushToChildren = internalMutation({
     if (!parent || (parent.revision ?? 0) !== args.revision) {
       return null;
     }
-    const page = await ctx.db
-      .query('factions')
-      .withIndex('by_parent', (q) => q.eq('parent_id', args.parentId))
-      .paginate({ numItems: 1, cursor: args.cursor });
-    for (const child of page.page) {
-      await followParent(ctx, parent, child);
-    }
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.factionVariants.pushToChildren, {
-        ...args,
-        cursor: page.continueCursor,
-      });
+    const children = ctx.db.query('factions').withIndex('by_parent', (q) => q.eq('parent_id', args.parentId));
+    const cursor = await visitNextVariant(children, args.cursor, (child) => followParent(ctx, parent, child));
+    if (cursor !== null) {
+      await ctx.scheduler.runAfter(0, internal.factionVariants.pushToChildren, { ...args, cursor });
     }
     return null;
   },
@@ -184,18 +198,11 @@ export const pushSharedFields = internalMutation({
     if (!family) {
       return null;
     }
-    const page = await ctx.db
-      .query('factions')
-      .withIndex('by_family', (q) => q.eq('family_id', args.familyId))
-      .paginate({ numItems: 1, cursor: args.cursor });
-    for (const variant of page.page) {
-      await takeSharedFields(ctx, family, variant);
-    }
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, {
-        ...args,
-        cursor: page.continueCursor,
-      });
+    const cursor = await visitNextVariant(variantsOf(ctx, family._id), args.cursor, (variant) =>
+      takeSharedFields(ctx, family, variant)
+    );
+    if (cursor !== null) {
+      await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, { ...args, cursor });
     }
     return null;
   },
