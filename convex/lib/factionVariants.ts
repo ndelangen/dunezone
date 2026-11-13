@@ -73,7 +73,7 @@ export async function storeVariantData(
     data,
     revision,
     updated_at: nowIso(),
-    ...(faction.parent_id ? { problems: variantProblems(data) } : {}),
+    ...(faction.parent_id || faction.problems ? { problems: variantProblems(data) } : {}),
   });
   const updated = (await ctx.db.get(faction._id))!;
   await enqueueFactionSheetPublication(ctx, updated);
@@ -104,22 +104,27 @@ export async function followParent(ctx: MutationCtx, parent: Doc<'factions'>, ch
   }
 }
 
-/** Starts carrying a save's shared fields to every other variant of its Faction (#2905). */
+/**
+ * Records a save's shared fields on its Faction and starts carrying them to every variant (#2905).
+ * Each push reads the Faction's current values, so an older push that runs late carries the newer save's values, never its own.
+ */
 export async function pushSharedFields(ctx: MutationCtx, faction: Doc<'factions'>) {
-  if (faction.family_id) {
-    await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, {
-      sourceId: faction._id,
-      cursor: null,
-    });
+  if (!faction.family_id) {
+    return;
   }
+  const { shared } = splitSharedFields(parseStoredFactionForRead(faction.data));
+  await ctx.db.patch(faction.family_id, { data: shared });
+  await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, {
+    familyId: faction.family_id,
+    cursor: null,
+  });
 }
 
-/** Gives one variant the shared fields its sibling saved; a variant that already has them is left alone. */
-export async function takeSharedFields(ctx: MutationCtx, source: Doc<'factions'>, variant: Doc<'factions'>) {
-  const { shared } = splitSharedFields(parseStoredFactionForRead(source.data));
+/** Gives one variant its Faction's current shared fields; a variant that already has them is left alone. */
+export async function takeSharedFields(ctx: MutationCtx, family: Doc<'faction_families'>, variant: Doc<'factions'>) {
   const current = parseStoredFactionForRead(variant.data);
-  const next = { ...current, ...shared };
-  if (canonicalJson(next) !== canonicalJson(current)) {
+  const next = { ...current, ...family.data };
+  if (family.data && canonicalJson(next) !== canonicalJson(current)) {
     await storeVariantData(ctx, variant, next);
   }
 }
@@ -161,7 +166,7 @@ export async function insertVariant(
     variant_name: name,
     variant_slug: slugify(name),
     revision: 0,
-    ...(parent ? { parent_id: parent._id, inherited: [...INHERITABLE_FIELDS], problems: [] } : {}),
+    ...(parent ? { parent_id: parent._id, inherited: [...INHERITABLE_FIELDS], problems: variantProblems(source) } : {}),
   });
   const row = (await ctx.db.get(id))!;
   await enqueueFactionSheetPublication(ctx, row);

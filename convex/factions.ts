@@ -439,6 +439,24 @@ export const create = mutation({
   },
 });
 
+/**
+ * The fields the save leaves the variant following its parent in.
+ * Which fields follow the parent is the variant's own content, so changing them takes the right to edit the variant.
+ */
+function requireInheritanceRight(
+  access: { subject: Doc<'factions'>; viewerAccess: { capabilities: { edit: boolean } } },
+  proposed: readonly string[] | undefined
+) {
+  if (!access.subject.parent_id) {
+    return {};
+  }
+  const inherited = inheritedFields(access.subject, proposed);
+  if (inherited.join() !== inheritedFields(access.subject).join() && !access.viewerAccess.capabilities.edit) {
+    throw new Error('Not authorized');
+  }
+  return { inherited };
+}
+
 export const update = mutation({
   args: {
     id: v.id('factions'),
@@ -452,11 +470,9 @@ export const update = mutation({
     const { data, ...access } = await requireFactionSave(ctx, args.id, proposed);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
     const slug = await variantAddressAfterSave(ctx, access.subject, data.name);
+    const inherited = requireInheritanceRight(access, args.inherited);
     const sharedChanged = factionDataChange(parseStoredFactionForRead(access.subject.data), data).shared;
-    const updated = await storeVariantData(ctx, access.subject, data, {
-      slug,
-      ...(access.subject.parent_id ? { inherited: inheritedFields(access.subject, args.inherited) } : {}),
-    });
+    const updated = await storeVariantData(ctx, access.subject, data, { slug, ...inherited });
     if (sharedChanged) {
       await pushSharedFields(ctx, updated);
     }

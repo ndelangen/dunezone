@@ -115,21 +115,21 @@ export const pushToChildren = internalMutation({
   },
 });
 
-/** Carries one variant's shared fields to every other variant of its Faction, one variant per transaction. */
+/** Carries a Faction's shared fields to every one of its variants, one variant per transaction. */
 export const pushSharedFields = internalMutation({
-  args: { sourceId: v.id('factions'), cursor: v.union(v.string(), v.null()) },
+  args: { familyId: v.id('faction_families'), cursor: v.union(v.string(), v.null()) },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const source = await ctx.db.get(args.sourceId);
-    if (!source?.family_id) {
+    const family = await ctx.db.get(args.familyId);
+    if (!family) {
       return null;
     }
     const page = await ctx.db
       .query('factions')
-      .withIndex('by_family', (q) => q.eq('family_id', source.family_id))
+      .withIndex('by_family', (q) => q.eq('family_id', args.familyId))
       .paginate({ numItems: 1, cursor: args.cursor });
-    for (const variant of page.page.filter((row) => row._id !== source._id)) {
-      await takeSharedFields(ctx, source, variant);
+    for (const variant of page.page) {
+      await takeSharedFields(ctx, family, variant);
     }
     if (!page.isDone) {
       await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, {
