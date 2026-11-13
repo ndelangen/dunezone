@@ -326,6 +326,19 @@ export function useCreateFaction() {
 }
 
 /**
+ * The variant switcher's rows for the variant `factionId`: its Faction's live variants in variant order, the default first, each with the rulesets it is linked to.
+ * It is the same for every viewer and every variant of the Faction asks for the same list, so it is kept apart from the page query, which then does not rerun when a sibling variant changes.
+ * Undefined while loading, and null when the variant or its Faction is gone.
+ */
+export function useFactionVariantSwitcher(factionId: string) {
+  return useLiveQuery(api.factionVariants.switcher, { faction_id: factionId as FactionRow['_id'] });
+}
+
+export type FactionVariantSwitcherRow = NonNullable<
+  FunctionReturnType<typeof api.factionVariants.switcher>
+>['variants'][number];
+
+/**
  * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
  * It is an access query, kept apart from the public page query: the server answers only someone who may edit the variant or its Faction.
  * Keeping that check out of the page query lets every viewer share the public result.

@@ -13,6 +13,8 @@ import {
   DREAMRULES_PATH,
   withAChildVariant,
   withABrokenChildVariant,
+  withFourVariants,
+  expectVariantSwitcher,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -289,5 +291,18 @@ export const DetailVariantWithProblems = meta.story({
     /* The badge is for readers who cannot fix anything; an editor has the notice. */
     await expect(page.queryByText('Not ready for play')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
+  },
+});
+
+/**
+ * The variant switcher (#2928): a Variants card heading the details column of a variant's page.
+ * Each variant of the Faction is a row that links to it, the default first, with the covers of the rulesets it is in.
+ * A caret and a bold name mark the variant being read.
+ */
+export const DetailVariantSwitcher = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
   },
 });

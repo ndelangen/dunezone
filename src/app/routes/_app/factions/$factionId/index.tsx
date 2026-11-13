@@ -1,4 +1,7 @@
 import {
+  Anchor,
+  /* oxlint-disable-next-line no-restricted-imports -- Avatar.Group stacks a variant's ruleset NameDiscs, as the play lobby stacks its players. */
+  Avatar,
   Box,
   ColorSwatch,
   Divider,
@@ -31,6 +34,7 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { Pending } from '@ui/content/Pending';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -46,7 +50,17 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Download, Eye, FileText, GitBranchPlus, Pencil, TriangleAlert, UserPlus } from 'lucide-react';
+import {
+  ChevronRight,
+  Download,
+  Eye,
+  FileText,
+  GitBranch,
+  GitBranchPlus,
+  Pencil,
+  TriangleAlert,
+  UserPlus,
+} from 'lucide-react';
 import { Fragment, useId, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -57,8 +71,14 @@ import {
   useCreateFactionVariant,
   useFactionDetail,
   useFactionVariantContext,
+  useFactionVariantSwitcher,
 } from '@db/factions';
-import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
+import type {
+  FactionData,
+  FactionDetailPageData,
+  FactionVariantSwitcherRow,
+  PublicAssetPublishingStatusProjection,
+} from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
@@ -571,6 +591,87 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
 }
 
 /**
+ * The covers of the rulesets a variant is in, overlapping, each named on hover.
+ * They are pictures and not links, because the row they sit in is already the link to the variant.
+ * A ruleset without a cover shows its initial, and a variant in no ruleset shows nothing.
+ */
+function VariantRulesetCovers({ rulesets }: Readonly<{ rulesets: FactionVariantSwitcherRow['rulesets'] }>) {
+  if (rulesets.length === 0) {
+    return null;
+  }
+  return (
+    <Avatar.Group
+      role="group"
+      spacing={8}
+      aria-label={`Rulesets: ${rulesets.map((ruleset) => ruleset.name).join(', ')}`}
+    >
+      {rulesets.map((ruleset) => (
+        <Tooltip key={ruleset.id} label={ruleset.name} withArrow>
+          <NameDisc
+            src={ruleset.coverThumbUrl}
+            name={ruleset.name}
+            label={ruleset.name}
+            size={22}
+            color={ruleset.coverThumbUrl ? undefined : nameDiscColor(ruleset.name)}
+          />
+        </Tooltip>
+      ))}
+    </Avatar.Group>
+  );
+}
+
+/**
+ * One variant, the whole row its link.
+ * A caret marks the variant being read, and every row keeps the caret's room so the names line up.
+ * The name is never cut: when the row is too narrow for both, the covers move under the name.
+ */
+function VariantRow({ variant, current }: Readonly<{ variant: FactionVariantSwitcherRow; current: boolean }>) {
+  return (
+    <Anchor
+      display="block"
+      c="inherit"
+      underline="hover"
+      aria-current={current ? 'page' : undefined}
+      renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: variant.slug }} />}
+    >
+      <Group gap="xs" wrap="nowrap" align="flex-start">
+        <ChevronRight size={16} aria-hidden className={styles.variantCaret} opacity={current ? 1 : 0} />
+        <Group gap="xs" justify="space-between" flex={1}>
+          <Text size="sm" fw={current ? 700 : 500}>
+            {variant.name}
+          </Text>
+          <VariantRulesetCovers rulesets={variant.rulesets} />
+        </Group>
+      </Group>
+    </Anchor>
+  );
+}
+
+/**
+ * The variant switcher (#2928): a Variants card heading the details column, one row per variant of the page's Faction.
+ * The default variant comes first, which is all that marks it.
+ * The list is always open, so a reader sees how many variants there are and which rulesets each is in without pressing anything.
+ * A Faction with one variant has nothing to switch to, so it shows no card.
+ */
+function VariantSwitcher({ factionId }: Readonly<{ factionId: FactionDetailPageData['faction']['_id'] }>) {
+  const switcher = useFactionVariantSwitcher(factionId);
+  if (!switcher || switcher.variants.length < 2) {
+    return null;
+  }
+  return (
+    <Card icon={<GitBranch size={20} aria-hidden />} title="Variants">
+      <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+        {switcher.variants.map((variant) => (
+          <li key={variant._id}>
+            <VariantRow variant={variant} current={variant._id === factionId} />
+          </li>
+        ))}
+      </Stack>
+    </Card>
+  );
+}
+
+/**
  * Everything the variant's editors have to fix, in one notice above the page (#2908).
  * It is one line until pressed, because it is an extra on a page that is about the faction, and the way to the editor is the toolbar's Edit.
  */
@@ -851,6 +952,7 @@ function FactionDetailContent({
               miw={0}
               style={{ flex: '0 0 auto' }}
             >
+              <VariantSwitcher factionId={faction._id} />
               <FactionSidebarOverview data={data} />
 
               {planets.length > 0 ? (

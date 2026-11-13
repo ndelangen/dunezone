@@ -30,6 +30,9 @@ import {
   DREAMRULES_PATH,
   withAChildVariant,
   withABrokenChildVariant,
+  withFourVariants,
+  expectVariantSwitcher,
+  findVariantsCard,
 } from './factions.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { StorybookPage } from './storybook';
@@ -951,5 +954,37 @@ export const DetailKeepsProblemsFromReaders = meta.story({
     await expect(page.queryByRole('button', { name: /to fix in this variant/ })).toBeNull();
     await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/** On a laptop the details column is at its narrowest beside the content, and the switcher still shows every name whole. */
+export const DetailVariantSwitcherLaptop = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    await expectWithinWidth(canvasElement, [await findVariantsCard(canvasElement)]);
+  },
+});
+
+/** On a phone the details column runs the page's width, and the switcher fits it with every name whole. */
+export const DetailVariantSwitcherMobile = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    await expectWithinWidth(canvasElement, [await findVariantsCard(canvasElement)]);
+  },
+});
+
+/** A Faction with one variant has nothing to switch to, so its page carries no Variants card. */
+export const DetailWithOneVariantHasNoSwitcher = meta.story({
+  args: { path: '/factions/house-atreides' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('region', { name: 'Rulesets' }, { timeout: 30_000 });
+    await expect(page.queryByRole('region', { name: 'Variants' })).toBeNull();
   },
 });

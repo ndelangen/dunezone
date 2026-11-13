@@ -7,7 +7,7 @@ import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
 import { expect, within } from 'storybook/test';
 
-import { db, faction, ref, refText, SEED_REF_TOKEN } from '@db/storybook';
+import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
@@ -285,3 +285,106 @@ export const withABrokenChildVariant = withDreamrules((parent) => ({
     },
   ],
 }));
+
+/*
+ * A ruleset cover drawn in place, so it shows wherever the Storybook is hosted;
+ * a path into `public` only resolves when the Storybook sits at the root of its host.
+ */
+function drawnCover(sky: string, dune: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${sky}"/><circle cx="44" cy="20" r="9" fill="#f4e3b1"/><path d="M0 46 Q20 30 38 44 T64 40 V64 H0Z" fill="${dune}"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/** The variants beside the Original, in the order they were made, each with its parent and the rulesets it is in. */
+const SWITCHER_VARIANTS = [
+  { name: 'Dreamrules', parent: 'house-atreides', rulesets: ['dreamrules'] },
+  {
+    name: 'Tournament',
+    parent: 'house-atreides-dreamrules',
+    rulesets: ['dreamrules', 'spring-cup', 'sietch-house-rules'],
+  },
+  { name: 'Two players', parent: 'house-atreides', rulesets: [] },
+] as const;
+
+/**
+ * House Atreides with four variants, for the variant switcher (#2928).
+ * Dreamrules follows the Original and Tournament follows Dreamrules;
+ * Two players follows the Original.
+ * The Original is in two rulesets, Dreamrules in one, Tournament in three and Two players in none, and one ruleset has no cover, as most start out.
+ */
+export const withFourVariants = db((baseline) => {
+  const original = baseline.factions[0]!;
+  /* Battle strengths on every troop, so no variant's page is headed by a problem that has nothing to do with the switcher. */
+  original.data.troops = original.data.troops.map((troop: FactionInput['troops'][number]) => ({
+    ...troop,
+    capable: true,
+    combat: { strength: 1, supportedStrength: 2 },
+  }));
+  baseline.rulesets[0]!.image_cover = drawnCover('#27445c', '#c98a3c');
+  baseline.rulesets.push(
+    { ...ruleset({ name: 'Dreamrules' }), image_cover: drawnCover('#4a2d5e', '#d9a15a') },
+    { ...ruleset({ name: 'Spring Cup' }), image_cover: drawnCover('#2f5a3f', '#e0c06a') },
+    ruleset({ name: 'Sietch house rules' })
+  );
+  baseline.ruleset_factions.push({
+    ruleset_id: ref('ruleset:sietch-house-rules'),
+    faction_id: ref('faction:house-atreides'),
+    position: 0,
+  });
+  for (const variant of SWITCHER_VARIANTS) {
+    const variantSlug = variant.name.toLowerCase().replaceAll(' ', '-');
+    const key = `faction:house-atreides-${variantSlug}`;
+    baseline.factions.push({
+      ...original,
+      $key: key,
+      $patch: undefined,
+      slug: `house-atreides-${variantSlug}`,
+      data: structuredClone(original.data),
+      variant_name: variant.name,
+      variant_slug: variantSlug,
+      parent_id: ref(`faction:${variant.parent}`),
+      inherited: [...INHERITABLE_FIELDS],
+      revision: 0,
+    });
+    for (const [position, slug] of variant.rulesets.entries()) {
+      baseline.ruleset_factions.push({ ruleset_id: ref(`ruleset:${slug}`), faction_id: ref(key), position });
+    }
+  }
+});
+
+/** The Variants card once the variant page has loaded. */
+export async function findVariantsCard(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  return await page.findByRole('region', { name: 'Variants' }, { timeout: 30_000 });
+}
+
+/** The switcher's rows as its reader meets them: four variants with the default first, the one being read marked, and no name cut short. */
+export async function expectVariantSwitcher(canvasElement: HTMLElement, current: string) {
+  const card = within(await findVariantsCard(canvasElement));
+  const rows = card.getAllByRole('listitem');
+  await expect(rows.map((row) => within(row).getByRole('paragraph').textContent)).toEqual([
+    'Original',
+    'Dreamrules',
+    'Tournament',
+    'Two players',
+  ]);
+  /* Each row leads to its variant's own address; the Original took one when the Faction gained a second variant. */
+  await expect(rows.map((row) => within(row).getByRole('link').getAttribute('href'))).toEqual([
+    '/factions/house-atreides-original',
+    '/factions/house-atreides-dreamrules',
+    '/factions/house-atreides-tournament',
+    '/factions/house-atreides-two-players',
+  ]);
+  for (const row of rows) {
+    const label = within(row).getByRole('paragraph');
+    const marked = within(row).getByRole('link').getAttribute('aria-current') === 'page';
+    await expect(marked).toBe(label.textContent === current);
+    await expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
+    await expect(label.getBoundingClientRect().height).toBeLessThan(
+      2 * Number.parseFloat(getComputedStyle(label).lineHeight)
+    );
+  }
+  /* Tournament is in three rulesets, one of them without a cover; Two players is in none. */
+  await expect(card.getByRole('group', { name: 'Rulesets: Dreamrules, Spring Cup, Sietch house rules' })).toBeVisible();
+  await expect(within(rows[3]!).queryByRole('group')).toBeNull();
+}
