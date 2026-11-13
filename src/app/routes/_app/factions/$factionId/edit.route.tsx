@@ -13,14 +13,7 @@ import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import {
-  useDeleteFaction,
-  useFaction,
-  useFactionAccess,
-  useFactionSharedFieldsAccess,
-  useSetFactionGroup,
-  useUpdateFaction,
-} from '@db/factions';
+import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { isFactionNotFound, loadFaction } from '@db/factions';
 import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
@@ -46,6 +39,7 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { draftWithinRights } from '../factionEditRights';
 import { rawFactionLoad } from '../rawFactionLoad';
+import { useFactionEditRights } from '../useFactionEditRights';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -96,11 +90,8 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { resolved: variantResolved, viewerAccess } = useFactionAccess(page);
-  const sharedFields = useFactionSharedFieldsAccess(page);
-  const viewerResolved = variantResolved && sharedFields.resolved;
-  /* The shared fields follow the Faction's owner and Group, everything else the variant's (#2926). */
-  const rights: FactionEditRights = { shared: sharedFields.canEdit, variant: viewerAccess.capabilities.edit };
+  const { viewerAccess } = useFactionAccess(page);
+  const { resolved: viewerResolved, rights, canOpenEditor } = useFactionEditRights(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
@@ -164,7 +155,7 @@ function FactionEditPage() {
     );
   }
 
-  if (!rights.variant && !rights.shared) {
+  if (!canOpenEditor) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <PageState kind="absent" title="You cannot edit this faction">
