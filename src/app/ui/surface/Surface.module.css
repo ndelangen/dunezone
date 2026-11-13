@@ -25,19 +25,38 @@
 }
 
 .sm {
+  --surface-inset: var(--space-sm);
+
   padding: var(--space-sm);
 }
 
 .md {
+  --surface-inset: var(--space-md);
+
   padding: var(--space-md);
 }
 
 .lg {
+  --surface-inset: var(--space-lg);
+
   padding: var(--space-lg);
 }
 
 .xl {
+  --surface-inset: var(--space-xl);
+
   padding: var(--space-xl);
+}
+
+/*
+ * A rule dividing the pane's content runs from border to border, the way the pane's own edge does;
+ * stopped at the padding it reads as an underline of the text above it.
+ * It reaches the rules that are the pane's own children or sit in the Stack that lays its content out, which is how a pane is divided.
+ * Card extends it to its body.
+ */
+.surface > :global(.mantine-Divider-root[data-orientation="horizontal"]),
+.surface > :global(.mantine-Stack-root) > :global(.mantine-Divider-root[data-orientation="horizontal"]) {
+  margin-inline: calc(-1 * var(--surface-inset, 0px));
 }
 
 .interactive {
