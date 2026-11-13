@@ -37,7 +37,8 @@ function pathOf(field: InheritableField): Path {
   return field.split('.') as Path;
 }
 
-function readField(data: StoredFaction, field: InheritableField): unknown {
+/** The value the data holds for one inheritable field, which is what a variant following it takes. */
+export function readField(data: object, field: InheritableField): unknown {
   const [key, inner] = pathOf(field);
   const value = (data as Record<string, unknown>)[key];
   return inner === undefined ? value : (value as Record<string, unknown> | undefined)?.[inner];

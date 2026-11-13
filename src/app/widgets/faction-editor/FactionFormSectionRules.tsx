@@ -5,6 +5,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 
 function isBlank(value: string | undefined) {
   return value == null || value.trim().length === 0;
@@ -16,6 +17,10 @@ function advisory(blank: boolean, text: string) {
 }
 
 function SetupFields({ form }: { form: FactionFormApi }) {
+  const start = useInheritableField('rules.startText', 'Starting instructions');
+  const revival = useInheritableField('rules.revivalText', 'Revival instructions');
+  const spice = useInheritableField('rules.spiceCount', 'Starting spice');
+  const tracker = useInheritableField('rules.treacheryTracker', 'Treachery tracker');
   return (
     <Stack component="section" gap="md" aria-label="Setup and revival">
       <Stack gap="md">
@@ -23,24 +28,27 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           <form.Field name="rules.startText">
             {(field) => {
               return (
-                <ControlBlock
-                  title="Starting instructions"
-                  inputId="rules-start"
-                  warning={advisory(isBlank(field.state.value), 'Starting instructions are empty.')}
-                  description={
-                    'Setup instructions shown in the faction rules.\nLeave out the spice amount; it is printed already.'
-                  }
-                  input={(control) => (
-                    <FormattedTextInput
-                      {...control}
-                      minRows={4}
-                      profile="marks-only"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={field.handleChange}
-                    />
-                  )}
-                />
+                start.parentValue ?? (
+                  <ControlBlock
+                    title="Starting instructions"
+                    tool={start.choice}
+                    inputId="rules-start"
+                    warning={advisory(isBlank(field.state.value), 'Starting instructions are empty.')}
+                    description={
+                      'Setup instructions shown in the faction rules.\nLeave out the spice amount; it is printed already.'
+                    }
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={4}
+                        profile="marks-only"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
+                )
               );
             }}
           </form.Field>
@@ -48,21 +56,24 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           <form.Field name="rules.revivalText">
             {(field) => {
               return (
-                <ControlBlock
-                  title="Revival instructions"
-                  inputId="rules-revival"
-                  warning={advisory(isBlank(field.state.value), 'Revival instructions are empty.')}
-                  input={(control) => (
-                    <FormattedTextInput
-                      {...control}
-                      minRows={3}
-                      profile="marks-only"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={field.handleChange}
-                    />
-                  )}
-                />
+                revival.parentValue ?? (
+                  <ControlBlock
+                    title="Revival instructions"
+                    tool={revival.choice}
+                    inputId="rules-revival"
+                    warning={advisory(isBlank(field.state.value), 'Revival instructions are empty.')}
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={3}
+                        profile="marks-only"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
+                )
               );
             }}
           </form.Field>
@@ -70,46 +81,54 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 
         <Stack gap="md">
           <form.Field name="rules.spiceCount">
-            {(field) => (
-              <ControlBlock
-                title="Starting spice"
-                description="Rendered in At start as “Starting spice: N”; use a positive whole number."
-                inputId="rules-spice"
-                input={(fieldProps) => (
-                  <NumberInput
-                    {...fieldProps}
-                    min={1}
-                    step={1}
-                    allowDecimal={false}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(value) =>
-                      field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
-                    }
-                  />
-                )}
-              />
-            )}
+            {(field) =>
+              spice.parentValue ?? (
+                <ControlBlock
+                  title="Starting spice"
+                  tool={spice.choice}
+                  description="Rendered in At start as “Starting spice: N”; use a positive whole number."
+                  inputId="rules-spice"
+                  input={(fieldProps) => (
+                    <NumberInput
+                      {...fieldProps}
+                      min={1}
+                      step={1}
+                      allowDecimal={false}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(value) =>
+                        field.handleChange(
+                          typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1
+                        )
+                      }
+                    />
+                  )}
+                />
+              )
+            }
           </form.Field>
 
           <form.Field name="rules.treacheryTracker">
-            {(field) => (
-              <ControlBlock
-                title="Treachery tracker"
-                description={
-                  'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
-                }
-                inputId="rules-treachery-tracker"
-                input={(fieldProps) => (
-                  <Switch
-                    {...fieldProps}
-                    checked={field.state.value ?? false}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.currentTarget.checked || undefined)}
-                  />
-                )}
-              />
-            )}
+            {(field) =>
+              tracker.parentValue ?? (
+                <ControlBlock
+                  title="Treachery tracker"
+                  tool={tracker.choice}
+                  description={
+                    'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
+                  }
+                  inputId="rules-treachery-tracker"
+                  input={(fieldProps) => (
+                    <Switch
+                      {...fieldProps}
+                      checked={field.state.value ?? false}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.checked || undefined)}
+                    />
+                  )}
+                />
+              )
+            }
           </form.Field>
         </Stack>
       </Stack>
@@ -119,69 +138,84 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 
 function FateFields({ form }: { form: FactionFormApi }) {
   return (
-    <form.Field name="rules.fate.label">
-      {(labelField) => {
-        const label = factionSpecialRuleLabel(labelField.state.value);
-        return (
-          <Section title={label}>
+    <form.Field name="rules.fate.label">{(labelField) => <FateRule form={form} labelField={labelField} />}</form.Field>
+  );
+}
+
+/** The Karama or Fate rule, under the name its own label field gives it. */
+function FateRule({
+  form,
+  labelField,
+}: {
+  form: FactionFormApi;
+  labelField: {
+    state: { value: 'karama' | 'fate' | undefined };
+    handleBlur: () => void;
+    handleChange: (value: 'fate' | undefined) => void;
+  };
+}) {
+  const label = factionSpecialRuleLabel(labelField.state.value);
+  const inheritance = useInheritableField('rules.fate', label);
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
+  return (
+    <Section title={label} action={inheritance.choice}>
+      <ControlBlock
+        title="Section name"
+        description="Used on this faction's page, in Play, and on its sheet and PDF."
+        input={
+          <Radio.Group
+            aria-label="Section name"
+            value={labelField.state.value ?? 'karama'}
+            onBlur={labelField.handleBlur}
+            onChange={(value) => labelField.handleChange(value === 'fate' ? 'fate' : undefined)}
+          >
+            <Group gap="md">
+              <Radio value="karama" label={factionSpecialRuleLabels.karama} color="selected" />
+              <Radio value="fate" label={factionSpecialRuleLabels.fate} color="selected" />
+            </Group>
+          </Radio.Group>
+        }
+      />
+      <form.Field name="rules.fate.title">
+        {(field) => (
+          <ControlBlock
+            title="Rule title (optional)"
+            description="Leave blank when this rule does not need a separate title."
+            inputId="rules-fate-title"
+            input={(fieldProps) => (
+              <TextInput
+                {...fieldProps}
+                value={field.state.value ?? ''}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+              />
+            )}
+          />
+        )}
+      </form.Field>
+      <form.Field name="rules.fate.text">
+        {(field) => {
+          return (
             <ControlBlock
-              title="Section name"
-              description="Used on this faction's page, in Play, and on its sheet and PDF."
-              input={
-                <Radio.Group
-                  aria-label="Section name"
-                  value={labelField.state.value ?? 'karama'}
-                  onBlur={labelField.handleBlur}
-                  onChange={(value) => labelField.handleChange(value === 'fate' ? 'fate' : undefined)}
-                >
-                  <Group gap="md">
-                    <Radio value="karama" label={factionSpecialRuleLabels.karama} color="selected" />
-                    <Radio value="fate" label={factionSpecialRuleLabels.fate} color="selected" />
-                  </Group>
-                </Radio.Group>
-              }
-            />
-            <form.Field name="rules.fate.title">
-              {(field) => (
-                <ControlBlock
-                  title="Rule title (optional)"
-                  description="Leave blank when this rule does not need a separate title."
-                  inputId="rules-fate-title"
-                  input={(fieldProps) => (
-                    <TextInput
-                      {...fieldProps}
-                      value={field.state.value ?? ''}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
-                    />
-                  )}
+              title="Rule text"
+              inputId="rules-fate-text"
+              warning={advisory(isBlank(field.state.value), `${label} text is empty.`)}
+              input={(control) => (
+                <FormattedTextInput
+                  {...control}
+                  minRows={3}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
                 />
               )}
-            </form.Field>
-            <form.Field name="rules.fate.text">
-              {(field) => {
-                return (
-                  <ControlBlock
-                    title="Rule text"
-                    inputId="rules-fate-text"
-                    warning={advisory(isBlank(field.state.value), `${label} text is empty.`)}
-                    input={(control) => (
-                      <FormattedTextInput
-                        {...control}
-                        minRows={3}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={field.handleChange}
-                      />
-                    )}
-                  />
-                );
-              }}
-            </form.Field>
-          </Section>
-        );
-      }}
-    </form.Field>
+            />
+          );
+        }}
+      </form.Field>
+    </Section>
   );
 }
 

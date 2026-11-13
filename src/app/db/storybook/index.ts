@@ -1,4 +1,4 @@
-export { asset, db, emptyDatabase, faction, ref, refText, ruleset, storybookViewer } from './database';
+export { asset, db, emptyDatabase, faction, familyRef, ref, refText, ruleset, storybookViewer } from './database';
 export { confirmStoryProvisioning } from './provisioning';
 export { SEED_REF_TOKEN, STORYBOOK_NOW } from './protocol';
 export type { DatabaseDefinition, StorybookDatabase, StorybookRow } from './database';

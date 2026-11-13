@@ -6,6 +6,7 @@ import { FieldWarning } from '@ui/content/FieldWarning';
 import { StatusBadge } from '@ui/content/StatusBadge';
 
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 
 const TIER_SLIDER_MARKS = complexityTierSliderMarks();
 
@@ -46,6 +47,14 @@ export function FactionFormSectionComplexity({
   retainedManualRating: number | null;
   onRetainedManualRatingChange: (rating: number) => void;
 }) {
+  const inheritance = useInheritableField('complexity.manual', 'Complexity');
+  if (inheritance.parentValue) {
+    return (
+      <Stack component="section" aria-label="Faction complexity">
+        {inheritance.parentValue}
+      </Stack>
+    );
+  }
   return (
     <form.Subscribe selector={(state: { values: FactionInput }) => state.values.rules}>
       {(rules) => {
@@ -71,6 +80,7 @@ export function FactionFormSectionComplexity({
                     </Text>
                     <StatusBadge tone={active ? 'brand' : 'neutral'}>{active ? 'Manual' : 'Auto'}</StatusBadge>
                   </Group>
+                  {inheritance.choice ? <Group justify="flex-end">{inheritance.choice}</Group> : null}
 
                   <Slider
                     min={0}

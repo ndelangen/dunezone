@@ -27,6 +27,9 @@ import {
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
+  DREAMRULES_PATH,
+  withAChildVariant,
+  withABrokenChildVariant,
 } from './factions.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { StorybookPage } from './storybook';
@@ -735,5 +738,139 @@ export const EditVariantChaptersOutsideTheFactionGroup = meta.story({
     await expect(page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 })).resolves.toBeDisabled();
     await userEvent.click(page.getByRole('tab', { name: /^Faction leader/ }));
     await expect(page.findByRole('textbox', { name: 'Faction leader name' })).resolves.toBeEnabled();
+  },
+});
+
+const DREAMRULES_SLUG = DREAMRULES_PATH.replace('/factions/', '');
+
+/**
+ * Switching a custom field to the parent and saving stores the parent's value and the choice (#2927).
+ * Switching another to custom leaves it holding the parent's value, now the variant's own to change.
+ */
+export const EditVariantSavesWhichFieldsFollowTheParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const original = await loadFaction('house-atreides');
+    const save = page.getByRole('button', { name: 'Save faction' });
+    await expect(save).toHaveAccessibleDescription(/^No unsaved changes/);
+
+    /* A custom field starts from the parent's value, so the choice alone is the unsaved change. */
+    const spice = rules.getByRole('group', { name: 'Starting spice: use parent variant or custom' });
+    await userEvent.click(within(spice).getByRole('radio', { name: 'Custom' }));
+    await expect(rules.findByRole('textbox', { name: 'Starting spice' })).resolves.toHaveValue(
+      String(original.faction.data.rules.spiceCount)
+    );
+    await expect(save).toHaveAccessibleDescription(/^Unsaved changes/);
+
+    const revival = rules.getByRole('group', { name: 'Revival instructions: use parent variant or custom' });
+    await userEvent.click(within(revival).getByRole('radio', { name: 'Use parent variant' }));
+    await expect(
+      rules.findByRole('group', { name: 'Revival instructions, from Original, read-only' })
+    ).resolves.toBeVisible();
+    await expect(rules.queryByRole('textbox', { name: 'Revival instructions' })).toBeNull();
+
+    await userEvent.click(save);
+    await waitFor(
+      async () => {
+        const saved = (await loadFaction(DREAMRULES_SLUG)).faction;
+        await expect(saved.inherited).toContain('rules.revivalText');
+        await expect(saved.inherited).not.toContain('rules.spiceCount');
+        await expect(saved.data.rules.revivalText).toBe(original.faction.data.rules.revivalText);
+      },
+      { timeout: 30_000 }
+    );
+    /* The saved choices are what the editor now shows, with nothing left to save. */
+    await waitFor(() => expect(save).toHaveAccessibleDescription(/^Saved/));
+    await expect(rules.getByRole('group', { name: 'Revival instructions, from Original, read-only' })).toBeVisible();
+    await expect(rules.getByRole('textbox', { name: 'Starting spice' })).toBeVisible();
+  },
+});
+
+/** Reset puts back the saved choices along with the saved values. */
+export const EditVariantResetRestoresWhichFieldsFollowTheParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const start = rules.getByRole('group', { name: 'Starting instructions: use parent variant or custom' });
+    await userEvent.click(within(start).getByRole('radio', { name: 'Custom' }));
+    await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(
+      rules.findByRole('group', { name: 'Starting instructions, from Original, read-only' })
+    ).resolves.toBeVisible();
+    await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
+  },
+});
+
+/** A variant without a parent has no choice to offer: every field is its own. */
+export const EditVariantWithoutAParentOffersNoChoice = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
+    await expect(rules.queryByRole('radio', { name: 'Use parent variant' })).toBeNull();
+  },
+});
+
+/** Creating a variant stores it under the chosen parent and opens its page, at its own address. */
+export const DetailCreatesAVariantAndOpensIt = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, { timeout: 30_000 }));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, { timeout: 30_000 }));
+    const name = form.getByRole('textbox', { name: 'Variant name' });
+    const create = form.getByRole('button', { name: 'Create variant' });
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.type(name, 'Dreamrules');
+    await expect(form.getByText('This faction already has a variant called “Dreamrules”.')).toBeVisible();
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Tournament');
+    await userEvent.click(form.getByRole('radio', { name: 'Original' }));
+    await userEvent.click(create);
+
+    const original = (await loadFaction('house-atreides')).faction;
+    await waitFor(
+      async () => {
+        const created = (await loadFaction('house-atreides-tournament')).faction;
+        await expect(created.parent_id).toBe(original._id);
+        await expect(created.variant_name).toBe('Tournament');
+      },
+      { timeout: 30_000 }
+    );
+    await waitFor(
+      () =>
+        expect(page.getByRole('link', { name: 'Edit faction' })).toHaveAttribute(
+          'href',
+          '/factions/house-atreides-tournament/edit'
+        ),
+      { timeout: 30_000 }
+    );
+    await expect(page.queryByRole('form', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/** A reader who cannot edit the variant sees neither its problems nor the way to add a variant. */
+export const DetailKeepsProblemsFromReaders = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'House Atreides' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('region', { name: 'Troops' })).resolves.toBeVisible();
+    await expect(page.queryByText(/problems since Original changed/)).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
   },
 });

@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 vi.mock('../core', () => ({ db: { mutation: vi.fn(), query: vi.fn() } }));
 
 import schema from '../../../../convex/schema';
-import { db, emptyDatabase, faction, ref, ruleset } from './index';
+import { db, emptyDatabase, faction, familyRef, ref, ruleset } from './index';
 import type { StorybookDatabase, StorybookRow } from './index';
 
 describe('Storybook database authoring', () => {
@@ -47,6 +47,30 @@ describe('Storybook database authoring', () => {
     });
 
     expect(() => scenario.create()).toThrow('Storybook database reference missing-owner has no matching row.');
+  });
+
+  test('a second variant names the Faction its first variant was given, and is inserted after it', () => {
+    const scenario = db((baseline) => {
+      baseline.factions.unshift({
+        ...faction({ name: 'House Atreides' }),
+        $key: 'faction:house-atreides-dreamrules',
+        slug: 'house-atreides-dreamrules',
+        family_id: familyRef('faction:house-atreides'),
+        parent_id: ref('faction:house-atreides'),
+      });
+    });
+
+    const keys = scenario
+      .create()
+      .filter(({ table }) => table === 'factions')
+      .map((document) => document.key);
+
+    expect(keys).toEqual(['faction:house-atreides', 'faction:house-atreides-dreamrules']);
+    expect(() =>
+      db((baseline) => {
+        baseline.factions[0] = { ...baseline.factions[0]!, family_id: familyRef('faction:nobody') };
+      }).create()
+    ).toThrow('Storybook database reference faction:nobody#family has no matching row.');
   });
 
   test('a forward reference is inserted after the row it names', () => {

@@ -27,6 +27,7 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { createTroopBackFromFront, defaultTroop } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 import { TroopSideFields } from './TroopSideFields';
 
 function PlanetReferenceSelect({
@@ -280,6 +281,10 @@ export function FactionFormSectionTroops({
   const [internalSideByIndex, setInternalSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
   const troopSideTabByIndex = sideByIndex ?? internalSideByIndex;
   const setTroopSideTabByIndex = onSideByIndexChange ?? setInternalSideByIndex;
+  const inheritance = useInheritableField('troops', 'Troops');
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
 
   return (
     <form.Field name="troops" mode="array">
@@ -300,6 +305,7 @@ export function FactionFormSectionTroops({
             }
             actions={
               <>
+                {inheritance.choice}
                 <ListLengthActions
                   removeLabel="Remove last troop type"
                   addLabel="Add troop type"

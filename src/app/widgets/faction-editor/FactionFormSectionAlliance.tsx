@@ -13,6 +13,7 @@ import { card as CARD_SIZE } from '@game/data/sizes';
 import { defaultDecal } from './factionFormDefaults';
 import styles from './FactionFormSectionAlliance.module.css';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 
 /* The offset is unbounded card-space pixels from the card center (card 900 wide, art band 940
    tall). The sliders span half of each dimension, center to edge, while the paired number
@@ -74,6 +75,8 @@ export function FactionFormSectionAlliance({
   form: FactionFormApi;
   showPreview?: boolean;
 }) {
+  const advantage = useInheritableField('rules.alliance', 'Alliance advantage');
+  const decals = useInheritableField('decals', 'Decals');
   return (
     <Stack component="section" gap="md" aria-label="Alliance card">
       <Grid gap="xl" align="start">
@@ -83,25 +86,28 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <ControlBlock
-                    title="Alliance advantage"
-                    description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
-                    inputId="rules-alliance"
-                    warning={
-                      blank
-                        ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
-                        : undefined
-                    }
-                    input={(control) => (
-                      <FormattedTextInput
-                        {...control}
-                        minRows={4}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={field.handleChange}
-                      />
-                    )}
-                  />
+                  advantage.parentValue ?? (
+                    <ControlBlock
+                      title="Alliance advantage"
+                      tool={advantage.choice}
+                      description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
+                      inputId="rules-alliance"
+                      warning={
+                        blank
+                          ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
+                          : undefined
+                      }
+                      input={(control) => (
+                        <FormattedTextInput
+                          {...control}
+                          minRows={4}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={field.handleChange}
+                        />
+                      )}
+                    />
+                  )
                 );
               }}
             </form.Field>
@@ -110,40 +116,45 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const count = field.state.value.length;
                 return (
-                  <ListChapter
-                    title="Decals"
-                    note={
-                      count === 0
-                        ? {
-                            title: 'No alliance decals',
-                            text: 'Decals are optional. The alliance card remains valid without them.',
-                          }
-                        : null
-                    }
-                    actions={
-                      <ListLengthActions
-                        removeLabel="Remove last alliance decal"
-                        addLabel="Add alliance decal"
-                        removeDisabled={count === 0}
-                        onRemove={() => {
-                          if (count > 0) {
-                            field.removeValue(count - 1);
-                          }
-                        }}
-                        onAdd={() => field.pushValue(defaultDecal())}
-                      />
-                    }
-                  >
-                    {field.state.value.map((_, index) => (
-                      <Stack key={index} gap="sm">
-                        {index > 0 ? <Divider /> : null}
-                        <Text size="sm" fw={600}>
-                          Decal {index + 1}
-                        </Text>
-                        <DecalCard form={form} index={index} />
-                      </Stack>
-                    ))}
-                  </ListChapter>
+                  decals.parentValue ?? (
+                    <ListChapter
+                      title="Decals"
+                      note={
+                        count === 0
+                          ? {
+                              title: 'No alliance decals',
+                              text: 'Decals are optional. The alliance card remains valid without them.',
+                            }
+                          : null
+                      }
+                      actions={
+                        <>
+                          {decals.choice}
+                          <ListLengthActions
+                            removeLabel="Remove last alliance decal"
+                            addLabel="Add alliance decal"
+                            removeDisabled={count === 0}
+                            onRemove={() => {
+                              if (count > 0) {
+                                field.removeValue(count - 1);
+                              }
+                            }}
+                            onAdd={() => field.pushValue(defaultDecal())}
+                          />
+                        </>
+                      }
+                    >
+                      {field.state.value.map((_, index) => (
+                        <Stack key={index} gap="sm">
+                          {index > 0 ? <Divider /> : null}
+                          <Text size="sm" fw={600}>
+                            Decal {index + 1}
+                          </Text>
+                          <DecalCard form={form} index={index} />
+                        </Stack>
+                      ))}
+                    </ListChapter>
+                  )
                 );
               }}
             </form.Field>

@@ -168,8 +168,12 @@ export function factionRowsToEntries(rows: FactionRow[]): FactionEntry[] {
 
 type FactionDetailPageRaw = FunctionReturnType<typeof api.factions.pageBySlug>;
 
-export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction'> & {
+/** The variant a page's variant follows, with its current data parsed at the client boundary. */
+type FactionParentVariant = Omit<NonNullable<FactionDetailPageRaw['parent']>, 'data'> & { data: FactionData };
+
+export type FactionDetailPageData = Omit<FactionDetailPageRaw, 'faction' | 'parent'> & {
   faction: FactionEntry;
+  parent: FactionParentVariant | null;
 };
 
 function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageData {
@@ -184,6 +188,11 @@ function toFactionDetailPageData(raw: FactionDetailPageRaw): FactionDetailPageDa
     assetPublishing: raw.assetPublishing,
     assignedGroup: raw.assignedGroup,
     family: raw.family,
+    parent: raw.parent && {
+      ...raw.parent,
+      data: parseClientBoundary(CanonicalFactionClientSchema, raw.parent.data, 'Parent variant data'),
+    },
+    variants: raw.variants,
     rulesets: raw.rulesets,
   };
 }
@@ -326,11 +335,34 @@ export function useCreateFaction() {
 }
 
 /**
+ * Adds a variant to the Faction `factionId` belongs to, following `parentId` in every field when one is given.
+ * It answers with the new variant's id and address.
+ */
+export function useCreateFactionVariant() {
+  const mutation = useLiveMutation<
+    FunctionArgs<typeof api.factionVariants.create>,
+    FunctionReturnType<typeof api.factionVariants.create>
+  >(api.factionVariants.create);
+  return {
+    ...mutation,
+    mutateAsync: async ({ factionId, name, parentId }: { factionId: string; name: string; parentId: string | null }) =>
+      await mutation.mutateAsync({
+        faction_id: factionId as FactionRow['_id'],
+        name,
+        ...(parentId ? { parent_id: parentId as FactionRow['_id'] } : {}),
+      }),
+  };
+}
+
+/**
  * Saves an edited faction.
  * `mutate({ input, id })`, normalizing the input the same way `useCreateFaction` does, and `onSuccess` receives the parsed `FactionEntry`.
+ * For a variant with a parent, `inherited` names the fields it follows that parent in, and the server fills each from the parent.
  */
 export function useUpdateFaction() {
-  const mutation = useLiveMutation<{ id: string; data: Faction }, FactionRow>(api.factions.update);
+  const mutation = useLiveMutation<{ id: string; data: Faction; inherited?: string[] }, FactionRow>(
+    api.factions.update
+  );
 
   return {
     ...mutation,
@@ -348,11 +380,12 @@ export function useUpdateFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ input, id }: { input: Faction; id: string }) => {
+    mutateAsync: async ({ input, id, inherited }: { input: Faction; id: string; inherited?: readonly string[] }) => {
       const validatedData = FactionWriteSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
         data: validatedData,
+        ...(inherited ? { inherited: [...inherited] } : {}),
       });
       return toFactionEntry(entry);
     },

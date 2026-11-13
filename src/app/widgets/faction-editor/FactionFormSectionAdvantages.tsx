@@ -5,6 +5,7 @@ import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
 import { defaultAdvantage } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 import { FactionListSection, useListSelection } from './FactionListSection';
 
 function AdvantageCard({ form, index }: { form: FactionFormApi; index: number }) {
@@ -96,6 +97,10 @@ export function FactionFormSectionAdvantages({
   onSelectedIndexChange?: (index: number) => void;
 }) {
   const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
+  const inheritance = useInheritableField('rules.advantages', 'Faction advantages');
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="rules.advantages" mode="array">
       {(field) => (
@@ -107,6 +112,7 @@ export function FactionFormSectionAdvantages({
               ? { title: 'No faction advantages', text: 'This faction currently has no authored special advantages.' }
               : null
           }
+          badge={inheritance.choice}
           noun="faction advantage"
           sortablePrefix="advantages-"
           values={field.state.value}

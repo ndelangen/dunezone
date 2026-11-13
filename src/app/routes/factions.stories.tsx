@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import {
   withTreacheryTracker,
@@ -10,6 +10,9 @@ import {
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
   factionMaintainerOutsideTheVariantGroup,
+  DREAMRULES_PATH,
+  withAChildVariant,
+  withABrokenChildVariant,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -202,5 +205,73 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
     await expect(page.queryByText('Current')).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
+  },
+});
+
+const LOAD = { timeout: 30_000 };
+
+/**
+ * The editor of a variant with a parent (#2927).
+ * Every field the variant may take from its parent says in its own header whether it does.
+ * A field that follows the parent shows the parent's value read-only, and a custom one keeps its controls.
+ */
+export const EditVariantWithAParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, LOAD));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, LOAD));
+    const followsParent = await rules.findAllByRole('radio', { name: 'Use parent variant' }, LOAD);
+    await expect(followsParent).toHaveLength(5);
+    await expect(followsParent.filter((choice) => (choice as HTMLInputElement).checked)).toHaveLength(4);
+    const inherited = rules.getByRole('group', { name: 'Starting instructions, from Original, read-only' });
+    await expect(within(inherited).getByText('From Original, the parent variant. Read-only here.')).toBeVisible();
+    await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
+    await expect(rules.getByRole('textbox', { name: 'Revival instructions' })).toHaveTextContent('3 troops free.');
+  },
+});
+
+/**
+ * A maintainer of the Faction starts a new variant from the variant page's toolbar (#2927).
+ * The popover takes the name, shows the address it gives, and offers each live variant as the one parent, or none.
+ */
+export const DetailCreateVariant = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
+    await expect(form.getByText('/factions/house-atreides-tournament')).toBeVisible();
+    const parents = within(form.getByRole('group', { name: 'Parent variant' }));
+    await expect(parents.getAllByRole('radio').map((radio) => radio.parentElement?.parentElement?.textContent)).toEqual(
+      ['No parent', 'Original', 'Dreamrules']
+    );
+    await expect(parents.getByRole('radio', { name: 'Dreamrules' })).toBeChecked();
+    await expect(form.getByText(/Starts with all 15 fields using Dreamrules\./)).toBeVisible();
+  },
+});
+
+/**
+ * A parent's change left the variant with fields a save would refuse (#2908).
+ * Those who may edit the variant see them in one notice on top of its page, with the way to the editor.
+ */
+export const DetailVariantWithProblems = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('2 problems since Original changed', {}, LOAD)).resolves.toBeVisible();
+    const problems = within(page.getByRole('list', { name: 'Problems' })).getAllByRole('listitem');
+    await expect(problems.map((problem) => problem.textContent)).toEqual([
+      'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
+      'The troop "House guard" names the planet "Caladan", which this variant does not have.',
+    ]);
+    await expect(page.getByRole('link', { name: 'Fix in the editor' })).toHaveAttribute(
+      'href',
+      `${DREAMRULES_PATH}/edit`
+    );
   },
 });

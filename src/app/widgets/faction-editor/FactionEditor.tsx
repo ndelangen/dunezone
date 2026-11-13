@@ -13,6 +13,7 @@ import { FactionFormFields } from './FactionFormFields';
 import type { FactionEditRights, FactionFormFieldsHandle } from './FactionFormFields';
 import type { StrengthRefusal } from './FactionFormSectionLeaders';
 import type { FactionFormApi } from './factionFormTypes';
+import type { FactionInheritance } from './FactionInheritance';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
@@ -25,6 +26,8 @@ export interface FactionEditorProps {
   factionNotice?: ReactNode;
   /** What the page's viewer may change; omitted, everything. */
   rights?: FactionEditRights;
+  /** For a variant with a parent: what it takes from that parent, field by field; omitted, every field is its own. */
+  inheritance?: FactionInheritance;
   /** Fires on field blur and chapter switch, the moments the validation header may settle closed. */
   onSettle?: () => void;
   /** The background composer's colour-mode memory, from `useFactionAuthoring`, which clears it whenever the draft is replaced. */
@@ -53,6 +56,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       warnings,
       factionNotice,
       rights,
+      inheritance,
       onSettle,
       backgroundModeMemory,
       onBackgroundModeMemoryChange,
@@ -97,6 +101,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   warnings={warnings}
                   factionNotice={factionNotice}
                   rights={rights}
+                  inheritance={inheritance}
                   onSettle={onSettle}
                   backgroundModeMemory={backgroundModeMemory}
                   onBackgroundModeMemoryChange={onBackgroundModeMemoryChange}

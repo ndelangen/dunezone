@@ -10,6 +10,15 @@ export const SEED_REF_TOKEN = '__seed_ref__';
 /* A bare reference resolves to the id; one carrying `$seedText` resolves to that text with the token replaced. */
 export type SeedReference = { $seedRef: string; $seedText?: string };
 
+/**
+ * The key a seeded faction's own Faction answers to.
+ * A trigger makes that row when the faction is inserted, so no seed can name it;
+ * a second variant of the same Faction reaches it through this key.
+ */
+export function factionFamilySeedKey(factionKey: string) {
+  return `${factionKey}#family`;
+}
+
 function resolveSeedObject(value: Record<string, unknown>, ids: ReadonlyMap<string, string>) {
   if (typeof value.$seedRef === 'string') {
     const resolved = ids.get(value.$seedRef);

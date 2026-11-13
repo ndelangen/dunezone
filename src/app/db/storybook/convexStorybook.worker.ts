@@ -15,7 +15,7 @@ import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
 import rateLimiterSchema from '../../../../node_modules/@convex-dev/rate-limiter/src/component/schema';
-import { resolveSeedValue } from '../../../shared/seedReferences';
+import { factionFamilySeedKey, resolveSeedValue } from '../../../shared/seedReferences';
 import { STORYBOOK_NOW } from './protocol';
 import type {
   ContextConformanceResult,
@@ -158,6 +158,14 @@ async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], ref
     const id = await insertDocument(db, document, references);
     if (document.key) {
       references.set(document.key, id);
+    }
+    /* The insert's trigger gave a new faction its Faction, which a later variant of it names by this key. */
+    const familyId =
+      document.key && document.table === 'factions'
+        ? (await db.get('factions', id as Id<'factions'>))?.family_id
+        : null;
+    if (document.key && familyId) {
+      references.set(factionFamilySeedKey(document.key), familyId);
     }
   }
 }
