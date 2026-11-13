@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import {
   withTreacheryTracker,
@@ -145,7 +145,11 @@ export const EditFactionChapter = meta.story({
   play: async ({ canvasElement }) => {
     const { page, controls } = await factionChapterControls(canvasElement);
     await expect(page.getByRole('tab', { name: /^Faction(?! leader)/ })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByText('Shared by every variant')).toBeVisible();
+    /* The notice is one line until pressed: its title is the toggle, and the explanation stays shut. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await expect(shared).toBeVisible();
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
     for (const control of controls) {
       await expect(control).toBeEnabled();
     }
@@ -179,7 +183,15 @@ export const EditFactionChapterAlone = meta.story({
   parameters: { database: factionMaintainerOutsideTheVariantGroup },
   play: async ({ canvasElement }) => {
     const { page, controls } = await factionChapterControls(canvasElement);
-    await expect(page.getByText(/The rest of the .+ variant is for its own owner and Group to edit\./)).toBeVisible();
+    /* The notice opens to say whose the other chapters are, and the story leaves it shut, as a reader first meets it. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await userEvent.click(shared);
+    await expect(
+      page.findByText(/The rest of the .+ variant is for its own owner and Group to edit\./)
+    ).resolves.toBeVisible();
+    await userEvent.click(shared);
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
     for (const control of controls) {
       await expect(control).toBeEnabled();
     }

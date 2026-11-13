@@ -1,5 +1,4 @@
 import {
-  Accordion,
   Box,
   ColorSwatch,
   Divider,
@@ -586,36 +585,20 @@ function VariantProblemsNotice({
   const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
   const fromParent = problems.fromParent.length;
   return (
-    <Notice tone="caution">
-      <Accordion
-        classNames={{
-          item: styles.problemsItem,
-          control: styles.problemsControl,
-          label: styles.problemsLabel,
-          content: styles.problemsContent,
-        }}
-      >
-        <Accordion.Item value="problems">
-          <Accordion.Control>
-            <Text inherit truncate>{`${count} to fix in this variant`}</Text>
-          </Accordion.Control>
-          <Accordion.Panel>
-            <Stack gap="sm">
-              <Text size="sm">
-                {`${variantName} is not ready for play until these are fixed.`}
-                {fromParent > 0
-                  ? ` The first ${fromParent === 1 ? 'one came' : `${fromParent} came`} from changes to ${parentName}, and the variant cannot be saved until ${fromParent === 1 ? 'it is' : 'they are'} fixed.`
-                  : null}
-              </Text>
-              <List size="sm" spacing="xs" aria-label="Problems">
-                {problems.all.map((problem, index) => (
-                  <List.Item key={`${problem}-${index}`}>{problem}</List.Item>
-                ))}
-              </List>
-            </Stack>
-          </Accordion.Panel>
-        </Accordion.Item>
-      </Accordion>
+    <Notice tone="caution" title={`${count} to fix in this variant`} collapsible>
+      <Stack gap="sm">
+        <Text size="sm">
+          {`${variantName} is not ready for play until these are fixed.`}
+          {fromParent > 0
+            ? ` The first ${fromParent === 1 ? 'one came' : `${fromParent} came`} from changes to ${parentName}, and the variant cannot be saved until ${fromParent === 1 ? 'it is' : 'they are'} fixed.`
+            : null}
+        </Text>
+        <List size="sm" spacing="xs" aria-label="Problems">
+          {problems.all.map((problem, index) => (
+            <List.Item key={`${problem}-${index}`}>{problem}</List.Item>
+          ))}
+        </List>
+      </Stack>
     </Notice>
   );
 }

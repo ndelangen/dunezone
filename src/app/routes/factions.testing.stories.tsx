@@ -914,6 +914,51 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
 });
 
 /**
+ * The Faction chapter's notice opens from its one line to the explanation, and shuts again.
+ * The whole notice is the toggle, its padding included.
+ */
+export const EditFactionChapterNoticeOpensAndShuts = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('button', { name: 'Shared by every variant' }, { timeout: 30_000 });
+    const explanation = /belong to House Atreides, not to this variant/;
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
+    /* Shut, it is the title alone on one line, level with the glyph. */
+    const notice = toggle.closest('[role="note"]');
+    await expect(notice).not.toBeNull();
+    const shutHeight = notice!.getBoundingClientRect().height;
+    await expect(shutHeight).toBeLessThan(64);
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.findByText(explanation)).resolves.toBeVisible();
+    await waitFor(() => expect(notice!.getBoundingClientRect().height).toBeGreaterThan(shutHeight));
+
+    /* The whole notice is the toggle: a press in its padding shuts it, and another opens it. */
+    const padding = () => {
+      notice!.scrollIntoView({ block: 'center' });
+      const { left, bottom } = notice!.getBoundingClientRect();
+      return notice!.ownerDocument.elementFromPoint(left + 3, bottom - 3);
+    };
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.findByText(explanation)).resolves.toBeVisible();
+
+    /* Leave the story as a reader first meets it: one line, closed. */
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
+  },
+});
+
+/**
  * The problems notice opens to the list, the parent's first, and shuts again (#2908).
  * The whole notice is the toggle, its padding included.
  */

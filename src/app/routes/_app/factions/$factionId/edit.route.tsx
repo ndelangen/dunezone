@@ -318,7 +318,7 @@ function FactionChapterNotice({ page, rights }: Readonly<{ page: FactionDetailPa
     );
   }
   return (
-    <Notice tone="info" title="Shared by every variant">
+    <Notice tone="info" title="Shared by every variant" collapsible>
       {`The name, emblem, colors and background belong to ${factionName}, not to this variant. A change here updates the page, cards and publications of every variant.`}
       {rights.variant ? null : ` The rest of the ${variantName} variant is for its own owner and Group to edit.`}
     </Notice>

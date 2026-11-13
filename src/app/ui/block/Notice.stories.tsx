@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { Eye } from 'lucide-react';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { LabeledAction } from '../control/LabeledAction';
 import { Notice } from './Notice';
@@ -70,5 +70,37 @@ export const Live = meta.story({
   },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('status')).toHaveTextContent('Another editor saved first.');
+  },
+});
+
+/**
+ * An extra on a page that is about something else starts as its title on one line.
+ * A press anywhere in the box opens it to the words, and another shuts it.
+ */
+export const Collapsible = meta.story({
+  args: {
+    tone: 'info',
+    title: 'Shared by every variant',
+    collapsible: true,
+    children: 'The name, emblem, colors and background belong to the faction, not to this variant.',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('button', { name: 'Shared by every variant' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(canvas.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(canvas.findByText(/belong to the faction/)).resolves.toBeVisible();
+
+    /* The whole notice is the toggle: a press in its padding lands on the one button. */
+    const notice = canvas.getByRole('note');
+    const { left, bottom } = notice.getBoundingClientRect();
+    const padding = notice.ownerDocument.elementFromPoint(left + 3, bottom - 3);
+    await expect(padding).toBe(toggle);
+    await userEvent.click(padding!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(canvas.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
   },
 });
