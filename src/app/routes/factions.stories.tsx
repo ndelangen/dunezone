@@ -255,8 +255,8 @@ export const DetailCreateVariant = meta.story({
 });
 
 /**
- * A parent's change left the variant with fields a save would refuse (#2908).
- * Those who may edit the variant see them in one notice on top of its page: one line, which opens to the problems.
+ * A parent's change left the variant with fields a save would refuse (#2908), and its troops have no battle strengths yet.
+ * Those who may edit the variant see every problem in one notice on top of its page: one line, which opens to the list, the parent's first.
  * The way to the editor is the toolbar's Edit, so the notice does not repeat it.
  */
 export const DetailVariantWithProblems = meta.story({
@@ -264,7 +264,7 @@ export const DetailVariantWithProblems = meta.story({
   parameters: { database: withABrokenChildVariant },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const toggle = await page.findByRole('button', { name: '2 problems since Original changed' }, LOAD);
+    const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, LOAD);
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
     await userEvent.click(toggle);
@@ -273,7 +273,12 @@ export const DetailVariantWithProblems = meta.story({
     await expect(problems.map((problem) => problem.textContent)).toEqual([
       'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
       'The troop "House guard" names the planet "Caladan", which this variant does not have.',
+      'Fedaykin: battle strengths have not been set, so this side is unavailable in battle plans.',
+      'House guard: battle strengths have not been set, so this side is unavailable in battle plans.',
     ]);
+    await expect(page.findByText(/The first 2 came from changes to Original/, undefined, LOAD)).resolves.toBeVisible();
+    /* The badge is for readers who cannot fix anything; an editor has the notice. */
+    await expect(page.queryByText('Not ready for play')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
     /* Leave the story as a reader first meets it: one line, closed. */
     await userEvent.click(toggle);

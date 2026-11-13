@@ -870,7 +870,7 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
   },
 });
 
-/** A reader who cannot edit the variant sees neither its problems nor the way to add a variant. */
+/** A reader who cannot edit the variant is told it is not ready for play, and sees neither its problems nor the way to add a variant. */
 export const DetailKeepsProblemsFromReaders = meta.story({
   args: { path: DREAMRULES_PATH },
   parameters: { database: withABrokenChildVariant, identity: null },
@@ -878,7 +878,9 @@ export const DetailKeepsProblemsFromReaders = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'House Atreides' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.findByRole('region', { name: 'Troops' })).resolves.toBeVisible();
-    await expect(page.queryByText(/problems since Original changed/)).toBeNull();
+    await expect(page.findByText('Not ready for play', undefined, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: /to fix in this variant/ })).toBeNull();
+    await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
   },
 });

@@ -17,7 +17,7 @@ import {
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { troopBattleFaces } from '@shared/factions/troopBattle';
+import { lacksBattleValues, troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { INHERITABLE_FIELDS } from '@shared/factions/variantFields';
 import { slugify } from '@shared/slugify';
@@ -47,7 +47,7 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Download, Eye, FileText, GitBranchPlus, Pencil, UserPlus } from 'lucide-react';
+import { Download, Eye, FileText, GitBranchPlus, Pencil, TriangleAlert, UserPlus } from 'lucide-react';
 import { Fragment, useId, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -65,6 +65,7 @@ import { profileAvatarUrl } from '@db/profiles';
 import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { detailError } from '@app/routes/routeStates';
+import { factionAuthoringWarnings } from '@app/widgets/faction-editor/factionAuthoringContract';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
@@ -175,6 +176,27 @@ function FactionPlanet({ planet }: { readonly planet: NonNullable<FactionData['p
 type Troop = FactionData['troops'][number];
 type TroopFace = TroopFaceBattleValues<NonNullable<Troop['back']>>;
 
+function troopFaceName(face: TroopFace): string {
+  return `${face.face.name}${face.side === 'back' ? ', reverse side' : ''}`;
+}
+
+/**
+ * Everything wrong with the variant on the page, as sentences.
+ * What a parent's change left comes first, in the server's words, because a save is refused until it is fixed.
+ * After it come the troop sides without battle strengths, then the blanks the editor warns about.
+ */
+function variantProblemList(faction: FactionDetailPageData['faction']): { fromParent: string[]; all: string[] } {
+  const fromParent = faction.problems ?? [];
+  const withoutStrengths = troopBattleFaces(faction.data.troops)
+    .filter(lacksBattleValues)
+    .map(
+      (face) =>
+        `${troopFaceName(face).trim() || `Troop ${face.troopIndex + 1}`}: battle strengths have not been set, so this side is unavailable in battle plans.`
+    );
+  const blanks = factionAuthoringWarnings(faction.data).map((warning) => `${warning.label}.`);
+  return { fromParent, all: [...fromParent, ...withoutStrengths, ...blanks] };
+}
+
 function TroopHint({ label, children }: { label: string; children: ReactNode }) {
   return (
     <Tooltip label={label} multiline maw={280} withArrow events={{ hover: true, focus: true, touch: true }}>
@@ -189,7 +211,8 @@ function TroopStrengths({ face }: { face: TroopFace }) {
   if (!face.capable) {
     return <StatusMark label="Cannot participate in battle" icon={<TopicIcon topic="cannotBattle" size={15} />} />;
   }
-  if (!face.values) {
+  /* The same question the problems notice asks, so the mark and the notice cannot disagree. */
+  if (lacksBattleValues(face) || face.values === null) {
     return (
       <StatusMark
         tone="caution"
@@ -218,7 +241,7 @@ function TroopStrengths({ face }: { face: TroopFace }) {
 
 function TroopFaceDetails({ face, background }: { face: TroopFace; background: FactionData['background'] }) {
   const descriptionId = useId();
-  const name = `${face.face.name}${face.side === 'back' ? ', reverse side' : ''}`;
+  const name = troopFaceName(face);
   const hasDescription = face.face.description.trim().length > 0;
   const description = <FormattedTextSource source={face.face.description} size="sm" />;
   return (
@@ -550,16 +573,18 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
 }
 
 /**
- * What a parent's change left for the variant's editors to fix, in one notice above the page (#2908).
+ * Everything the variant's editors have to fix, in one notice above the page (#2908).
  * It is one line until pressed, because it is an extra on a page that is about the faction, and the way to the editor is the toolbar's Edit.
- * The words of each problem are the server's, stored with the variant.
  */
-function VariantProblemsNotice({ page }: Readonly<{ page: FactionDetailPageData }>) {
-  const problems = page.faction.problems ?? [];
-  const count = problems.length === 1 ? '1 problem' : `${problems.length} problems`;
+function VariantProblemsNotice({
+  page,
+  problems,
+}: Readonly<{ page: FactionDetailPageData; problems: ReturnType<typeof variantProblemList> }>) {
+  const count = problems.all.length === 1 ? '1 problem' : `${problems.all.length} problems`;
   const variantName = page.faction.variant_name ?? 'This variant';
   /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
   const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
+  const fromParent = problems.fromParent.length;
   return (
     <Notice tone="caution">
       <Accordion
@@ -572,13 +597,18 @@ function VariantProblemsNotice({ page }: Readonly<{ page: FactionDetailPageData 
       >
         <Accordion.Item value="problems">
           <Accordion.Control>
-            <Text inherit truncate>{`${count} since ${parentName} changed`}</Text>
+            <Text inherit truncate>{`${count} to fix in this variant`}</Text>
           </Accordion.Control>
           <Accordion.Panel>
             <Stack gap="sm">
-              <Text size="sm">{`${variantName} cannot be saved until these are fixed. Change the field, or make it custom where it uses the parent variant.`}</Text>
+              <Text size="sm">
+                {`${variantName} is not ready for play until these are fixed.`}
+                {fromParent > 0
+                  ? ` The first ${fromParent === 1 ? 'one came' : `${fromParent} came`} from changes to ${parentName}, and the variant cannot be saved until ${fromParent === 1 ? 'it is' : 'they are'} fixed.`
+                  : null}
+              </Text>
               <List size="sm" spacing="xs" aria-label="Problems">
-                {problems.map((problem, index) => (
+                {problems.all.map((problem, index) => (
                   <List.Item key={`${problem}-${index}`}>{problem}</List.Item>
                 ))}
               </List>
@@ -641,7 +671,10 @@ function FactionDetailContent({
   const canEdit = settled && canOpenEditor;
   /* Adding a variant is the Faction's maintainers' to do, and a variant's problems are for whoever may edit it. */
   const canCreateVariant = settled && rights.shared && page.family !== null;
-  const showsProblems = settled && rights.variant && (faction.problems?.length ?? 0) > 0;
+  const problems = variantProblemList(faction);
+  const showsProblems = settled && rights.variant && problems.all.length > 0;
+  /* A reader who cannot fix the problems is told only that there are some. */
+  const showsNotReady = settled && !rights.variant && problems.all.length > 0;
   const canRequestMembership = settled && viewerAccess.capabilities.requestMembership;
   const assignedGroup = viewerAccess.assignedGroup;
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
@@ -704,7 +737,23 @@ function FactionDetailContent({
           }}
           standing={membershipBadge}
           stats={headerStats}
-        />
+        >
+          {showsNotReady ? (
+            <Tooltip
+              label="This variant has problems its maintainers still need to fix."
+              multiline
+              maw={280}
+              withArrow
+              events={{ hover: true, focus: true, touch: true }}
+            >
+              <Box component="span" display="inline-flex" tabIndex={0}>
+                <StatusBadge tone="pending" icon={<TriangleAlert size={12} aria-hidden />}>
+                  Not ready for play
+                </StatusBadge>
+              </Box>
+            </Tooltip>
+          ) : null}
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
@@ -774,7 +823,7 @@ function FactionDetailContent({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {showsProblems ? <VariantProblemsNotice page={page} /> : null}
+          {showsProblems ? <VariantProblemsNotice page={page} problems={problems} /> : null}
           {membershipWorkflow.request.isError ? (
             <FormError title="Membership request failed">
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
