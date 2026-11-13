@@ -13,7 +13,10 @@ import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
+import { allocateVariantAddress } from './factionAddresses';
+import { firstLiveVariant, makeDefaultVariant, ORIGINAL_VARIANT_NAME } from './factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
+import { recordFormerSlug } from './formerSlugs';
 import {
   enqueueFactionFaces,
   enqueueFactionLeaderPublications,
@@ -130,6 +133,74 @@ export async function takeSharedFields(
   const next = { ...current, ...shared };
   if (shared && canonicalJson(next) !== canonicalJson(current)) {
     await storeVariantData(ctx, variant, next);
+  }
+}
+
+/** Whether `variantId` is `rootId` or one of its descendants, found by walking up its parents. */
+export async function inBranchOf(ctx: MutationCtx, variantId: Id<'factions'>, rootId: Id<'factions'>) {
+  const seen = new Set<Id<'factions'>>();
+  let current: Id<'factions'> | undefined = variantId;
+  while (current && !seen.has(current)) {
+    if (current === rootId) {
+      return true;
+    }
+    seen.add(current);
+    current = (await ctx.db.get(current))?.parent_id;
+  }
+  return false;
+}
+
+/**
+ * Moves a variant into another Faction, at an address of its own under that Faction's, and gives it that Faction's shared fields (#2911).
+ * The address it leaves is recorded, so its old links follow it (#2909).
+ * The Faction it leaves forgets it in its order, and should it still be that Faction's default, the default passes on.
+ * `fields` are patched in the same write, such as the cut link to a parent.
+ */
+export async function moveToFamily(
+  ctx: MutationCtx,
+  variant: Doc<'factions'>,
+  family: Doc<'faction_families'>,
+  fields: Partial<Pick<Doc<'factions'>, 'parent_id' | 'inherited'>> = {}
+) {
+  await leaveFamily(ctx, variant);
+  const slug = await allocateVariantAddress(
+    ctx,
+    family.slug,
+    variant._id,
+    variant.variant_slug ?? slugify(ORIGINAL_VARIANT_NAME)
+  );
+  await recordFormerSlug(ctx, { kind: 'faction', scope: '', slug: variant.slug, record_id: variant._id });
+  await ctx.db.patch(variant._id, { ...fields, family_id: family._id, slug });
+  const moved = (await ctx.db.get(variant._id))!;
+  await takeSharedFields(ctx, family.data, moved);
+  return moved;
+}
+
+/** Takes the variant out of its current Faction's order, and passes that Faction's default on when it is the default. */
+async function leaveFamily(ctx: MutationCtx, variant: Doc<'factions'>) {
+  const from = variant.family_id ? await ctx.db.get(variant.family_id) : null;
+  if (!from) {
+    return;
+  }
+  if (from.variant_order?.includes(variant._id)) {
+    await ctx.db.patch(from._id, { variant_order: from.variant_order.filter((id) => id !== variant._id) });
+  }
+  if (from.default_variant_id === variant._id) {
+    const next = await firstLiveVariant(ctx, from, (row) => row._id !== variant._id);
+    if (next) {
+      await makeDefaultVariant(ctx, from, next);
+    }
+  }
+}
+
+/** Starts moving the variant's children into its Faction, one child per transaction, when it has any (#2911). */
+export async function moveChildrenLater(ctx: MutationCtx, parentId: Id<'factions'>) {
+  const child = await ctx.db
+    .query('factions')
+    .withIndex('by_parent', (q) => q.eq('parent_id', parentId))
+    .first();
+  if (child) {
+    await ctx.scheduler.runAfter(0, internal.factionVariants.moveBranch, { parentId, cursor: null });
   }
 }
 

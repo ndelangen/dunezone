@@ -10,9 +10,16 @@ import { allocateFactionAddress } from './lib/factionAddresses';
 import { factionDataValidator } from './lib/factionData';
 import { liveVariantsInOrder, ORIGINAL_VARIANT_NAME, variantsOf } from './lib/factionFamilies';
 import { parseStoredFactionForRead } from './lib/factionInput';
-import { followParent, insertVariant, takeSharedFields } from './lib/factionVariants';
+import {
+  followParent,
+  inBranchOf,
+  insertVariant,
+  moveChildrenLater,
+  moveToFamily,
+  takeSharedFields,
+} from './lib/factionVariants';
 import { requireAuthUserId } from './lib/policy';
-import { slugify } from './lib/utils';
+import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
 async function liveVariant(ctx: MutationCtx, id: Id<'factions'>) {
@@ -230,6 +237,77 @@ export const pushSharedFields = internalMutation({
     );
     if (cursor !== null) {
       await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, { ...args, cursor });
+    }
+    return null;
+  },
+});
+
+/**
+ * Evicts a variant into a Faction of its own (#2911): a clean split, for the Faction's owner and its Group.
+ * Its whole branch moves with it, so no parent link crosses Factions;
+ * only its own link to its parent is cut, and what it followed becomes its own, at the values it holds now, so the branch looks as it did.
+ * The new Faction copies the old one's shared fields, belongs to the variant's owner and Group, starts closed, and has the variant as its default.
+ * Ruleset links stay, since the variant keeps its id.
+ * The variant moves here;
+ * its descendants follow one per transaction, and their old addresses lead to the new ones.
+ */
+export const evict = mutation({
+  args: { faction_id: v.id('factions') },
+  returns: v.object({ family_id: v.id('faction_families'), slug: v.string() }),
+  handler: async (ctx, args) => {
+    await requireAuthUserId(ctx);
+    const variant = await liveVariant(ctx, args.faction_id);
+    const family = await familyOf(ctx, variant);
+    if (!(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
+      throw new Error('Not authorized');
+    }
+    if (await inBranchOf(ctx, family.default_variant_id, variant._id)) {
+      throw new ConvexError(
+        'The default variant would leave with this branch. Make another variant the default first.'
+      );
+    }
+    const familyId = await ctx.db.insert('faction_families', {
+      slug: await allocateFactionAddress(ctx, slugify(family.data?.name ?? '') || family.slug),
+      data: family.data,
+      owner_id: variant.owner_id,
+      group_id: variant.group_id,
+      default_variant_id: variant._id,
+      is_open: false,
+      is_deleted: false,
+      created_at: nowIso(),
+      updated_at: variant.updated_at,
+    });
+    const moved = await moveToFamily(ctx, variant, (await ctx.db.get(familyId))!, {
+      parent_id: undefined,
+      inherited: undefined,
+    });
+    await moveChildrenLater(ctx, variant._id);
+    return { family_id: familyId, slug: moved.slug };
+  },
+});
+
+/**
+ * Brings a variant's children into its Faction, one child per transaction, then theirs as each child moves (#2911).
+ * It reads the parent's Faction afresh each time, so a branch evicted again while it moves still ends up together.
+ */
+export const moveBranch = internalMutation({
+  args: { parentId: v.id('factions'), cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const parent = await ctx.db.get(args.parentId);
+    const family = parent?.family_id ? await ctx.db.get(parent.family_id) : null;
+    if (!family) {
+      return null;
+    }
+    const children = ctx.db.query('factions').withIndex('by_parent', (q) => q.eq('parent_id', args.parentId));
+    const cursor = await visitNextVariant(children, args.cursor, async (child) => {
+      if (child.family_id !== family._id) {
+        await moveToFamily(ctx, child, family);
+        await moveChildrenLater(ctx, child._id);
+      }
+    });
+    if (cursor !== null) {
+      await ctx.scheduler.runAfter(0, internal.factionVariants.moveBranch, { ...args, cursor });
     }
     return null;
   },

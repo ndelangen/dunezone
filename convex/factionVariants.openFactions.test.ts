@@ -50,6 +50,9 @@ describe('open factions (#2928)', () => {
     await expect(
       stranger.mutation(api.factionFamilies.setVariantOrder, { family_id: familyId, variant_ids: [theirs.id] })
     ).rejects.toThrow('Not authorized');
+    await expect(stranger.mutation(api.factionVariants.evict, { faction_id: theirs.id })).rejects.toThrow(
+      'Not authorized'
+    );
 
     const member = await factionGroupMember();
     await member.mutation(api.factionFamilies.setVariantOrder, { family_id: familyId, variant_ids: [theirs.id] });
