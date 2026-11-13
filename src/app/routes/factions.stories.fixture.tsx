@@ -1,4 +1,8 @@
 import { waitForFrame } from '@sb/storyWaits';
+import { ensureFactionComponentIds } from '@shared/factions/componentIdentity';
+import type { FactionInput } from '@shared/factions/schema';
+import { INHERITABLE_FIELDS, variantProblems } from '@shared/factions/variantFields';
+import type { InheritableField } from '@shared/factions/variantFields';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
 import { expect, within } from 'storybook/test';
@@ -225,3 +229,59 @@ export const factionMaintainerOutsideTheVariantGroup = maintainedByTwoGroups({
   faction: VARIANT_GROUP,
   variant: FACTION_GROUP,
 });
+
+export const DREAMRULES_PATH = '/factions/house-atreides-dreamrules';
+
+/** The fields Dreamrules keeps as its own; it follows Original, its parent, in every other one. */
+const DREAMRULES_CUSTOM: readonly InheritableField[] = ['leaders', 'troops', 'rules.revivalText', 'rules.advantages'];
+
+/**
+ * House Atreides with a second variant, Dreamrules, whose parent is the Original (#2927).
+ * `change` gives Dreamrules the data of its custom fields, which is all a child holds that its parent does not.
+ * Its problems are the server's own words for what a save of that data would refuse.
+ */
+function withDreamrules(change: (parent: FactionInput) => FactionInput) {
+  return db((baseline) => {
+    const original = baseline.factions[0]!;
+    const data = change(structuredClone(original.data));
+    baseline.factions.push({
+      ...original,
+      $key: 'faction:house-atreides-dreamrules',
+      $patch: undefined,
+      slug: 'house-atreides-dreamrules',
+      data,
+      variant_name: 'Dreamrules',
+      variant_slug: 'dreamrules',
+      parent_id: ref('faction:house-atreides'),
+      inherited: INHERITABLE_FIELDS.filter((field) => !DREAMRULES_CUSTOM.includes(field)),
+      revision: 0,
+      problems: variantProblems(ensureFactionComponentIds(data)),
+    });
+  });
+}
+
+/** Dreamrules renames a leader and its troop, revives more troops, and drops the first advantage. */
+export const withAChildVariant = withDreamrules((parent) => ({
+  ...parent,
+  leaders: parent.leaders.map((leader, index) => (index === 0 ? { ...leader, name: 'Paul Atreides' } : leader)),
+  troops: parent.troops.map((troop, index) => (index === 0 ? { ...troop, name: 'Fedaykin' } : troop)),
+  rules: { ...parent.rules, revivalText: '3 troops free.', advantages: parent.rules.advantages.slice(1) },
+}));
+
+/**
+ * Dreamrules after the Original removed Caladan, the planet both of the child's own troop types are stationed on (#2908).
+ * The child follows the Original's planets, so the change reached it.
+ */
+export const withABrokenChildVariant = withDreamrules((parent) => ({
+  ...parent,
+  planet: [],
+  troops: [
+    { ...parent.troops[0]!, name: 'Fedaykin', planet: 'Caladan' },
+    {
+      ...parent.troops[0]!,
+      troopId: 'a939da92-5f9f-4c50-a102-3bc437ffd1e6',
+      name: 'House guard',
+      planet: 'Caladan',
+    },
+  ],
+}));

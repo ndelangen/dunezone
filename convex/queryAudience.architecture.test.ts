@@ -16,6 +16,8 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accountDeletion:listReplacementProfiles': 'Excludes the viewer from the replacement-owner search.',
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
   'accounts:connectedMethods': "Lists the methods connected to the viewer's account, for signing in again.",
+  'factionVariants:editorContext':
+    "A variant's parent and sibling variants, told only to those who may edit the variant or its Faction.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",
   'factions:listOwnedForGroupAssign': "The viewer's own factions.",
   'faq:viewerAnswered': "Whether the viewer answered one question: the viewer half of the question page's answer form.",

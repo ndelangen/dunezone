@@ -29,7 +29,9 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
+import { factionDataChange } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
+import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import {
   buildOwnedForGroupAssignRows,
@@ -437,29 +439,43 @@ export const create = mutation({
   },
 });
 
+/**
+ * The fields the save leaves the variant following its parent in.
+ * Which fields follow the parent is the variant's own content, so changing them takes the right to edit the variant.
+ */
+function requireInheritanceRight(
+  access: { subject: Doc<'factions'>; viewerAccess: { capabilities: { edit: boolean } } },
+  proposed: readonly string[] | undefined
+) {
+  if (!access.subject.parent_id) {
+    return {};
+  }
+  const inherited = inheritedFields(access.subject, proposed);
+  if (inherited.join() !== inheritedFields(access.subject).join() && !access.viewerAccess.capabilities.edit) {
+    throw new Error('Not authorized');
+  }
+  return { inherited };
+}
+
 export const update = mutation({
   args: {
     id: v.id('factions'),
     data: v.any(),
+    /** For a variant with a parent: the fields it follows that parent in, each taken from the parent's data (#2927). */
+    inherited: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { data, ...access } = await requireFactionSave(ctx, args.id, args.data);
+    const subject = await ctx.db.get(args.id);
+    const proposed = subject ? await withInheritedFields(ctx, subject, args.data, args.inherited) : args.data;
+    const { data, ...access } = await requireFactionSave(ctx, args.id, proposed);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
     const slug = await variantAddressAfterSave(ctx, access.subject, data.name);
-
-    await ctx.db.patch(access.subject._id, {
-      data,
-      slug,
-      updated_at: nowIso(),
-    });
-    const updated = await ctx.db.get(access.subject._id);
-    if (!updated) {
-      throw new Error('Failed to update faction');
+    const inherited = requireInheritanceRight(access, args.inherited);
+    const sharedChanged = factionDataChange(parseStoredFactionForRead(access.subject.data), data).shared;
+    const updated = await storeVariantData(ctx, access.subject, data, { slug, ...inherited });
+    if (sharedChanged) {
+      await pushSharedFields(ctx, updated);
     }
-    await enqueueFactionSheetPublication(ctx, updated);
-    await enqueueFactionTokenPublication(ctx, updated, access.subject.data);
-    await enqueueFactionLeaderPublications(ctx, updated, access.subject.data);
-    await enqueueFactionFaces(ctx, updated, access.subject.data);
     return factionRowForClient(updated);
   },
 });

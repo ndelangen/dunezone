@@ -2,6 +2,9 @@ import { Alert, Stack } from '@mantine/core';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { Disclosure } from './Disclosure';
+import styles from './Notice.module.css';
+
 /**
  * What a notice means to the reader;
  * the colour and glyph follow from it, never the other way round.
@@ -20,20 +23,39 @@ const TONE: Record<NoticeTone, { color: string; icon: ReactNode }> = {
   info: { color: 'blue', icon: <Info size={18} /> },
 };
 
-export interface NoticeProps {
+interface NoticeCommonProps {
   /** The reader-facing meaning. Omitted is `neutral`. */
   tone?: NoticeTone;
-  /** What the notice is about, as a short heading: "No decals". */
-  title?: string;
   /** The sentence that says why it matters or what to do. */
   children: ReactNode;
-  /** The way on, under the words, as a `LabeledAction`. */
-  action?: ReactNode;
   /** Announce the notice the moment it appears, for one that follows the reader's own action: "Another editor saved first". */
   live?: boolean;
+}
+
+interface OpenNoticeProps extends NoticeCommonProps {
+  /** What the notice is about, as a short heading: "No decals". */
+  title?: string;
+  /** The way on, under the words, as a `LabeledAction`. */
+  action?: ReactNode;
   /** Lets the reader close a notice that only reports something that already happened, like a redirect's reason. */
   onDismiss?: () => void;
+  collapsible?: false;
 }
+
+/*
+ * The whole box of a collapsible notice is its toggle, so nothing else in it can be pressed.
+ * That is why it takes neither an action nor a dismissal.
+ */
+interface CollapsibleNoticeProps extends NoticeCommonProps {
+  /** The one line the notice shows while shut, and the name of its toggle. */
+  title: string;
+  /** Shows the title alone on one line, and opens to the children when the notice is pressed. */
+  collapsible: true;
+  action?: never;
+  onDismiss?: never;
+}
+
+export type NoticeProps = OpenNoticeProps | CollapsibleNoticeProps;
 
 /**
  * Tells the reader something about the page that is not a failure.
@@ -43,18 +65,34 @@ export interface NoticeProps {
  * `FormError` is its sibling for an attempt that failed;
  * a red notice is that, not this.
  *
+ * A `collapsible` notice is an extra on a page that is about something else.
+ * It starts as its title on one line, and a press anywhere in the box opens and shuts the words under it.
+ *
  * It exists because yellow, orange, caution, gray, blue and confirm Alerts were picked call site by call site, some filled and some light, some with an icon and most without, so the same "nothing here yet" read three different ways.
  */
-export function Notice({ tone = 'neutral', title, children, action, live = false, onDismiss }: NoticeProps) {
+export function Notice({
+  tone = 'neutral',
+  title,
+  children,
+  action,
+  live = false,
+  onDismiss,
+  collapsible = false,
+}: NoticeProps) {
   const { color, icon } = TONE[tone];
+  /* Mantine's Alert is an assertive live region by default; a notice is a note unless it follows the reader's own action. */
+  const alert = { color, variant: 'light', icon: <span aria-hidden>{icon}</span>, role: live ? 'status' : 'note' };
+  if (collapsible) {
+    return (
+      <Alert {...alert} className={styles.collapsible}>
+        <Disclosure title={title ?? ''}>{children}</Disclosure>
+      </Alert>
+    );
+  }
   return (
     <Alert
-      color={color}
-      variant="light"
+      {...alert}
       title={title}
-      icon={<span aria-hidden>{icon}</span>}
-      /* Mantine's Alert is an assertive live region by default; a notice is a note unless it follows the reader's own action. */
-      role={live ? 'status' : 'note'}
       {...(onDismiss ? { withCloseButton: true, closeButtonLabel: 'Dismiss', onClose: onDismiss } : {})}
     >
       {action ? (

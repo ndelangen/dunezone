@@ -9,6 +9,7 @@ import { LeaderStrengthInput } from '@app/widgets/leader-strength/LeaderStrength
 
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 import { FactionListSection, useListSelection } from './FactionListSection';
 import { LeaderNameField, LeaderPortraitField, LeaderRow, LeaderTokenPreview } from './LeaderFields';
 
@@ -144,6 +145,7 @@ export function FactionFormSectionLeaders({
   onSelectedIndexChange?: (index: number) => void;
 } & StrengthRefusalProps) {
   const [selected, setSelectedIndex] = useListSelection(selectedIndex, onSelectedIndexChange);
+  const inheritance = useInheritableField('leaders', 'Supporting leaders');
   /* Moving to another leader drops text the last one refused, so coming back shows its saved strength. */
   const selectIndex = (index: number) => {
     if (strengthRefusal !== null) {
@@ -168,6 +170,9 @@ export function FactionFormSectionLeaders({
     }
   });
 
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="leaders" mode="array">
       {(field) => {
@@ -187,7 +192,12 @@ export function FactionFormSectionLeaders({
                   ? { text: 'Most factions use five supporting leaders; this roster is still valid.' }
                   : null
             }
-            badge={<StatusBadge>{`${count} / ${SUPPORTING_LEADER_LIMIT}`}</StatusBadge>}
+            badge={
+              <>
+                {inheritance.choice}
+                <StatusBadge>{`${count} / ${SUPPORTING_LEADER_LIMIT}`}</StatusBadge>
+              </>
+            }
             noun="supporting leader"
             sortablePrefix="leaders-"
             values={field.state.value}

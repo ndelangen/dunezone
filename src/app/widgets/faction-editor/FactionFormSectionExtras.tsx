@@ -10,6 +10,7 @@ import { AssetList, AssetListAdd } from '@app/pickers/AssetListPicker';
 
 import styles from './FactionEditor.module.css';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 
 const EXTRA_TYPES = [...FACTION_EXTRA_TYPES];
 
@@ -23,6 +24,10 @@ function ExtraLabel({ extra }: { extra: FactionExtra }) {
  * The asset-picker list reads the listed assets while this chapter is open, and the catalogue only while its add popover is.
  */
 export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
+  const inheritance = useInheritableField('extras', 'Faction Extras');
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="extras">
       {(field) => {
@@ -39,13 +44,16 @@ export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
               extras.length === 0 ? { title: 'No Extras', text: 'The faction brings only its own components.' } : null
             }
             actions={
-              <AssetListAdd
-                value={extras}
-                types={EXTRA_TYPES}
-                defaultType="card-custom"
-                copy={{ addLabel: 'Add Extra' }}
-                onChange={onChange}
-              />
+              <>
+                {inheritance.choice}
+                <AssetListAdd
+                  value={extras}
+                  types={EXTRA_TYPES}
+                  defaultType="card-custom"
+                  copy={{ addLabel: 'Add Extra' }}
+                  onChange={onChange}
+                />
+              </>
             }
           >
             <AssetList value={extras} label="Extras" onChange={onChange} />

@@ -1,0 +1,14 @@
+/*
+ * A collapsible notice is a Disclosure inside the Alert, and the Alert is the box it stretches its toggle over.
+ * The title is set as the Alert sets its own, in the colour the Alert gives it, so it follows the notice's tone.
+ */
+.collapsible {
+  --disclosure-color: var(--alert-color);
+  --disclosure-font-size: var(--mantine-font-size-sm);
+  --disclosure-font-weight: var(--mantine-font-weight-bold);
+}
+
+/* The Alert clips what leaves its message, so the focus ring is drawn inside the toggle. */
+.collapsible button:focus-visible {
+  outline-offset: -2px;
+}

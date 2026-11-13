@@ -1,4 +1,5 @@
 import { Stack } from '@mantine/core';
+import { normalizeInheritedFields } from '@shared/factions/variantFields';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -13,7 +14,13 @@ import { UserRoundMinus } from 'lucide-react';
 import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import { useDeleteFaction, useFaction, useSetFactionGroup, useUpdateFaction } from '@db/factions';
+import {
+  useDeleteFaction,
+  useFaction,
+  useFactionVariantContext,
+  useSetFactionGroup,
+  useUpdateFaction,
+} from '@db/factions';
 import { isFactionNotFound, loadFaction } from '@db/factions';
 import type { FactionDetailPageData } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
@@ -95,11 +102,22 @@ function FactionEditPage() {
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
+  /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
+  const variantContext = useFactionVariantContext(authoringFaction._id);
+  const parent = variantContext?.parent;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
+    inheritance: parent
+      ? {
+          parentName: parent.name,
+          parent: parent.data,
+          saved: normalizeInheritedFields(authoringFaction.inherited ?? []),
+        }
+      : undefined,
     persistence: {
-      save: async (draft) => await updateFaction.mutateAsync({ input: withinRights(draft), id: authoringFaction._id }),
+      save: async (draft, inherited) =>
+        await updateFaction.mutateAsync({ input: withinRights(draft), id: authoringFaction._id, inherited }),
       isPending: updateFaction.isPending,
       error: updateFaction.error,
       hasSaved: updateFaction.data !== undefined,
@@ -160,6 +178,15 @@ function FactionEditPage() {
             : 'Only the faction owner can edit this faction.'}
         </PageState>
       </PageMessage>
+    );
+  }
+
+  /* The editor of a variant with a parent waits for that parent, so no inherited field ever shows as the variant's own. */
+  if (authoringFaction.parent_id !== undefined && rights.variant && variantContext === undefined) {
+    return (
+      <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
+        Loading the parent variant.
+      </RoutePending>
     );
   }
 
@@ -247,6 +274,7 @@ function FactionEditPage() {
             <FactionEditor
               factionNotice={<FactionChapterNotice page={page} rights={rights} />}
               rights={rights}
+              inheritance={authoring.inheritance}
               key={faction._id}
               ref={viewRef}
               form={authoring.form}
@@ -290,7 +318,7 @@ function FactionChapterNotice({ page, rights }: Readonly<{ page: FactionDetailPa
     );
   }
   return (
-    <Notice tone="info" title="Shared by every variant">
+    <Notice tone="info" title="Shared by every variant" collapsible>
       {`The name, emblem, colors and background belong to ${factionName}, not to this variant. A change here updates the page, cards and publications of every variant.`}
       {rights.variant ? null : ` The rest of the ${variantName} variant is for its own owner and Group to edit.`}
     </Notice>

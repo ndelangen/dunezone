@@ -128,13 +128,29 @@ type WorldRequest = Exclude<
   { operation: 'contextConformance' | 'networkProbe' | 'ping' | 'reset' | 'subworkerProbe' }
 >;
 
+/**
+ * A seeded variant with a parent joins its parent's Faction.
+ * A trigger makes that Faction when the parent is inserted, so no seed can name it.
+ */
+async function inParentsFamily<TableName extends TableNames>(
+  db: DatabaseWriter,
+  table: TableName,
+  value: WithoutSystemFields<Doc<TableName>>
+) {
+  const faction = value as Partial<Doc<'factions'>>;
+  if (table !== 'factions' || !faction.parent_id || faction.family_id) {
+    return value;
+  }
+  return { ...value, family_id: (await db.get('factions', faction.parent_id))?.family_id };
+}
+
 async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
   document: SeedDocumentFor<TableName>,
   references: Map<string, string>
 ) {
   const value = resolveSeedValue(document.value, references) as WithoutSystemFields<Doc<TableName>>;
-  return await db.insert(document.table, value);
+  return await db.insert(document.table, await inParentsFamily(db, document.table, value));
 }
 
 async function patchDocument<TableName extends TableNames>(

@@ -17,6 +17,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { assetOptionToPreviewSrc, phaseSymbolOptions } from './factionFormAssetUtils';
 import { defaultPhaseDeclaration } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 import { FactionListSection, useListSelection } from './FactionListSection';
 
 const symbolSelectOptions = stockAssetOptions(phaseSymbolOptions);
@@ -253,6 +254,10 @@ export function FactionFormSectionPhases({
   onSelectedIndexChange?: (index: number) => void;
 }) {
   const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
+  const inheritance = useInheritableField('extraPhases', 'Faction phases');
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="extraPhases" mode="array">
       {(field) => {
@@ -269,6 +274,7 @@ export function FactionFormSectionPhases({
                   }
                 : null
             }
+            badge={inheritance.choice}
             noun="faction phase"
             sortablePrefix="phases-"
             values={phases}

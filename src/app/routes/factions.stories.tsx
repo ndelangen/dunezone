@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import {
   withTreacheryTracker,
@@ -10,6 +10,9 @@ import {
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
   factionMaintainerOutsideTheVariantGroup,
+  DREAMRULES_PATH,
+  withAChildVariant,
+  withABrokenChildVariant,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -142,7 +145,11 @@ export const EditFactionChapter = meta.story({
   play: async ({ canvasElement }) => {
     const { page, controls } = await factionChapterControls(canvasElement);
     await expect(page.getByRole('tab', { name: /^Faction(?! leader)/ })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByText('Shared by every variant')).toBeVisible();
+    /* The notice is one line until pressed: its title is the toggle, and the explanation stays shut. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await expect(shared).toBeVisible();
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
     for (const control of controls) {
       await expect(control).toBeEnabled();
     }
@@ -176,7 +183,16 @@ export const EditFactionChapterAlone = meta.story({
   parameters: { database: factionMaintainerOutsideTheVariantGroup },
   play: async ({ canvasElement }) => {
     const { page, controls } = await factionChapterControls(canvasElement);
-    await expect(page.getByText(/The rest of the .+ variant is for its own owner and Group to edit\./)).toBeVisible();
+    /* The notice opens to say whose the other chapters are, and the story leaves it shut, as a reader first meets it. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await userEvent.click(shared);
+    /* The panel opens with a short animation, so wait for the words to show. */
+    await waitFor(() =>
+      expect(page.getByText(/The rest of the .+ variant is for its own owner and Group to edit\./)).toBeVisible()
+    );
+    await userEvent.click(shared);
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
     for (const control of controls) {
       await expect(control).toBeEnabled();
     }
@@ -202,5 +218,76 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
     await expect(page.queryByText('Current')).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
+  },
+});
+
+const LOAD = { timeout: 30_000 };
+
+/**
+ * The editor of a variant with a parent (#2927).
+ * Every field the variant may take from its parent says in its own header whether it does.
+ * A field that follows the parent keeps the parent's value, read-only, behind one line, and a custom one keeps its controls.
+ */
+export const EditVariantWithAParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, LOAD));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, LOAD));
+    const followsParent = await rules.findAllByRole('checkbox', { name: /^Use parent variant for / }, LOAD);
+    await expect(followsParent).toHaveLength(5);
+    await expect(followsParent.filter((choice) => (choice as HTMLInputElement).checked)).toHaveLength(4);
+    const inherited = rules.getByRole('group', { name: 'Starting instructions, from Original, read-only' });
+    /* The parent's value stays shut until its line is pressed. */
+    const toggle = within(inherited).getByRole('button', {
+      name: 'From Original, the parent variant. Read-only here.',
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(within(inherited).queryByRole('region')).toBeNull();
+    await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
+    await expect(rules.getByRole('textbox', { name: 'Revival instructions' })).toHaveTextContent('3 troops free.');
+  },
+});
+
+/**
+ * A maintainer of the Faction starts a new variant from the variant page's toolbar (#2927).
+ * The popover takes the name, shows the address it gives, and offers each live variant as the one parent, or none.
+ */
+export const DetailCreateVariant = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
+    await expect(form.getByText('/factions/house-atreides-tournament')).toBeVisible();
+    const parents = within(form.getByRole('group', { name: 'Parent variant' }));
+    await expect(parents.getAllByRole('radio').map((radio) => radio.parentElement?.parentElement?.textContent)).toEqual(
+      ['No parent', 'Original', 'Dreamrules']
+    );
+    await expect(parents.getByRole('radio', { name: 'Dreamrules' })).toBeChecked();
+    await expect(form.getByText(/Starts with all 15 fields using Dreamrules\./)).toBeVisible();
+  },
+});
+
+/**
+ * A parent's change left the variant with fields a save would refuse (#2908), and its troops have no battle strengths yet.
+ * Those who may edit the variant see every problem in one notice on top of its page: one line until it is pressed.
+ * The way to the editor is the toolbar's Edit, so the notice does not repeat it.
+ */
+export const DetailVariantWithProblems = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, LOAD);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
+    /* The badge is for readers who cannot fix anything; an editor has the notice. */
+    await expect(page.queryByText('Not ready for play')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
   },
 });

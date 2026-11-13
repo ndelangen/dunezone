@@ -1,10 +1,12 @@
 import { Divider, Group, NumberInput, Radio, Stack, Switch, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
+import { useStore } from '@tanstack/react-form';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
 import type { FactionFormApi } from './factionFormTypes';
+import { InheritableControlBlock, useInheritableField } from './FactionInheritance';
 
 function isBlank(value: string | undefined) {
   return value == null || value.trim().length === 0;
@@ -23,7 +25,8 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           <form.Field name="rules.startText">
             {(field) => {
               return (
-                <ControlBlock
+                <InheritableControlBlock
+                  field="rules.startText"
                   title="Starting instructions"
                   inputId="rules-start"
                   warning={advisory(isBlank(field.state.value), 'Starting instructions are empty.')}
@@ -48,7 +51,8 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           <form.Field name="rules.revivalText">
             {(field) => {
               return (
-                <ControlBlock
+                <InheritableControlBlock
+                  field="rules.revivalText"
                   title="Revival instructions"
                   inputId="rules-revival"
                   warning={advisory(isBlank(field.state.value), 'Revival instructions are empty.')}
@@ -71,7 +75,8 @@ function SetupFields({ form }: { form: FactionFormApi }) {
         <Stack gap="md">
           <form.Field name="rules.spiceCount">
             {(field) => (
-              <ControlBlock
+              <InheritableControlBlock
+                field="rules.spiceCount"
                 title="Starting spice"
                 description="Rendered in At start as “Starting spice: N”; use a positive whole number."
                 inputId="rules-spice"
@@ -94,7 +99,8 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 
           <form.Field name="rules.treacheryTracker">
             {(field) => (
-              <ControlBlock
+              <InheritableControlBlock
+                field="rules.treacheryTracker"
                 title="Treachery tracker"
                 description={
                   'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
@@ -118,12 +124,16 @@ function SetupFields({ form }: { form: FactionFormApi }) {
 }
 
 function FateFields({ form }: { form: FactionFormApi }) {
+  const label = factionSpecialRuleLabel(useStore(form.store, (state) => state.values.rules.fate.label));
+  const inheritance = useInheritableField('rules.fate', label);
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="rules.fate.label">
       {(labelField) => {
-        const label = factionSpecialRuleLabel(labelField.state.value);
         return (
-          <Section title={label}>
+          <Section title={label} action={inheritance.choice}>
             <ControlBlock
               title="Section name"
               description="Used on this faction's page, in Play, and on its sheet and PDF."

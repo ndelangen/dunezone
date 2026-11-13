@@ -326,11 +326,55 @@ export function useCreateFaction() {
 }
 
 /**
+ * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
+ * It is an access query, kept apart from the public page query: the server answers only someone who may edit the variant or its Faction.
+ * Keeping that check out of the page query lets every viewer share the public result.
+ * Undefined while loading, and null for a viewer the server does not tell.
+ */
+export function useFactionVariantContext(factionId: string) {
+  const raw = useQuery(api.factionVariants.editorContext, { faction_id: factionId as FactionRow['_id'] });
+  return useMemo(
+    () =>
+      raw && {
+        ...raw,
+        parent: raw.parent && {
+          name: raw.parent.name,
+          data: parseClientBoundary(CanonicalFactionClientSchema, raw.parent.data, 'Parent variant data'),
+        },
+      },
+    [raw]
+  );
+}
+
+/**
+ * Adds a variant to the Faction `factionId` belongs to, following `parentId` in every field when one is given.
+ * It answers with the new variant's id and address.
+ */
+export function useCreateFactionVariant() {
+  const mutation = useLiveMutation<
+    FunctionArgs<typeof api.factionVariants.create>,
+    FunctionReturnType<typeof api.factionVariants.create>
+  >(api.factionVariants.create);
+  return {
+    ...mutation,
+    mutateAsync: async ({ factionId, name, parentId }: { factionId: string; name: string; parentId: string | null }) =>
+      await mutation.mutateAsync({
+        faction_id: factionId as FactionRow['_id'],
+        name,
+        ...(parentId ? { parent_id: parentId as FactionRow['_id'] } : {}),
+      }),
+  };
+}
+
+/**
  * Saves an edited faction.
  * `mutate({ input, id })`, normalizing the input the same way `useCreateFaction` does, and `onSuccess` receives the parsed `FactionEntry`.
+ * For a variant with a parent, `inherited` names the fields it follows that parent in, and the server fills each from the parent.
  */
 export function useUpdateFaction() {
-  const mutation = useLiveMutation<{ id: string; data: Faction }, FactionRow>(api.factions.update);
+  const mutation = useLiveMutation<{ id: string; data: Faction; inherited?: string[] }, FactionRow>(
+    api.factions.update
+  );
 
   return {
     ...mutation,
@@ -348,11 +392,12 @@ export function useUpdateFaction() {
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ input, id }: { input: Faction; id: string }) => {
+    mutateAsync: async ({ input, id, inherited }: { input: Faction; id: string; inherited?: readonly string[] }) => {
       const validatedData = FactionWriteSchema.parse(recalculateFactionComplexity(input));
       const entry = await mutation.mutateAsync({
         id,
         data: validatedData,
+        ...(inherited ? { inherited: [...inherited] } : {}),
       });
       return toFactionEntry(entry);
     },

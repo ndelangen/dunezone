@@ -14,6 +14,7 @@ import { CURATED_PLANET_IMAGES } from '@game/data/planetCatalogue';
 
 import { defaultPlanet } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { useInheritableField } from './FactionInheritance';
 
 const planetImageOptions = stockAssetOptions(CURATED_PLANET_IMAGES.map(({ image }) => image)).map((option) => ({
   ...option,
@@ -120,6 +121,10 @@ export function FactionFormSectionPlanets({
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  const inheritance = useInheritableField('planet', 'Planets');
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
 
   return (
     <form.Field name="planet">
@@ -133,6 +138,7 @@ export function FactionFormSectionPlanets({
             note={count === 0 ? { title: 'No planets', text: 'This faction has no planets.' } : null}
             actions={
               <>
+                {inheritance.choice}
                 <ListLengthActions
                   removeLabel="Remove last planet"
                   addLabel="Add planet"

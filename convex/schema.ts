@@ -320,8 +320,22 @@ export default defineSchema({
     family_id: v.optional(v.id('faction_families')),
     variant_name: v.optional(v.string()),
     variant_slug: v.optional(v.string()),
+    /**
+     * The variant this one takes its inherited fields from, in the same Faction, fixed at creation (#2927).
+     * `inherited` names those fields;
+     * `data` always holds the full resolved copy readers use.
+     * Absent on a variant without a parent.
+     */
+    parent_id: v.optional(v.id('factions')),
+    inherited: v.optional(v.array(v.string())),
+    /** Counts this variant's saves, so a push-down to its children that a newer save overtook stops. */
+    revision: v.optional(v.number()),
+    /** What a save would refuse in the resolved data after a parent's change reached it, listed on the variant's page (#2908). */
+    problems: v.optional(v.array(v.string())),
   })
     .index('by_deleted', ['is_deleted'])
+    .index('by_parent', ['parent_id'])
+    .index('by_family', ['family_id'])
     .index('by_slug', ['slug'])
     .index('by_owner_id', ['owner_id'])
     .index('by_group_id', ['group_id'])

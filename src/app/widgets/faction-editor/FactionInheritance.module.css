@@ -1,0 +1,14 @@
+/* A field that follows the parent wears the informational rail down its side. */
+.following {
+  border-inline-start: 2px solid var(--mantine-color-blue-5);
+  padding-inline-start: var(--space-sm);
+}
+
+/* The parent's value: dashed, since it is shown here and edited elsewhere. */
+.inherited {
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--space-sm);
+  /* The box the Disclosure stretches its toggle over. */
+  position: relative;
+}

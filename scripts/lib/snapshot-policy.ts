@@ -235,6 +235,11 @@ export const snapshotPolicy = {
       family_id: 'keep',
       variant_name: 'keep',
       variant_slug: 'keep',
+      /* A parent may be a deleted variant the snapshot leaves out; `data` is the full resolved copy, so the variant reads the same as a root. */
+      parent_id: 'drop',
+      inherited: 'drop',
+      revision: 'keep',
+      problems: 'keep',
     },
     rows: notDeleted,
   },
