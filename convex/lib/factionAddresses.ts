@@ -52,17 +52,27 @@ export async function allocateVariantAddress(
   });
 }
 
+/** The variant's family and its own slug, once the variant has both. */
+async function placeInFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
+  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
+  return family && faction.variant_slug ? { family, variantSlug: faction.variant_slug } : null;
+}
+
+type PlaceInFamily = NonNullable<Awaited<ReturnType<typeof placeInFamily>>>;
+
 /**
  * Moves a variant that still answers at its faction's own address to an address of its own.
  * The faction keeps the old address and leads it to its default variant, so no link breaks and nothing is recorded.
  * Rerunning it on a variant that already moved writes nothing.
  */
 export async function moveToVariantAddress(ctx: MutationCtx, faction: Doc<'factions'>) {
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
-  if (!family || !faction.variant_slug || faction.slug !== family.slug) {
+  const place = await placeInFamily(ctx, faction);
+  if (!place || faction.slug !== place.family.slug) {
     return;
   }
-  await ctx.db.patch(faction._id, { slug: await allocateVariantAddress(ctx, family, faction, faction.variant_slug) });
+  await ctx.db.patch(faction._id, {
+    slug: await allocateVariantAddress(ctx, place.family, faction, place.variantSlug),
+  });
 }
 
 /**
@@ -75,9 +85,9 @@ export async function variantAddressAfterSave(ctx: MutationCtx, faction: Doc<'fa
   if (slugify((faction.data as { name: string }).name) === base && faction.slug !== 'create') {
     return faction.slug;
   }
-  const family = faction.family_id && faction.variant_slug ? await ctx.db.get(faction.family_id) : null;
-  const slug = family
-    ? await renameFamily(ctx, family, faction, base, faction.variant_slug!)
+  const place = await placeInFamily(ctx, faction);
+  const slug = place
+    ? await renameFamily(ctx, place, faction, base)
     : await allocateFactionAddress(ctx, base, { factionId: faction._id });
   await recordFormerSlug(ctx, { kind: 'faction', scope: '', slug: faction.slug, record_id: faction._id });
   return slug;
@@ -86,10 +96,9 @@ export async function variantAddressAfterSave(ctx: MutationCtx, faction: Doc<'fa
 /** Gives the faction the address its new name asks for, and returns the variant's address under it. */
 async function renameFamily(
   ctx: MutationCtx,
-  family: Doc<'faction_families'>,
+  { family, variantSlug }: PlaceInFamily,
   faction: Doc<'factions'>,
-  base: string,
-  variantSlug: string
+  base: string
 ) {
   const familySlug = await allocateFactionAddress(ctx, base, { familyId: family._id, factionId: faction._id });
   await recordFormerSlug(ctx, { kind: 'faction_family', scope: '', slug: family.slug, record_id: family._id });
