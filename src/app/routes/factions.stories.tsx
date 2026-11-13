@@ -256,22 +256,24 @@ export const DetailCreateVariant = meta.story({
 
 /**
  * A parent's change left the variant with fields a save would refuse (#2908).
- * Those who may edit the variant see them in one notice on top of its page, with the way to the editor.
+ * Those who may edit the variant see them in one notice on top of its page: one line, which opens to the problems.
+ * The way to the editor is the toolbar's Edit, so the notice does not repeat it.
  */
 export const DetailVariantWithProblems = meta.story({
   args: { path: DREAMRULES_PATH },
   parameters: { database: withABrokenChildVariant },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('2 problems since Original changed', {}, LOAD)).resolves.toBeVisible();
-    const problems = within(page.getByRole('list', { name: 'Problems' })).getAllByRole('listitem');
+    const toggle = await page.findByRole('button', { name: '2 problems since Original changed' }, LOAD);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const problems = within(await page.findByRole('list', { name: 'Problems' })).getAllByRole('listitem');
     await expect(problems.map((problem) => problem.textContent)).toEqual([
       'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
       'The troop "House guard" names the planet "Caladan", which this variant does not have.',
     ]);
-    await expect(page.getByRole('link', { name: 'Fix in the editor' })).toHaveAttribute(
-      'href',
-      `${DREAMRULES_PATH}/edit`
-    );
+    await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
   },
 });

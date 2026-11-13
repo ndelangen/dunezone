@@ -1,4 +1,5 @@
 import {
+  Accordion,
   Box,
   ColorSwatch,
   Divider,
@@ -46,7 +47,7 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Download, Eye, FileText, GitBranchPlus, Pencil, PencilLine, UserPlus } from 'lucide-react';
+import { Download, Eye, FileText, GitBranchPlus, Pencil, UserPlus } from 'lucide-react';
 import { Fragment, useId, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -550,36 +551,34 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
 
 /**
  * What a parent's change left for the variant's editors to fix, in one notice above the page (#2908).
+ * It is one line until pressed, because it is an extra on a page that is about the faction, and the way to the editor is the toolbar's Edit.
  * The words of each problem are the server's, stored with the variant.
  */
-function VariantProblemsNotice({ page, factionId }: Readonly<{ page: FactionDetailPageData; factionId: string }>) {
+function VariantProblemsNotice({ page }: Readonly<{ page: FactionDetailPageData }>) {
   const problems = page.faction.problems ?? [];
   const count = problems.length === 1 ? '1 problem' : `${problems.length} problems`;
   const variantName = page.faction.variant_name ?? 'This variant';
   /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
   const parentName = useFactionVariantContext(page.faction._id)?.parent?.name ?? 'its parent variant';
   return (
-    <Notice
-      tone="caution"
-      title={`${count} since ${parentName} changed`}
-      action={
-        <LabeledAction
-          size="compact-sm"
-          icon={<PencilLine size={14} />}
-          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/$factionId/edit" params={{ factionId }} />}
-        >
-          Fix in the editor
-        </LabeledAction>
-      }
-    >
-      <Stack gap="sm">
-        <Text size="sm">{`${variantName} cannot be saved until these are fixed. Change the field, or make it custom where it uses the parent variant.`}</Text>
-        <List size="sm" spacing="xs" aria-label="Problems">
-          {problems.map((problem, index) => (
-            <List.Item key={`${problem}-${index}`}>{problem}</List.Item>
-          ))}
-        </List>
-      </Stack>
+    <Notice tone="caution">
+      <Accordion>
+        <Accordion.Item value="problems">
+          <Accordion.Control>
+            <Text inherit truncate>{`${count} since ${parentName} changed`}</Text>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <Stack gap="sm">
+              <Text size="sm">{`${variantName} cannot be saved until these are fixed. Change the field, or make it custom where it uses the parent variant.`}</Text>
+              <List size="sm" spacing="xs" aria-label="Problems">
+                {problems.map((problem, index) => (
+                  <List.Item key={`${problem}-${index}`}>{problem}</List.Item>
+                ))}
+              </List>
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
     </Notice>
   );
 }
@@ -768,7 +767,7 @@ function FactionDetailContent({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {showsProblems ? <VariantProblemsNotice page={page} factionId={factionId} /> : null}
+          {showsProblems ? <VariantProblemsNotice page={page} /> : null}
           {membershipWorkflow.request.isError ? (
             <FormError title="Membership request failed">
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
