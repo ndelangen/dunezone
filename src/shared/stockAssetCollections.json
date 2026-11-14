@@ -602,6 +602,18 @@
     ]
   },
   {
+    "label": "landsraad",
+    "keywords": "Dune Kwisatz Haderach Edition Gale Force Nine GF9 Great Houses Colus Hagal Molay Thorvald Vok council",
+    "assets": [
+      "/vector/emblem/landsraad-house-colus.svg",
+      "/vector/emblem/landsraad-house-hagal.svg",
+      "/vector/emblem/landsraad-house-molay.svg",
+      "/vector/emblem/landsraad-house-thorvald.svg",
+      "/vector/emblem/landsraad-house-vok.svg",
+      "/vector/emblem/landsraad-five-houses.svg"
+    ]
+  },
+  {
     "label": "Faction emblems / Board game factions",
     "keywords": "established classic base expansion",
     "assets": [

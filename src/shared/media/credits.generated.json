@@ -2047,6 +2047,16 @@
         "dune-awakening-house-wydras.svg"
       ]
     },
+    "gf9-landsraad-emblem": {
+      "/vector/emblem/": [
+        "landsraad-five-houses.svg",
+        "landsraad-house-colus.svg",
+        "landsraad-house-hagal.svg",
+        "landsraad-house-molay.svg",
+        "landsraad-house-thorvald.svg",
+        "landsraad-house-vok.svg"
+      ]
+    },
     "gf9-symbol": { "/vector/generic/": ["bird-banner.svg", "landsraad.svg", "mercenaries.svg", "tech.svg"] },
     "gf9-icon": {
       "/vector/icon/": [
@@ -2429,6 +2439,12 @@
     "/vector/emblem/harkonnen-extended.svg": "From the cover of Dune: House Harkonnen.",
     "/vector/emblem/house-atreus-fan-art.svg": "Based on fan art.",
     "/vector/emblem/iduali.svg": "Original: the Abarth car logo, flipped.",
+    "/vector/emblem/landsraad-five-houses.svg": "Assembled from the five AI-reconstructed, traced house marks using the promotional seal layout. The individual symbol designer has not been verified.",
+    "/vector/emblem/landsraad-house-colus.svg": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "/vector/emblem/landsraad-house-hagal.svg": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "/vector/emblem/landsraad-house-molay.svg": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "/vector/emblem/landsraad-house-thorvald.svg": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "/vector/emblem/landsraad-house-vok.svg": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
     "/vector/emblem/sunburst-buckle-matt-griffin.svg": "Original design by Matt Griffin.",
     "/vector/generic/aeldari.svg": "Original: the Aeldari symbol from Warhammer 40,000, by Jes Goodwin.",
     "/vector/generic/ankh-of-the-triarch.svg": "Original: the Ankh of the Triarch from Warhammer 40,000 (Games Workshop).",
