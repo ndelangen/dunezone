@@ -60,6 +60,8 @@ export const catalogue_entries_factions_owner_verify_v1 = migrations.define({
 /**
  * Marks every live variant's entries with its Faction and adds the variant's name to their search text (#2929).
  * The entries exist already, so each reconcile replaces a row in place, and a replay writes nothing.
+ * The deploy runs migrations by id, so this can run before `faction_families_v1`.
+ * That one writes each faction's `family_id` through the triggers, which reconcile these entries as it goes.
  */
 export const catalogue_entries_factions_family_v1 = migrations.define({
   table: 'factions',
@@ -69,7 +71,7 @@ export const catalogue_entries_factions_family_v1 = migrations.define({
   },
 });
 
-/** Proves every live variant's entries name its Faction, in each of its lists exactly once. */
+/** Proves every live variant's entries match what its row says now, its Faction included, in each of its lists exactly once. */
 export const catalogue_entries_factions_family_verify_v1 = migrations.define({
   table: 'factions',
   batchSize: 10,

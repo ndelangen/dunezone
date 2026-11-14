@@ -28,7 +28,11 @@ describe('a variant’s catalogue entries name its faction (#2929)', () => {
       expect(rows.length).toBeGreaterThan(0);
       expect(rows.every((row) => row.family_id === familyId)).toBe(true);
     }
-    expect((await entries(dreamrules.id))[0]!.search_text.split('\n')).toContain('Dreamrules');
+    expect((await entries(dreamrules.id)).every((row) => row.search_text.split('\n').includes('Dreamrules'))).toBe(
+      true
+    );
+    /* Every first variant is called Original, so that name would find nearly every faction. */
+    expect((await entries(root._id)).some((row) => row.search_text.split('\n').includes('Original'))).toBe(false);
     const byFamily = await t.run(
       async (ctx) =>
         await ctx.db
@@ -55,7 +59,7 @@ describe('a variant’s catalogue entries name its faction (#2929)', () => {
   });
 
   test('the backfill marks entries written before variants had a faction, and its check then passes', async () => {
-    const { t, root } = await variantsFixture();
+    const { t, root, familyId } = await variantsFixture();
     await t.run(async (ctx) => {
       const rows = await ctx.db
         .query('catalogue_entries')
@@ -85,6 +89,6 @@ describe('a variant’s catalogue entries name its faction (#2929)', () => {
           .withIndex('by_kind_source', (q) => q.eq('kind', 'faction').eq('source_id', root._id))
           .collect()
     );
-    expect(rows.every((row) => row.family_id !== undefined)).toBe(true);
+    expect(rows.every((row) => row.family_id === familyId)).toBe(true);
   });
 });
