@@ -1,5 +1,4 @@
 import type { Triggers } from 'convex-helpers/server/triggers';
-import { z } from 'zod';
 
 import { splitSharedFields } from '../../src/shared/factions/sharedFields';
 import { slugify } from '../../src/shared/slugify';
@@ -7,8 +6,8 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
-import { parseStoredFactionForRead } from './factionInput';
-import { takeSharedFields } from './factionVariants';
+import type { parseStoredFactionForRead } from './factionInput';
+import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
 
 /** The variant name a faction gets when no live ruleset links it. */
 export const ORIGINAL_VARIANT_NAME = 'Original';
@@ -28,14 +27,8 @@ export function factionDataChange(stored: FactionData, proposed: FactionData) {
 
 /** The shared fields of a variant's stored data, or null while that data does not parse, so a broken legacy faction never blocks its own write. */
 function sharedData(faction: Doc<'factions'>) {
-  try {
-    return splitSharedFields(parseStoredFactionForRead(faction.data)).shared;
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return null;
-    }
-    throw error;
-  }
+  const data = parseStoredDataOrNull(faction.data);
+  return data ? splitSharedFields(data).shared : null;
 }
 
 /**

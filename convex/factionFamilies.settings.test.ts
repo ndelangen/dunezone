@@ -135,6 +135,21 @@ describe('a faction’s variant order, default and deletion (#2928)', () => {
     );
   });
 
+  test('deleting the default variant passes it on to a live variant whose data does not parse, and the faction mirrors none', async () => {
+    const { t, owner, root, addVariant, familyId, family } = await variantsFixture();
+    const broken = await addVariant('Broken');
+    await t.run((ctx) => ctx.db.patch(broken.id, { data: {} }));
+
+    await owner.mutation(api.factions.softDelete, { id: root._id });
+
+    expect(await family()).toMatchObject({
+      _id: familyId,
+      default_variant_id: broken.id,
+      data: null,
+      is_deleted: false,
+    });
+  });
+
   test('only the faction’s owner deletes it, and only once it holds no live variant', async () => {
     const { owner, stranger, root, familyId, family, factionGroupMember } = await variantsFixture();
     await owner.mutation(api.factionFamilies.setOpen, { family_id: familyId, is_open: true });

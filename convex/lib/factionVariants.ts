@@ -1,4 +1,5 @@
 import { ConvexError } from 'convex/values';
+import { z } from 'zod';
 
 import { splitSharedFields } from '../../src/shared/factions/sharedFields';
 import {
@@ -123,13 +124,28 @@ export async function pushSharedFields(ctx: MutationCtx, faction: Doc<'factions'
   });
 }
 
+/** The variant's stored data, or null while it does not parse, so a broken legacy variant never blocks a write that only passes it by. */
+export function parseStoredDataOrNull(data: Doc<'factions'>['data']) {
+  try {
+    return parseStoredFactionForRead(data);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /** Gives one variant its Faction's shared fields, as `shared` holds them; a variant that already has them is left alone. */
 export async function takeSharedFields(
   ctx: MutationCtx,
   shared: Doc<'faction_families'>['data'],
   variant: Doc<'factions'>
 ) {
-  const current = parseStoredFactionForRead(variant.data);
+  const current = parseStoredDataOrNull(variant.data);
+  if (!current) {
+    return;
+  }
   const next = { ...current, ...shared };
   if (shared && canonicalJson(next) !== canonicalJson(current)) {
     await storeVariantData(ctx, variant, next);
