@@ -9,6 +9,7 @@ import {
   draftVariantName,
   draftedPool,
   emptyDraft,
+  isBanned,
   resolveFactionPool,
 } from './drafting';
 import type { DraftFaction, DraftState } from './drafting';
@@ -111,6 +112,35 @@ describe('resolving the pool', () => {
     expect(resolveFactionPool(draft({ s1: ['a', 'b'] }), 2, first)).toEqual(['a', 'b']);
     expect(resolveFactionPool(draft({ s1: ['a', 'b', 'c'] }), 2, first)).toHaveLength(2);
     expect(resolveFactionPool(draft({}, { s1: ['a', 'b'] }), 2, first)).toBeNull();
+  });
+});
+
+describe('variants of one Faction', () => {
+  /* Atreides has three variants; c is a Faction of its own. */
+  const variant = (id: string) => ({ ...faction(id, true), familyId: 'atreides' });
+  const variants = (picks: DraftState['picks'], bans: DraftState['bans'] = {}): DraftState => ({
+    ...emptyDraft(2, [variant('a1'), variant('a2'), variant('a3'), faction('c', true)], 1),
+    picks,
+    bans,
+  });
+
+  it('count once in the pool, as the variant picked first', () => {
+    expect(draftedPool(variants({ s1: ['a2', 'c'], s2: ['a1'] }))).toEqual(['a2', 'c']);
+  });
+
+  it('are all banned by a ban on any one of them', () => {
+    const banned = variants({ s1: ['a2', 'c'] }, { s2: ['a1'] });
+    expect(isBanned(banned, 'a3')).toBe(true);
+    expect(draftedPool(banned)).toEqual(['c']);
+    expect(draftGates(banned, ['s1', 's2'], 2).fillable).toBe(0);
+  });
+
+  it('fill as one Faction, so two of them are never dealt together', () => {
+    expect(draftGates(variants({}), ['s1', 's2'], 2).fillable).toBe(2);
+    expect(resolveFactionPool(variants({ s1: ['a1'] }), 2, first)).toEqual(['a1', 'c']);
+    const filled = resolveFactionPool(variants({}), 2, first) ?? [];
+    expect(filled.filter((id) => id.startsWith('a'))).toHaveLength(1);
+    expect(resolveFactionPool(variants({}), 3, first)).toBeNull();
   });
 });
 

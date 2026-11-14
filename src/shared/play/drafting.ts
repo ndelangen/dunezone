@@ -88,8 +88,18 @@ export function bannedIds(draft: DraftState): string[] {
   return [...new Set(Object.values(draft.bans).flat())];
 }
 
+/** The Faction a row is a variant of; a row stored before rows named it, or gone from the catalogue, stands for itself. */
+export function factionOf(draft: DraftState, factionId: string): string {
+  return draft.factions.find((faction) => faction.id === factionId)?.familyId ?? factionId;
+}
+
+/**
+ * A ban covers the whole Faction: banning one variant bans every variant of it.
+ * A ban on a variant since removed from the catalogue no longer reaches its siblings.
+ */
 export function isBanned(draft: DraftState, factionId: string): boolean {
-  return Object.values(draft.bans).some((list) => list.includes(factionId));
+  const faction = factionOf(draft, factionId);
+  return bannedIds(draft).some((id) => factionOf(draft, id) === faction);
 }
 
 /** Why a deal set this faction aside, when one did and no refresh has found it ready since. */
@@ -105,12 +115,20 @@ function stillDealable(draft: DraftState, factionId: string): boolean {
   );
 }
 
-/** The drafted pool: every distinct dealable pick that is not banned, in the order it was first picked. */
+/**
+ * The drafted pool: the first dealable pick of each unbanned Faction, taking the seats in turn.
+ * A later pick of the same variant or of another variant of that Faction weighs nothing.
+ */
 export function draftedPool(draft: DraftState): string[] {
   const pool: string[] = [];
   for (const list of Object.values(draft.picks)) {
     for (const id of list) {
-      if (!pool.includes(id) && !isBanned(draft, id) && stillDealable(draft, id)) {
+      const faction = factionOf(draft, id);
+      if (
+        !pool.some((other) => factionOf(draft, other) === faction) &&
+        !isBanned(draft, id) &&
+        stillDealable(draft, id)
+      ) {
         pool.push(id);
       }
     }
@@ -130,17 +148,23 @@ export function bannersOf(draft: DraftState, factionId: string): string[] {
   return seatsListing(draft.bans, factionId);
 }
 
-/** Linked, published, unbanned factions outside the drafted pool and not set aside: what random filling can add. */
-function fillableFactions(draft: DraftState): DraftFaction[] {
-  const pool = draftedPool(draft);
-  return draft.factions.filter(
-    (faction) =>
-      faction.linked &&
-      faction.published &&
-      !isBanned(draft, faction.id) &&
-      !pool.includes(faction.id) &&
-      setAsideReason(draft, faction.id) === undefined
-  );
+/** What random filling can add, by Faction: the linked, published variants not set aside of each unbanned Faction outside the pool. */
+function fillableFactions(draft: DraftState): DraftFaction[][] {
+  const pooled = new Set(draftedPool(draft).map((id) => factionOf(draft, id)));
+  const fillable = new Map<string, DraftFaction[]>();
+  for (const variant of draft.factions) {
+    const faction = factionOf(draft, variant.id);
+    if (
+      variant.linked &&
+      variant.published &&
+      !pooled.has(faction) &&
+      !isBanned(draft, variant.id) &&
+      setAsideReason(draft, variant.id) === undefined
+    ) {
+      fillable.set(faction, [...(fillable.get(faction) ?? []), variant]);
+    }
+  }
+  return [...fillable.values()];
 }
 
 /** The three gates assignment waits on, measured against the players seated now. */
@@ -222,7 +246,7 @@ function shuffled<T>(items: readonly T[], random: Random): T[] {
  * The factions dealt to a roster of the given size: every drafted faction when there are fewer than players, filled at random from the linked pool;
  * a random subset when there are more;
  * nothing when the eligible total falls short.
- * Repeated picks weigh nothing.
+ * Repeated picks weigh nothing, and no two variants of one Faction are ever dealt together.
  */
 export function resolveFactionPool(draft: DraftState, players: number, random: Random): string[] | null {
   const pool = draftedPool(draft);
@@ -232,10 +256,10 @@ export function resolveFactionPool(draft: DraftState, players: number, random: R
   if (pool.length > players) {
     return shuffled(pool, random).slice(0, players);
   }
-  const fill = shuffled(
-    fillableFactions(draft).map((faction) => faction.id),
-    random
-  ).slice(0, players - pool.length);
+  /* A Faction is filled with first, then one of its variants, so a Faction with many variants is no likelier to be dealt. */
+  const fill = shuffled(fillableFactions(draft), random)
+    .slice(0, players - pool.length)
+    .map((variants) => variants[random(variants.length)]!.id);
   return pool.length + fill.length === players ? [...pool, ...fill] : null;
 }
 
