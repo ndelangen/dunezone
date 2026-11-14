@@ -199,8 +199,6 @@ function FactionEditPage() {
 
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
-  /* A Faction is deleted with its last live variant, by its owner, and the hold then says so (#2928). */
-  const deletesFaction = canDeleteFaction && variantContext?.variants.length === 1;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
   const routeNotice = resolveRouteNotice(search.notice);
   const dismissRouteNotice = () =>
@@ -261,11 +259,12 @@ function FactionEditPage() {
             destructiveActions={
               canDelete ? (
                 <DeleteVariantHold
-                  withFaction={deletesFaction}
+                  mayDeleteFaction={canDeleteFaction}
+                  variantContext={variantContext}
                   pending={deleteFaction.isPending}
-                  onConfirm={() =>
+                  onConfirm={(andFaction) =>
                     deleteFaction.mutate(
-                      { id: faction._id, andFaction: deletesFaction },
+                      { id: faction._id, andFaction },
                       { onSuccess: () => void navigate({ to: '/factions' }) }
                     )
                   }
@@ -308,18 +307,28 @@ function FactionEditPage() {
   );
 }
 
-/** The variant's delete hold, which says so when the Faction goes with its last live variant (#2928). */
+/**
+ * The variant's delete hold.
+ * A Faction goes with its last live variant when its owner deletes it, and the hold then says so (#2928).
+ */
 function DeleteVariantHold({
-  withFaction,
+  mayDeleteFaction,
+  variantContext,
   pending,
   onConfirm,
-}: Readonly<{ withFaction: boolean; pending: boolean; onConfirm: () => void }>) {
+}: Readonly<{
+  mayDeleteFaction: boolean;
+  variantContext: { variants: readonly unknown[] } | null | undefined;
+  pending: boolean;
+  onConfirm: (andFaction: boolean) => void;
+}>) {
+  const withFaction = mayDeleteFaction && variantContext?.variants.length === 1;
   return (
     <HoldAction
       label={withFaction ? 'Delete variant and faction' : 'Delete variant'}
       hint={withFaction ? 'Hold to delete this variant and its faction.' : 'Hold to delete this variant.'}
       pending={pending}
-      onConfirm={onConfirm}
+      onConfirm={() => onConfirm(withFaction)}
     />
   );
 }
