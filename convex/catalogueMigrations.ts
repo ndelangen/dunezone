@@ -81,6 +81,30 @@ export const catalogue_entries_factions_family_verify_v1 = migrations.define({
 });
 
 /**
+ * Lists every Faction with a live variant once, built from its variants' entries (#2929).
+ * The deploy runs migrations by id, so this and its check run after the family backfill above, whose id sorts first.
+ * Should it run first anyway, each variant entry that backfill marks rebuilds its Faction's entry through the triggers.
+ * Nothing reads these entries until the catalogue lists Factions.
+ */
+export const catalogue_entries_family_listing_v1 = migrations.define({
+  table: 'faction_families',
+  /* A family row carries its shared data, so a batch stays small. */
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'faction_family', row._id);
+  },
+});
+
+/** Proves every Faction with a live variant is in each of its lists exactly once. */
+export const catalogue_entries_family_listing_verify_v1 = migrations.define({
+  table: 'faction_families',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'faction_family', row._id);
+  },
+});
+
+/**
  * This module's migrations under their ids, spread into `MIGRATION_IDS` so the deploy and the guard script run them like any other.
  * Typed by hand: inferred from `internal`, the type would name this module's own exports and the generated api would reference itself.
  */
@@ -91,4 +115,6 @@ export const CATALOGUE_MIGRATION_IDS: Record<string, FunctionReference<'mutation
   catalogue_entries_factions_owner_verify_v1: internal.catalogueMigrations.catalogue_entries_factions_owner_verify_v1,
   catalogue_entries_factions_family_v1: internal.catalogueMigrations.catalogue_entries_factions_family_v1,
   catalogue_entries_factions_family_verify_v1: internal.catalogueMigrations.catalogue_entries_factions_family_verify_v1,
+  catalogue_entries_family_listing_v1: internal.catalogueMigrations.catalogue_entries_family_listing_v1,
+  catalogue_entries_family_listing_verify_v1: internal.catalogueMigrations.catalogue_entries_family_listing_verify_v1,
 };
