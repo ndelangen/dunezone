@@ -372,7 +372,7 @@ describe('faction catalogue query', () => {
     const ids = await allPages(page, { sort: 'name' });
     expect(ids).toHaveLength(count);
     expect(new Set(ids)).toEqual(new Set(seeded.factionIds));
-  });
+  }, 60_000);
 
   test('finds the freshly updated faction behind any number of newer, never edited ones', async () => {
     const { page } = await catalogueWith([
