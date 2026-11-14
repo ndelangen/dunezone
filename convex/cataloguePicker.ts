@@ -16,7 +16,12 @@ export const options = publicQuery({
     selection: v.optional(v.object({ faqQuestionId: v.id('faq_items') })),
   },
   returns: paginationResultValidator(
-    v.object({ choice: faqReferencePreviewValidator, selected: v.union(v.boolean(), v.null()) })
+    v.object({
+      choice: faqReferencePreviewValidator,
+      selected: v.union(v.boolean(), v.null()),
+      /* A faction choice's variant name where its Faction has several live variants to tell apart, else null. */
+      variant: v.union(v.string(), v.null()),
+    })
   ),
   handler: async (ctx, args) => {
     if (args.group !== 'faction' && !isAssetType(args.group)) {
@@ -29,9 +34,10 @@ export const options = publicQuery({
     }
     const rows = await loadCataloguePickerOptions(ctx, { ...args, kind, partition });
     const page = await Promise.all(
-      rows.page.map(async (choice) => ({
+      rows.page.map(async ({ choice, variant }) => ({
         choice,
         selected: args.selection ? Boolean(await faqReferencePair(ctx, args.selection.faqQuestionId, choice)) : null,
+        variant,
       }))
     );
     return { ...rows, page };

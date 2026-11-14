@@ -1,11 +1,13 @@
 import { ScrollArea, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { nameWithVariant } from '@shared/factions/variantName';
 import { Pending } from '@ui/content/Pending';
+import { QualifiedName } from '@ui/content/QualifiedName';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { useTouchSurface } from '@ui/surface/TouchSheet';
 import { Check, Search } from 'lucide-react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
-import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken, ListedFactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 import styles from './FactionSearchList.module.css';
 
@@ -28,7 +30,7 @@ export function FactionSearchList({
 }: Readonly<{
   query: string;
   onQuery: (query: string) => void;
-  factions: readonly FactionToken[];
+  factions: readonly ListedFactionToken[];
   seated: readonly string[];
   status: FactionSearchStatus;
   onMore: () => void;
@@ -65,22 +67,23 @@ export function FactionSearchList({
 
 /* One faction to add, or ticked and disabled when it is already at the table. */
 function FactionRow({
-  faction,
+  faction: { variant, ...token },
   here,
   onPick,
-}: Readonly<{ faction: FactionToken; here: boolean; onPick: (faction: FactionToken) => void }>) {
+}: Readonly<{ faction: ListedFactionToken; here: boolean; onPick: (faction: FactionToken) => void }>) {
   const touch = useTouchSurface();
+  const name = nameWithVariant(token.name, variant);
   return (
     <UnstyledButton
       className={styles.row}
       data-touch={touch ? 'true' : 'false'}
       disabled={here}
-      aria-label={here ? `${faction.name} is at the table` : `Add ${faction.name}`}
-      onClick={() => onPick(faction)}
+      aria-label={here ? `${name} is at the table` : `Add ${name}`}
+      onClick={() => onPick(token)}
     >
-      <FactionTokenFace token={faction} size={touch ? 36 : 28} />
-      <Text size="sm" component="span" className={styles.name}>
-        {faction.name}
+      <FactionTokenFace token={token} size={touch ? 36 : 28} />
+      <Text size="sm" component="span" className={variant === undefined ? styles.name : styles.nameWrapping}>
+        <QualifiedName name={token.name} qualifier={variant} />
       </Text>
       {here ? <Check size={16} aria-hidden /> : null}
     </UnstyledButton>

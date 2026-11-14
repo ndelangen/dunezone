@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Background, CanonicalFactionStoredObject } from '../factions/schema';
+import { nameWithVariant } from '../factions/variantName';
 import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema';
 
@@ -107,8 +108,7 @@ export function variantLabel(draft: DraftState, faction: DraftFaction): string |
 
 /** The name a row goes by wherever it stands alone: its Faction's, then its variant's when there are several to tell apart. */
 export function draftFactionName(draft: DraftState, faction: DraftFaction): string {
-  const variant = variantLabel(draft, faction);
-  return variant === undefined ? faction.name : `${faction.name} · ${variant}`;
+  return nameWithVariant(faction.name, variantLabel(draft, faction));
 }
 
 /**

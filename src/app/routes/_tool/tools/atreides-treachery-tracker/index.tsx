@@ -14,6 +14,7 @@ import type { TreacheryDeckRead } from '@app/db/play';
 import { useTrackerToolSetup } from '@app/db/rulesets';
 import { useTreacheryDeckChoices } from '@app/db/treacheryTrackerTool';
 import type { TreacheryDeckChoice } from '@app/db/treacheryTrackerTool';
+import { listedFactionTokens } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import { faceCopies } from '@app/widgets/treachery-tracker/CardArt';
@@ -236,23 +237,12 @@ const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
 const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
   const [query, setQuery] = useState('');
   const read = useCataloguePickerGroup('faction', query.trim(), undefined);
-  const factions = read.results.flatMap((choice) =>
-    choice.kind === 'faction'
-      ? [
-          {
-            id: choice.id,
-            name: choice.faction.data.name,
-            src: choice.faction.tokenImages?.faction ?? publishedHref('faction-token', choice.id),
-          },
-        ]
-      : []
-  );
   const status = SEARCH_STATUS[read.status] ?? 'done';
   return (
     <FactionSearchList
       query={query}
       onQuery={setQuery}
-      factions={factions}
+      factions={listedFactionTokens(read.results)}
       seated={seated}
       status={status}
       onMore={() => read.loadMore(12)}

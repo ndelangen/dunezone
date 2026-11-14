@@ -31,7 +31,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionDataChange, firstLiveVariant } from './lib/factionFamilies';
+import { factionDataChange, firstLiveVariant, variantName } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
@@ -268,6 +268,8 @@ const loadPickerRowValidator = v.object({
   groupLabel: v.string(),
   ownerId: v.id('users'),
   ownerUsername: v.union(v.string(), v.null()),
+  /* The variant's name where its Faction has several live variants to tell apart, else null. */
+  variant: v.union(v.string(), v.null()),
 });
 
 export const listForLoadPicker = viewerQuery({
@@ -315,6 +317,14 @@ export const listForLoadPicker = viewerQuery({
       ownerUsernameById.set(oid, profile && isActiveProfile(profile) ? (profile.username ?? null) : null);
     }
 
+    /* A Faction's variants are counted from the rows, so the count holds only within the 500 rows read above. */
+    const variantCounts = new Map<string, number>();
+    for (const row of factionRows) {
+      if (row.family_id) {
+        variantCounts.set(row.family_id, (variantCounts.get(row.family_id) ?? 0) + 1);
+      }
+    }
+
     const rows = factionRows.map((row) => {
       const data = factionDataForClient(row.data);
       const groupId = row.group_id && groupNameById.has(row.group_id) ? row.group_id : null;
@@ -327,6 +337,7 @@ export const listForLoadPicker = viewerQuery({
         groupLabel,
         ownerId: row.owner_id,
         ownerUsername: ownerUsernameById.get(row.owner_id) ?? null,
+        variant: row.family_id && (variantCounts.get(row.family_id) ?? 0) > 1 ? variantName(row) : null,
       };
     });
 

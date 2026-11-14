@@ -219,6 +219,7 @@ export function FactionPicker(props: FactionPickerProps) {
                       ownerLabel={factionLoadOwnerLabel(row)}
                       groupLabel={row.groupLabel}
                       isMember={row.groupId ? memberGroupSet.has(String(row.groupId)) : false}
+                      variant={row.variant ?? undefined}
                     />
                   </Combobox.Option>
                 ))
@@ -245,6 +246,7 @@ export function FactionPicker(props: FactionPickerProps) {
               ownerLabel={factionLoadOwnerLabel(selectedRow)}
               groupLabel={selectedRow.groupLabel}
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
+              variant={selectedRow.variant ?? undefined}
             />
             {props.copy.confirmNote ? <FieldWarning>{props.copy.confirmNote}</FieldWarning> : null}
             <Group justify="flex-end" gap="xs">

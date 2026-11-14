@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { factionTest } from './factions.test.fixture';
+import { variantsFixture } from './factionVariants.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 const STAMP = '2026-09-28T00:00:00.000Z';
@@ -102,4 +103,18 @@ test('the load picker does not name the owner of a deleted account', async () =>
   const picker = await t.withIdentity({ subject: viewerId }).query(api.factions.listForLoadPicker, {});
   expect(picker.rows.find((row) => row.slug === 'present-original')).toMatchObject({ ownerUsername: 'Present' });
   expect(picker.rows.find((row) => row.slug === 'departed-original')).toMatchObject({ ownerUsername: null });
+});
+
+test('the load picker names a variant only where its Faction has several', async () => {
+  const { owner, root, addVariant } = await variantsFixture();
+  const dreamrules = await addVariant('Dreamrules');
+  const harkonnen = await owner.mutation(api.factions.create, {
+    data: { ...assetPublishingFaction, name: 'Harkonnen' },
+    group_id: null,
+  });
+  const { rows } = await owner.query(api.factions.listForLoadPicker, {});
+  const row = (id: string) => rows.find((candidate) => candidate.id === id);
+  expect(row(root._id)!.variant).toBe('Original');
+  expect(row(dreamrules.id)!.variant).toBe('Dreamrules');
+  expect(row(harkonnen._id)!.variant).toBeNull();
 });

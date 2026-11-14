@@ -1,10 +1,11 @@
 import { Box, Group, Stack, Text } from '@mantine/core';
+import { QualifiedName } from '@ui/content/QualifiedName';
 
 import type { FactionData, FactionLoadPickerRow } from '@db/factions';
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 export function factionLoadOptionSearchText(row: FactionLoadPickerRow): string {
-  return [row.id, row.data.name, row.slug, row.groupLabel, row.ownerUsername ?? ''].join(' ');
+  return [row.id, row.data.name, row.variant ?? '', row.slug, row.groupLabel, row.ownerUsername ?? ''].join(' ');
 }
 
 /* Never the owner's raw account id, which means nothing to a reader; an owner without a public name is unknown, as in the other pickers. */
@@ -20,6 +21,8 @@ export type FactionLoadOptionRowProps = {
   ownerLabel: string;
   groupLabel: string;
   isMember: boolean;
+  /** The variant's name, where the faction has several variants to tell apart. */
+  variant?: string;
 };
 
 export function FactionLoadOptionRow({
@@ -30,6 +33,7 @@ export function FactionLoadOptionRow({
   ownerLabel,
   groupLabel,
   isMember,
+  variant,
 }: FactionLoadOptionRowProps) {
   return (
     <Group gap="sm" wrap="nowrap" align="center">
@@ -40,7 +44,7 @@ export function FactionLoadOptionRow({
       </Box>
       <Stack gap="xs" miw={0}>
         <Text size="sm" fw={700} lh={1.25}>
-          {name}
+          <QualifiedName name={name} qualifier={variant} />
         </Text>
         <Text size="xs" c="dimmed" lh={1.2}>
           Owner: {ownerLabel} · Group: {groupLabel}

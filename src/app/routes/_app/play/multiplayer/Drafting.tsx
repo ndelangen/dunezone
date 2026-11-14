@@ -34,6 +34,7 @@ import { FormError } from '@ui/block/FormError';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { QualifiedName } from '@ui/content/QualifiedName';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
@@ -590,14 +591,7 @@ function FactionRow({
       <div className={styles.rowBody}>
         <div className={styles.rowWords}>
           <Text size="sm" fw={700}>
-            {faction.name}
-            {/* The dot holds to the variant, so a name too long for its line breaks before the dot and never leaves it behind. */}
-            {variant !== undefined && (
-              <Text span fw={400} c="dimmed">
-                {' ·\u00A0'}
-                {variant}
-              </Text>
-            )}
+            <QualifiedName name={faction.name} qualifier={variant} />
           </Text>
           <Text size="xs" c="dimmed">
             {why ?? factionTag(faction)}
