@@ -59,7 +59,7 @@ const rulesetSummaryValidator = v.object({
 /*
  * A ruleset cited from someone's FAQ activity: the summary plus one folded cover URL, never the fields it was folded from.
  * How a cover is stored stays a server concern, so retiring the legacy column changes the fold and not this shape.
- * The plain summary above stays as it is: the faction catalogue uses it and cites no cover.
+ * The plain summary above stays as it is: the faction page and the catalogue's toolbar use it and cite no cover.
  */
 /** A ruleset's question count and how many of them have an accepted answer. */
 export const rulesetFaqCountsValidator = v.object({ questions: v.number(), answered: v.number() });
@@ -175,6 +175,14 @@ export const factionDetailPageValidator = v.object({
   rulesets: v.array(rulesetSummaryValidator),
 });
 
+/*
+ * A ruleset as a faction card cites it: the summary plus the same folded cover URL, which the card draws as a small round picture.
+ * Optional on the wire, so a row built without it still validates and the card draws the ruleset's initials.
+ */
+const cardRulesetValidator = rulesetSummaryValidator.extend({
+  coverThumbUrl: v.optional(v.union(v.string(), v.null())),
+});
+
 /**
  * A catalogue-shaped faction row: what '/factions', a ruleset's faction rail and a profile's faction list put on the wire.
  * Deliberately not a whole faction.
@@ -186,7 +194,7 @@ export const catalogueFactionValidator = schema.tables.factions.validator
   .extend({
     _id: v.id('factions'),
     data: catalogueFactionDataValidator,
-    rulesets: v.array(rulesetSummaryValidator),
+    rulesets: v.array(cardRulesetValidator),
     /** How many live variants the faction has, on a catalogue card that stands for the whole faction (#2929). */
     variantCount: v.optional(v.number()),
   });

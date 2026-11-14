@@ -30,10 +30,12 @@ import { parseStoredFactionForRead } from './factionInput';
 import { loadPublicProfileBySlug } from './profileAddress';
 import { profileListName } from './profileCatalogue';
 
+/** A ruleset as a faction card cites it: the summary, and the cover thumb its small picture draws, or null where it has no cover. */
 export type FactionRulesetSummary = {
   id: Id<'rulesets'>;
   slug: string;
   name: string;
+  coverThumbUrl: string | null;
 };
 
 /** Derived from the wire contract, so the projection below cannot quietly ship a field the validator rejects. */
@@ -105,7 +107,7 @@ async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRuleset
     .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
     .take(500);
 
-  return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name }));
+  return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name, coverThumbUrl: rulesetCoverThumbUrl(row) }));
 }
 
 /** Homepage spotlights omit ruleset enrichment because they only render faction identity; they are the catalogue page's own two entries. */
@@ -300,7 +302,14 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
     complexity: query.complexity ? parseComplexityRange(query.complexity) : undefined,
     text: query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '',
     catalogueTotal,
-    rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
+    /* The toolbar's list names a ruleset and counts its factions; only a card draws its cover. */
+    rulesets: rulesets.map(({ id, slug, name }, index) => ({
+      id,
+      slug,
+      name,
+      factionCount: rulesetCounts[index] ?? 0,
+    })),
+    cardRulesets: rulesets,
     owner: owner ? { asked: owner.asked, member: owner.member } : null,
     spotlightEntries,
   };
@@ -314,10 +323,7 @@ type ListedFaction = Doc<'catalogue_entries'>;
  * That is the default variant, or on a ruleset's list the variant linked to it (#2929).
  */
 function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
-  /* A card cites a ruleset by its summary alone, not by the count the toolbar's list carries. */
-  const activeRulesetById = new Map<string, FactionRulesetSummary>(
-    rulesets.map(({ id, slug, name }) => [id, { id, slug, name }])
-  );
+  const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
   return async (entry: ListedFaction | null): Promise<CatalogueFaction | null> => {
     const factionId = entry?.card_source_id ? ctx.db.normalizeId('factions', entry.card_source_id) : null;
     const row = factionId
@@ -351,7 +357,7 @@ async function loadCards(
   furniture: Awaited<ReturnType<typeof loadCatalogueFurniture>>,
   entries: ListedFaction[]
 ) {
-  const card = factionCardReader(ctx, furniture.rulesets);
+  const card = factionCardReader(ctx, furniture.cardRulesets);
   const [cards, newArrival, freshlyUpdated] = await Promise.all([
     Promise.all(entries.map((entry) => card(entry))),
     card(furniture.spotlightEntries.newArrival),
