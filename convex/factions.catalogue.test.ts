@@ -125,6 +125,17 @@ describe('faction catalogue page', () => {
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: coveredId, faction_id: factionId, position: 0 });
       await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: factionId, position: 0 });
+      /* An older faction the same search finds, in the bare ruleset alone. */
+      const elsewhereId = await ctx.db.insert('factions', {
+        owner_id: ownerId,
+        data: { ...assetPublishingFaction, name: 'Cited elsewhere' },
+        slug: 'cited-elsewhere',
+        created_at: '2026-07-10T00:00:00.000Z',
+        updated_at: '2026-07-10T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: elsewhereId, position: 1 });
     });
 
     const cited = [
@@ -132,11 +143,18 @@ describe('faction catalogue page', () => {
       { slug: 'covered', coverThumbUrl: 'https://covers.example/covered.webp' },
     ];
     const browsed = await t.query(api.factions.catalogue, {});
-    expect(browsed.cards[0]?.rulesets).toMatchObject(cited);
+    expect(browsed.cards.find((card) => card.data.name === 'Cited')?.rulesets).toMatchObject(cited);
     expect(browsed.spotlights.newArrival?.rulesets).toMatchObject(cited);
     /* A search and a ruleset's own list read their cards the same way. */
     const searched = await t.query(api.factions.catalogue, { q: 'cited', ruleset: 'covered' });
+    expect(searched.cards.map((card) => card.data.name)).toEqual(['Cited']);
     expect(searched.cards[0]?.rulesets).toMatchObject(cited);
+    /* The same search over the whole catalogue finds both, so the ruleset is what left the other out. */
+    const everywhere = await t.query(api.factions.catalogue, { q: 'cited' });
+    expect(everywhere.cards.map((card) => card.data.name).sort()).toEqual(['Cited', 'Cited elsewhere']);
+    expect(everywhere.cards.find((card) => card.data.name === 'Cited elsewhere')?.rulesets).toMatchObject([
+      { slug: 'bare', coverThumbUrl: null },
+    ]);
     /* The toolbar's list names and counts a ruleset; it draws no cover. */
     expect(browsed.rulesets.every((ruleset) => !('coverThumbUrl' in ruleset))).toBe(true);
   });

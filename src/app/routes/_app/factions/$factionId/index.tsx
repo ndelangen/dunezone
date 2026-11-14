@@ -32,7 +32,6 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
-import { RulesetCovers } from '@ui/content/RulesetCovers';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -43,6 +42,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { EntityLinkList } from '@ui/list/EntityLinkList';
+import { RulesetCovers } from '@ui/list/RulesetCovers';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';

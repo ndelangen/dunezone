@@ -18,8 +18,6 @@ import {
   expectVariantSwitcher,
   openFactionSettings,
   expectFactionSettings,
-  withRulesetCovers,
-  gridCards,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -53,33 +51,6 @@ export const CatalogueMobile = meta.story({
     /* Two columns: a card takes at most half of the content's width. */
     const content = card!.closest('main')!.getBoundingClientRect();
     await expect(card!.getBoundingClientRect().width).toBeLessThanOrEqual(content.width / 2);
-  },
-});
-
-/**
- * A card cites its faction's rulesets as their covers under its name: up to four, or three and a count of the rest.
- * A ruleset without a cover shows its initial, and a faction in no ruleset shows no row.
- */
-export const CatalogueRulesetCovers = meta.story({
-  args: { path: '/factions' },
-  parameters: { database: withRulesetCovers },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
-    const covers = (name: RegExp) => within(gridCards(page, name)[0]!).queryByRole('group', { name: /^Rulesets:/ });
-    const atreides = covers(/House Atreides/)!;
-    await expect(atreides).toHaveAccessibleName(
-      'Rulesets: ClassicRules, Dreamrules, Landsraad, Sietch house rules, Spring Cup, Two players'
-    );
-    await expect(atreides.children).toHaveLength(4);
-    await expect(within(atreides).getByText('+3')).toBeVisible();
-    await waitFor(() => expect(atreides.querySelectorAll('img')).toHaveLength(3));
-    /* Sietch house rules has no cover, so the Fremen's row holds two pictures and an initial. */
-    const fremen = covers(/Fremen of the Deep Desert/)!;
-    await expect(fremen).toHaveAccessibleName('Rulesets: Dreamrules, Sietch house rules, Spring Cup');
-    await expect(within(fremen).getByText('S')).toBeVisible();
-    await expect(covers(/Spacing Guild/)!.children).toHaveLength(1);
-    await expect(covers(/Bene Tleilax/)).toBeNull();
   },
 });
 

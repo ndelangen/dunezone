@@ -5,7 +5,7 @@ import { INHERITABLE_FIELDS, variantProblems } from '@shared/factions/variantFie
 import type { InheritableField } from '@shared/factions/variantFields';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
-import { drawnCover } from '@ui/block/FactionCard.stories.fixture';
+import { drawnCover } from '@ui/list/RulesetCovers.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';

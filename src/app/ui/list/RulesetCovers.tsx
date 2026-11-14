@@ -1,6 +1,6 @@
 import { Avatar, Tooltip } from '@mantine/core';
 
-import { NameDisc, nameDiscColor } from './NameDisc';
+import { NameDisc, nameDiscColor } from '../content/NameDisc';
 
 /* A count reads at two fifths of its disc, as an initial does, and never smaller than NameDisc's own floor. */
 const MIN_COUNT_PX = 9;
@@ -8,11 +8,10 @@ const MIN_COUNT_PX = 9;
 /**
  * The covers of the rulesets something is in, overlapping, each named on hover.
  *
- * Content.
- * They are pictures and not links, because what they sit in is already the link.
- * A ruleset without a cover shows its initial on its name's own colour, and no ruleset at all shows nothing.
- * With a `limit`, one ruleset more than it turns the last place into a count of the rest, named on hover.
- * The caller orders the rulesets and may place the row through `className`.
+ * A List.
+ * Callers own the rulesets, their order and where the row sits;
+ * this component owns the row: the discs' overlap, the initial that stands in for a missing cover, and the count that stands in for the rulesets past `limit`.
+ * The covers are pictures and not links, because what they sit in is already the link, and no ruleset at all renders nothing.
  */
 export function RulesetCovers({
   rulesets,
@@ -20,10 +19,11 @@ export function RulesetCovers({
   limit,
   className,
 }: Readonly<{
+  /** The rulesets, in the order their covers stand. */
   rulesets: readonly { id: string; name: string; coverThumbUrl: string | null }[];
   /** A cover's diameter, in pixels or as any CSS length, a custom property among them. */
   size: number | `${number}${string}` | `var(${string})`;
-  /** How many places the row has; left out, every ruleset shows. */
+  /** How many places the row has, one at least: a ruleset more than that turns the last place into a count of the rest. Left out, every ruleset shows. */
   limit?: number;
   className?: string;
 }>) {
@@ -31,12 +31,13 @@ export function RulesetCovers({
     return null;
   }
   const length = typeof size === 'number' ? `${size}px` : size;
-  const shown = rulesets.slice(0, limit !== undefined && rulesets.length > limit ? limit - 1 : rulesets.length);
+  const places = limit === undefined ? rulesets.length : Math.max(1, limit);
+  const shown = rulesets.slice(0, rulesets.length > places ? places - 1 : rulesets.length);
   const rest = rulesets.slice(shown.length);
   return (
     <Avatar.Group
       role="group"
-      spacing={6}
+      spacing="xs"
       className={className}
       aria-label={`Rulesets: ${rulesets.map((ruleset) => ruleset.name).join(', ')}`}
     >
@@ -53,14 +54,22 @@ export function RulesetCovers({
       ))}
       {rest.length > 0 ? (
         <Tooltip label={rest.map((ruleset) => ruleset.name).join(', ')} withArrow>
-          {/* Filled from the text's own colour, so the count shows on a pane and on a card's artwork alike. */}
+          {/*
+           * A ring and the count, with no fill: only a Surface paints, and a ring in the text's own colour shows on a pane and on a card's artwork alike.
+           * It stands beside the last cover rather than over it, since nothing of its own would hide what it overlapped.
+           */}
           <Avatar
             size={length}
             radius="50%"
             styles={{
+              root: {
+                marginInlineStart: 0,
+                background: 'none',
+                border: '1px solid color-mix(in srgb, currentColor 45%, transparent)',
+              },
               placeholder: {
                 color: 'inherit',
-                background: 'color-mix(in srgb, currentColor 22%, transparent)',
+                background: 'none',
                 fontSize: `max(${MIN_COUNT_PX}px, calc(${length} * 0.4))`,
                 fontWeight: 600,
               },

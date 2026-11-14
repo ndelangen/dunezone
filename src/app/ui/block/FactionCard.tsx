@@ -2,8 +2,8 @@ import { Avatar, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { RulesetCovers } from '@ui/content/RulesetCovers';
 import { TokenImage } from '@ui/content/TokenImage';
+import { RulesetCovers } from '@ui/list/RulesetCovers';
 import type { ReactNode } from 'react';
 
 import type { FactionCatalogueEntry } from '@db/factions';
