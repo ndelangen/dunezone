@@ -4,7 +4,7 @@ import { assetBrowseEntryValidator, toAssetCatalogueEntry } from '../assets';
 import type { QueryCtx } from '../types';
 import { resolveBackgrounds } from './backgroundPresets';
 import { catalogueFactionValidator } from './collaborativeAccessValidators';
-import { listFactionRulesets, toCatalogueFaction } from './factionCatalogue';
+import { listFactionRulesetCovers, toCatalogueFaction } from './factionCatalogue';
 import type { liveFaqReferenceTarget } from './faqReferences';
 
 export const faqReferencePreviewValidator = v.union(
@@ -22,7 +22,7 @@ export async function faqReferencePreview(
       id: target.faction._id,
       faction: await resolveBackgrounds(
         ctx,
-        toCatalogueFaction(target.faction, await listFactionRulesets(ctx, target.faction._id))
+        toCatalogueFaction(target.faction, await listFactionRulesetCovers(ctx, target.faction._id))
       ),
     };
   }

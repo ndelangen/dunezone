@@ -1,3 +1,4 @@
+import { SimpleGrid } from '@mantine/core';
 import preview from '@sb/preview';
 import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishingFaction';
 import { IconAction } from '@ui/control/IconAction';
@@ -6,8 +7,16 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
+import { coverNames, expectCountFits } from '../list/RulesetCovers.stories.fixture';
 import { FactionCard } from './FactionCard';
-import { baseFaction, publishedImage, failedImage, withImages, missingToken } from './FactionCard.stories.fixture';
+import {
+  baseFaction,
+  inRulesets,
+  publishedImage,
+  failedImage,
+  withImages,
+  missingToken,
+} from './FactionCard.stories.fixture';
 
 const longName = 'The Very Long and Distinguished House of Atreides Expeditionary Council';
 
@@ -28,25 +37,78 @@ export const Default = meta.story({
   play: async ({ canvasElement }) => {
     await expect(
       within(canvasElement).getByRole('link', {
-        name: 'Atreides Advanced Dune Novice complexity, 2 out of 10',
+        name: 'Atreides Rulesets: Advanced Dune Novice complexity, 2 out of 10',
       })
     ).toBeVisible();
   },
 });
 
+/** Up to four rulesets stand under the name as their covers, in the order they came; one without a cover shows its initial. */
 export const MultipleRulesets = meta.story({
-  args: {
-    faction: {
-      ...baseFaction,
-      rulesets: [
-        { id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' },
-        { id: 'ruleset-classic', slug: 'classic', name: 'Classic Dune' },
-        { id: 'ruleset-tournament', slug: 'tournament', name: 'Tournament Dune' },
-      ],
-    } as FactionCatalogueEntry,
-  },
+  args: { faction: inRulesets(3) },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText('Advanced Dune +2')).toBeVisible();
+    const covers = within(canvasElement).getByRole('group', {
+      name: 'Rulesets: Advanced Dune, Classic Dune, Tournament Dune',
+    });
+    await expect(covers).toBeVisible();
+    await expect(coverNames(covers)).toEqual(['Advanced Dune', 'Classic Dune', 'Tournament Dune']);
+    await waitFor(async () => {
+      const images = covers.querySelectorAll('img');
+      await expect(images).toHaveLength(2);
+      await expect([...images].every((image) => image.naturalWidth > 0)).toBe(true);
+    });
+  },
+});
+
+/** From five rulesets the fourth place counts the rest, and the ruleset the list is narrowed to leads. */
+export const ManyRulesets = meta.story({
+  args: { faction: inRulesets(6), selectedRulesetSlug: 'spring-cup' },
+  play: async ({ canvasElement }) => {
+    const covers = within(canvasElement).getByRole('group', {
+      name: 'Rulesets: Spring Cup, Advanced Dune, Classic Dune, Tournament Dune, Dreamrules, Sietch house rules',
+    });
+    await expect(coverNames(covers)).toEqual(['Spring Cup', 'Advanced Dune', 'Classic Dune', '+3']);
+  },
+});
+
+const rulesetCounts = [0, 1, 3, 4, 6, 8];
+
+/**
+ * A faction in no ruleset, one, three, four, six and eight, as compact cards two across a phone.
+ * No ruleset leaves no row, and the row never outgrows the caption or cuts its count.
+ */
+export const RulesetCounts = meta.story({
+  render: () => (
+    <SimpleGrid cols={2} spacing="sm">
+      {rulesetCounts.map((count) => (
+        <FactionCard key={count} faction={inRulesets(count)} />
+      ))}
+    </SimpleGrid>
+  ),
+  play: async ({ canvasElement }) => {
+    const cards = within(canvasElement).getAllByRole('link');
+    const coversOf = (card: HTMLElement) => within(card).queryByRole('group', { name: /^Rulesets:/ });
+    await expect(cards.map((card) => coversOf(card)?.children.length ?? 0)).toEqual([0, 1, 3, 4, 4, 4]);
+    await expect(coverNames(coversOf(cards[4]!)!).at(-1)).toBe('+3');
+    await expect(coverNames(coversOf(cards[5]!)!).at(-1)).toBe('+5');
+    for (const card of cards) {
+      const covers = coversOf(card);
+      if (!covers) {
+        continue;
+      }
+      /* The row sits inside the card and stops short of the complexity glyph at the caption's right. */
+      const row = covers.getBoundingClientRect();
+      const glyph = within(card)
+        .getByRole('img', { name: /complexity/ })
+        .getBoundingClientRect();
+      await expect(row.left).toBeGreaterThanOrEqual(card.getBoundingClientRect().left);
+      await expect(row.bottom).toBeLessThanOrEqual(card.getBoundingClientRect().bottom);
+      await expect(row.right).toBeLessThanOrEqual(glyph.left);
+      /* The count of the rest is whole in its ring at the compact size. */
+      if (coverNames(covers).at(-1)?.startsWith('+')) {
+        await expectCountFits(covers);
+      }
+    }
   },
 });
 
@@ -71,7 +133,7 @@ export const ContentStress = meta.story({
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    /* The link's name is the caption alone, so no ruleset label renders. */
+    /* The link's name is the caption alone, so no row of rulesets renders. */
     const card = canvas
       .getByRole('link', { name: `${longName} Novice complexity, 2 out of 10` })
       .getBoundingClientRect();

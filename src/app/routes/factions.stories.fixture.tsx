@@ -5,6 +5,7 @@ import { INHERITABLE_FIELDS, variantProblems } from '@shared/factions/variantFie
 import type { InheritableField } from '@shared/factions/variantFields';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
+import { drawnCover } from '@ui/list/RulesetCovers.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';
@@ -297,14 +298,41 @@ export const withABrokenChildVariant = withDreamrules((parent) => ({
   ],
 }));
 
-/*
- * A ruleset cover drawn in place, so it shows wherever the Storybook is hosted;
- * a path into `public` only resolves when the Storybook sits at the root of its host.
+/** The catalogue's factions beside House Atreides, each with the rulesets it is in. */
+const COVERED_FACTIONS = [
+  { name: 'Fremen of the Deep Desert', rulesets: ['dreamrules', 'spring-cup', 'sietch-house-rules'] },
+  { name: 'Spacing Guild', rulesets: ['sietch-house-rules'] },
+  { name: 'Bene Tleilax', rulesets: [] },
+] as const;
+
+/**
+ * A catalogue whose cards cite their rulesets by cover.
+ * House Atreides is in six rulesets, the Fremen in three, the Guild in one and the Tleilaxu in none, and one ruleset has no cover, as most start out.
  */
-function drawnCover(sky: string, dune: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${sky}"/><circle cx="44" cy="20" r="9" fill="#f4e3b1"/><path d="M0 46 Q20 30 38 44 T64 40 V64 H0Z" fill="${dune}"/></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
+export const withRulesetCovers = db((baseline) => {
+  baseline.rulesets[0]!.image_cover = drawnCover('#27445c', '#c98a3c');
+  baseline.rulesets.push(
+    { ...ruleset({ name: 'Dreamrules' }), image_cover: drawnCover('#4a2d5e', '#d9a15a') },
+    { ...ruleset({ name: 'Spring Cup' }), image_cover: drawnCover('#2f5a3f', '#e0c06a') },
+    ruleset({ name: 'Sietch house rules' }),
+    { ...ruleset({ name: 'Landsraad' }), image_cover: drawnCover('#1f4f55', '#d2a24c') },
+    { ...ruleset({ name: 'Two players' }), image_cover: drawnCover('#5c2a27', '#e2b36b') }
+  );
+  for (const slug of ['dreamrules', 'spring-cup', 'sietch-house-rules', 'landsraad', 'two-players']) {
+    baseline.ruleset_factions.push({
+      ruleset_id: ref(`ruleset:${slug}`),
+      faction_id: ref('faction:house-atreides'),
+      position: 0,
+    });
+  }
+  for (const listed of COVERED_FACTIONS) {
+    const row = faction({ name: listed.name });
+    baseline.factions.push(row);
+    for (const [position, slug] of listed.rulesets.entries()) {
+      baseline.ruleset_factions.push({ ruleset_id: ref(`ruleset:${slug}`), faction_id: ref(row.$key!), position });
+    }
+  }
+});
 
 /** The variants beside the Original, in the order they were made, each with its parent and the rulesets it is in. */
 const SWITCHER_VARIANTS = [

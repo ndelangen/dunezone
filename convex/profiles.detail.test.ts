@@ -363,6 +363,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
       seed.advancedRulesetId,
       seed.basicRulesetId,
     ]);
+    /* Each is cited as a card draws it, with its cover thumb; neither of these has a cover. */
+    expect(page.factionPreview[0]?.rulesets).toMatchObject([{ coverThumbUrl: null }, { coverThumbUrl: null }]);
   });
 
   test('throws on malformed faction data at the query boundary', async () => {

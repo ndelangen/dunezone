@@ -1,7 +1,5 @@
 import {
   Anchor,
-  /* oxlint-disable-next-line no-restricted-imports -- Avatar.Group stacks a variant's ruleset NameDiscs, as the play lobby stacks its players. */
-  Avatar,
   Box,
   ColorSwatch,
   Divider,
@@ -34,7 +32,6 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
-import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -45,6 +42,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { EntityLinkList } from '@ui/list/EntityLinkList';
+import { RulesetCovers } from '@ui/list/RulesetCovers';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -627,36 +625,6 @@ function CreateVariantForm({
 }
 
 /**
- * The covers of the rulesets a variant is in, overlapping, each named on hover.
- * They are pictures and not links, because the row they sit in is already the link to the variant.
- * A ruleset without a cover shows its initial, and a variant in no ruleset shows nothing.
- */
-function VariantRulesetCovers({ rulesets }: Readonly<{ rulesets: FactionVariantSwitcherRow['rulesets'] }>) {
-  if (rulesets.length === 0) {
-    return null;
-  }
-  return (
-    <Avatar.Group
-      role="group"
-      spacing={8}
-      aria-label={`Rulesets: ${rulesets.map((ruleset) => ruleset.name).join(', ')}`}
-    >
-      {rulesets.map((ruleset) => (
-        <Tooltip key={ruleset.id} label={ruleset.name} withArrow>
-          <NameDisc
-            src={ruleset.coverThumbUrl}
-            name={ruleset.name}
-            label={ruleset.name}
-            size={22}
-            color={ruleset.coverThumbUrl ? undefined : nameDiscColor(ruleset.name)}
-          />
-        </Tooltip>
-      ))}
-    </Avatar.Group>
-  );
-}
-
-/**
  * One variant, the whole row its link.
  * A caret marks the variant being read, and every row keeps the caret's room so the names line up.
  * The name is never cut: when the row is too narrow for both, the covers move under the name.
@@ -676,7 +644,7 @@ function VariantRow({ variant, current }: Readonly<{ variant: FactionVariantSwit
           <Text size="sm" fw={current ? 700 : 500}>
             {variant.name}
           </Text>
-          <VariantRulesetCovers rulesets={variant.rulesets} />
+          <RulesetCovers rulesets={variant.rulesets} size={22} />
         </Group>
       </Group>
     </Anchor>
