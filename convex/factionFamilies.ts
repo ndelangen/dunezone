@@ -2,9 +2,8 @@ import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
 import { mutation } from './functions';
-import { loadFactionFamilyAccess } from './lib/collaborativeAccess';
+import { requireFactionFamily } from './lib/collaborativeAccess';
 import { makeDefaultVariant, VARIANT_LISTING_LIMIT, variantsOf } from './lib/factionFamilies';
-import { requireAuthUserId } from './lib/policy';
 import type { MutationCtx } from './types';
 
 /*
@@ -12,19 +11,6 @@ import type { MutationCtx } from './types';
  * The Faction's owner and its Group maintain them, and only the owner deletes the Faction (#2910).
  * Eviction lives with the variants, in `factionVariants.evict`.
  */
-
-/** The live Faction, if the viewer may do `capability` on it: `edit` for its owner and Group, `delete` for its owner alone. */
-async function requireFamily(ctx: MutationCtx, familyId: Id<'faction_families'>, capability: 'edit' | 'delete') {
-  await requireAuthUserId(ctx);
-  const family = await ctx.db.get(familyId);
-  if (!family || family.is_deleted) {
-    throw new ConvexError('That faction no longer exists.');
-  }
-  if (!(await loadFactionFamilyAccess(ctx, family)).capabilities[capability]) {
-    throw new Error('Not authorized');
-  }
-  return family;
-}
 
 /** A live variant of this Faction. */
 async function liveVariantOf(ctx: MutationCtx, familyId: Id<'faction_families'>, variantId: Id<'factions'>) {
@@ -35,12 +21,27 @@ async function liveVariantOf(ctx: MutationCtx, familyId: Id<'faction_families'>,
   return variant;
 }
 
+/** Refuses an order that is too long, names a variant twice, or names a variant of another Faction. */
+async function requireVariantOrder(ctx: MutationCtx, familyId: Id<'faction_families'>, ids: Id<'factions'>[]) {
+  if (ids.length > VARIANT_LISTING_LIMIT) {
+    throw new ConvexError(`A faction’s order names at most ${VARIANT_LISTING_LIMIT} variants.`);
+  }
+  if (new Set(ids).size !== ids.length) {
+    throw new ConvexError('The order names a variant twice.');
+  }
+  for (const id of ids) {
+    if ((await ctx.db.get(id))?.family_id !== familyId) {
+      throw new ConvexError('The order names a variant of another faction.');
+    }
+  }
+}
+
 /** Makes a live variant of the Faction its default: the one its own address leads to, listed first. */
 export const setDefaultVariant = mutation({
   args: { family_id: v.id('faction_families'), variant_id: v.id('factions') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const family = await requireFamily(ctx, args.family_id, 'edit');
+    const family = await requireFactionFamily(ctx, args.family_id, 'edit');
     await makeDefaultVariant(ctx, family, await liveVariantOf(ctx, family._id, args.variant_id));
     return null;
   },
@@ -51,7 +52,7 @@ export const setOpen = mutation({
   args: { family_id: v.id('faction_families'), is_open: v.boolean() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const family = await requireFamily(ctx, args.family_id, 'edit');
+    const family = await requireFactionFamily(ctx, args.family_id, 'edit');
     if (family.is_open !== args.is_open) {
       await ctx.db.patch(family._id, { is_open: args.is_open });
     }
@@ -73,19 +74,8 @@ export const setVariantOrder = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const family = await requireFamily(ctx, args.family_id, 'edit');
-    if (args.variant_ids.length > VARIANT_LISTING_LIMIT) {
-      throw new ConvexError(`A faction’s order names at most ${VARIANT_LISTING_LIMIT} variants.`);
-    }
-    if (new Set(args.variant_ids).size !== args.variant_ids.length) {
-      throw new ConvexError('The order names a variant twice.');
-    }
-    for (const id of args.variant_ids) {
-      const variant = await ctx.db.get(id);
-      if (variant?.family_id !== family._id) {
-        throw new ConvexError('The order names a variant of another faction.');
-      }
-    }
+    const family = await requireFactionFamily(ctx, args.family_id, 'edit');
+    await requireVariantOrder(ctx, family._id, args.variant_ids);
     if (args.default_variant_id && args.default_variant_id !== family.default_variant_id) {
       await makeDefaultVariant(ctx, family, await liveVariantOf(ctx, family._id, args.default_variant_id));
     }
@@ -102,7 +92,7 @@ export const remove = mutation({
   args: { family_id: v.id('faction_families') },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const family = await requireFamily(ctx, args.family_id, 'delete');
+    const family = await requireFactionFamily(ctx, args.family_id, 'delete');
     for await (const variant of variantsOf(ctx, family._id)) {
       if (!variant.is_deleted) {
         throw new ConvexError('Delete or evict every variant of this faction before deleting the faction.');

@@ -344,7 +344,7 @@ export type FactionVariantSwitcher = NonNullable<FunctionReturnType<typeof api.f
 export type FactionVariantSwitcherRow = FactionVariantSwitcher['variants'][number];
 
 /**
- * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
+ * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants, which its editor counts.
  * It is an access query, kept apart from the public page query: the server answers only someone who may edit the variant or its Faction.
  * Keeping that check out of the page query lets every viewer share the public result.
  * Undefined while loading, and null for a viewer the server does not tell.
@@ -428,23 +428,20 @@ export function useUpdateFaction() {
  * `andFaction` says its Faction is meant to go with it, which the server refuses unless the viewer owns the Faction and this is its last live variant.
  */
 export function useDeleteFaction() {
-  const mutation = useLiveMutation<{ id: string; and_faction?: boolean }, void>(api.factions.softDelete);
-  const variablesOf = ({ id, andFaction }: { id: string; andFaction?: boolean }) => ({
-    id,
-    ...(andFaction ? { and_faction: true } : {}),
-  });
+  const mutation = useLiveMutation<{ id: string; and_faction: boolean }, void>(api.factions.softDelete);
   return {
     ...mutation,
     mutate: (
-      variables: { id: string; andFaction?: boolean },
+      { id, andFaction }: { id: string; andFaction: boolean },
       options?: { onSuccess?: () => void; onError?: (error: Error) => void }
     ) =>
-      mutation.mutate(variablesOf(variables), {
-        onSuccess: () => options?.onSuccess?.(),
-        onError: (error) => options?.onError?.(error),
-      }),
-    mutateAsync: async (variables: { id: string; andFaction?: boolean }) =>
-      await mutation.mutateAsync(variablesOf(variables)),
+      mutation.mutate(
+        { id, and_faction: andFaction },
+        {
+          onSuccess: () => options?.onSuccess?.(),
+          onError: (error) => options?.onError?.(error),
+        }
+      ),
   };
 }
 

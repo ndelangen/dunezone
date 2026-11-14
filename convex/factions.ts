@@ -15,6 +15,7 @@ import {
   assignedGroupSummary,
   liveGroupOrNull,
   loadFactionFamilyAccess,
+  requireFactionFamily,
   requireFactionSoftDelete,
   requireFactionSave,
   requireGroupReassignment,
@@ -528,13 +529,7 @@ export const softDelete = mutation({
 
 /** Throws unless deleting this variant would also delete its Faction: the viewer may delete the Faction, and no other variant of it is live. */
 async function requireLastVariantOfOwnFaction(ctx: MutationCtx, variant: Doc<'factions'>) {
-  const family = variant.family_id ? await ctx.db.get(variant.family_id) : null;
-  if (!family || family.is_deleted) {
-    throw new ConvexError('That faction no longer exists.');
-  }
-  if (!(await loadFactionFamilyAccess(ctx, family)).capabilities.delete) {
-    throw new Error('Not authorized');
-  }
+  const family = await requireFactionFamily(ctx, variant.family_id, 'delete');
   if (await firstLiveVariant(ctx, family, (row) => row._id !== variant._id)) {
     throw new ConvexError('This faction has other variants. Delete or evict them before deleting the faction.');
   }

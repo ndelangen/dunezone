@@ -35,7 +35,6 @@ import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/Compl
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
-import { Pending } from '@ui/content/Pending';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -58,6 +57,7 @@ import {
   GitBranch,
   GitBranchPlus,
   Pencil,
+  Settings2,
   TriangleAlert,
   UserPlus,
 } from 'lucide-react';
@@ -97,7 +97,7 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import { useFactionEditRights } from '../useFactionEditRights';
-import { FactionSettingsPopover } from './factionSettings';
+import { FactionSettings } from './factionSettings';
 import styles from './index.module.css';
 
 const FACTION_KIND = 'Custom faction';
@@ -469,30 +469,63 @@ function variantDraftReducer(draft: VariantDraft, event: VariantDraftEvent): Var
 }
 
 /**
- * Starts a new variant of the page's Faction from the toolbar (#2927).
- * The form mounts with the popover, so the Faction's variants are read only while it is open.
+ * A toolbar button that opens a small pane under itself.
+ * The pane's content mounts with it, so nothing in it runs while it is shut.
  */
-function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>) {
+function ToolbarPopover({
+  label,
+  intent,
+  icon,
+  children,
+}: Readonly<{ label: string; intent: 'positive' | 'neutral'; icon: ReactNode; children: ReactNode }>) {
   const [opened, setOpened] = useState(false);
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" width={340} withArrow trapFocus>
       <Popover.Target>
         <Box component="span" display="inline-flex">
           <IconAction
-            label="Create variant"
+            label={label}
             emphasis="standard"
-            intent="positive"
+            intent={intent}
             size="lg"
             pressed={opened}
             onClick={() => setOpened((current) => !current)}
-            icon={<GitBranchPlus size={17} aria-hidden />}
+            icon={icon}
           />
         </Box>
       </Popover.Target>
-      <Popover.Dropdown>
-        <CreateVariantForm faction={faction} />
-      </Popover.Dropdown>
+      <Popover.Dropdown>{children}</Popover.Dropdown>
     </Popover>
+  );
+}
+
+/**
+ * The Faction's own actions on a variant's toolbar.
+ * Create variant (#2927) and the Faction settings (#2928) are for the Faction's owner and its Group.
+ */
+function FactionActions({
+  faction,
+  switcher,
+  maintains,
+}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher; maintains: boolean }>) {
+  const navigate = Route.useNavigate();
+  return (
+    <>
+      {maintains ? (
+        <ToolbarPopover label="Create variant" intent="positive" icon={<GitBranchPlus size={17} aria-hidden />}>
+          <CreateVariantForm faction={faction} switcher={switcher} />
+        </ToolbarPopover>
+      ) : null}
+      {maintains ? (
+        <ToolbarPopover label="Faction settings" intent="neutral" icon={<Settings2 size={17} aria-hidden />}>
+          <FactionSettings
+            switcher={switcher}
+            factionId={faction._id}
+            onEvicted={(slug) => void navigate({ to: '/factions/$factionId', params: { factionId: slug } })}
+          />
+        </ToolbarPopover>
+      ) : null}
+    </>
   );
 }
 
@@ -500,15 +533,14 @@ function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>
  * The new variant's name, the address that name gives it, and the one parent it may follow.
  * The variant on the page is the parent offered first, and the one a variant without a parent starts as a copy of.
  */
-function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
+function CreateVariantForm({
+  faction,
+  switcher,
+}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher }>) {
   const navigate = Route.useNavigate();
   const createVariant = useCreateFactionVariant();
-  const context = useFactionVariantContext(faction._id);
   const [draft, dispatch] = useReducer(variantDraftReducer, { name: '', parent: faction._id });
-  if (!context) {
-    return <Pending>Loading variants</Pending>;
-  }
-  const parent = context.variants.find((variant) => variant._id === draft.parent);
+  const parent = switcher.variants.find((variant) => variant._id === draft.parent);
   const variantSlug = slugify(draft.name);
   const create = async () => {
     if (!variantSlug || createVariant.isPending) {
@@ -547,7 +579,7 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
         <Text size="xs" c="dimmed">
           Address:{' '}
           <Text span ff="monospace" size="xs">
-            {`/factions/${context.familySlug}-${variantSlug || '…'}`}
+            {`/factions/${switcher.familySlug}-${variantSlug || '…'}`}
           </Text>
         </Text>
         <ControlBlock
@@ -560,7 +592,7 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
             >
               <Stack gap="xs">
                 <Radio value={NO_PARENT} label="No parent" color="selected" />
-                {context.variants.map((variant) => (
+                {switcher.variants.map((variant) => (
                   <Radio key={variant._id} value={variant._id} label={variant.name} color="selected" />
                 ))}
               </Stack>
@@ -761,8 +793,6 @@ function FactionDetailContent({
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
   const canEdit = settled && canOpenEditor;
-  /* Adding a variant and running the Faction's settings are for its owner and its Group, and a variant's problems are for whoever may edit it. */
-  const maintainsFaction = settled && rights.shared && page.family !== null;
   const problems = variantProblemList(faction);
   const showsProblems = settled && rights.variant && problems.all.length > 0;
   /* A reader who cannot fix the problems is told only that there are some. */
@@ -862,14 +892,8 @@ function FactionDetailContent({
                 icon={<Pencil size={17} aria-hidden />}
               />
             ) : null}
-            {maintainsFaction ? <CreateVariantPopover key={faction._id} faction={faction} /> : null}
-            {maintainsFaction && switcher ? (
-              <FactionSettingsPopover
-                key={`settings-${faction._id}`}
-                switcher={switcher}
-                factionId={faction._id}
-                onEvicted={(slug) => void navigate({ to: '/factions/$factionId', params: { factionId: slug } })}
-              />
+            {settled && switcher ? (
+              <FactionActions key={faction._id} faction={faction} switcher={switcher} maintains={rights.shared} />
             ) : null}
           </Toolbar.Left>
 

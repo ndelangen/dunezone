@@ -6,16 +6,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Checkbox, Group, Popover, Stack, Text } from '@mantine/core';
+import { Box, Checkbox, Group, Stack, Text } from '@mantine/core';
 import { Disclosure } from '@ui/block/Disclosure';
 import { FormError } from '@ui/block/FormError';
 import { ListChapter } from '@ui/block/ListChapter';
 import { HoldAction } from '@ui/control/HoldAction';
-import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import { LogOut, Settings2 } from 'lucide-react';
-import { useReducer, useState } from 'react';
+import { LogOut } from 'lucide-react';
+import { useReducer } from 'react';
 
 import { mutationErrorMessage } from '@db/core/mutationError';
 import { useEvictFactionVariant, useSetFactionOpen, useSetFactionVariantOrder } from '@db/factions';
@@ -23,24 +22,15 @@ import type { FactionVariantSwitcher, FactionVariantSwitcherRow } from '@db/fact
 
 type VariantId = FactionVariantSwitcherRow['_id'];
 
-/** The variant and every variant below it, which is what an eviction moves (#2911). */
-function branchOf(variants: readonly FactionVariantSwitcherRow[], id: VariantId): FactionVariantSwitcherRow[] {
-  const root = variants.find((variant) => variant._id === id);
-  if (!root) {
-    return [];
-  }
-  return [
-    root,
-    ...variants.filter((variant) => variant.parentId === id).flatMap((child) => branchOf(variants, child._id)),
-  ];
+/** Every variant below this one, which an eviction moves with it (#2911). */
+function variantsBelow(variants: readonly FactionVariantSwitcherRow[], id: VariantId): FactionVariantSwitcherRow[] {
+  return variants
+    .filter((variant) => variant.parentId === id)
+    .flatMap((child) => [child, ...variantsBelow(variants, child._id)]);
 }
 
 /** What an eviction moves and to whom, in one line. */
-function evictionLine(branch: readonly FactionVariantSwitcherRow[]) {
-  const [evicted, ...below] = branch;
-  if (!evicted) {
-    return '';
-  }
+function evictionLine(evicted: FactionVariantSwitcherRow, below: readonly FactionVariantSwitcherRow[]) {
   const belowWords = below.length === 1 ? below[0]!.name : `the ${below.length} variants below it`;
   const moved = below.length === 0 ? `${evicted.name} moves` : `${evicted.name} and ${belowWords} move`;
   return `${moved} to a new faction owned by ${evicted.ownerName ?? 'its owner'}.`;
@@ -108,8 +98,9 @@ const DELETE_HELP =
  * It is handed the same list as the Variants card, so the two never disagree.
  * The default's own branch carries no eviction, since the default stays with its Faction (#2911).
  * There is no Delete faction here: a Faction is deleted with its last variant, by that variant's own Delete.
+ * The variant page opens it from its toolbar, beside Create variant, for the Faction's owner and its Group.
  */
-function FactionSettings({
+export function FactionSettings({
   switcher,
   factionId,
   onEvicted,
@@ -134,12 +125,10 @@ function FactionSettings({
   const error = setOrder.error ?? setOpen.error ?? evict.error;
 
   const reorder = ({ active, over }: DragEndEvent) => {
-    const from = ids.indexOf(active.id as VariantId);
-    const to = over ? ids.indexOf(over.id as VariantId) : -1;
-    if (from < 0 || to < 0 || from === to) {
+    if (!over || over.id === active.id) {
       return;
     }
-    const order = arrayMove(ids, from, to);
+    const order = arrayMove(ids, ids.indexOf(active.id as VariantId), ids.indexOf(over.id as VariantId));
     dispatch({ type: 'reordered', order });
     setOrder.mutate(
       { family_id: switcher.familyId, variant_ids: order, default_variant_id: order[0] },
@@ -154,9 +143,9 @@ function FactionSettings({
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
             <Stack component="ul" gap="xs" m={0} p={0} style={{ listStyle: 'none' }}>
               {variants.map((variant) => {
-                const branch = branchOf(variants, variant._id);
+                const below = variantsBelow(variants, variant._id);
                 /* The first row is the default, and no branch that holds it may leave. */
-                const staysWithDefault = branch.some((member) => member._id === ids[0]);
+                const staysWithDefault = [variant, ...below].some((member) => member._id === ids[0]);
                 return (
                   <SortableItem as="li" key={variant._id} id={variant._id}>
                     {(handle) => (
@@ -174,7 +163,7 @@ function FactionSettings({
                             size="md"
                             icon={<LogOut size={16} aria-hidden />}
                             label={`Evict ${variant.name}`}
-                            hint={`Hold to evict.\n${evictionLine(branch)}`}
+                            hint={`Hold to evict.\n${evictionLine(variant, below)}`}
                             pending={evict.isPending}
                             onConfirm={() =>
                               evict.mutate(
@@ -214,32 +203,5 @@ function FactionSettings({
       ) : null}
       <Help title="Deleting the faction">{DELETE_HELP}</Help>
     </Stack>
-  );
-}
-
-/**
- * The Faction settings button on the variant page's toolbar, beside Create variant, for the Faction's owner and its Group.
- */
-export function FactionSettingsPopover(props: Parameters<typeof FactionSettings>[0]) {
-  const [opened, setOpened] = useState(false);
-  return (
-    <Popover opened={opened} onChange={setOpened} position="bottom-start" width={340} withArrow trapFocus>
-      <Popover.Target>
-        <Box component="span" display="inline-flex">
-          <IconAction
-            label="Faction settings"
-            emphasis="standard"
-            intent="neutral"
-            size="lg"
-            pressed={opened}
-            onClick={() => setOpened((current) => !current)}
-            icon={<Settings2 size={17} aria-hidden />}
-          />
-        </Box>
-      </Popover.Target>
-      <Popover.Dropdown>
-        <FactionSettings {...props} />
-      </Popover.Dropdown>
-    </Popover>
   );
 }

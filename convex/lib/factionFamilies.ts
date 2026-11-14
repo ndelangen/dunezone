@@ -219,6 +219,15 @@ export async function makeDefaultVariant(ctx: MutationCtx, family: Doc<'faction_
   await ctx.db.patch(family._id, { default_variant_id: variant._id, ...mirroredFields(variant) });
 }
 
+/** Passes the Faction's default on to its first other live variant, when `leaving` is the default and there is one. */
+export async function passDefaultOn(ctx: MutationCtx, family: Doc<'faction_families'>, leaving: Id<'factions'>) {
+  const next =
+    family.default_variant_id === leaving ? await firstLiveVariant(ctx, family, (row) => row._id !== leaving) : null;
+  if (next) {
+    await makeDefaultVariant(ctx, family, next);
+  }
+}
+
 /**
  * Keeps a Faction's default variant live while it has any live variant, in the transaction that changes one (#2928).
  * A deleted default passes to the first live variant, so the Faction's address and its former ones keep leading somewhere;
@@ -232,18 +241,13 @@ async function keepDefaultLive(ctx: MutationCtx, before: Doc<'factions'> | null,
   if (!family) {
     return;
   }
-  if (after.is_deleted && family.default_variant_id === after._id) {
-    const next = await firstLiveVariant(ctx, family, (row) => row._id !== after._id);
-    if (next) {
-      await makeDefaultVariant(ctx, family, next);
-    }
+  if (after.is_deleted) {
+    await passDefaultOn(ctx, family, after._id);
     return;
   }
-  if (!after.is_deleted && before?.is_deleted) {
-    const current = await ctx.db.get(family.default_variant_id);
-    if (!current || current.is_deleted || current.family_id !== family._id) {
-      await makeDefaultVariant(ctx, family, after);
-    }
+  const current = await ctx.db.get(family.default_variant_id);
+  if (!current || current.is_deleted || current.family_id !== family._id) {
+    await makeDefaultVariant(ctx, family, after);
   }
 }
 

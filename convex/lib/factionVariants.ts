@@ -14,7 +14,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
-import { firstLiveVariant, makeDefaultVariant, ORIGINAL_VARIANT_NAME } from './factionFamilies';
+import { ORIGINAL_VARIANT_NAME, passDefaultOn } from './factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
 import { recordFormerSlug } from './formerSlugs';
 import {
@@ -185,12 +185,7 @@ async function leaveFamily(ctx: MutationCtx, variant: Doc<'factions'>) {
   if (from.variant_order?.includes(variant._id)) {
     await ctx.db.patch(from._id, { variant_order: from.variant_order.filter((id) => id !== variant._id) });
   }
-  if (from.default_variant_id === variant._id) {
-    const next = await firstLiveVariant(ctx, from, (row) => row._id !== variant._id);
-    if (next) {
-      await makeDefaultVariant(ctx, from, next);
-    }
-  }
+  await passDefaultOn(ctx, from, variant._id);
 }
 
 /** Starts moving the variant's children into its Faction, one child per transaction, when it has any (#2911). */

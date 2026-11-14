@@ -18,7 +18,6 @@ import {
   useDeleteFaction,
   useFaction,
   useFactionVariantContext,
-  useFactionVariantSwitcher,
   useSetFactionGroup,
   useUpdateFaction,
 } from '@db/factions';
@@ -113,8 +112,6 @@ function FactionEditPage() {
   /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
   const variantContext = useFactionVariantContext(authoringFaction._id);
   const parent = variantContext?.parent;
-  /* How many live variants the Faction has, from the list the variant's page already keeps. */
-  const liveVariants = useFactionVariantSwitcher(authoringFaction._id)?.variants.length;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
@@ -203,7 +200,7 @@ function FactionEditPage() {
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
   /* A Faction is deleted with its last live variant, by its owner, and the hold then says so (#2928). */
-  const deletesFaction = canDeleteFaction && liveVariants === 1;
+  const deletesFaction = canDeleteFaction && variantContext?.variants.length === 1;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
   const routeNotice = resolveRouteNotice(search.notice);
   const dismissRouteNotice = () =>
@@ -263,11 +260,8 @@ function FactionEditPage() {
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
               canDelete ? (
-                <HoldAction
-                  label={deletesFaction ? 'Delete variant and faction' : 'Delete variant'}
-                  hint={
-                    deletesFaction ? 'Hold to delete this variant and its faction.' : 'Hold to delete this variant.'
-                  }
+                <DeleteVariantHold
+                  withFaction={deletesFaction}
                   pending={deleteFaction.isPending}
                   onConfirm={() =>
                     deleteFaction.mutate(
@@ -311,6 +305,22 @@ function FactionEditPage() {
         </PageLayout.Content>
       </PageLayout>
     </BackgroundLibrary>
+  );
+}
+
+/** The variant's delete hold, which says so when the Faction goes with its last live variant (#2928). */
+function DeleteVariantHold({
+  withFaction,
+  pending,
+  onConfirm,
+}: Readonly<{ withFaction: boolean; pending: boolean; onConfirm: () => void }>) {
+  return (
+    <HoldAction
+      label={withFaction ? 'Delete variant and faction' : 'Delete variant'}
+      hint={withFaction ? 'Hold to delete this variant and its faction.' : 'Hold to delete this variant.'}
+      pending={pending}
+      onConfirm={onConfirm}
+    />
   );
 }
 
