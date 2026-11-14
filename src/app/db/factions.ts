@@ -471,11 +471,11 @@ export function useSetFactionOpen() {
 export type EmptyFactionEntry = FunctionReturnType<typeof api.factionFamilies.ownEmpty>[number];
 
 /**
- * The viewer's own Factions left without a live variant, live.
+ * The viewer's own Factions left without a live variant, live, and undefined while loading.
  * Mount it only on the viewer's own profile, since it answers nobody else.
  */
 export function useOwnEmptyFactions() {
-  return toLiveQueryResult(useLiveQuery(api.factionFamilies.ownEmpty, {}));
+  return useLiveQuery(api.factionFamilies.ownEmpty, {});
 }
 
 /** Deletes a Faction that holds no live variant. For the Faction's owner alone. */

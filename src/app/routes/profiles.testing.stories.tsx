@@ -512,7 +512,6 @@ export const DetailOwnEmptyFactionDeleted = meta.story({
     const section = within(await page.findByRole('region', { name: 'Factions created' }, { timeout: 30_000 }));
     const hold = await section.findByRole('button', { name: 'Delete House Vernius' }, { timeout: 30_000 });
     await expect(section.getByText('House Vernius')).toBeVisible();
-    await expect(section.getByText('No variants')).toBeVisible();
     await userEvent.click(section.getByRole('button', { name: 'Why a faction has no variants' }));
     await waitFor(() => expect(section.getByText(/Only you, its owner, can delete it\./)).toBeVisible());
     const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });

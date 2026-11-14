@@ -25,22 +25,18 @@ export function factionDataChange(stored: FactionData, proposed: FactionData) {
   };
 }
 
-/** The shared fields of a variant's stored data, or null while that data does not parse, so a broken legacy faction never blocks its own write. */
-function sharedData(faction: Doc<'factions'>) {
-  const data = parseStoredDataOrNull(faction.data);
-  return data ? splitSharedFields(data).shared : null;
-}
-
 /**
  * Mirrored from the family's default variant: the shared fields every variant holds a copy of, and when it last changed.
+ * The shared fields are null while the variant's data does not parse, so a broken legacy faction never blocks its own write.
  * The rest is the Faction's own (#2910, #2928).
  * Its owner and deletion start as its first variant's, and then change only on the Faction, so choosing another default never hands it to that variant's owner, and deleting a variant never deletes the Faction.
  * Its Group starts as its first variant's too.
  * Nor is the address mirrored: the Faction keeps the one its variant had, and the variant moves to one of its own under it (#2909).
  */
 function mirroredFields(faction: Doc<'factions'>) {
+  const data = parseStoredDataOrNull(faction.data);
   return {
-    data: sharedData(faction),
+    data: data ? splitSharedFields(data).shared : null,
     updated_at: faction.updated_at,
   };
 }

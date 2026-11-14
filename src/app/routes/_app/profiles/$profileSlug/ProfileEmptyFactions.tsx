@@ -23,7 +23,7 @@ function why(count: number) {
  * `whenNone` stands in while there is no such Faction, for a section with nothing else to show.
  */
 export function ProfileEmptyFactions({ whenNone = null }: Readonly<{ whenNone?: ReactNode }>) {
-  const factions = useOwnEmptyFactions().data ?? [];
+  const factions = useOwnEmptyFactions() ?? [];
   const remove = useDeleteEmptyFaction();
   /* The Faction last held, so only its own hold reads as busy. */
   const [heldId, setHeldId] = useState<string | null>(null);
