@@ -167,4 +167,101 @@ describe('a faction’s variant order, default and deletion (#2928)', () => {
     await owner.mutation(api.factions.softDelete, { id: root._id });
     expect((await family()).is_deleted).toBe(true);
   });
+  test('a drag that changes which variant comes first sets the order and the default together', async () => {
+    const { t, owner, stranger, root, addVariant, familyId, family } = await variantsFixture();
+    const first = await addVariant('First');
+    const second = await addVariant('Second');
+    const gone = await addVariant('Gone');
+    await owner.mutation(api.factions.softDelete, { id: gone.id });
+
+    await owner.mutation(api.factionFamilies.setVariantOrder, {
+      family_id: familyId,
+      variant_ids: [second.id, root._id, first.id],
+      default_variant_id: second.id,
+    });
+    expect((await family()).default_variant_id).toBe(second.id);
+    const switcher = await t.query(api.factionVariants.switcher, { faction_id: root._id });
+    expect(switcher?.variants.map((variant) => variant.name)).toEqual(['Second', 'Original', 'First']);
+
+    /* A default that is refused leaves the order as it was. */
+    await expect(
+      owner.mutation(api.factionFamilies.setVariantOrder, {
+        family_id: familyId,
+        variant_ids: [first.id, second.id, root._id],
+        default_variant_id: gone.id,
+      })
+    ).rejects.toThrow('not a live variant');
+    expect((await family()).variant_order).toEqual([second.id, root._id, first.id]);
+    await expect(
+      stranger.mutation(api.factionFamilies.setVariantOrder, {
+        family_id: familyId,
+        variant_ids: [first.id],
+        default_variant_id: first.id,
+      })
+    ).rejects.toThrow('Not authorized');
+  });
+
+  test('the switcher names each variant’s parent and owner', async () => {
+    const { t, root, addVariant } = await variantsFixture();
+    await addVariant('Child', root._id);
+    const switcher = await t.query(api.factionVariants.switcher, { faction_id: root._id });
+    expect(switcher?.variants.map((variant) => [variant.name, variant.parentId])).toEqual([
+      ['Original', null],
+      ['Child', root._id],
+    ]);
+    const owner = (await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('profiles')
+          .withIndex('by_user_id', (q) => q.eq('user_id', root.owner_id))
+          .unique()
+    ))!;
+    expect(switcher?.variants.map((variant) => variant.ownerName)).toEqual([owner.username, owner.username]);
+  });
+});
+
+describe('deleting a variant and its faction in one hold (#2928)', () => {
+  test('the owner deletes the last variant and the faction goes with it', async () => {
+    const { owner, root, row, family } = await variantsFixture();
+    await owner.mutation(api.factions.softDelete, { id: root._id, and_faction: true });
+    expect((await row(root._id)).is_deleted).toBe(true);
+    expect((await family()).is_deleted).toBe(true);
+  });
+
+  test('someone else deletes the last variant and the faction stays, empty', async () => {
+    const { owner, stranger, root, row, familyId, family } = await variantsFixture();
+    await owner.mutation(api.factionFamilies.setOpen, { family_id: familyId, is_open: true });
+    const theirs = await stranger.mutation(api.factionVariants.create, {
+      faction_id: root._id,
+      name: 'Theirs',
+      group_id: null,
+    });
+    await owner.mutation(api.factions.softDelete, { id: root._id });
+
+    /* Asking for the faction too is refused outright, and their variant stays. */
+    await expect(stranger.mutation(api.factions.softDelete, { id: theirs.id, and_faction: true })).rejects.toThrow(
+      'Not authorized'
+    );
+    expect((await row(theirs.id)).is_deleted).toBe(false);
+
+    await stranger.mutation(api.factions.softDelete, { id: theirs.id });
+    expect((await row(theirs.id)).is_deleted).toBe(true);
+    expect((await family()).is_deleted).toBe(false);
+  });
+
+  test('it is refused while other live variants remain, and deletes nothing', async () => {
+    const { owner, root, row, addVariant, family } = await variantsFixture();
+    const other = await addVariant('Other');
+
+    await expect(owner.mutation(api.factions.softDelete, { id: root._id, and_faction: true })).rejects.toThrow(
+      'other variants'
+    );
+    expect((await row(root._id)).is_deleted).toBe(false);
+    expect((await family()).is_deleted).toBe(false);
+
+    /* A deleted sibling no longer counts. */
+    await owner.mutation(api.factions.softDelete, { id: other.id });
+    await owner.mutation(api.factions.softDelete, { id: root._id, and_faction: true });
+    expect((await family()).is_deleted).toBe(true);
+  });
 });

@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
+import { isActiveProfile } from './lib/accountLifecycle';
 import { loadCollaborativeAccess, loadFactionFamilyAccess } from './lib/collaborativeAccess';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
 import { allocateFactionAddress } from './lib/factionAddresses';
@@ -76,9 +77,19 @@ async function familyOf(ctx: QueryCtx, variant: Doc<'factions'>) {
   return family;
 }
 
+/** The name an account answers to, or null for one with no username or that is deleted or departing. */
+async function activeUsername(ctx: QueryCtx, userId: Id<'users'>) {
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', userId))
+    .unique();
+  return profile && isActiveProfile(profile) ? profile.username : null;
+}
+
 /**
  * The variant switcher on a variant's page (#2928): its Faction's live variants in variant order, the default first, each with the address its page lives at.
  * Each variant carries the live rulesets it is linked to, with their cover thumbs, so a reader sees where each one is played.
+ * Each also names its parent and its owner, from which the Faction settings tell what an eviction would move, and to whom.
  * The same for every viewer;
  * `isOpen` tells the page whether anyone signed in may add a variant.
  * Null for an unknown or deleted variant, or one whose Faction is deleted.
@@ -97,6 +108,8 @@ export const switcher = publicQuery({
           _id: v.id('factions'),
           name: v.string(),
           slug: v.string(),
+          parentId: v.union(v.id('factions'), v.null()),
+          ownerName: v.union(v.string(), v.null()),
           rulesets: v.array(
             v.object({
               id: v.id('rulesets'),
@@ -126,6 +139,8 @@ export const switcher = publicQuery({
           _id: row._id,
           name: variantName(row),
           slug: row.slug,
+          parentId: row.parent_id ?? null,
+          ownerName: await activeUsername(ctx, row.owner_id),
           rulesets: await listFactionRulesetCovers(ctx, row._id),
         }))
       ),

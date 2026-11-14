@@ -8,7 +8,7 @@ import { requireAuthUserId } from './lib/policy';
 import type { MutationCtx } from './types';
 
 /*
- * The Faction tab's settings (#2928): the default variant, the variant order and whether the Faction is open.
+ * The Faction's settings (#2928): the default variant, the variant order and whether the Faction is open.
  * The Faction's owner and its Group maintain them, and only the owner deletes the Faction (#2910).
  * Eviction lives with the variants, in `factionVariants.evict`.
  */
@@ -60,12 +60,17 @@ export const setOpen = mutation({
 });
 
 /**
- * Orders the Faction's variants, as dragged into place on the Faction tab.
+ * Orders the Faction's variants, as dragged into place in the Faction settings.
  * Each id names a variant of this Faction, at most once;
  * a variant left out follows those named, oldest first, and the default is listed first whatever its place.
+ * `default_variant_id` makes that live variant the default in the same transaction, for a drag that changes which variant comes first.
  */
 export const setVariantOrder = mutation({
-  args: { family_id: v.id('faction_families'), variant_ids: v.array(v.id('factions')) },
+  args: {
+    family_id: v.id('faction_families'),
+    variant_ids: v.array(v.id('factions')),
+    default_variant_id: v.optional(v.id('factions')),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const family = await requireFamily(ctx, args.family_id, 'edit');
@@ -80,6 +85,9 @@ export const setVariantOrder = mutation({
       if (variant?.family_id !== family._id) {
         throw new ConvexError('The order names a variant of another faction.');
       }
+    }
+    if (args.default_variant_id && args.default_variant_id !== family.default_variant_id) {
+      await makeDefaultVariant(ctx, family, await liveVariantOf(ctx, family._id, args.default_variant_id));
     }
     await ctx.db.patch(family._id, { variant_order: args.variant_ids });
     return null;
