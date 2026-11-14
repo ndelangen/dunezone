@@ -11,6 +11,8 @@ type CataloguePreview =
       kind: 'faction';
       id: Extract<CatalogueRow, { kind: 'faction' }>['id'];
       faction: ReturnType<typeof factionCatalogueRowsToEntries>[number];
+      /** The variant's name, when its Faction has several variants to tell apart. */
+      variant?: string;
     };
 export type CatalogueChoice = CataloguePreview & { selected: boolean | null };
 export type CatalogueSelection = FunctionArgs<typeof api.cataloguePicker.options>['selection'];
@@ -21,9 +23,13 @@ export type CatalogueTarget =
 /** Only the chosen type mounts this read; leaving its results tears down the subscription. */
 export function useCataloguePickerGroup(group: string, q: string, selection: CatalogueSelection) {
   const query = usePaginatedQuery(api.cataloguePicker.options, { group, q, selection }, { initialNumItems: 3 });
-  const results: CatalogueChoice[] = query.results.map(({ choice, selected }) => ({
+  const results: CatalogueChoice[] = query.results.map(({ choice, selected, variant }) => ({
     ...(choice.kind === 'faction'
-      ? { ...choice, faction: factionCatalogueRowsToEntries([choice.faction])[0] }
+      ? {
+          ...choice,
+          faction: factionCatalogueRowsToEntries([choice.faction])[0],
+          ...(variant === null ? {} : { variant }),
+        }
       : choice),
     selected,
   }));

@@ -266,6 +266,8 @@ export type FactionLoadPickerRow = {
   groupLabel: string;
   ownerId: FactionRow['owner_id'];
   ownerUsername: string | null;
+  /** The variant's name where its Faction has several live variants to tell apart, else null. */
+  variant: string | null;
 };
 
 /**

@@ -1,4 +1,5 @@
 import { Box, Combobox, Group } from '@mantine/core';
+import { nameWithVariant } from '@shared/factions/variantName';
 import { TitledLine } from '@ui/content/TitledLine';
 import { Check } from 'lucide-react';
 
@@ -8,9 +9,9 @@ import { Token } from '@game/assets/faction/token/Token';
 
 import type { CataloguePickerProps } from './CataloguePicker';
 
-function catalogueChoiceCopy(choice: CatalogueChoice) {
+function catalogueChoiceCopy(choice: CatalogueChoice): { name: string; variant?: string; context: string } {
   if (choice.kind === 'faction') {
-    return { name: choice.faction.data.name, context: choice.faction.slug };
+    return { name: choice.faction.data.name, variant: choice.variant, context: choice.faction.slug };
   }
   return { name: choice.asset.name, context: choice.asset.owner?.username || choice.asset.slug };
 }
@@ -36,12 +37,13 @@ export function CataloguePickerOption({
   pending,
 }: CataloguePickerProps & { choice: CatalogueChoice }) {
   const selected = choice.selected ?? (selectedIds?.includes(choice.id) || false);
-  const { name, context } = catalogueChoiceCopy(choice);
+  const { name, variant, context } = catalogueChoiceCopy(choice);
+  const full = nameWithVariant(name, variant);
   return (
     <Combobox.Option
       value={JSON.stringify({ kind: choice.kind, id: choice.id })}
       disabled={selected || pending}
-      aria-label={selected ? `${name}, already selected` : name}
+      aria-label={selected ? `${full}, already selected` : full}
     >
       <Group gap="sm" wrap="nowrap">
         <TitledLine
@@ -51,6 +53,7 @@ export function CataloguePickerOption({
             </Box>
           }
           title={name}
+          qualifier={variant}
           detail={context}
         />
         {selected ? <Check size={16} aria-hidden /> : null}

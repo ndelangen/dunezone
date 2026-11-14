@@ -5,6 +5,7 @@ import { slugify } from '../../src/shared/slugify';
 import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
+import { ALL_PARTITION } from './catalogueOrder';
 import { allocateVariantAddress } from './factionAddresses';
 import type { parseStoredFactionForRead } from './factionInput';
 import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
@@ -16,6 +17,25 @@ const ORIGINAL_VARIANT_SLUG = slugify(ORIGINAL_VARIANT_NAME);
 /** The name a variant goes by; one made before variants had names is the Original. */
 export function variantName(variant: Doc<'factions'>) {
   return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
+}
+
+/**
+ * What a paging picker calls a variant: its name where its Faction has several live variants to tell apart, else null.
+ * A page cannot count its own siblings, so the count is read off the Faction's catalogue entry, which holds it without reading the variants (#2929).
+ * A variant with no Faction yet, or whose Faction is not listed, stands alone.
+ */
+export async function pickerVariantLabel(ctx: QueryCtx, variant: Doc<'factions'>) {
+  const familyId = variant.family_id;
+  if (!familyId) {
+    return null;
+  }
+  const entry = await ctx.db
+    .query('catalogue_entries')
+    .withIndex('by_kind_source', (q) =>
+      q.eq('kind', 'faction_family').eq('source_id', familyId).eq('partition', ALL_PARTITION)
+    )
+    .first();
+  return (entry?.variant_count ?? 1) > 1 ? variantName(variant) : null;
 }
 
 type FactionData = ReturnType<typeof parseStoredFactionForRead>;

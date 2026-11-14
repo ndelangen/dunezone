@@ -5,6 +5,9 @@ import type { AriaRole, CSSProperties, Ref } from 'react';
 /** A faction as its token shows it: its name, its token's face where it has one, and its colour. */
 export type FactionToken = Readonly<{ id: string; name: string; src?: string | null; color?: string }>;
 
+/** A faction as a list offers it: its token, and its variant's name where its Faction has several to tell apart. */
+export type ListedFactionToken = FactionToken & Readonly<{ variant?: string }>;
+
 /**
  * A faction's token, ringed in its colour, or its initial where it has no face.
  * Any further props, a tooltip's handlers and ref among them, reach the token itself.

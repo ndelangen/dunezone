@@ -124,6 +124,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Group Form',
     },
     {
+      directory: '../src/app/pickers',
+      titlePrefix: 'Pickers',
+    },
+    {
       directory: '../src/app/ui/block',
       titlePrefix: 'Blocks',
     },

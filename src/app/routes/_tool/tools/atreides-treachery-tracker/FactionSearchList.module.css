@@ -45,6 +45,12 @@
   white-space: nowrap;
 }
 
+/* A name with its variant wraps, so the variant that tells two rows apart is never cut. */
+.nameWrapping {
+  padding-block: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+
 .dim {
   color: var(--ui-muted);
 }

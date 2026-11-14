@@ -1,10 +1,12 @@
 import { ScrollArea, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { nameWithVariant } from '@shared/factions/variantName';
 import { Pending } from '@ui/content/Pending';
+import { QualifiedName } from '@ui/content/QualifiedName';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { Check, Search } from 'lucide-react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
-import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken, ListedFactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 import styles from './FactionSearchList.module.css';
 import { useTrackerTouch } from './TrackerSurface';
@@ -28,7 +30,7 @@ export function FactionSearchList({
 }: Readonly<{
   query: string;
   onQuery: (query: string) => void;
-  factions: readonly FactionToken[];
+  factions: readonly ListedFactionToken[];
   seated: readonly string[];
   status: FactionSearchStatus;
   onMore: () => void;
@@ -51,20 +53,25 @@ export function FactionSearchList({
       />
       <ScrollArea.Autosize mah={touch ? '55dvh' : 320} type="auto" overscrollBehavior="contain">
         <ul className={styles.list} aria-label="Factions">
-          {factions.map((faction) => {
-            const here = seated.includes(faction.id);
+          {factions.map(({ variant, ...token }) => {
+            const here = seated.includes(token.id);
+            const name = nameWithVariant(token.name, variant);
             return (
-              <li key={faction.id}>
+              <li key={token.id}>
                 <UnstyledButton
                   className={styles.row}
                   data-touch={touch ? 'true' : 'false'}
                   disabled={here}
-                  aria-label={here ? `${faction.name} is at the table` : `Add ${faction.name}`}
-                  onClick={() => onPick(faction)}
+                  aria-label={here ? `${name} is at the table` : `Add ${name}`}
+                  onClick={() => onPick(token)}
                 >
-                  <FactionTokenFace token={faction} size={touch ? 36 : 28} />
-                  <Text size="sm" component="span" className={styles.name}>
-                    {faction.name}
+                  <FactionTokenFace token={token} size={touch ? 36 : 28} />
+                  <Text
+                    size="sm"
+                    component="span"
+                    className={variant === undefined ? styles.name : styles.nameWrapping}
+                  >
+                    <QualifiedName name={token.name} qualifier={variant} />
                   </Text>
                   {here ? <Check size={16} aria-hidden /> : null}
                 </UnstyledButton>

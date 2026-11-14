@@ -20,6 +20,15 @@ export const WithMedia = meta.story({
   args: { media: swatch },
 });
 
+/** A qualifier follows the name, dimmed, and the name wraps so a long one is never cut. */
+export const Qualified = meta.story({
+  args: { media: swatch, title: 'House Atreides', qualifier: 'Advanced co-existence with spiritual advisors' },
+  play: async ({ canvasElement }) => {
+    const title = within(canvasElement).getByText(/House Atreides/);
+    await expect(title.scrollWidth).toBe(title.clientWidth);
+  },
+});
+
 /** A long name and detail keep to one line each and end in an ellipsis. */
 export const Truncates = meta.story({
   args: {

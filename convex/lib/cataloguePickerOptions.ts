@@ -3,6 +3,7 @@ import type { PaginationOptions } from 'convex/server';
 import type { QueryCtx } from '../types';
 import { readBoardListing } from './boardListing';
 import { searchIndexText } from './catalogueOrder';
+import { pickerVariantLabel } from './factionFamilies';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
@@ -16,7 +17,10 @@ function catalogueEntryTarget(ctx: QueryCtx, kind: 'faction' | 'asset', sourceId
   return id ? { kind, id } : null;
 }
 
-/** The legacy FAQ picker and grouped picker share indexed search, paging and live target projection. */
+/**
+ * The legacy FAQ picker and grouped picker share indexed search, paging and live target projection.
+ * Each choice comes with its variant's name where its Faction has several, and null otherwise or on an asset.
+ */
 export async function loadCataloguePickerOptions(
   ctx: QueryCtx,
   args: {
@@ -53,7 +57,13 @@ export async function loadCataloguePickerOptions(
           : board && !board.is_deleted
             ? { kind: 'asset' as const, asset: board }
             : null;
-      return live ? await faqReferencePreview(ctx, live) : null;
+      if (!live) {
+        return null;
+      }
+      return {
+        choice: await faqReferencePreview(ctx, live),
+        variant: live.kind === 'faction' ? await pickerVariantLabel(ctx, live.faction) : null,
+      };
     })
   );
   return { ...rows, page: page.filter((choice) => choice !== null) };

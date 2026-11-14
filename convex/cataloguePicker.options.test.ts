@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { variantsFixture } from './factionVariants.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { searchIndexText } from './lib/catalogueOrder';
 
@@ -182,4 +183,49 @@ test('a search longer than the search index takes still answers', async () => {
     paginationOpts: { numItems: 5, cursor: null },
   });
   expect(searched.page).toMatchObject([{ choice: { kind: 'asset', asset: { name: 'Lasgun' } } }]);
+});
+
+test('a faction choice names its variant where its Faction has several, whichever of them the page holds', async () => {
+  const { t, owner, root, addVariant } = await variantsFixture();
+  const dreamrules = await addVariant('Dreamrules');
+  const harkonnen = await owner.mutation(api.factions.create, {
+    data: { ...assetPublishingFaction, name: 'Harkonnen' },
+    group_id: null,
+  });
+  /* One choice a page, so no page holds two variants of a Faction to count. */
+  const read = (cursor: string | null) =>
+    t.query(api.cataloguePicker.options, { group: 'faction', q: '', paginationOpts: { numItems: 1, cursor } });
+  const first = await read(null);
+  const second = await read(first.continueCursor);
+  const third = await read(second.continueCursor);
+  const variants = new Map(
+    [...first.page, ...second.page, ...third.page].map(({ choice, variant }) => [String(choice.id), variant])
+  );
+  expect(variants.get(root._id)).toBe('Original');
+  expect(variants.get(dreamrules.id)).toBe('Dreamrules');
+  expect(variants.get(harkonnen._id)).toBeNull();
+});
+
+test('an asset choice names no variant', async () => {
+  const t = applicationTest();
+  await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
+    const owner = await ctx.db.insert('users', { name: 'Owner' });
+    await ctx.db.insert('assets', {
+      owner_id: owner,
+      group_id: null,
+      is_deleted: false,
+      created_at: '2026-10-22T00:00:00.000Z',
+      updated_at: '2026-10-22T00:00:00.000Z',
+      type: 'card-treachery',
+      slug: 'lasgun',
+      data: { name: 'Lasgun' },
+    });
+  });
+  const read = await t.query(api.cataloguePicker.options, {
+    group: 'card-treachery',
+    q: '',
+    paginationOpts: { numItems: 5, cursor: null },
+  });
+  expect(read.page).toMatchObject([{ variant: null }]);
 });
