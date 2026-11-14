@@ -15,12 +15,12 @@ test('the edit URL and shared name cannot establish that the create form has unm
     );
     /* The old create form retains this value after navigation updates the address. */
     await page.goto('https://faction.invalid/factions/shared/edit');
-    await expect(expectFactionEditReady(page, 'Shared faction')).rejects.toThrow(/Delete faction/);
+    await expect(expectFactionEditReady(page, 'Shared faction')).rejects.toThrow(/Delete variant and faction/);
 
     /* Only the mounted edit page offers deletion. The shared field is still unchanged. */
     await page.evaluate(() => {
       const button = document.createElement('button');
-      button.textContent = 'Delete faction';
+      button.textContent = 'Delete variant and faction';
       document.body.append(button);
     });
     await expect(expectFactionEditReady(page, 'Shared faction')).resolves.toBeUndefined();
