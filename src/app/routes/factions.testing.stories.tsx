@@ -1027,7 +1027,8 @@ export const DetailFactionSettingsOpenTheFaction = meta.story({
     await expectFactionSettings(settings);
     const open = within(settings).getByRole('checkbox', { name: 'Anyone signed in may add a variant' });
     await userEvent.click(open);
-    await expect(open).toBeChecked();
+    /* The checkbox reads the Faction, so it ticks once the server has kept the change. */
+    await waitFor(() => expect(open).toBeChecked());
     /* Shut and opened again, the settings read what the server kept. */
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(page.getByRole('button', { name: 'Faction settings' }));
