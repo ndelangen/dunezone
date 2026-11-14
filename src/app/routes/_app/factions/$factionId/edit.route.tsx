@@ -66,7 +66,7 @@ function FactionEditPage() {
   const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor } = editRights;
   const { faction } = page;
   /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
-  const variantContext = useFactionVariantContext((faction ?? loaderData.faction)._id);
+  const variantContext = useFactionVariantContext(faction._id);
   const backToFaction = (
     <PageMessage.Back to="/factions/$factionId" params={{ factionId }}>
       Back to faction
@@ -82,20 +82,10 @@ function FactionEditPage() {
   }
 
   if (viewerAccess.viewer.kind === 'anonymous') {
-    /* The name stays conditional here, as it was in the old header: this guard runs before the one
-       below that answers whether there is a faction at all, so the title cannot assume one. */
     return (
-      <PageMessage size="compact" title={faction ? `Edit ${faction.data.name}` : 'Edit faction'} back={backToFaction}>
+      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <LoginGate action="edit factions" />
       </PageMessage>
-    );
-  }
-
-  if (!faction) {
-    return (
-      <RoutePending size="compact" title="Edit faction" back={backToFaction} loading="Loading faction">
-        The faction is still loading.
-      </RoutePending>
     );
   }
 

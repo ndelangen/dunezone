@@ -52,7 +52,7 @@ export function FactionEditForm({ factionId, page, editRights, variantContext, r
   const deleteFaction = useDeleteFaction();
   const setFactionGroup = useSetFactionGroup();
   const assignableGroups = useViewerAssignableGroups();
-  const { viewerAccess, rights, withinRights } = editRights;
+  const { viewerAccess, rights, withinRights, canDeleteFaction } = editRights;
   const { faction, assetPublishing } = page;
   const parent = variantContext?.parent;
   const authoring = useFactionAuthoring({
@@ -140,7 +140,7 @@ export function FactionEditForm({ factionId, page, editRights, variantContext, r
             destructiveActions={
               viewerAccess.capabilities.delete ? (
                 <DeleteVariantHold
-                  mayDeleteFaction={editRights.canDeleteFaction}
+                  mayDeleteFaction={canDeleteFaction}
                   variantContext={variantContext}
                   pending={deleteFaction.isPending}
                   onConfirm={(andFaction) =>
