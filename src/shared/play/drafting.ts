@@ -84,13 +84,31 @@ export type DraftAction = z.infer<typeof draftActionSchema>;
 
 export const isDraftAction = actionKindGuard(draftActionSchema);
 
-export function bannedIds(draft: DraftState): string[] {
-  return [...new Set(Object.values(draft.bans).flat())];
+/** A row's Faction, or the row itself when it names none. */
+function familyOf(faction: DraftFaction): string {
+  return faction.familyId ?? faction.id;
 }
 
 /** The Faction a row is a variant of; a row stored before rows named it, or gone from the catalogue, stands for itself. */
 export function factionOf(draft: DraftState, factionId: string): string {
-  return draft.factions.find((faction) => faction.id === factionId)?.familyId ?? factionId;
+  const faction = draft.factions.find((candidate) => candidate.id === factionId);
+  return faction ? familyOf(faction) : factionId;
+}
+
+/**
+ * The variant's name, when the catalogue holds several variants of its Faction to tell apart.
+ * A Faction with one variant reads by its own name alone, and so does a row stored before variants were named.
+ */
+export function variantLabel(draft: DraftState, faction: DraftFaction): string | undefined {
+  const family = familyOf(faction);
+  const several = draft.factions.some((other) => other.id !== faction.id && familyOf(other) === family);
+  return several ? faction.variantName : undefined;
+}
+
+/** The name a row goes by wherever it stands alone: its Faction's, then its variant's when there are several to tell apart. */
+export function draftFactionName(draft: DraftState, faction: DraftFaction): string {
+  const variant = variantLabel(draft, faction);
+  return variant === undefined ? faction.name : `${faction.name} · ${variant}`;
 }
 
 /**
@@ -98,8 +116,7 @@ export function factionOf(draft: DraftState, factionId: string): string {
  * A ban on a variant since removed from the catalogue no longer reaches its siblings.
  */
 export function isBanned(draft: DraftState, factionId: string): boolean {
-  const faction = factionOf(draft, factionId);
-  return bannedIds(draft).some((id) => factionOf(draft, id) === faction);
+  return bannersOf(draft, factionId).length > 0;
 }
 
 /** Why a deal set this faction aside, when one did and no refresh has found it ready since. */
@@ -136,16 +153,40 @@ export function draftedPool(draft: DraftState): string[] {
   return pool;
 }
 
-function seatsListing(lists: DraftState['picks'], factionId: string): string[] {
-  return Object.entries(lists).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
-}
-
 export function pickersOf(draft: DraftState, factionId: string): string[] {
-  return seatsListing(draft.picks, factionId);
+  return Object.entries(draft.picks).flatMap(([seat, list]) => (list.includes(factionId) ? [seat] : []));
 }
 
+/** The seats that banned the row's Faction, through any variant of it. */
 export function bannersOf(draft: DraftState, factionId: string): string[] {
-  return seatsListing(draft.bans, factionId);
+  const faction = factionOf(draft, factionId);
+  return Object.entries(draft.bans).flatMap(([seat, list]) =>
+    list.some((id) => factionOf(draft, id) === faction) ? [seat] : []
+  );
+}
+
+/** One banned row for each banned Faction: the first ban on it stands for the Faction. */
+export function bannedFactions(draft: DraftState): string[] {
+  const first = new Map<string, string>();
+  for (const id of Object.values(draft.bans).flat()) {
+    const faction = factionOf(draft, id);
+    first.set(faction, first.get(faction) ?? id);
+  }
+  return [...first.values()];
+}
+
+/**
+ * The other variant of the row's Faction in the drafted pool, when one is there: a game deals one variant per Faction, so this row cannot be drafted beside it.
+ * A caller asking about many rows passes the pool it already worked out.
+ */
+export function draftedSibling(
+  draft: DraftState,
+  factionId: string,
+  pool: readonly string[] = draftedPool(draft)
+): DraftFaction | undefined {
+  const faction = factionOf(draft, factionId);
+  const sibling = pool.find((id) => id !== factionId && factionOf(draft, id) === faction);
+  return draft.factions.find((candidate) => candidate.id === sibling);
 }
 
 /** What random filling can add, by Faction: the linked, published variants not set aside of each unbanned Faction outside the pool. */
