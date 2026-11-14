@@ -233,9 +233,33 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
     }
   });
   triggers.register('faction_families', async (ctx, change) => {
+    /* The mirror of the default variant's shared data and date reaches the entry through that variant's own entry. */
+    if (change.oldDoc && change.newDoc && !listedFamilyFieldsChanged(change.oldDoc, change.newDoc)) {
+      return;
+    }
     await reconcileCatalogueEntry(ctx, 'faction_family', change.id);
   });
   registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
+}
+
+/** Whether a Faction's row changed in a way its catalogue entry reads. */
+function listedFamilyFieldsChanged(before: Doc<'faction_families'>, after: Doc<'faction_families'>) {
+  const listed = ({
+    slug,
+    owner_id,
+    default_variant_id,
+    variant_order,
+    is_deleted,
+    created_at,
+  }: Doc<'faction_families'>) => ({
+    slug,
+    owner_id,
+    default_variant_id,
+    variant_order,
+    is_deleted,
+    created_at,
+  });
+  return canonicalJson(listed(before)) !== canonicalJson(listed(after));
 }
 
 export type CatalogueDrift = {

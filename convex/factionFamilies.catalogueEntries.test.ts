@@ -136,14 +136,14 @@ describe('one catalogue entry per faction (#2929)', () => {
     });
     const ready = () =>
       t.query(internal.migrations.assertReadyForNarrow, {
-        required: ['catalogue_entries_faction_families_verify_v1'],
+        required: ['catalogue_entries_family_listing_verify_v1'],
       });
-    await t.mutation(internal.catalogueMigrations.catalogue_entries_faction_families_verify_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_family_listing_verify_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
-    await expect(ready()).rejects.toThrow(/catalogue_entries_faction_families_verify_v1\(failed/);
+    await expect(ready()).rejects.toThrow(/catalogue_entries_family_listing_verify_v1\(failed/);
 
-    await t.mutation(internal.catalogueMigrations.catalogue_entries_faction_families_v1, {});
-    await t.mutation(internal.catalogueMigrations.catalogue_entries_faction_families_verify_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_family_listing_v1, {});
+    await t.mutation(internal.catalogueMigrations.catalogue_entries_family_listing_verify_v1, {});
     await t.finishAllScheduledFunctions(() => undefined);
     await expect(ready()).resolves.toMatchObject({ ok: true });
     expect((await listed(familyId))?.variant_count).toBe(1);

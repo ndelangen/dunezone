@@ -28,19 +28,42 @@ function variantEntriesInOrder(family: Doc<'faction_families'>, entries: readonl
       bySource.delete(id);
     }
   }
+  /* By the variant's own creation date, which matches the switcher's oldest-first order but for rows imported with an older date. */
   const rest = [...bySource.values()].sort(
     (left, right) => left.created_at - right.created_at || compareCodeUnits(left.source_id, right.source_id)
   );
   return [...ordered, ...rest];
 }
 
+/**
+ * The live variants' `'all'` entries, at most `VARIANT_LISTING_LIMIT` of them.
+ * The default and the variants its maintainers ordered are read first, so the limit never leaves them out, as with `liveVariantsInOrder`.
+ */
 async function liveVariantEntries(ctx: QueryCtx, family: Doc<'faction_families'>) {
-  return await ctx.db
+  const entries = new Map<string, VariantEntry>();
+  for (const id of [family.default_variant_id, ...(family.variant_order ?? [])]) {
+    if (entries.size === VARIANT_LISTING_LIMIT || entries.has(id)) {
+      continue;
+    }
+    const entry = await ctx.db
+      .query('catalogue_entries')
+      .withIndex('by_kind_source', (q) => q.eq('kind', 'faction').eq('source_id', id).eq('partition', ALL_PARTITION))
+      .first();
+    if (entry?.family_id === family._id) {
+      entries.set(id, entry);
+    }
+  }
+  for await (const entry of ctx.db
     .query('catalogue_entries')
     .withIndex('by_kind_family', (q) =>
       q.eq('kind', 'faction').eq('family_id', family._id).eq('partition', ALL_PARTITION)
-    )
-    .take(VARIANT_LISTING_LIMIT);
+    )) {
+    if (entries.size === VARIANT_LISTING_LIMIT) {
+      break;
+    }
+    entries.set(entry.source_id, entry);
+  }
+  return [...entries.values()];
 }
 
 /** Every distinct line of the variants' search text, so a Faction is found by any variant's names. */
@@ -64,6 +87,18 @@ function rulesetDeepLinks(variants: readonly VariantEntry[]) {
     }
   }
   return links;
+}
+
+/** One row per list must fit in what a reconcile reads of a source, the `'all'` list included. */
+const FAMILY_FACET_LIMIT = 1023;
+
+function cappedFacets(family: Doc<'faction_families'>, facets: string[]) {
+  if (facets.length > FAMILY_FACET_LIMIT) {
+    console.warn(
+      `Faction ${family._id} is in ${facets.length} lists; the catalogue lists it under the first ${FAMILY_FACET_LIMIT}.`
+    );
+  }
+  return facets.slice(0, FAMILY_FACET_LIMIT);
 }
 
 /**
@@ -105,7 +140,10 @@ export const factionFamilyCatalogueKind: CatalogueKind = {
       complexity: lead.complexity,
       complexity_score: lead.complexity_score,
       complexity_scores: [...new Set(variants.map((variant) => variant.complexity_score))].sort((a, b) => a - b),
-      facets: [...[...deepLinks.keys()].sort(compareCodeUnits), ...[...owners].sort(compareCodeUnits)],
+      facets: cappedFacets(family, [
+        ...[...deepLinks.keys()].sort(compareCodeUnits),
+        ...[...owners].sort(compareCodeUnits),
+      ]),
       variant_count: variants.length,
       card_source_id: lead.source_id,
       ...(Object.keys(partitionSlugs).length > 0 ? { partitionSlugs } : {}),
