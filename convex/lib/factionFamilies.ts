@@ -13,6 +13,11 @@ import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
 export const ORIGINAL_VARIANT_NAME = 'Original';
 const ORIGINAL_VARIANT_SLUG = slugify(ORIGINAL_VARIANT_NAME);
 
+/** The name a variant goes by; one made before variants had names is the Original. */
+export function variantName(variant: Doc<'factions'>) {
+  return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
+}
+
 type FactionData = ReturnType<typeof parseStoredFactionForRead>;
 
 /** Which side of the split a save changes, so each side is authorized by whoever maintains it. */

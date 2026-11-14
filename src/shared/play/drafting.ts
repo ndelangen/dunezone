@@ -15,6 +15,9 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
 /** The Worker refreshes its copy of the catalogue at most this often while a game drafts. */
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 
+/** The longest variant name a draft row holds; the catalogue cuts a longer one to fit. */
+const DRAFT_VARIANT_NAME_MAX = 160;
+
 /** One faction as the draft knows it: enough to draw its real token, and whether it may be dealt. */
 const draftFactionSchema = z.object({
   id: tableIdentitySchema,
@@ -27,8 +30,20 @@ const draftFactionSchema = z.object({
   linked: z.boolean(),
   /* Its token is published: only these can be drafted; the capture at assignment judges the rest. */
   published: z.boolean(),
+  /*
+   * The Faction this row is a variant of, and the variant's own name.
+   * Optional so a draft stored before variants were named still reads.
+   */
+  familyId: tableIdentitySchema.optional(),
+  variantName: z.string().max(DRAFT_VARIANT_NAME_MAX).optional(),
 });
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
+
+/** A variant name cut to the draft's bound, never through the middle of a character a surrogate pair encodes. */
+export const draftVariantName = (name: string): string => {
+  const cut = name.slice(0, DRAFT_VARIANT_NAME_MAX);
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut;
+};
 
 /** The catalogue's answer to a drafting game: every live faction with its link to the game's ruleset. */
 export const playDraftableFactionsSchema = z.object({ factions: z.array(draftFactionSchema).max(500) });

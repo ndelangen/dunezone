@@ -7,6 +7,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { syncFactionFamily } from './lib/factionFamilies';
 import {
   enqueueFactionLeaderPublications,
   enqueueFactionTokenPublication,
@@ -114,6 +115,25 @@ describe('the draft reads the catalogue', () => {
       background: assetPublishingFaction.background,
       color: assetPublishingFaction.themeColor,
     });
+  });
+
+  test('a row names its Faction and its variant, and a row with no Faction reads as the Original', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    /* Atreides gets its Faction as a faction write would give it, its variant named after the ruleset that links it. */
+    const family = await t.run(async (ctx) => {
+      await syncFactionFamily(ctx, linked, await ctx.db.get('factions', linked));
+      return (await ctx.db.get('factions', linked))!.family_id;
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(family).toBeDefined();
+    expect(factions.find((faction) => faction.id === linked)).toMatchObject({
+      familyId: family,
+      variantName: 'Classic',
+    });
+    const fremen = factions.find((faction) => faction.id === other)!;
+    expect(fremen.familyId).toBeUndefined();
+    expect(fremen.variantName).toBe('Original');
   });
 
   test('a faction becomes published once its token back completes, and its leader front reads once that face completes', async () => {

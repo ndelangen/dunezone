@@ -10,7 +10,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress } from './lib/factionAddresses';
 import { listFactionRulesetCovers } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { liveVariantsInOrder, ORIGINAL_VARIANT_NAME, variantsOf } from './lib/factionFamilies';
+import { liveVariantsInOrder, variantName, variantsOf } from './lib/factionFamilies';
 import { parseStoredFactionForRead } from './lib/factionInput';
 import {
   followParent,
@@ -56,11 +56,6 @@ async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>
     }
   }
   return variantSlug;
-}
-
-/** The name a variant goes by; one made before variants had names is the Original. */
-function variantName(variant: Doc<'factions'>) {
-  return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
 }
 
 /** The Faction's live variants a new one may take as its parent, in the Faction's variant order. */
