@@ -55,6 +55,7 @@ describe('a variant’s catalogue entries name its faction (#2929)', () => {
           .collect()
     );
     expect(newFamilyId).not.toBe(familyId);
+    expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.family_id === newFamilyId)).toBe(true);
   });
 
