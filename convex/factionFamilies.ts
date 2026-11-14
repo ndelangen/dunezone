@@ -1,9 +1,11 @@
 import { ConvexError, v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
-import { mutation } from './functions';
+import { mutation, viewerQuery } from './functions';
+import { optionalActiveUserId } from './lib/accountLifecycle';
 import { requireFactionFamily } from './lib/collaborativeAccess';
-import { makeDefaultVariant, VARIANT_LISTING_LIMIT, variantsOf } from './lib/factionFamilies';
+import { factionSharedValidator } from './lib/factionData';
+import { loadEmptyFactionsOf, makeDefaultVariant, VARIANT_LISTING_LIMIT, variantsOf } from './lib/factionFamilies';
 import type { MutationCtx } from './types';
 
 /*
@@ -100,5 +102,25 @@ export const remove = mutation({
     }
     await ctx.db.patch(family._id, { is_deleted: true });
     return null;
+  },
+});
+
+/**
+ * The viewer's own Factions left without a live variant, for the rows on their own profile that delete them.
+ * Nobody else is told of them, a member of the Faction's Group included, since only the owner may delete one.
+ * Empty for a signed-out viewer.
+ */
+export const ownEmpty = viewerQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      id: v.id('faction_families'),
+      slug: v.string(),
+      data: v.union(factionSharedValidator.pick('name', 'emblem', 'background'), v.null()),
+    })
+  ),
+  handler: async (ctx) => {
+    const viewerId = await optionalActiveUserId(ctx);
+    return viewerId ? await loadEmptyFactionsOf(ctx, viewerId) : [];
   },
 });

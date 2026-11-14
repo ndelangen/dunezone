@@ -207,6 +207,31 @@ export async function firstLiveVariant(
   return null;
 }
 
+/** The most of one owner's Factions a read looks through for those left without a live variant, newest first. */
+const EMPTY_FACTION_SCAN_LIMIT = 100;
+
+/**
+ * The owner's live Factions that hold no live variant, newest first, each as a row names it.
+ * Someone else deleting the last variant of an open Faction leaves one, and only its owner may delete it (#2910).
+ * A Faction with a live variant costs one read, since its default is then live.
+ */
+export async function loadEmptyFactionsOf(ctx: Pick<QueryCtx, 'db'>, ownerId: Id<'users'>) {
+  const families = await ctx.db
+    .query('faction_families')
+    .withIndex('by_owner_deleted', (q) => q.eq('owner_id', ownerId).eq('is_deleted', false))
+    .order('desc')
+    .take(EMPTY_FACTION_SCAN_LIMIT);
+  const live = await Promise.all(families.map((family) => firstLiveVariant(ctx, family, () => true)));
+  return families
+    .filter((_, index) => !live[index])
+    .map(({ _id, slug, data }) => ({
+      id: _id,
+      slug,
+      /* Null while the data of the Faction's last default variant does not parse. */
+      data: data ? { name: data.name, emblem: data.emblem, background: data.background } : null,
+    }));
+}
+
 /**
  * Makes the variant its Faction's default, which the Faction then mirrors.
  * The variant first takes the Faction's shared fields, which a push still on its way may not have brought it, so the mirror never puts older values back.

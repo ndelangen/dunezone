@@ -467,6 +467,25 @@ export function useSetFactionOpen() {
   >(api.factionFamilies.setOpen);
 }
 
+/** One of the viewer's own Factions left without a live variant; `data` is null while what the Faction holds does not parse. */
+export type EmptyFactionEntry = FunctionReturnType<typeof api.factionFamilies.ownEmpty>[number];
+
+/**
+ * The viewer's own Factions left without a live variant, live.
+ * Mount it only on the viewer's own profile, since it answers nobody else.
+ */
+export function useOwnEmptyFactions() {
+  return toLiveQueryResult(useLiveQuery(api.factionFamilies.ownEmpty, {}));
+}
+
+/** Deletes a Faction that holds no live variant. For the Faction's owner alone. */
+export function useDeleteEmptyFaction() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.factionFamilies.remove>,
+    FunctionReturnType<typeof api.factionFamilies.remove>
+  >(api.factionFamilies.remove);
+}
+
 /**
  * Evicts a variant, with every variant below it, into a new Faction owned by the variant's owner.
  * It answers with the variant's new address.
