@@ -3,6 +3,7 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { variantsFixture } from './factionVariants.test.fixture';
@@ -59,7 +60,7 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
     await linkRuleset(t, second.id, 'house-rules');
 
     const filtered = await t.query(api.factions.catalogue, { ruleset: 'house-rules' });
-    expect(filtered.cards.map((card) => card.slug)).toEqual([second.slug]);
+    expect(filtered.cards).toMatchObject([{ _id: second.id, slug: second.slug, variantCount: 3 }]);
     expect(filtered.rulesets.find((ruleset) => ruleset.slug === 'house-rules')?.factionCount).toBe(1);
     expect((await t.query(api.factions.catalogue, {})).cards.map((card) => card.slug)).toEqual(['atreides']);
   });
@@ -73,12 +74,17 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
   });
 
   test('a new variant makes its faction freshly updated, never a new arrival', async () => {
-    const { t, addVariant } = await variantsFixture();
+    const { t, owner, addVariant } = await variantsFixture();
+    vi.setSystemTime(Date.now() + 60_000);
+    await owner.mutation(api.factions.create, {
+      data: { ...assetPublishingFaction, name: 'Fremen' },
+      group_id: null,
+    });
     vi.setSystemTime(Date.now() + 60_000);
     await addVariant('Later');
 
     const { spotlights } = await t.query(api.factions.catalogue, {});
-    expect(spotlights.newArrival?.slug).toBe('atreides');
-    expect(spotlights.freshlyUpdated).toBeNull();
+    expect(spotlights.newArrival?.slug).toBe('fremen');
+    expect(spotlights.freshlyUpdated?.slug).toBe('atreides');
   });
 });

@@ -306,10 +306,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
   };
 }
 
-type ListedFaction = Pick<
-  Doc<'catalogue_entries'>,
-  'source_id' | 'slug' | 'facets' | 'card_source_id' | 'variant_count'
->;
+type ListedFaction = Doc<'catalogue_entries'>;
 
 /**
  * Reads the card of the variant a Faction's entry draws, naming only the live rulesets any variant is linked to, name then id.
@@ -331,7 +328,7 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
     if (!entry || !row || row.is_deleted) {
       /* A listed entry without a live card is drift: the page comes up one card short until the card backfill or the next save. */
       if (entry) {
-        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card.`);
+        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card ${entry.card_source_id}.`);
       }
       return null;
     }

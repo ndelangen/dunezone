@@ -157,9 +157,9 @@ describe('catalogue entries backfill', () => {
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
       ok: true,
     });
-    const rebuilt = (await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).filter(
-      (entry) => entry.kind === 'faction'
-    );
+    const factionEntries = async () =>
+      (await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).filter((entry) => entry.kind === 'faction');
+    const rebuilt = await factionEntries();
     const byList = (left: unknown[], right: unknown[]) =>
       compareCodeUnits(`${String(left[0])} ${String(left[1])}`, `${String(right[0])} ${String(right[1])}`);
     expect(
@@ -188,8 +188,6 @@ describe('catalogue entries backfill', () => {
     await t.mutation(internal.migrations.catalogue_entries_prune_v1, { reset: true });
     await t.mutation(internal.migrations.catalogue_entries_verify_v1, { reset: true });
     await t.finishAllScheduledFunctions(() => undefined);
-    expect(
-      (await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).filter((entry) => entry.kind === 'faction')
-    ).toEqual(rebuilt);
+    expect(await factionEntries()).toEqual(rebuilt);
   });
 });
