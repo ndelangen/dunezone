@@ -76,6 +76,7 @@ import {
 import type {
   FactionData,
   FactionDetailPageData,
+  FactionVariantSwitcher,
   FactionVariantSwitcherRow,
   PublicAssetPublishingStatusProjection,
 } from '@db/factions';
@@ -96,6 +97,7 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import { useFactionEditRights } from '../useFactionEditRights';
+import { FactionSettingsPopover } from './factionSettings';
 import styles from './index.module.css';
 
 const FACTION_KIND = 'Custom faction';
@@ -653,8 +655,13 @@ function VariantRow({ variant, current }: Readonly<{ variant: FactionVariantSwit
  * The list is always open, so a reader sees how many variants there are and which rulesets each is in without pressing anything.
  * A Faction with one variant has nothing to switch to, so it shows no card.
  */
-function VariantSwitcher({ factionId }: Readonly<{ factionId: FactionDetailPageData['faction']['_id'] }>) {
-  const switcher = useFactionVariantSwitcher(factionId);
+function VariantSwitcher({
+  switcher,
+  factionId,
+}: Readonly<{
+  switcher: FactionVariantSwitcher | null | undefined;
+  factionId: FactionDetailPageData['faction']['_id'];
+}>) {
   if (!switcher || switcher.variants.length < 2) {
     return null;
   }
@@ -748,12 +755,14 @@ function FactionDetailContent({
   const navigate = Route.useNavigate();
   const { resolved, viewerAccess, rights, canOpenEditor } = useFactionEditRights(page);
   const { faction, owner, assetPublishing } = page;
+  /* The Faction's variants, kept apart from the page query: the Variants card lists them and the Faction settings order them. */
+  const switcher = useFactionVariantSwitcher(faction._id);
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
   const canEdit = settled && canOpenEditor;
-  /* Adding a variant is the Faction's maintainers' to do, and a variant's problems are for whoever may edit it. */
-  const canCreateVariant = settled && rights.shared && page.family !== null;
+  /* Adding a variant and running the Faction's settings are for its owner and its Group, and a variant's problems are for whoever may edit it. */
+  const maintainsFaction = settled && rights.shared && page.family !== null;
   const problems = variantProblemList(faction);
   const showsProblems = settled && rights.variant && problems.all.length > 0;
   /* A reader who cannot fix the problems is told only that there are some. */
@@ -853,7 +862,15 @@ function FactionDetailContent({
                 icon={<Pencil size={17} aria-hidden />}
               />
             ) : null}
-            {canCreateVariant ? <CreateVariantPopover key={faction._id} faction={faction} /> : null}
+            {maintainsFaction ? <CreateVariantPopover key={faction._id} faction={faction} /> : null}
+            {maintainsFaction && switcher ? (
+              <FactionSettingsPopover
+                key={`settings-${faction._id}`}
+                switcher={switcher}
+                factionId={faction._id}
+                onEvicted={(slug) => void navigate({ to: '/factions/$factionId', params: { factionId: slug } })}
+              />
+            ) : null}
           </Toolbar.Left>
 
           <Toolbar.Right label="Faction actions">
@@ -952,7 +969,7 @@ function FactionDetailContent({
               miw={0}
               style={{ flex: '0 0 auto' }}
             >
-              <VariantSwitcher factionId={faction._id} />
+              <VariantSwitcher switcher={switcher} factionId={faction._id} />
               <FactionSidebarOverview data={data} />
 
               {planets.length > 0 ? (

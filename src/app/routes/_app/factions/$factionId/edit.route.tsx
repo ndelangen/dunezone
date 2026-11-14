@@ -18,6 +18,7 @@ import {
   useDeleteFaction,
   useFaction,
   useFactionVariantContext,
+  useFactionVariantSwitcher,
   useSetFactionGroup,
   useUpdateFaction,
 } from '@db/factions';
@@ -98,13 +99,22 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = useFactionEditRights(page);
+  const {
+    resolved: viewerResolved,
+    viewerAccess,
+    rights,
+    canDeleteFaction,
+    canOpenEditor,
+    withinRights,
+  } = useFactionEditRights(page);
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
   /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
   const variantContext = useFactionVariantContext(authoringFaction._id);
   const parent = variantContext?.parent;
+  /* How many live variants the Faction has, from the list the variant's page already keeps. */
+  const liveVariants = useFactionVariantSwitcher(authoringFaction._id)?.variants.length;
   const authoring = useFactionAuthoring({
     sessionKey: authoringFaction._id,
     initialData: authoringFaction.data,
@@ -192,6 +202,8 @@ function FactionEditPage() {
 
   const assignedGroup = viewerAccess.assignedGroup;
   const canDelete = viewerAccess.capabilities.delete;
+  /* A Faction is deleted with its last live variant, by its owner, and the hold then says so (#2928). */
+  const deletesFaction = canDeleteFaction && liveVariants === 1;
   const canAssignGroup = viewerAccess.capabilities.changeGroup;
   const routeNotice = resolveRouteNotice(search.notice);
   const dismissRouteNotice = () =>
@@ -252,10 +264,16 @@ function FactionEditPage() {
             destructiveActions={
               canDelete ? (
                 <HoldAction
-                  label="Delete faction"
+                  label={deletesFaction ? 'Delete variant and faction' : 'Delete variant'}
+                  hint={
+                    deletesFaction ? 'Hold to delete this variant and its faction.' : 'Hold to delete this variant.'
+                  }
                   pending={deleteFaction.isPending}
                   onConfirm={() =>
-                    deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
+                    deleteFaction.mutate(
+                      { id: faction._id, andFaction: deletesFaction },
+                      { onSuccess: () => void navigate({ to: '/factions' }) }
+                    )
                   }
                 />
               ) : null

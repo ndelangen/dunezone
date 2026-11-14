@@ -6,6 +6,7 @@ import { draftWithinRights } from './factionEditRights';
 
 /**
  * What the viewer may change on a variant's editor: the shared fields follow the Faction's owner and Group, everything else the variant's (#2926).
+ * `rights.shared` also says who runs the Faction's settings, and `canDeleteFaction` is its owner alone.
  * The editor opens for either, `resolved` waits for both answers, and `withinRights` keeps a draft to the sides the viewer may change.
  */
 export function useFactionEditRights(page: FactionDetailPageData) {
@@ -16,6 +17,7 @@ export function useFactionEditRights(page: FactionDetailPageData) {
     resolved: variant.resolved && shared.resolved,
     viewerAccess: variant.viewerAccess,
     rights,
+    canDeleteFaction: shared.canDelete,
     canOpenEditor: rights.shared || rights.variant,
     withinRights: (draft: Faction) => draftWithinRights(draft, page.faction.data, rights),
   };

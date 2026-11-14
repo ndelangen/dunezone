@@ -15,6 +15,8 @@ import {
   withABrokenChildVariant,
   withFourVariants,
   expectVariantSwitcher,
+  openFactionSettings,
+  expectFactionSettings,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -304,5 +306,43 @@ export const DetailVariantSwitcher = meta.story({
   parameters: { database: withFourVariants },
   play: async ({ canvasElement }) => {
     await expectVariantSwitcher(canvasElement, 'Dreamrules');
+  },
+});
+
+/**
+ * The Faction settings (#2928): a popover on the variant page's toolbar, beside Create variant, for the Faction's owner and its Group.
+ * It holds the variant order, whose first variant is the default, the hold that evicts a variant, and whether anyone signed in may add one.
+ * The default's row carries no eviction, and nothing here deletes the Faction: it goes with its last variant.
+ */
+export const DetailFactionSettings = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectFactionSettings(await openFactionSettings(canvasElement));
+  },
+});
+
+/**
+ * Someone who maintains a variant and not its Faction edits the variant, and is offered neither the Faction settings nor a new variant.
+ */
+export const DetailWithoutFactionSettings = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: variantMaintainerOutsideTheFactionGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Edit faction' }, LOAD)).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/**
+ * The Faction's owner editing its last live variant: the delete hold says it takes the Faction too (#2928).
+ */
+export const EditLastVariantDeletesTheFaction = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Delete variant and faction' }, LOAD)).resolves.toBeVisible();
   },
 });

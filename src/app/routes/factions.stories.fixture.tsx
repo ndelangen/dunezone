@@ -5,7 +5,7 @@ import { INHERITABLE_FIELDS, variantProblems } from '@shared/factions/variantFie
 import type { InheritableField } from '@shared/factions/variantFields';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
@@ -387,4 +387,47 @@ export async function expectVariantSwitcher(canvasElement: HTMLElement, current:
   /* Tournament is in three rulesets, one of them without a cover; Two players is in none. */
   await expect(card.getByRole('group', { name: 'Rulesets: Dreamrules, Spring Cup, Sietch house rules' })).toBeVisible();
   await expect(within(rows[3]!).queryByRole('group')).toBeNull();
+}
+
+/** The Faction settings popover, opened from the variant page's toolbar once the viewer is known to maintain the Faction. */
+export async function openFactionSettings(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await userEvent.click(await page.findByRole('button', { name: 'Faction settings' }, { timeout: 30_000 }));
+  const settings = await page.findByRole('dialog', undefined, { timeout: 30_000 });
+  await waitFor(() => expect(settings).toBeVisible());
+  return settings;
+}
+
+/** The variants in the Faction settings, in the order shown, each with whether its row carries the hold that evicts it. */
+export function settingsRows(settings: HTMLElement) {
+  return within(settings)
+    .getAllByRole('listitem')
+    .map((row) => {
+      const name = within(row).getAllByRole('paragraph')[0]!;
+      return {
+        name: name.textContent,
+        evicts: within(row).queryByRole('button', { name: `Evict ${name.textContent}` }) !== null,
+        /* The name is whole: nothing of it is hidden past its own box. */
+        whole: name.scrollWidth <= name.clientWidth,
+      };
+    });
+}
+
+/** The settings as the Faction's maintainers first meet them: the default first with no eviction on its row, and the Faction closed. */
+export async function expectFactionSettings(settings: HTMLElement) {
+  await expect(settingsRows(settings)).toEqual([
+    { name: 'Original', evicts: false, whole: true },
+    { name: 'Dreamrules', evicts: true, whole: true },
+    { name: 'Tournament', evicts: true, whole: true },
+    { name: 'Two players', evicts: true, whole: true },
+  ]);
+  await expect(
+    within(settings).getByRole('checkbox', { name: 'Anyone signed in may add a variant' })
+  ).not.toBeChecked();
+  /* The Faction goes with its last variant, so the settings explain that and carry no Delete of their own. */
+  await expect(within(settings).getByRole('button', { name: 'Deleting the faction' })).toHaveAttribute(
+    'aria-expanded',
+    'false'
+  );
+  await expect(within(settings).queryByRole('button', { name: /^Delete/ })).toBeNull();
 }

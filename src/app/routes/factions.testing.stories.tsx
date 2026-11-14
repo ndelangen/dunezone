@@ -33,6 +33,9 @@ import {
   withFourVariants,
   expectVariantSwitcher,
   findVariantsCard,
+  openFactionSettings,
+  expectFactionSettings,
+  settingsRows,
 } from './factions.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { StorybookPage } from './storybook';
@@ -986,5 +989,125 @@ export const DetailWithOneVariantHasNoSwitcher = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('region', { name: 'Rulesets' }, { timeout: 30_000 });
     await expect(page.queryByRole('region', { name: 'Variants' })).toBeNull();
+  },
+});
+
+/**
+ * A maintainer opens the Faction from its settings: one tick, kept by the server, and one more closes it again.
+ * The default's row carries no eviction hold;
+ * every other row does.
+ */
+export const DetailFactionSettingsOpenTheFaction = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    const open = within(settings).getByRole('checkbox', { name: 'Anyone signed in may add a variant' });
+    await userEvent.click(open);
+    await expect(open).toBeChecked();
+    /* Shut and opened again, the settings read what the server kept. */
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole('button', { name: 'Faction settings' }));
+    await waitFor(() => expect(page.queryByRole('dialog')).toBeNull());
+    const reopened = await openFactionSettings(canvasElement);
+    await waitFor(() =>
+      expect(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' })).toBeChecked()
+    );
+    await userEvent.click(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' }));
+    await waitFor(() =>
+      expect(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' })).not.toBeChecked()
+    );
+  },
+});
+
+/**
+ * Moving a variant to the top makes it the default, in the settings and in the Variants card alike.
+ * The new default and the parent it follows then carry no eviction, since the default's branch stays.
+ */
+export const DetailFactionSettingsReorder = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    const handle = within(settings).getByRole('button', { name: 'Reorder Dreamrules' });
+    const names = () => settingsRows(settings).map((row) => row.name);
+    /* dnd-kit cancels a drag on any window resize (#2309), and this page can still be resizing in CI, so a cancelled drag is tried again. */
+    for (let attempt = 1; attempt <= 3 && names()[0] !== 'Dreamrules'; attempt++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      handle.focus();
+      await userEvent.keyboard('[Space]');
+      await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+      await userEvent.keyboard('[ArrowUp]');
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      await userEvent.keyboard('[Space]');
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+    }
+    await waitFor(
+      () =>
+        expect(settingsRows(settings)).toEqual([
+          { name: 'Dreamrules', evicts: false, whole: true },
+          { name: 'Original', evicts: false, whole: true },
+          { name: 'Tournament', evicts: true, whole: true },
+          { name: 'Two players', evicts: true, whole: true },
+        ]),
+      { timeout: 30_000 }
+    );
+    const card = within(await findVariantsCard(canvasElement));
+    await waitFor(() =>
+      expect(card.getAllByRole('listitem').map((row) => within(row).getByRole('paragraph').textContent)).toEqual([
+        'Dreamrules',
+        'Original',
+        'Tournament',
+        'Two players',
+      ])
+    );
+  },
+});
+
+/** On a laptop the settings open under the toolbar inside the page, with every name whole. */
+export const DetailFactionSettingsLaptop = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    await expectWithinWidth(canvasElement, [settings]);
+  },
+});
+
+/** On a narrow phone the settings still fit the page, with every name whole. */
+export const DetailFactionSettingsMobile = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    await expectWithinWidth(canvasElement, [settings]);
+  },
+});
+
+/** A signed-out reader of a Faction with several variants sees the switcher, and no Faction settings. */
+export const DetailKeepsFactionSettingsFromReaders = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants, identity: null },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
+  },
+});
+
+/** While the Faction has other live variants, the editor's hold deletes the variant alone and says only that. */
+export const EditVariantAmongOthersDeletesOnlyTheVariant = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Delete variant' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Delete variant and faction' })).toBeNull();
   },
 });
