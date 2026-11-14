@@ -15,6 +15,9 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
 /** The Worker refreshes its copy of the catalogue at most this often while a game drafts. */
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 
+/** The longest variant name a draft row holds; the catalogue cuts a longer one to fit. */
+export const DRAFT_VARIANT_NAME_MAX = 160;
+
 /** One faction as the draft knows it: enough to draw its real token, and whether it may be dealt. */
 const draftFactionSchema = z.object({
   id: tableIdentitySchema,
@@ -32,7 +35,7 @@ const draftFactionSchema = z.object({
    * Optional so a draft stored before variants were named still reads.
    */
   familyId: tableIdentitySchema.optional(),
-  variantName: z.string().max(160).optional(),
+  variantName: z.string().max(DRAFT_VARIANT_NAME_MAX).optional(),
 });
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
 

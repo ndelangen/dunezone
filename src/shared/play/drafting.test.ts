@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
-import { dealSeats, draftGates, draftWarning, draftedPool, emptyDraft, resolveFactionPool } from './drafting';
+import {
+  dealSeats,
+  draftGates,
+  draftStateSchema,
+  draftWarning,
+  draftedPool,
+  emptyDraft,
+  resolveFactionPool,
+} from './drafting';
 import type { DraftFaction, DraftState } from './drafting';
 
 const faction = (id: string, linked: boolean, published = true): DraftFaction => ({
@@ -29,6 +37,10 @@ const draft = (picks: DraftState['picks'], bans: DraftState['bans'] = {}, ready:
 });
 /* A fixed source that always takes the first candidate, so a deal is predictable. */
 const first = () => 0;
+
+it('a draft stored before rows named their Faction and variant still parses', () => {
+  expect(draftStateSchema.parse(emptyDraft(2, catalogue, 1)).factions).toEqual(catalogue);
+});
 
 describe('the drafted pool', () => {
   it('counts each faction once, in first-pick order, and never a banned one', () => {
