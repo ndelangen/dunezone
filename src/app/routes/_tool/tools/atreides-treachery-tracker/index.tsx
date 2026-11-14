@@ -236,7 +236,7 @@ const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
 /* Every faction on Dune Zone, searched by name, as the setup's Add a faction lists them. */
 const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
   const [query, setQuery] = useState('');
-  const read = useCataloguePickerGroup('faction', query.trim(), undefined);
+  const read = useCataloguePickerGroup('faction', query.trim(), undefined, seated);
   const status = SEARCH_STATUS[read.status] ?? 'done';
   return (
     <FactionSearchList

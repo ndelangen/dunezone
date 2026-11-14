@@ -229,3 +229,28 @@ test('an asset choice names no variant', async () => {
   });
   expect(read.page).toMatchObject([{ variant: null }]);
 });
+
+test('a faction choice names the seated sibling that keeps it from the table', async () => {
+  const { t, owner, root, addVariant } = await variantsFixture();
+  const dreamrules = await addVariant('Dreamrules');
+  const harkonnen = await owner.mutation(api.factions.create, {
+    data: { ...assetPublishingFaction, name: 'Harkonnen' },
+    group_id: null,
+  });
+  const read = async (seated?: string[]) => {
+    const { page } = await t.query(api.cataloguePicker.options, {
+      group: 'faction',
+      q: '',
+      paginationOpts: { numItems: 5, cursor: null },
+      seated,
+    });
+    return new Map(page.map(({ choice, seatedAs }) => [String(choice.id), seatedAs]));
+  };
+  /* The seated variant itself and another Faction stay open; an id that is no faction's is passed over. */
+  const seated = await read([dreamrules.id, harkonnen._id, 'not-a-faction']);
+  expect(seated.get(root._id)).toBe('Dreamrules');
+  expect(seated.get(dreamrules.id)).toBeNull();
+  expect(seated.get(harkonnen._id)).toBeNull();
+  expect((await read([root._id])).get(dreamrules.id)).toBe('Original');
+  expect([...(await read()).values()]).toEqual([null, null, null]);
+});

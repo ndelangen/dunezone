@@ -1,6 +1,7 @@
 import { Box } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
 import { Surface } from '@ui/surface/Surface';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
@@ -46,6 +47,39 @@ export const FactionSearch = meta.story({
     await expect(await canvas.findByRole('button', { name: 'Add Fremen' })).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: LONG_VARIANT })).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: 'Add House Atreides · Dreamrules' })).toBeInTheDocument();
+  },
+});
+
+/* A table that seats what the search picks, as a tool's seating does. */
+function SeatingSearch() {
+  const [seated, setSeated] = useState<readonly string[]>([]);
+  return <LiveFactionSearch seated={seated} onePerFaction onPick={(faction) => setSeated([...seated, faction.id])} />;
+}
+
+/** A tool seats one variant per Faction: once one variant of House Atreides is seated its siblings dim, say which variant is seated and cannot be picked, and the other Factions stay open. */
+export const SeatedSibling = meta.story({
+  render: () => (
+    <Pane>
+      <SeatingSearch />
+    </Pane>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(await canvas.findByRole('searchbox', { name: 'Search factions' }), 'house');
+    await userEvent.click(await canvas.findByRole('button', { name: 'Load more' }));
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add House Atreides · Dreamrules' }));
+    await expect(
+      await canvas.findByRole('button', { name: 'House Atreides · Dreamrules is at the table' })
+    ).toBeDisabled();
+    /* The seats are part of what the search asks for, so seating one starts the list over. */
+    await userEvent.click(await canvas.findByRole('button', { name: 'Load more' }));
+    const sibling = await canvas.findByRole('button', {
+      name: /^House Atreides · Tournament play.*: Seated as Dreamrules$/,
+    });
+    await expect(sibling).toBeDisabled();
+    await expect(within(sibling).getByText('Seated as Dreamrules')).toBeVisible();
+    await expect(canvas.getAllByRole('button', { name: /: Seated as Dreamrules$/ })).toHaveLength(2);
+    await expect(canvas.getByRole('button', { name: 'Add House Harkonnen · Dreamrules' })).toBeEnabled();
   },
 });
 

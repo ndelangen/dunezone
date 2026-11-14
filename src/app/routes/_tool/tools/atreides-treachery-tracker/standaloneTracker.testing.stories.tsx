@@ -25,6 +25,10 @@ export const AddAFaction = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Remove Emperor' }));
     await userEvent.click(canvas.getByRole('button', { name: 'Add a faction' }));
     await expect(await body.findByRole('button', { name: 'House Atreides is at the table' })).toBeDisabled();
+    /* The table seats one variant per Faction, so the other variant of House Atreides cannot be added and says which is seated. */
+    const sibling = body.getByRole('button', { name: 'House Atreides · Dreamrules: Seated as Original' });
+    await expect(sibling).toBeDisabled();
+    await expect(sibling).toHaveTextContent('Seated as Original');
     await userEvent.click(body.getByRole('button', { name: 'Add Ixians' }));
     await expect(canvas.getByText('Ixians')).toBeVisible();
     await expect(canvas.queryByText('Emperor')).toBeNull();
