@@ -166,6 +166,17 @@ async function patchDocument<TableName extends TableNames>(
   await db.patch(document.table, id as Id<TableName>, value);
 }
 
+/**
+ * A seeded variant's Faction goes by `<the variant's key>:family`, so a seed patch can change it.
+ * A trigger makes the Faction, so no seed row holds it.
+ */
+async function nameFamily(db: DatabaseWriter, key: string, id: Id<TableNames>, references: Map<string, string>) {
+  const familyId = db.normalizeId('factions', id) ? (await db.get('factions', id as Id<'factions'>))?.family_id : null;
+  if (familyId) {
+    references.set(`${key}:family`, familyId);
+  }
+}
+
 async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], references: Map<string, string>) {
   for (const document of documents) {
     if (document.operation === 'patch') {
@@ -174,6 +185,7 @@ async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], ref
     const id = await insertDocument(db, document, references);
     if (document.key) {
       references.set(document.key, id);
+      await nameFamily(db, document.key, id, references);
     }
   }
 }

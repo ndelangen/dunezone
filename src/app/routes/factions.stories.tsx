@@ -9,6 +9,7 @@ import {
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
+  openFactionSeenFromOutsideItsGroup,
   factionMaintainerOutsideTheVariantGroup,
   DREAMRULES_PATH,
   withAChildVariant,
@@ -323,7 +324,7 @@ export const DetailFactionSettings = meta.story({
 });
 
 /**
- * Someone who maintains a variant and not its Faction edits the variant, and is offered neither the Faction settings nor a new variant.
+ * Someone who maintains a variant and not its Faction edits the variant, and is offered neither the Faction settings nor a new variant while the Faction is closed.
  */
 export const DetailWithoutFactionSettings = meta.story({
   args: { path: '/factions/house-atreides' },
@@ -333,6 +334,22 @@ export const DetailWithoutFactionSettings = meta.story({
     await expect(page.findByRole('link', { name: 'Edit faction' }, LOAD)).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/**
+ * An open Faction (#2928): anyone signed in is offered Create variant on its variants' pages, with the same form its maintainers get.
+ * The Faction settings stay with its owner and its Group.
+ */
+export const DetailOpenFaction = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: openFactionSeenFromOutsideItsGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await expect(form.getByRole('radio', { name: 'Original' })).toBeChecked();
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
   },
 });
 

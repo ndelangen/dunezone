@@ -22,6 +22,11 @@ describe('open factions (#2928)', () => {
     await expect(addOwnVariant('Mine')).rejects.toThrow('Not authorized');
 
     await owner.mutation(api.factionFamilies.setOpen, { family_id: familyId, is_open: true });
+    /* The switcher tells everyone the faction is open and names the parents on offer, which is all the create form needs. */
+    expect(await stranger.query(api.factionVariants.switcher, { faction_id: root._id })).toMatchObject({
+      isOpen: true,
+      variants: [{ _id: root._id, name: 'Original' }],
+    });
     const mine = await addOwnVariant('Mine');
     expect(await row(mine.id)).toMatchObject({ family_id: familyId, parent_id: root._id, variant_name: 'Mine' });
     expect((await row(mine.id)).owner_id).not.toBe(root.owner_id);

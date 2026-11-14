@@ -27,6 +27,7 @@ import {
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
+  openFactionSeenFromOutsideItsGroup,
   DREAMRULES_PATH,
   withAChildVariant,
   withABrokenChildVariant,
@@ -916,6 +917,27 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
       { timeout: 30_000 }
     );
     await expect(page.queryByRole('form', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/** Someone outside an open Faction's Group adds a variant of their own to it, and lands on its page as its editor (#2928). */
+export const DetailOpenFactionTakesAnyonesVariant = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: openFactionSeenFromOutsideItsGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, { timeout: 30_000 }));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, { timeout: 30_000 }));
+    await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
+    await userEvent.click(form.getByRole('button', { name: 'Create variant' }));
+    await waitFor(
+      () =>
+        expect(page.getByRole('link', { name: 'Edit faction' })).toHaveAttribute(
+          'href',
+          '/factions/house-atreides-tournament/edit'
+        ),
+      { timeout: 30_000 }
+    );
   },
 });
 

@@ -8,7 +8,7 @@ import type { RouterHistory } from '@tanstack/react-router';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';
-import type { StorybookDatabase } from '@db/storybook';
+import type { DatabaseDefinition, StorybookDatabase } from '@db/storybook';
 
 import { spaceOrks, spaceOrksOwner, spaceOrksPublication } from './factionPlanets.stories.fixture';
 import { expectWithinWidth } from './pagePlay';
@@ -223,6 +223,17 @@ export const variantMaintainerOutsideTheFactionGroup = maintainedByTwoGroups({
   faction: FACTION_GROUP,
   variant: VARIANT_GROUP,
 });
+
+/**
+ * The same viewer, on the same Faction once its maintainers opened it: anyone signed in may add a variant (#2928).
+ * A trigger makes the Faction, so opening it is a patch made after the seed rows exist.
+ */
+export const openFactionSeenFromOutsideItsGroup: DatabaseDefinition = {
+  create: () => [
+    ...variantMaintainerOutsideTheFactionGroup.create(),
+    { operation: 'patch', key: 'faction:house-atreides:family', table: 'faction_families', value: { is_open: true } },
+  ],
+};
 
 /** The viewer maintains the Faction through its Group, and has no part in the variant's. */
 export const factionMaintainerOutsideTheVariantGroup = maintainedByTwoGroups({

@@ -501,17 +501,19 @@ function ToolbarPopover({
 
 /**
  * The Faction's own actions on a variant's toolbar.
- * Create variant (#2927) and the Faction settings (#2928) are for the Faction's owner and its Group.
+ * Create variant (#2927) is for the Faction's owner and its Group, and for anyone signed in while the Faction is open, as the server allows (#2928).
+ * Faction settings are for its owner and its Group alone.
  */
 function FactionActions({
   faction,
   switcher,
   maintains,
-}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher; maintains: boolean }>) {
+  signedIn,
+}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher; maintains: boolean; signedIn: boolean }>) {
   const navigate = Route.useNavigate();
   return (
     <>
-      {maintains ? (
+      {maintains || (signedIn && switcher.isOpen) ? (
         <ToolbarPopover label="Create variant" intent="positive" icon={<GitBranchPlus size={17} aria-hidden />}>
           <CreateVariantForm faction={faction} switcher={switcher} />
         </ToolbarPopover>
@@ -893,7 +895,13 @@ function FactionDetailContent({
               />
             ) : null}
             {settled && switcher ? (
-              <FactionActions key={faction._id} faction={faction} switcher={switcher} maintains={rights.shared} />
+              <FactionActions
+                key={faction._id}
+                faction={faction}
+                switcher={switcher}
+                maintains={rights.shared}
+                signedIn={viewerAccess.viewer.kind === 'authenticated'}
+              />
             ) : null}
           </Toolbar.Left>
 
