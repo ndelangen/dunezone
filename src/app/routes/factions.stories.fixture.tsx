@@ -5,6 +5,7 @@ import { INHERITABLE_FIELDS, variantProblems } from '@shared/factions/variantFie
 import type { InheritableField } from '@shared/factions/variantFields';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
+import { drawnCover } from '@ui/block/FactionCard.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref, refText, ruleset, SEED_REF_TOKEN } from '@db/storybook';
@@ -297,15 +298,6 @@ export const withABrokenChildVariant = withDreamrules((parent) => ({
   ],
 }));
 
-/*
- * A ruleset cover drawn in place, so it shows wherever the Storybook is hosted;
- * a path into `public` only resolves when the Storybook sits at the root of its host.
- */
-function drawnCover(sky: string, dune: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${sky}"/><circle cx="44" cy="20" r="9" fill="#f4e3b1"/><path d="M0 46 Q20 30 38 44 T64 40 V64 H0Z" fill="${dune}"/></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
 /** The catalogue's factions beside House Atreides, each with the rulesets it is in. */
 const COVERED_FACTIONS = [
   { name: 'Fremen of the Deep Desert', rulesets: ['dreamrules', 'spring-cup', 'sietch-house-rules'] },
@@ -341,16 +333,6 @@ export const withRulesetCovers = db((baseline) => {
     }
   }
 });
-
-/** The row of ruleset covers on the catalogue card named `name`, or null where the card has none. */
-export function cardRulesetCovers(page: ReturnType<typeof within>, name: RegExp) {
-  const [card] = gridCards(page, name);
-  return (
-    within(card!)
-      .getAllByRole('img')
-      .find((picture) => !picture.getAttribute('aria-label')?.includes('complexity')) ?? null
-  );
-}
 
 /** The variants beside the Original, in the order they were made, each with its parent and the rulesets it is in. */
 const SWITCHER_VARIANTS = [

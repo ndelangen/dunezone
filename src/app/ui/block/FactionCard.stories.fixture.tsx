@@ -16,13 +16,13 @@ export const baseFaction = {
 } as unknown as FactionCatalogueEntry;
 
 /* A ruleset cover drawn in place, so it shows wherever the Storybook is hosted. */
-function drawnCover(sky: string, dune: string) {
+export function drawnCover(sky: string, dune: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="${sky}"/><circle cx="44" cy="20" r="9" fill="#f4e3b1"/><path d="M0 46 Q20 30 38 44 T64 40 V64 H0Z" fill="${dune}"/></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 /* Eight rulesets as a card cites them: most with a cover, the third and the sixth without, as most rulesets start out. */
-const citedRulesets = [
+export const citedRulesets = [
   { id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune', coverThumbUrl: drawnCover('#27445c', '#c98a3c') },
   { id: 'ruleset-classic', slug: 'classic', name: 'Classic Dune', coverThumbUrl: drawnCover('#4a2d5e', '#d9a15a') },
   { id: 'ruleset-tournament', slug: 'tournament', name: 'Tournament Dune', coverThumbUrl: null },

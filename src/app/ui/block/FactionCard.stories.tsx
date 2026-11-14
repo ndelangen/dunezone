@@ -36,7 +36,7 @@ export const Default = meta.story({
   play: async ({ canvasElement }) => {
     await expect(
       within(canvasElement).getByRole('link', {
-        name: 'Atreides Advanced Dune Novice complexity, 2 out of 10',
+        name: 'Atreides Rulesets: Advanced Dune Novice complexity, 2 out of 10',
       })
     ).toBeVisible();
   },
@@ -47,7 +47,7 @@ export const MultipleRulesets = meta.story({
   args: { faction: inRulesets(3) },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const covers = canvas.getByRole('img', { name: 'Advanced Dune, Classic Dune, Tournament Dune' });
+    const covers = canvas.getByRole('group', { name: 'Rulesets: Advanced Dune, Classic Dune, Tournament Dune' });
     await expect(covers).toBeVisible();
     await waitFor(async () => {
       const images = covers.querySelectorAll('img');
@@ -67,8 +67,8 @@ export const MultipleRulesets = meta.story({
 export const ManyRulesets = meta.story({
   args: { faction: inRulesets(6), selectedRulesetSlug: 'spring-cup' },
   play: async ({ canvasElement }) => {
-    const covers = within(canvasElement).getByRole('img', {
-      name: 'Spring Cup, Advanced Dune, Classic Dune, Tournament Dune, Dreamrules, Sietch house rules',
+    const covers = within(canvasElement).getByRole('group', {
+      name: 'Rulesets: Spring Cup, Advanced Dune, Classic Dune, Tournament Dune, Dreamrules, Sietch house rules',
     });
     await expect(covers.children).toHaveLength(4);
     await expect(within(covers).getByText('+3')).toBeVisible();
@@ -96,11 +96,7 @@ export const RulesetCounts = meta.story({
   ),
   play: async ({ canvasElement }) => {
     const cards = within(canvasElement).getAllByRole('link');
-    /* The complexity glyph is a picture too, so the row of covers is the one that is not it. */
-    const coversOf = (card: HTMLElement) =>
-      within(card)
-        .getAllByRole('img')
-        .find((picture) => !picture.getAttribute('aria-label')?.includes('complexity'));
+    const coversOf = (card: HTMLElement) => within(card).queryByRole('group', { name: /^Rulesets:/ });
     await expect(cards.map((card) => coversOf(card)?.children.length ?? 0)).toEqual([0, 1, 3, 4, 4, 4]);
     await expect(within(cards[4]!).getByText('+3')).toBeVisible();
     await expect(within(cards[5]!).getByText('+5')).toBeVisible();

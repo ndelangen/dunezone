@@ -24,19 +24,14 @@ import {
   selectCatalogueSearch,
 } from './catalogueOrder';
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
-import type { catalogueFactionValidator } from './collaborativeAccessValidators';
+import type { catalogueFactionValidator, rulesetCitationValidator } from './collaborativeAccessValidators';
 import { ORIGINAL_VARIANT_NAME } from './factionFamilies';
 import { parseStoredFactionForRead } from './factionInput';
 import { loadPublicProfileBySlug } from './profileAddress';
 import { profileListName } from './profileCatalogue';
 
 /** A ruleset as a faction card cites it: the summary, and the cover thumb its small picture draws, or null where it has no cover. */
-export type FactionRulesetSummary = {
-  id: Id<'rulesets'>;
-  slug: string;
-  name: string;
-  coverThumbUrl: string | null;
-};
+export type FactionRulesetSummary = Infer<typeof rulesetCitationValidator>;
 
 /** Derived from the wire contract, so the projection below cannot quietly ship a field the validator rejects. */
 export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;

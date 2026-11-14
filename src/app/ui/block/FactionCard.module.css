@@ -3,8 +3,6 @@
   position: relative;
   min-width: 0;
   container: faction-card / inline-size;
-
-  --ruleset-cover-size: 1.375rem;
 }
 
 /*
@@ -188,8 +186,10 @@
   line-height: 1.12;
 }
 
-/* The faction's rulesets as their covers, overlapping, under the name. */
+/* The faction's rulesets as their covers, under the name; four of them fit the compact caption. */
 .rulesets {
+  --ruleset-cover-size: 1.375rem;
+
   margin-top: 0.25rem;
 }
 

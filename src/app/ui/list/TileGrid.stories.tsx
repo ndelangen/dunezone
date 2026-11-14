@@ -105,9 +105,9 @@ export const FactionCardsWithSelectedRuleset = meta.story({
     /* Every fixture card carries the same faction document, so the rulesets tell them apart in list order. */
     const links = within(canvasElement).getAllByRole('link');
     const captions = [
-      'Atreides Advanced Dune',
-      'Atreides Classic Dune',
-      'Atreides Classic Dune, Advanced Dune',
+      'Atreides Rulesets: Advanced Dune',
+      'Atreides Rulesets: Classic Dune',
+      'Atreides Rulesets: Classic Dune, Advanced Dune',
       'Atreides',
     ];
     for (const [index, caption] of captions.entries()) {

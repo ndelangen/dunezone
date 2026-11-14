@@ -1,8 +1,8 @@
-import { Avatar, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { Avatar, Text, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
+import { RulesetCovers } from '@ui/content/RulesetCovers';
 import { TokenImage } from '@ui/content/TokenImage';
 import type { ReactNode } from 'react';
 
@@ -43,13 +43,10 @@ export function FactionCard({
   const { name, emblem, background, factionLeader, leaders } = faction.data;
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
-  const selected = faction.rulesets.find((ruleset) => ruleset.slug === selectedRulesetSlug);
-  const rulesets = selected
-    ? [selected, ...faction.rulesets.filter((ruleset) => ruleset !== selected)]
-    : faction.rulesets;
-  /* Four covers fit the compact caption; a fifth ruleset turns the fourth place into the "+N". */
-  const shown = rulesets.length > RULESET_COVER_LIMIT ? rulesets.slice(0, RULESET_COVER_LIMIT - 1) : rulesets;
-  const rest = rulesets.slice(shown.length);
+  /* The ruleset the list is narrowed to leads; the rest keep the order they came in. */
+  const rulesets = faction.rulesets.toSorted(
+    (left, right) => Number(right.slug === selectedRulesetSlug) - Number(left.slug === selectedRulesetSlug)
+  );
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -108,34 +105,12 @@ export function FactionCard({
                 <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
                   {name}
                 </Text>
-                {rulesets.length > 0 ? (
-                  /* One picture to a reader who cannot see it, naming every ruleset, those behind the "+N" too. */
-                  <Avatar.Group
-                    className={styles.rulesets}
-                    spacing={6}
-                    role="img"
-                    aria-label={rulesets.map((ruleset) => ruleset.name).join(', ')}
-                  >
-                    {shown.map((ruleset) => (
-                      <Tooltip key={ruleset.id} label={ruleset.name} withArrow>
-                        {/* Unnamed, since the row names every ruleset; with no cover it is the name's initial on the name's own colour. */}
-                        <NameDisc
-                          src={ruleset.coverThumbUrl}
-                          name={ruleset.name}
-                          size="var(--ruleset-cover-size)"
-                          color={ruleset.coverThumbUrl ? undefined : nameDiscColor(ruleset.name)}
-                        />
-                      </Tooltip>
-                    ))}
-                    {rest.length > 0 ? (
-                      <Tooltip label={rest.map((ruleset) => ruleset.name).join(', ')} withArrow>
-                        <Avatar size="var(--ruleset-cover-size)" radius="xl" variant="filled" color="dark">
-                          +{rest.length}
-                        </Avatar>
-                      </Tooltip>
-                    ) : null}
-                  </Avatar.Group>
-                ) : null}
+                <RulesetCovers
+                  className={styles.rulesets}
+                  rulesets={rulesets}
+                  size="var(--ruleset-cover-size)"
+                  limit={4}
+                />
               </div>
               <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
             </div>
@@ -146,9 +121,6 @@ export function FactionCard({
     </div>
   );
 }
-
-/* How many places the card's row of ruleset covers has; one more ruleset than this and the last place counts the rest. */
-const RULESET_COVER_LIMIT = 4;
 
 /*
  * One of the card's tokens as a disc.

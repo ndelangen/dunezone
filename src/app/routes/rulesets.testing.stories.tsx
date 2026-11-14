@@ -190,7 +190,7 @@ export const QuestionReferences = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Close reference picker' }));
     const remove = await page.findByRole('button', { name: 'Remove reference to House Atreides' }, { timeout: 30_000 });
     await expect(question).toHaveValue('An unsaved question draft?');
-    await expect(page.getByRole('link', { name: /House Atreides ClassicRules/ })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /House Atreides Rulesets: ClassicRules/ })).toHaveAttribute(
       'href',
       '/factions/house-atreides-original'
     );

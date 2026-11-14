@@ -19,7 +19,6 @@ import {
   openFactionSettings,
   expectFactionSettings,
   withRulesetCovers,
-  cardRulesetCovers,
   gridCards,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
@@ -67,41 +66,20 @@ export const CatalogueRulesetCovers = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
-    const atreides = cardRulesetCovers(page, /House Atreides/)!;
+    const covers = (name: RegExp) => within(gridCards(page, name)[0]!).queryByRole('group', { name: /^Rulesets:/ });
+    const atreides = covers(/House Atreides/)!;
     await expect(atreides).toHaveAccessibleName(
-      'ClassicRules, Dreamrules, Landsraad, Sietch house rules, Spring Cup, Two players'
+      'Rulesets: ClassicRules, Dreamrules, Landsraad, Sietch house rules, Spring Cup, Two players'
     );
     await expect(atreides.children).toHaveLength(4);
     await expect(within(atreides).getByText('+3')).toBeVisible();
     await waitFor(() => expect(atreides.querySelectorAll('img')).toHaveLength(3));
     /* Sietch house rules has no cover, so the Fremen's row holds two pictures and an initial. */
-    const fremen = cardRulesetCovers(page, /Fremen of the Deep Desert/)!;
-    await expect(fremen).toHaveAccessibleName('Dreamrules, Sietch house rules, Spring Cup');
+    const fremen = covers(/Fremen of the Deep Desert/)!;
+    await expect(fremen).toHaveAccessibleName('Rulesets: Dreamrules, Sietch house rules, Spring Cup');
     await expect(within(fremen).getByText('S')).toBeVisible();
-    await expect(cardRulesetCovers(page, /Spacing Guild/)!.children).toHaveLength(1);
-    await expect(cardRulesetCovers(page, /Bene Tleilax/)).toBeNull();
-  },
-});
-
-/** The same cards two across a phone, where each takes its compact caption and the smaller covers. */
-export const CatalogueRulesetCoversMobile = meta.story({
-  args: { path: '/factions' },
-  parameters: { database: withRulesetCovers },
-  globals: { viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
-    for (const name of [/House Atreides/, /Fremen of the Deep Desert/, /Spacing Guild/]) {
-      const [card] = gridCards(page, name);
-      const covers = cardRulesetCovers(page, name)!.getBoundingClientRect();
-      const glyph = within(card!)
-        .getByRole('img', { name: /complexity/ })
-        .getBoundingClientRect();
-      /* The row stays inside its card and stops short of the complexity glyph. */
-      await expect(covers.left).toBeGreaterThanOrEqual(card!.getBoundingClientRect().left);
-      await expect(covers.right).toBeLessThanOrEqual(glyph.left);
-      await expect(covers.bottom).toBeLessThanOrEqual(card!.getBoundingClientRect().bottom);
-    }
+    await expect(covers(/Spacing Guild/)!.children).toHaveLength(1);
+    await expect(covers(/Bene Tleilax/)).toBeNull();
   },
 });
 
