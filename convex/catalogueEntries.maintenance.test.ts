@@ -8,6 +8,7 @@ import { api, internal } from './_generated/api';
 import { catalogueFactionData, CATALOGUE_STAMP } from './factions.catalogue.test.fixture';
 import { factionAuthor, factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { countCataloguePartitions } from './lib/catalogueOrder';
 import { factionOwnerPartition } from './lib/factionCatalogue';
 
 const noDrift = { missing: [], stale: [], duplicated: [], unordered: [], orphaned: [], overcounted: [] };
@@ -146,7 +147,7 @@ describe('catalogue entry maintenance', () => {
     await t.finishAllScheduledFunctions(() => undefined);
     /* The ghost of the deleted original still counts until the prune runs, and the drift report says so. */
     expect(await drift()).toMatchObject({ ...noDrift, overcounted: ['name', 'created', 'updated', 'complexity'] });
-    expect((await t.query(api.factions.catalogue, {})).catalogueTotal).toBe(3);
+    expect(await t.run((ctx) => countCataloguePartitions(ctx, 'faction', ['all']))).toEqual([3]);
 
     await t.mutation(internal.catalogueMaintenance.catalogue_order_prune, {});
     await t.finishAllScheduledFunctions(() => undefined);

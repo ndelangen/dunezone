@@ -144,8 +144,9 @@ describe('homepage page data', () => {
     });
 
     const { spotlights } = await t.query(api.homepage.get, {});
-    expect(spotlights.newArrival?.slug).toBe('faction-500-original');
-    expect(spotlights.freshlyUpdated?.slug).toBe('faction-499-original');
+    /* A spotlight is a faction, so it leads to the faction's own address, which opens its default variant (#2929). */
+    expect(spotlights.newArrival?.slug).toBe('faction-500');
+    expect(spotlights.freshlyUpdated?.slug).toBe('faction-499');
     /* 501 trigger-backed faction inserts take about 10 s locally; this leaves headroom for a loaded runner. */
   }, 120_000);
 });

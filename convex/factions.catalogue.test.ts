@@ -114,7 +114,15 @@ describe('faction catalogue page', () => {
     const catalogue = await t.query(api.factions.catalogue, {});
     const row = catalogue.cards[0];
 
-    expect(Object.keys(row ?? {}).sort()).toEqual(['_id', 'created_at', 'data', 'rulesets', 'slug', 'updated_at']);
+    expect(Object.keys(row ?? {}).sort()).toEqual([
+      '_id',
+      'created_at',
+      'data',
+      'rulesets',
+      'slug',
+      'updated_at',
+      'variantCount',
+    ]);
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
       'background',
       'complexity',

@@ -187,6 +187,8 @@ export const catalogueFactionValidator = schema.tables.factions.validator
     _id: v.id('factions'),
     data: catalogueFactionDataValidator,
     rulesets: v.array(rulesetSummaryValidator),
+    /** How many live variants the faction has, on a catalogue card that stands for the whole faction (#2929). */
+    variantCount: v.optional(v.number()),
   });
 
 /** The ruleset and its factions, the same for every viewer. */

@@ -182,8 +182,12 @@ describe('faction catalogue query', () => {
     );
     expect(await names({ owner: 'stilgar' })).toEqual([]);
 
-    /* Patching the owner moves the faction from one member's list to the other's, and the counts follow. */
-    await t.run((rawCtx) => applicationTriggers.wrapDB(rawCtx).db.patch(sietches[0]!, { owner_id: stilgarId }));
+    /* Moving the faction and its only variant to another member, as an account merge does, moves it from one member's list to the other's, and the counts follow. */
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      await ctx.db.patch(sietches[0]!, { owner_id: stilgarId });
+      await ctx.db.patch((await ctx.db.get(sietches[0]!))!.family_id!, { owner_id: stilgarId });
+    });
     expect(await page({ owner: 'chani' })).toMatchObject({ total: FACTION_CATALOGUE_PAGE_SIZE, pageCount: 1 });
     expect((await page({ owner: 'chani', page: 2 })).cards).toEqual([]);
     expect(await names({ owner: 'stilgar' })).toEqual(['Sietch 00']);
@@ -411,6 +415,7 @@ describe('faction catalogue query', () => {
       'rulesets',
       'slug',
       'updated_at',
+      'variantCount',
     ]);
     expect(Object.keys(card?.data ?? {}).sort(compareCodeUnits)).toEqual([
       'background',
