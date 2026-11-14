@@ -1,3 +1,4 @@
+import { ConvexError } from 'convex/values';
 import type { Infer } from 'convex/values';
 
 import { evaluateCollaborativeAccess } from '../../src/shared/access/collaborativeAccess';
@@ -392,6 +393,23 @@ export async function loadFactionFamilyAccess(ctx: AnyCtx, family: Doc<'faction_
   const assignedGroup = liveGroupOrNull(family.group_id ? await ctx.db.get('groups', family.group_id) : null);
   const viewerMembership = await membershipFor(ctx, assignedGroup?._id ?? null, viewerId);
   return factionViewerAccess(family, assignedGroup, viewerId, viewerMembership);
+}
+
+/** The live Faction, if the viewer may do `capability` on it: `edit` for its owner and Group, `delete` for its owner alone. */
+export async function requireFactionFamily(
+  ctx: MutationCtx,
+  familyId: Id<'faction_families'> | undefined,
+  capability: 'edit' | 'delete'
+) {
+  await requireAuthenticatedViewerId(ctx);
+  const family = familyId ? await ctx.db.get('faction_families', familyId) : null;
+  if (!family || family.is_deleted) {
+    throw new ConvexError('That faction no longer exists.');
+  }
+  if (!(await loadFactionFamilyAccess(ctx, family)).capabilities[capability]) {
+    throw new Error('Not authorized');
+  }
+  return family;
 }
 
 /** Whether the viewer may change the shared fields of this variant's Faction; a variant not yet given one falls back to its owner. */

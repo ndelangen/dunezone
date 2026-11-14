@@ -9,6 +9,7 @@ import {
 } from '../../src/shared/factions/catalogueSearch';
 import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
+import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { resolveBackgrounds } from './backgroundPresets';
@@ -434,13 +435,30 @@ export async function loadOwnerFactionPreview(ctx: QueryCtx, ownerId: Id<'users'
   return { factions, factionCount: Math.max(listed, factions.length), listedFactionCount: listed };
 }
 
-export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
+/** The live rulesets a faction is linked to, in the order the links were made. */
+async function liveFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
   const links = await ctx.db
     .query('ruleset_factions')
     .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
     .take(500);
   const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
-  return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }] : []
-  );
+  return rulesets.flatMap((ruleset) => (ruleset && !ruleset.is_deleted ? [ruleset] : []));
+}
+
+export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
+  return (await liveFactionRulesets(ctx, factionId)).map((ruleset) => ({
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+  }));
+}
+
+/** The same rulesets, each with the cover thumb a small picture of it draws, or null where it has no cover. */
+export async function listFactionRulesetCovers(ctx: QueryCtx, factionId: Id<'factions'>) {
+  return (await liveFactionRulesets(ctx, factionId)).map((ruleset) => ({
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+    coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+  }));
 }

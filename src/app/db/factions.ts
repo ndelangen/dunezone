@@ -221,7 +221,7 @@ export function useFactionAccess(page: FactionDetailPageData) {
 }
 
 /**
- * Whether the current viewer may change the shared fields, which the variant's Faction holds: its owner and its own Group may, a variant's Group alone may not (#2910).
+ * Whether the current viewer may change the shared fields and settings, which the variant's Faction holds: its owner and its own Group may, a variant's Group alone may not (#2910).
  * A variant not yet given a Faction leaves them to its owner, as the server does.
  */
 export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {
@@ -231,7 +231,12 @@ export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {
       ? assetSubjectFacts('faction', family, family.assignedGroup)
       : assetSubjectFacts('faction', page.faction, page.assignedGroup)
   );
-  return { resolved, canEdit: family ? viewerAccess.capabilities.edit : viewerAccess.capabilities.rename };
+  return {
+    resolved,
+    canEdit: family ? viewerAccess.capabilities.edit : viewerAccess.capabilities.rename,
+    /* Only the Faction's owner deletes it, and a variant without a Faction has none to delete. */
+    canDelete: family ? viewerAccess.capabilities.delete : false,
+  };
 }
 
 /** A Play seat's faction page address by its id; undefined while loading, null when the faction is gone. */
@@ -326,7 +331,20 @@ export function useCreateFaction() {
 }
 
 /**
- * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants a new one may take as its parent.
+ * The variant switcher's rows for the variant `factionId`: its Faction's live variants in variant order, the default first, each with the rulesets it is linked to.
+ * It is the same for every viewer and every variant of the Faction asks for the same list, so it is kept apart from the page query, which then does not rerun when a sibling variant changes.
+ * Undefined while loading, and null when the variant or its Faction is gone.
+ */
+export function useFactionVariantSwitcher(factionId: string) {
+  return useLiveQuery(api.factionVariants.switcher, { faction_id: factionId as FactionRow['_id'] });
+}
+
+export type FactionVariantSwitcher = NonNullable<FunctionReturnType<typeof api.factionVariants.switcher>>;
+
+export type FactionVariantSwitcherRow = FactionVariantSwitcher['variants'][number];
+
+/**
+ * What editing a variant needs beyond its page: the parent it follows with that parent's current data, and the Faction's live variants, which its editor counts.
  * It is an access query, kept apart from the public page query: the server answers only someone who may edit the variant or its Faction.
  * Keeping that check out of the page query lets every viewer share the public result.
  * Undefined while loading, and null for a viewer the server does not tell.
@@ -404,21 +422,80 @@ export function useUpdateFaction() {
   };
 }
 
-/** Soft-deletes a faction by id. The row stays and stops being served, so nothing here needs the slug. */
+/**
+ * Soft-deletes a variant by id.
+ * The row stays and stops being served, so nothing here needs the slug.
+ * `andFaction` says its Faction is meant to go with it, which the server refuses unless the viewer owns the Faction and this is its last live variant.
+ */
 export function useDeleteFaction() {
-  const mutation = useLiveMutation<{ id: string }, void>(api.factions.softDelete);
+  const mutation = useLiveMutation<
+    FunctionArgs<typeof api.factions.softDelete>,
+    FunctionReturnType<typeof api.factions.softDelete>
+  >(api.factions.softDelete);
   return {
     ...mutation,
-    mutate: (variables: { id: string }, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) =>
+    mutate: (
+      { id, andFaction }: { id: FactionRow['_id']; andFaction: boolean },
+      options?: { onSuccess?: () => void; onError?: (error: Error) => void }
+    ) =>
       mutation.mutate(
-        { id: variables.id },
+        { id, and_faction: andFaction },
         {
           onSuccess: () => options?.onSuccess?.(),
           onError: (error) => options?.onError?.(error),
         }
       ),
-    mutateAsync: async ({ id }: { id: string }) => await mutation.mutateAsync({ id }),
   };
+}
+
+/**
+ * Orders a Faction's variants and makes the first of them its default, in one transaction.
+ * For the Faction's owner and its Group.
+ */
+export function useSetFactionVariantOrder() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.factionFamilies.setVariantOrder>,
+    FunctionReturnType<typeof api.factionFamilies.setVariantOrder>
+  >(api.factionFamilies.setVariantOrder);
+}
+
+/** Opens a Faction, so anyone signed in may add a variant, or closes it again. For the Faction's owner and its Group. */
+export function useSetFactionOpen() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.factionFamilies.setOpen>,
+    FunctionReturnType<typeof api.factionFamilies.setOpen>
+  >(api.factionFamilies.setOpen);
+}
+
+/** One of the viewer's own Factions left without a live variant; `data` is null while what the Faction holds does not parse. */
+export type EmptyFactionEntry = FunctionReturnType<typeof api.factionFamilies.ownEmpty>[number];
+
+/**
+ * The viewer's own Factions left without a live variant, live, and undefined while loading.
+ * Mount it only on the viewer's own profile, since it answers nobody else.
+ */
+export function useOwnEmptyFactions() {
+  return useLiveQuery(api.factionFamilies.ownEmpty, {});
+}
+
+/** Deletes a Faction that holds no live variant. For the Faction's owner alone. */
+export function useDeleteEmptyFaction() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.factionFamilies.remove>,
+    FunctionReturnType<typeof api.factionFamilies.remove>
+  >(api.factionFamilies.remove);
+}
+
+/**
+ * Evicts a variant, with every variant below it, into a new Faction owned by the variant's owner.
+ * It answers with the variant's new address.
+ * For the Faction's owner and its Group.
+ */
+export function useEvictFactionVariant() {
+  return useLiveMutation<
+    FunctionArgs<typeof api.factionVariants.evict>,
+    FunctionReturnType<typeof api.factionVariants.evict>
+  >(api.factionVariants.evict);
 }
 
 /** Moves a faction into a Group, or out of every Group with `groupId: null`. Used by both the faction page and the Group detail page's picker. */

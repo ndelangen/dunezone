@@ -98,7 +98,8 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = useFactionEditRights(page);
+  const editRights = useFactionEditRights(page);
+  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = editRights;
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
@@ -251,11 +252,15 @@ function FactionEditPage() {
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
               canDelete ? (
-                <HoldAction
-                  label="Delete faction"
+                <DeleteVariantHold
+                  mayDeleteFaction={editRights.canDeleteFaction}
+                  variantContext={variantContext}
                   pending={deleteFaction.isPending}
-                  onConfirm={() =>
-                    deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
+                  onConfirm={(andFaction) =>
+                    deleteFaction.mutate(
+                      { id: faction._id, andFaction },
+                      { onSuccess: () => void navigate({ to: '/factions' }) }
+                    )
                   }
                 />
               ) : null
@@ -293,6 +298,32 @@ function FactionEditPage() {
         </PageLayout.Content>
       </PageLayout>
     </BackgroundLibrary>
+  );
+}
+
+/**
+ * The variant's delete hold.
+ * A Faction goes with its last live variant when its owner deletes it, and the hold then says so (#2928).
+ */
+function DeleteVariantHold({
+  mayDeleteFaction,
+  variantContext,
+  pending,
+  onConfirm,
+}: Readonly<{
+  mayDeleteFaction: boolean;
+  variantContext: { variants: readonly unknown[] } | null | undefined;
+  pending: boolean;
+  onConfirm: (andFaction: boolean) => void;
+}>) {
+  const withFaction = mayDeleteFaction && variantContext?.variants.length === 1;
+  return (
+    <HoldAction
+      label={withFaction ? 'Delete variant and faction' : 'Delete variant'}
+      hint={withFaction ? 'Hold to delete this variant and its faction.' : 'Hold to delete this variant.'}
+      pending={pending}
+      onConfirm={() => onConfirm(withFaction)}
+    />
   );
 }
 

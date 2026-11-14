@@ -1,7 +1,8 @@
-import { Stack } from '@mantine/core';
+import { Divider, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
+import { expect } from 'storybook/test';
 
 import { Surface } from './Surface';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -50,6 +51,25 @@ export const Padding = meta.story({
       <Surface {...args} padding="md" />
     </Stack>
   ),
+});
+
+/** A rule dividing a padded pane runs from border to border, past the padding its content keeps. */
+export const Divided = meta.story({
+  args: {
+    padding: 'lg',
+    children: (
+      <Stack gap="lg">
+        <SurfaceFiller height={48} />
+        <Divider />
+        <SurfaceFiller height={48} />
+      </Stack>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const rule = canvasElement.querySelector('[role="separator"]')!;
+    const pane = rule.parentElement!.parentElement!;
+    await expect(Math.round(rule.getBoundingClientRect().width)).toBe(pane.clientWidth);
+  },
 });
 
 /** Hover and focus it: lifts and brightens. Only for a pane that is itself the click target. */

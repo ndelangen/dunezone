@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { db } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
-import { findDeletionPage, seedLeaderboards } from './profiles.stories.fixture';
+import { findDeletionPage, seedEmptyFaction, seedLeaderboards } from './profiles.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -80,6 +80,27 @@ export const DetailNarrow = meta.story({
       const rulesetLinks = list.getAllByRole('link', { name: 'ClassicRules' });
       await expect(rulesetLinks.some((link) => link.getClientRects().length > 0)).toBe(true);
     }
+  },
+});
+
+/**
+ * The viewer's own profile with a faction left without a variant, after someone else deleted its last one.
+ * It closes "Factions created" as a row under the cards, with the hold that deletes it and one line that opens to why it is there.
+ */
+export const DetailOwnEmptyFaction = meta.story({
+  args: { path: '/profiles/central' },
+  parameters: { database: db(seedEmptyFaction) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const section = within(await page.findByRole('region', { name: 'Factions created' }, { timeout: 30_000 }));
+    await expect(
+      section.findByRole('button', { name: 'Delete House Vernius' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(section.getByText('No variants')).toBeVisible();
+    await expect(section.getByRole('button', { name: 'Why a faction has no variants' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   },
 });
 

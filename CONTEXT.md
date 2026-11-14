@@ -133,14 +133,17 @@ A profile eligible for public discovery because it has a non-placeholder display
 The faction's public URL identifier, derived from its name. It is distinct from the faction's durable internal identity and may change when the faction is renamed.
 
 **Faction**:
-What the catalogue lists: a container of one or more Variants that share its name, emblem, background, theme colour and TTS colours. It has its own owner and Group, which co-owns it, and a Default variant. In code it is the Faction family (`faction_families`), because the `factions` table already names the variants.
+What the catalogue lists: a container of one or more Variants that share its name, emblem, background, theme colour and TTS colours. It has its own owner and Group, which co-owns it, a Default variant and a variant order. Only its owner deletes it, and only once it holds no live Variant; an owner who leaves hands it to the owner of its first live Variant whose account is active. In code it is the Faction family (`faction_families`), because the `factions` table already names the variants.
 _Avoid_: Faction family (outside code), container
 
 **Variant**:
 One playable version of a Faction, holding everything the Faction does not share: leaders, troops, rules and the rest. It has its own owner, Group, name and slug, and is a `factions` row, so its id is the one rulesets, publications and games already point at. A faction that predates variants became the single Variant of its own Faction, named after the first live ruleset linking it, otherwise "Original".
 
 **Default variant**:
-The Variant a Faction's address opens and its catalogue card draws; the Faction's maintainers choose it.
+The Variant a Faction's address opens and its catalogue card draws, listed before the others; the Faction's maintainers choose it. Deleting it passes the role to the next live Variant in variant order.
+
+**Evict**:
+To split a Variant and every Variant below it out of a Faction into a new Faction of their own. Only the evicted Variant's link to its parent is cut, and what it inherited becomes its own, so the branch looks as it did. The new Faction copies the old one's shared fields, belongs to the evicted Variant's owner and Group, starts closed and has that Variant as its default.
 
 **Open faction**:
 A Faction anyone may add a Variant to, without approval. Every Faction starts closed, and closing it again keeps the Variants already in it.

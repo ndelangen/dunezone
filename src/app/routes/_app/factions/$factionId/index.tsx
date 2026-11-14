@@ -1,4 +1,7 @@
 import {
+  Anchor,
+  /* oxlint-disable-next-line no-restricted-imports -- Avatar.Group stacks a variant's ruleset NameDiscs, as the play lobby stacks its players. */
+  Avatar,
   Box,
   ColorSwatch,
   Divider,
@@ -31,7 +34,7 @@ import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/con
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
-import { Pending } from '@ui/content/Pending';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -46,7 +49,18 @@ import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Download, Eye, FileText, GitBranchPlus, Pencil, TriangleAlert, UserPlus } from 'lucide-react';
+import {
+  ChevronRight,
+  Download,
+  Eye,
+  FileText,
+  GitBranch,
+  GitBranchPlus,
+  Pencil,
+  Settings2,
+  TriangleAlert,
+  UserPlus,
+} from 'lucide-react';
 import { Fragment, useId, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -57,8 +71,15 @@ import {
   useCreateFactionVariant,
   useFactionDetail,
   useFactionVariantContext,
+  useFactionVariantSwitcher,
 } from '@db/factions';
-import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
+import type {
+  FactionData,
+  FactionDetailPageData,
+  FactionVariantSwitcher,
+  FactionVariantSwitcherRow,
+  PublicAssetPublishingStatusProjection,
+} from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
 import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
@@ -76,6 +97,7 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 
 import { useFactionEditRights } from '../useFactionEditRights';
+import { FactionSettings } from './factionSettings';
 import styles from './index.module.css';
 
 const FACTION_KIND = 'Custom faction';
@@ -447,30 +469,65 @@ function variantDraftReducer(draft: VariantDraft, event: VariantDraftEvent): Var
 }
 
 /**
- * Starts a new variant of the page's Faction from the toolbar (#2927).
- * The form mounts with the popover, so the Faction's variants are read only while it is open.
+ * A toolbar button that opens a small pane under itself.
+ * The pane's content mounts with it, so nothing in it runs while it is shut.
  */
-function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>) {
+function ToolbarPopover({
+  label,
+  intent,
+  icon,
+  children,
+}: Readonly<{ label: string; intent: 'positive' | 'neutral'; icon: ReactNode; children: ReactNode }>) {
   const [opened, setOpened] = useState(false);
   return (
     <Popover opened={opened} onChange={setOpened} position="bottom-start" width={340} withArrow trapFocus>
       <Popover.Target>
         <Box component="span" display="inline-flex">
           <IconAction
-            label="Create variant"
+            label={label}
             emphasis="standard"
-            intent="positive"
+            intent={intent}
             size="lg"
             pressed={opened}
             onClick={() => setOpened((current) => !current)}
-            icon={<GitBranchPlus size={17} aria-hidden />}
+            icon={icon}
           />
         </Box>
       </Popover.Target>
-      <Popover.Dropdown>
-        <CreateVariantForm faction={faction} />
-      </Popover.Dropdown>
+      <Popover.Dropdown>{children}</Popover.Dropdown>
     </Popover>
+  );
+}
+
+/**
+ * The Faction's own actions on a variant's toolbar.
+ * Create variant (#2927) is for the Faction's owner and its Group, and for anyone signed in while the Faction is open, as the server allows (#2928).
+ * Faction settings are for its owner and its Group alone.
+ */
+function FactionActions({
+  faction,
+  switcher,
+  maintains,
+  signedIn,
+}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher; maintains: boolean; signedIn: boolean }>) {
+  const navigate = Route.useNavigate();
+  return (
+    <>
+      {maintains || (signedIn && switcher.isOpen) ? (
+        <ToolbarPopover label="Create variant" intent="positive" icon={<GitBranchPlus size={17} aria-hidden />}>
+          <CreateVariantForm faction={faction} switcher={switcher} />
+        </ToolbarPopover>
+      ) : null}
+      {maintains ? (
+        <ToolbarPopover label="Faction settings" intent="neutral" icon={<Settings2 size={17} aria-hidden />}>
+          <FactionSettings
+            switcher={switcher}
+            factionId={faction._id}
+            onEvicted={(slug) => void navigate({ to: '/factions/$factionId', params: { factionId: slug } })}
+          />
+        </ToolbarPopover>
+      ) : null}
+    </>
   );
 }
 
@@ -478,15 +535,14 @@ function CreateVariantPopover({ faction }: Readonly<{ faction: VariantFaction }>
  * The new variant's name, the address that name gives it, and the one parent it may follow.
  * The variant on the page is the parent offered first, and the one a variant without a parent starts as a copy of.
  */
-function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
+function CreateVariantForm({
+  faction,
+  switcher,
+}: Readonly<{ faction: VariantFaction; switcher: FactionVariantSwitcher }>) {
   const navigate = Route.useNavigate();
   const createVariant = useCreateFactionVariant();
-  const context = useFactionVariantContext(faction._id);
   const [draft, dispatch] = useReducer(variantDraftReducer, { name: '', parent: faction._id });
-  if (!context) {
-    return <Pending>Loading variants</Pending>;
-  }
-  const parent = context.variants.find((variant) => variant._id === draft.parent);
+  const parent = switcher.variants.find((variant) => variant._id === draft.parent);
   const variantSlug = slugify(draft.name);
   const create = async () => {
     if (!variantSlug || createVariant.isPending) {
@@ -525,7 +581,7 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
         <Text size="xs" c="dimmed">
           Address:{' '}
           <Text span ff="monospace" size="xs">
-            {`/factions/${context.familySlug}-${variantSlug || '…'}`}
+            {`/factions/${switcher.familySlug}-${variantSlug || '…'}`}
           </Text>
         </Text>
         <ControlBlock
@@ -538,7 +594,7 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
             >
               <Stack gap="xs">
                 <Radio value={NO_PARENT} label="No parent" color="selected" />
-                {context.variants.map((variant) => (
+                {switcher.variants.map((variant) => (
                   <Radio key={variant._id} value={variant._id} label={variant.name} color="selected" />
                 ))}
               </Stack>
@@ -567,6 +623,92 @@ function CreateVariantForm({ faction }: Readonly<{ faction: VariantFaction }>) {
         </Group>
       </Stack>
     </form>
+  );
+}
+
+/**
+ * The covers of the rulesets a variant is in, overlapping, each named on hover.
+ * They are pictures and not links, because the row they sit in is already the link to the variant.
+ * A ruleset without a cover shows its initial, and a variant in no ruleset shows nothing.
+ */
+function VariantRulesetCovers({ rulesets }: Readonly<{ rulesets: FactionVariantSwitcherRow['rulesets'] }>) {
+  if (rulesets.length === 0) {
+    return null;
+  }
+  return (
+    <Avatar.Group
+      role="group"
+      spacing={8}
+      aria-label={`Rulesets: ${rulesets.map((ruleset) => ruleset.name).join(', ')}`}
+    >
+      {rulesets.map((ruleset) => (
+        <Tooltip key={ruleset.id} label={ruleset.name} withArrow>
+          <NameDisc
+            src={ruleset.coverThumbUrl}
+            name={ruleset.name}
+            label={ruleset.name}
+            size={22}
+            color={ruleset.coverThumbUrl ? undefined : nameDiscColor(ruleset.name)}
+          />
+        </Tooltip>
+      ))}
+    </Avatar.Group>
+  );
+}
+
+/**
+ * One variant, the whole row its link.
+ * A caret marks the variant being read, and every row keeps the caret's room so the names line up.
+ * The name is never cut: when the row is too narrow for both, the covers move under the name.
+ */
+function VariantRow({ variant, current }: Readonly<{ variant: FactionVariantSwitcherRow; current: boolean }>) {
+  return (
+    <Anchor
+      display="block"
+      c="inherit"
+      underline="hover"
+      aria-current={current ? 'page' : undefined}
+      renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: variant.slug }} />}
+    >
+      <Group gap="xs" wrap="nowrap" align="flex-start">
+        <ChevronRight size={16} aria-hidden className={styles.variantCaret} opacity={current ? 1 : 0} />
+        <Group gap="xs" justify="space-between" flex={1}>
+          <Text size="sm" fw={current ? 700 : 500}>
+            {variant.name}
+          </Text>
+          <VariantRulesetCovers rulesets={variant.rulesets} />
+        </Group>
+      </Group>
+    </Anchor>
+  );
+}
+
+/**
+ * The variant switcher (#2928): a Variants card heading the details column, one row per variant of the page's Faction.
+ * The default variant comes first, which is all that marks it.
+ * The list is always open, so a reader sees how many variants there are and which rulesets each is in without pressing anything.
+ * A Faction with one variant has nothing to switch to, so it shows no card.
+ */
+function VariantSwitcher({
+  switcher,
+  factionId,
+}: Readonly<{
+  switcher: FactionVariantSwitcher | null | undefined;
+  factionId: FactionDetailPageData['faction']['_id'];
+}>) {
+  if (!switcher || switcher.variants.length < 2) {
+    return null;
+  }
+  return (
+    <Card icon={<GitBranch size={20} aria-hidden />} title="Variants">
+      <Stack component="ul" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
+        {switcher.variants.map((variant) => (
+          <li key={variant._id}>
+            <VariantRow variant={variant} current={variant._id === factionId} />
+          </li>
+        ))}
+      </Stack>
+    </Card>
   );
 }
 
@@ -647,12 +789,12 @@ function FactionDetailContent({
   const navigate = Route.useNavigate();
   const { resolved, viewerAccess, rights, canOpenEditor } = useFactionEditRights(page);
   const { faction, owner, assetPublishing } = page;
+  /* The Faction's variants, kept apart from the page query: the Variants card lists them and the Faction settings order them. */
+  const switcher = useFactionVariantSwitcher(faction._id);
 
   /* The shared page usually settles before the viewer does; controls wait for both. */
   const settled = !isPending && resolved;
   const canEdit = settled && canOpenEditor;
-  /* Adding a variant is the Faction's maintainers' to do, and a variant's problems are for whoever may edit it. */
-  const canCreateVariant = settled && rights.shared && page.family !== null;
   const problems = variantProblemList(faction);
   const showsProblems = settled && rights.variant && problems.all.length > 0;
   /* A reader who cannot fix the problems is told only that there are some. */
@@ -752,7 +894,15 @@ function FactionDetailContent({
                 icon={<Pencil size={17} aria-hidden />}
               />
             ) : null}
-            {canCreateVariant ? <CreateVariantPopover key={faction._id} faction={faction} /> : null}
+            {settled && switcher ? (
+              <FactionActions
+                key={faction._id}
+                faction={faction}
+                switcher={switcher}
+                maintains={rights.shared}
+                signedIn={viewerAccess.viewer.kind === 'authenticated'}
+              />
+            ) : null}
           </Toolbar.Left>
 
           <Toolbar.Right label="Faction actions">
@@ -851,6 +1001,7 @@ function FactionDetailContent({
               miw={0}
               style={{ flex: '0 0 auto' }}
             >
+              <VariantSwitcher switcher={switcher} factionId={faction._id} />
               <FactionSidebarOverview data={data} />
 
               {planets.length > 0 ? (

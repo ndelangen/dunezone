@@ -29,7 +29,36 @@ export async function variantsFixture() {
   const save = (id: Id<'factions'>, next: FactionData, inherited?: string[]) =>
     owner.mutation(api.factions.update, { id, data: next, ...(inherited ? { inherited } : {}) });
   const settle = () => t.finishAllScheduledFunctions(vi.runAllTimers);
-  return { t, owner, stranger, root, addVariant, row, data, save, settle };
+  const familyId = (await row(root._id)).family_id!;
+  const family = (id: Id<'faction_families'> = familyId) => t.run(async (ctx) => (await ctx.db.get(id))!);
+  /** Someone who belongs to the Faction's own Group, which co-maintains it (#2910). */
+  const factionGroupMember = async () => {
+    const memberId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction co-owner' }));
+    const member = t.withIdentity({ subject: memberId });
+    await member.mutation(api.profiles.bootstrapCurrent, {});
+    await t.run(async (ctx) => {
+      const groupId = await ctx.db.insert('groups', {
+        name: 'Faction keepers',
+        slug: 'faction-keepers',
+        created_at: '2026-11-13T00:00:00.000Z',
+        created_by: ownerId,
+        is_deleted: false,
+      });
+      for (const userId of [ownerId, memberId]) {
+        await ctx.db.insert('group_members', {
+          group_id: groupId,
+          user_id: userId,
+          status: 'active',
+          requested_at: '2026-11-13T00:00:00.000Z',
+          approved_at: '2026-11-13T00:00:00.000Z',
+          approved_by: ownerId,
+        });
+      }
+      await ctx.db.patch(familyId, { group_id: groupId });
+    });
+    return member;
+  };
+  return { t, owner, stranger, root, addVariant, row, data, save, settle, familyId, family, factionGroupMember };
 }
 
 export const withStartText = (data: FactionData, startText: string): FactionData => ({

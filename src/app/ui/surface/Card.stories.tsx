@@ -1,5 +1,7 @@
+import { Divider, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { UsersRound } from 'lucide-react';
+import { expect } from 'storybook/test';
 
 import { StatusBadge } from '../content/StatusBadge';
 import { Card } from './Card';
@@ -27,6 +29,25 @@ export const WithoutIcon = meta.story({
 /** One control beside the name: a status, or a single button. */
 export const WithAction = meta.story({
   args: { title: 'Files', action: <StatusBadge tone="positive">Current</StatusBadge> },
+});
+
+/** A rule dividing the body runs from border to border, past the padding the title and content keep. */
+export const Divided = meta.story({
+  args: {
+    title: 'Setup',
+    children: (
+      <Stack gap="lg">
+        <SurfaceFiller height={48} />
+        <Divider />
+        <SurfaceFiller height={48} />
+      </Stack>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const rule = canvasElement.querySelector('[role="separator"]')!;
+    const pane = rule.closest('section')!;
+    await expect(Math.round(rule.getBoundingClientRect().width)).toBe(pane.clientWidth);
+  },
 });
 
 /** The sidebar width every Card in the app has to survive. */

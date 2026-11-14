@@ -251,6 +251,8 @@ export const snapshotPolicy = {
       group_id: { orNull: 'groups' },
       default_variant_id: { parent: 'factions' },
       is_open: 'keep',
+      /* It may name deleted variants the snapshot leaves out; listings pass over any id that is not a variant of the faction. */
+      variant_order: 'keep',
       is_deleted: 'keep',
       created_at: 'keep',
       updated_at: 'keep',

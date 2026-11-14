@@ -9,10 +9,15 @@ import {
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
   variantMaintainerOutsideTheFactionGroup,
+  openFactionSeenFromOutsideItsGroup,
   factionMaintainerOutsideTheVariantGroup,
   DREAMRULES_PATH,
   withAChildVariant,
   withABrokenChildVariant,
+  withFourVariants,
+  expectVariantSwitcher,
+  openFactionSettings,
+  expectFactionSettings,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -289,5 +294,47 @@ export const DetailVariantWithProblems = meta.story({
     /* The badge is for readers who cannot fix anything; an editor has the notice. */
     await expect(page.queryByText('Not ready for play')).toBeNull();
     await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
+  },
+});
+
+/**
+ * The variant switcher (#2928): a Variants card heading the details column of a variant's page.
+ * Each variant of the Faction is a row that links to it, the default first, with the covers of the rulesets it is in.
+ * A caret and a bold name mark the variant being read.
+ */
+export const DetailVariantSwitcher = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+  },
+});
+
+/**
+ * The Faction settings (#2928): a popover on the variant page's toolbar, beside Create variant, for the Faction's owner and its Group.
+ * It holds the variant order, whose first variant is the default, the hold that evicts a variant, and whether anyone signed in may add one.
+ * The default's row carries no eviction, and nothing here deletes the Faction: it goes with its last variant.
+ */
+export const DetailFactionSettings = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectFactionSettings(await openFactionSettings(canvasElement));
+  },
+});
+
+/**
+ * An open Faction (#2928): anyone signed in is offered Create variant on its variants' pages, with the same form its maintainers get.
+ * The Faction settings stay with its owner and its Group.
+ */
+export const DetailOpenFaction = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: openFactionSeenFromOutsideItsGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await expect(form.getByRole('radio', { name: 'Original' })).toBeChecked();
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
   },
 });

@@ -153,3 +153,9 @@
     width: min(100%, 12rem);
   }
 }
+
+/* The current variant's caret sits level with the first line of the name, however many lines the row takes. */
+.variantCaret {
+  flex: none;
+  height: calc(var(--mantine-font-size-sm) * var(--mantine-line-height-sm));
+}

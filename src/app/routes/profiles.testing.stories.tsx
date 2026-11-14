@@ -9,7 +9,7 @@ import { db, ref, faction, STORYBOOK_NOW, storybookViewer } from '@db/storybook'
 import type { StorybookDatabase } from '@db/storybook';
 
 import { strangerOwnsTheGroups, viewerStandsAs } from './groups.stories.fixture';
-import { findDeletionPage, seedLeaderboards } from './profiles.stories.fixture';
+import { findDeletionPage, seedEmptyFaction, seedLeaderboards } from './profiles.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -497,6 +497,50 @@ export const DetailFactionsPreview = meta.story({
     await expect(cards).toHaveLength(3);
     await expect(cards[0]).toHaveAccessibleName(/Sietch 08/);
     await expect(page.getByText('9 factions')).toBeVisible();
+  },
+});
+
+/**
+ * The owner holds the delete on a faction left without a variant, and its row leaves their profile with the line that explained it.
+ * The line opens to what happened first, and the row's hold still answers under it.
+ */
+export const DetailOwnEmptyFactionDeleted = meta.story({
+  args: { path: '/profiles/central' },
+  parameters: { database: db(seedEmptyFaction) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const section = within(await page.findByRole('region', { name: 'Factions created' }, { timeout: 30_000 }));
+    const hold = await section.findByRole('button', { name: 'Delete House Vernius' }, { timeout: 30_000 });
+    await expect(section.getByText('House Vernius')).toBeVisible();
+    await userEvent.click(section.getByRole('button', { name: 'Why a faction has no variants' }));
+    await waitFor(() => expect(section.getByText(/Only you, its owner, can delete it\./)).toBeVisible());
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer([{ keys: '[MouseLeft>]', target: hold }]);
+      await clock.tickAsync(HOLD_SECONDS * 1000);
+    } finally {
+      await userEvent.pointer([{ keys: '[/MouseLeft]', target: canvasElement.ownerDocument.body }]);
+      clock.uninstall();
+    }
+    await waitFor(() => expect(section.queryByRole('button', { name: 'Delete House Vernius' })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await expect(section.queryByRole('button', { name: 'Why a faction has no variants' })).toBeNull();
+    /* The owner's live factions stay as they were. */
+    await expect(section.getByRole('link', { name: /House Atreides/ })).toBeVisible();
+  },
+});
+
+/** A visitor who is not signed in sees none of it: the empty faction is its owner's alone to know of. */
+export const DetailEmptyFactionHiddenFromVisitors = meta.story({
+  args: { path: '/profiles/central' },
+  parameters: { identity: null, database: db(seedEmptyFaction) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const section = within(await page.findByRole('region', { name: 'Factions created' }, { timeout: 30_000 }));
+    await expect(section.findByRole('link', { name: /House Atreides/ }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(section.queryByText('House Vernius')).toBeNull();
+    await expect(section.queryByRole('button', { name: 'Why a faction has no variants' })).toBeNull();
   },
 });
 

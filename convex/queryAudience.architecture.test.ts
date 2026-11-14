@@ -16,6 +16,8 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accountDeletion:listReplacementProfiles': 'Excludes the viewer from the replacement-owner search.',
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
   'accounts:connectedMethods': "Lists the methods connected to the viewer's account, for signing in again.",
+  'factionFamilies:ownEmpty':
+    "The viewer's own Factions left without a live variant, which only their owner may delete.",
   'factionVariants:editorContext':
     "A variant's parent and sibling variants, told only to those who may edit the variant or its Faction.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",

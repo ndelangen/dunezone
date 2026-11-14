@@ -14,6 +14,8 @@ import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   liveGroupOrNull,
+  loadFactionFamilyAccess,
+  requireFactionFamily,
   requireFactionSoftDelete,
   requireFactionSave,
   requireGroupReassignment,
@@ -29,7 +31,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionDataChange } from './lib/factionFamilies';
+import { factionDataChange, firstLiveVariant } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
@@ -500,14 +502,46 @@ export const setGroup = mutation({
   },
 });
 
+/**
+ * Deletes a variant;
+ * its owner alone may.
+ * Were it the default, the Faction's next live variant becomes the default in this same transaction (#2928).
+ * Deleting the last live variant deletes the Faction too, when the one deleting it owns the Faction;
+ * otherwise the Faction stays for its owner to delete.
+ * `and_faction` says the Faction is meant to go with this variant, as the hold on a Faction's last variant does.
+ * It is then refused, with nothing deleted, unless the viewer may delete the Faction and this is its last live variant.
+ */
 export const softDelete = mutation({
-  args: { id: v.id('factions') },
+  args: { id: v.id('factions'), and_faction: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const access = await requireFactionSoftDelete(ctx, args.id);
+    if (args.and_faction) {
+      await requireLastVariantOfOwnFaction(ctx, access.subject);
+    }
 
     await ctx.db.patch(access.subject._id, {
       is_deleted: true,
       updated_at: nowIso(),
     });
+    await deleteEmptiedFamily(ctx, access.subject.family_id);
   },
 });
+
+/** Throws unless deleting this variant would also delete its Faction: the viewer may delete the Faction, and no other variant of it is live. */
+async function requireLastVariantOfOwnFaction(ctx: MutationCtx, variant: Doc<'factions'>) {
+  const family = await requireFactionFamily(ctx, variant.family_id, 'delete');
+  if (await firstLiveVariant(ctx, family, (row) => row._id !== variant._id)) {
+    throw new ConvexError('This faction has other variants. Delete or evict them before deleting the faction.');
+  }
+}
+
+/** Deletes the Faction once it holds no live variant, if the viewer is the one who may delete it. */
+async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'> | undefined) {
+  const family = familyId ? await ctx.db.get(familyId) : null;
+  if (!family || family.is_deleted || (await liveDefaultVariant(ctx, family))) {
+    return;
+  }
+  if ((await loadFactionFamilyAccess(ctx, family)).capabilities.delete) {
+    await ctx.db.patch(family._id, { is_deleted: true });
+  }
+}
