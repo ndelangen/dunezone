@@ -263,31 +263,29 @@ export function searchIndexText(text: string) {
   return words.length > SEARCH_TERM_LIMIT ? words.slice(0, SEARCH_TERM_LIMIT).join(' ') : text;
 }
 
-/** At most `CATALOGUE_BOUNDED_READ` candidates in the complexity range, from the complexity index. */
-async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
-  const { kind, partition, anyScore } = request;
-  const range = request.complexity ?? [0, 10];
-  const [low, high] = anyScore ? [0, 10] : range;
+/**
+ * At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory.
+ * Matching any score reads the whole list by its own score and filters, since a variant's score can lie outside the entry's.
+ */
+async function boundedPage(
+  ctx: QueryCtx,
+  request: CataloguePageRequest & { complexity: [number, number] },
+  offset: number
+) {
+  const { kind, partition, anyScore, complexity } = request;
+  const [low, high] = anyScore ? [0, 10] : complexity;
   const read = await ctx.db
     .query('catalogue_entries')
     .withIndex('by_kind_partition_complexity', (q) =>
       q.eq('kind', kind).eq('partition', partition).gte('complexity_score', low).lte('complexity_score', high)
     )
     .take(CATALOGUE_BOUNDED_READ);
-  return {
-    matches: anyScore ? read.filter((entry) => inComplexityRange(entry, range)) : read,
-    complete: read.length < CATALOGUE_BOUNDED_READ,
-  };
-}
-
-/** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
-async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
-  const { matches, complete } = await readBounded(ctx, request);
+  const matches = read.filter((entry) => inComplexityRange(entry, complexity));
   matches.sort(compareBy(request.sort, request.direction));
   return {
     entries: matches.slice(offset, offset + request.pageSize),
     total: matches.length,
-    exact: complete,
+    exact: read.length < CATALOGUE_BOUNDED_READ,
   };
 }
 
@@ -301,8 +299,10 @@ export async function selectCataloguePage(
   request: CataloguePageRequest
 ): Promise<CataloguePageSelection> {
   const offset = (Math.max(1, Math.floor(request.page)) - 1) * request.pageSize;
-  const countable = !request.complexity || (request.sort === 'complexity' && !request.anyScore);
-  return countable ? await aggregatePage(ctx, request, offset) : await boundedPage(ctx, request, offset);
+  const { complexity } = request;
+  return !complexity || (request.sort === 'complexity' && !request.anyScore)
+    ? await aggregatePage(ctx, request, offset)
+    : await boundedPage(ctx, { ...request, complexity }, offset);
 }
 
 export type CatalogueSearchRequest = {
