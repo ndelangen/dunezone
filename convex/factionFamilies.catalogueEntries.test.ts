@@ -64,14 +64,14 @@ describe('one catalogue entry per faction (#2929)', () => {
     expect((await familyEntries(familyId)).filter((row) => row.partition === 'all')).toHaveLength(1);
   });
 
-  test('on a ruleset’s list the faction opens the first variant linked to that ruleset', async () => {
+  test('on a ruleset’s list the faction opens, and shows, the first variant linked to that ruleset', async () => {
     const { owner, addVariant, familyId, listed, link, linkRuleset } = await familyFixture();
     const second = await addVariant('Second');
     const third = await addVariant('Third');
     const house = await linkRuleset(second.id, 'House rules');
     await linkRuleset(third.id, 'Other rules');
 
-    expect((await listed(familyId, house))?.slug).toBe(second.slug);
+    expect(await listed(familyId, house)).toMatchObject({ slug: second.slug, card_source_id: second.id });
     expect((await listed(familyId))?.slug).toBe('atreides');
 
     /* Once two variants are linked, the order its maintainers gave decides which one the list opens. */
@@ -81,7 +81,7 @@ describe('one catalogue entry per faction (#2929)', () => {
       family_id: familyId,
       variant_ids: [third.id, second.id],
     });
-    expect((await listed(familyId, house))?.slug).toBe(third.slug);
+    expect(await listed(familyId, house)).toMatchObject({ slug: third.slug, card_source_id: third.id });
   });
 
   test('a member who owns only a variant finds the faction in their own list', async () => {

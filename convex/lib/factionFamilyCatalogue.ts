@@ -78,11 +78,11 @@ function latestVariantChange(variants: readonly VariantEntry[]) {
 
 /** Each ruleset any variant is linked to, with the address of the first variant in listing order that is (#2912). */
 function rulesetDeepLinks(variants: readonly VariantEntry[]) {
-  const links = new Map<string, string>();
+  const links = new Map<string, VariantEntry>();
   for (const variant of variants) {
     for (const facet of variant.facets) {
       if (!isOwnerFacet(facet) && !links.has(facet)) {
-        links.set(facet, variant.slug);
+        links.set(facet, variant);
       }
     }
   }
@@ -104,7 +104,7 @@ function cappedFacets(family: Doc<'faction_families'>, facets: string[]) {
 /**
  * The Faction kind of `catalogue_entries`: one entry per Faction with a live variant, built from its variants' slim entries rather than their data (#2929).
  * It lists under every ruleset any variant is linked to, and under the Faction's owner and every variant's owner.
- * On a ruleset's list the entry leads to the first variant linked to it.
+ * On a ruleset's list the entry leads to, and draws the card of, the first variant linked to it.
  * Everywhere else it leads to the Faction's own address, which opens its default variant.
  */
 export const factionFamilyCatalogueKind: CatalogueKind = {
@@ -127,7 +127,11 @@ export const factionFamilyCatalogueKind: CatalogueKind = {
       factionOwnerPartition(family.owner_id),
       ...variants.flatMap((variant) => variant.facets.filter(isOwnerFacet)),
     ]);
-    const partitionSlugs = Object.fromEntries([...deepLinks].filter(([, slug]) => slug !== family.slug));
+    const partitionOverrides = Object.fromEntries(
+      [...deepLinks]
+        .filter(([, variant]) => variant.source_id !== lead.source_id)
+        .map(([partition, variant]) => [partition, { slug: variant.slug, card_source_id: variant.source_id }])
+    );
     return {
       kind: 'faction_family',
       source_id: family._id,
@@ -146,7 +150,7 @@ export const factionFamilyCatalogueKind: CatalogueKind = {
       ]),
       variant_count: variants.length,
       card_source_id: lead.source_id,
-      ...(Object.keys(partitionSlugs).length > 0 ? { partitionSlugs } : {}),
+      ...(Object.keys(partitionOverrides).length > 0 ? { partitionOverrides } : {}),
     };
   },
   listedSourceIds: async (ctx, limit) => {

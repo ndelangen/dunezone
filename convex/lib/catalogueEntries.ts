@@ -70,9 +70,9 @@ async function expectedEntries(ctx: QueryCtx, kind: CatalogueKindName, sourceId:
   if (!source) {
     return expected;
   }
-  const { partitionSlugs, ...fields } = source;
+  const { partitionOverrides, ...fields } = source;
   for (const partition of [ALL_PARTITION, ...fields.facets]) {
-    expected.set(partition, { ...fields, partition, slug: partitionSlugs?.[partition] ?? fields.slug });
+    expected.set(partition, { ...fields, partition, ...partitionOverrides?.[partition] });
   }
   return expected;
 }

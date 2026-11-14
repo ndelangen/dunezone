@@ -10,8 +10,8 @@ export type CatalogueEntryFields = WithoutSystemFields<Doc<'catalogue_entries'>>
 
 /** What a source lists as, once; it is written into the `'all'` list and into the list of each of its facets. */
 export type CatalogueSourceFields = Omit<CatalogueEntryFields, 'partition'> & {
-  /** The address a source leads to on one of its lists, where it differs from `slug`: a Faction's ruleset list opens the variant linked to it (#2929). */
-  partitionSlugs?: Record<string, string>;
+  /** The address and card a source shows on one of its lists, where they differ: a Faction's ruleset list shows the variant linked to it (#2929). */
+  partitionOverrides?: Record<string, Pick<CatalogueEntryFields, 'slug' | 'card_source_id'>>;
 };
 
 export type CatalogueKind = {
