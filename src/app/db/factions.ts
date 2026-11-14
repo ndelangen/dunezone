@@ -428,11 +428,14 @@ export function useUpdateFaction() {
  * `andFaction` says its Faction is meant to go with it, which the server refuses unless the viewer owns the Faction and this is its last live variant.
  */
 export function useDeleteFaction() {
-  const mutation = useLiveMutation<{ id: string; and_faction: boolean }, void>(api.factions.softDelete);
+  const mutation = useLiveMutation<
+    FunctionArgs<typeof api.factions.softDelete>,
+    FunctionReturnType<typeof api.factions.softDelete>
+  >(api.factions.softDelete);
   return {
     ...mutation,
     mutate: (
-      { id, andFaction }: { id: string; andFaction: boolean },
+      { id, andFaction }: { id: FactionRow['_id']; andFaction: boolean },
       options?: { onSuccess?: () => void; onError?: (error: Error) => void }
     ) =>
       mutation.mutate(
