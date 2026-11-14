@@ -25,6 +25,7 @@ import {
 } from './catalogueOrder';
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
 import type { catalogueFactionValidator } from './collaborativeAccessValidators';
+import { ORIGINAL_VARIANT_NAME } from './factionFamilies';
 import { parseStoredFactionForRead } from './factionInput';
 import { loadPublicProfileBySlug } from './profileAddress';
 import { profileListName } from './profileCatalogue';
@@ -167,6 +168,13 @@ function factionSearchFields(data: unknown) {
 }
 
 /**
+ * A variant is found by its own name too, except the name every first variant got by default, which would match nearly every faction (#2929).
+ */
+function variantSearchNames(names: string[], variantName: string | undefined) {
+  return variantName && variantName !== ORIGINAL_VARIANT_NAME ? [...names, variantName] : names;
+}
+
+/**
  * The faction kind of `catalogue_entries`: one entry per live faction, faceted by every ruleset it is linked to and by its owner.
  * Which of those rulesets are live is resolved when the catalogue is read, so deleting a ruleset rewrites no entry;
  * a card reads its rulesets off the facets and passes the owner's over, as no ruleset is named that way.
@@ -190,10 +198,11 @@ export const factionCatalogueKind: CatalogueKind = {
     }
     const { name, names, complexity } = factionSearchFields(faction.data);
     return {
+      family_id: faction.family_id,
       kind: 'faction',
       source_id: faction._id,
       slug: faction.slug,
-      search_text: catalogueSearchText(names),
+      search_text: catalogueSearchText(variantSearchNames(names, faction.variant_name)),
       name_key: catalogueNameKey(name),
       created_at: catalogueTimestamp(faction.created_at),
       updated_at: catalogueTimestamp(faction.updated_at),

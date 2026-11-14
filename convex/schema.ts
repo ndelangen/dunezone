@@ -458,8 +458,11 @@ export default defineSchema({
     complexity: v.number(),
     complexity_score: v.number(),
     facets: v.array(v.string()),
+    /** The Faction a variant's entry belongs to, so a Faction's own entry can gather its variants without reading them (#2929). */
+    family_id: v.optional(v.string()),
   })
     .index('by_kind_source', ['kind', 'source_id', 'partition'])
+    .index('by_kind_family', ['kind', 'family_id', 'partition'])
     .index('by_kind_partition_created', ['kind', 'partition', 'created_at'])
     .index('by_kind_partition_edited', ['kind', 'partition', 'edited_at'])
     .index('by_kind_partition_complexity', ['kind', 'partition', 'complexity_score'])
