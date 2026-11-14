@@ -112,7 +112,7 @@ async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRuleset
 export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   const spotlights = await selectSpotlightEntries(ctx);
   const card = factionCardReader(ctx, []);
-  const preview = async (entry: { source_id: string; facets: string[] } | null) => {
+  const preview = async (entry: ListedFaction | null) => {
     const faction = await card(entry);
     if (!faction) {
       return null;
@@ -251,7 +251,7 @@ async function selectSpotlightEntries(ctx: QueryCtx) {
   const list = (index: 'by_kind_partition_created' | 'by_kind_partition_edited', field: 'created_at' | 'edited_at') =>
     ctx.db
       .query('catalogue_entries')
-      .withIndex(index, (q) => q.eq('kind', 'faction').eq('partition', ALL_PARTITION).gt(field, 0))
+      .withIndex(index, (q) => q.eq('kind', 'faction_family').eq('partition', ALL_PARTITION).gt(field, 0))
       .order('desc')
       .take(2);
   const [[newArrival], edited] = await Promise.all([
@@ -291,7 +291,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
   const [rulesets, owner] = await Promise.all([listActiveRulesetSummaries(ctx), catalogueOwner(ctx, query.owner)]);
   const partition = owner?.partition ?? rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
   const [counts, spotlightEntries] = await Promise.all([
-    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
+    countCataloguePartitions(ctx, 'faction_family', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
     selectSpotlightEntries(ctx),
   ]);
   const [catalogueTotal = 0, ...rulesetCounts] = counts;
@@ -306,14 +306,20 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
   };
 }
 
-/** Reads the card an entry stands for, naming only its live rulesets, name then id. */
+type ListedFaction = Doc<'catalogue_entries'>;
+
+/**
+ * Reads the card of the variant a Faction's entry draws, naming only the live rulesets any variant is linked to, name then id.
+ * The card leads to the variant it draws, at that variant's own address, so a visit never takes the Faction address's redirect.
+ * That is the default variant, or on a ruleset's list the variant linked to it (#2929).
+ */
 function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
   /* A card cites a ruleset by its summary alone, not by the count the toolbar's list carries. */
   const activeRulesetById = new Map<string, FactionRulesetSummary>(
     rulesets.map(({ id, slug, name }) => [id, { id, slug, name }])
   );
-  return async (entry: { source_id: string; facets: string[] } | null) => {
-    const factionId = entry ? ctx.db.normalizeId('factions', entry.source_id) : null;
+  return async (entry: ListedFaction | null): Promise<CatalogueFaction | null> => {
+    const factionId = entry?.card_source_id ? ctx.db.normalizeId('factions', entry.card_source_id) : null;
     const row = factionId
       ? await ctx.db
           .query('faction_cards')
@@ -323,11 +329,11 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
     if (!entry || !row || row.is_deleted) {
       /* A listed entry without a live card is drift: the page comes up one card short until the card backfill or the next save. */
       if (entry) {
-        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card.`);
+        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card ${entry.card_source_id}.`);
       }
       return null;
     }
-    return await catalogueFactionFromCard(
+    const card = await catalogueFactionFromCard(
       ctx,
       row,
       entry.facets
@@ -335,6 +341,7 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
         .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
         .sort(compareRulesets)
     );
+    return { ...card, variantCount: entry.variant_count ?? 1 };
   };
 }
 
@@ -342,7 +349,7 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
 async function loadCards(
   ctx: QueryCtx,
   furniture: Awaited<ReturnType<typeof loadCatalogueFurniture>>,
-  entries: { source_id: string; facets: string[] }[]
+  entries: ListedFaction[]
 ) {
   const card = factionCardReader(ctx, furniture.rulesets);
   const [cards, newArrival, freshlyUpdated] = await Promise.all([
@@ -365,12 +372,13 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
   const { partition, complexity, catalogueTotal, rulesets, owner } = furniture;
   const page = parseCataloguePage(query.page) ?? 1;
   const selection = await selectCataloguePage(ctx, {
-    kind: 'faction',
+    kind: 'faction_family',
     partition,
     ...catalogueOrderOf(query.sort),
     page,
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,
     complexity,
+    anyScore: true,
   });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
 
@@ -396,7 +404,7 @@ export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCa
   const furniture = await loadCatalogueFurniture(ctx, query);
   const { partition, complexity, text, catalogueTotal, rulesets, owner } = furniture;
   const limit = catalogueSearchLimit(query.limit, FACTION_CATALOGUE_PAGE_SIZE);
-  const selection = await selectCatalogueSearch(ctx, { kind: 'faction', partition, text, limit, complexity });
+  const selection = await selectCatalogueSearch(ctx, { kind: 'faction_family', partition, text, limit, complexity });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
 
   return {

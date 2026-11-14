@@ -143,13 +143,23 @@ describe('catalogue entries backfill', () => {
     const { t, live, renamed, rulesetId, ownerId } = await unmaintained();
     const owner = factionOwnerPartition(ownerId);
 
-    /* The page draws its cards from `faction_cards`, which raw rows skip as well. */
-    await t.mutation(internal.migrations.runRequired, { ids: [...ids, 'faction_cards_v1'] });
+    /* The page draws its cards from `faction_cards` and lists factions from their families' entries, which raw rows skip as well. */
+    await t.mutation(internal.migrations.runRequired, {
+      ids: [
+        ...ids,
+        'faction_cards_v1',
+        'faction_families_v1',
+        'catalogue_entries_factions_family_v1',
+        'catalogue_entries_family_listing_v1',
+      ],
+    });
     await t.finishAllScheduledFunctions(() => undefined);
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
       ok: true,
     });
-    const rebuilt = await t.run((ctx) => ctx.db.query('catalogue_entries').collect());
+    const factionEntries = async () =>
+      (await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).filter((entry) => entry.kind === 'faction');
+    const rebuilt = await factionEntries();
     const byList = (left: unknown[], right: unknown[]) =>
       compareCodeUnits(`${String(left[0])} ${String(left[1])}`, `${String(right[0])} ${String(right[1])}`);
     expect(
@@ -178,6 +188,6 @@ describe('catalogue entries backfill', () => {
     await t.mutation(internal.migrations.catalogue_entries_prune_v1, { reset: true });
     await t.mutation(internal.migrations.catalogue_entries_verify_v1, { reset: true });
     await t.finishAllScheduledFunctions(() => undefined);
-    expect(await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).toEqual(rebuilt);
+    expect(await factionEntries()).toEqual(rebuilt);
   });
 });
