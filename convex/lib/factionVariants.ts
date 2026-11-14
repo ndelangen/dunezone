@@ -14,7 +14,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
-import { ORIGINAL_VARIANT_NAME, passDefaultOn } from './factionFamilies';
+import { ORIGINAL_VARIANT_NAME, passDefaultOn, takeInLiveVariant } from './factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
 import { recordFormerSlug } from './formerSlugs';
 import {
@@ -173,6 +173,7 @@ export async function moveToFamily(
   await ctx.db.patch(variant._id, { ...fields, family_id: family._id, slug });
   const moved = (await ctx.db.get(variant._id))!;
   await takeSharedFields(ctx, family.data, moved);
+  await takeInLiveVariant(ctx, family._id, moved);
   return moved;
 }
 

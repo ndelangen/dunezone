@@ -201,6 +201,19 @@ describe('a faction’s variant order, default and deletion (#2928)', () => {
     ).rejects.toThrow('Not authorized');
   });
 
+  test('a new default takes the faction’s shared fields before the faction mirrors it, so a save still being pushed is kept', async () => {
+    const { owner, root, addVariant, data, save, settle, family, familyId } = await variantsFixture();
+    const sibling = await addVariant('Homebrew');
+    await save(root._id, { ...(await data(root._id)), themeColor: '#123456' });
+    /* The push has not reached the sibling when it becomes the default. */
+    await owner.mutation(api.factionFamilies.setDefaultVariant, { family_id: familyId, variant_id: sibling.id });
+    expect((await family()).data?.themeColor).toBe('#123456');
+    await settle();
+    expect((await family()).data?.themeColor).toBe('#123456');
+    expect((await data(root._id)).themeColor).toBe('#123456');
+    expect((await data(sibling.id)).themeColor).toBe('#123456');
+  });
+
   test('the switcher names each variant’s parent and owner', async () => {
     const { t, root, addVariant } = await variantsFixture();
     await addVariant('Child', root._id);

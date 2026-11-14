@@ -81,6 +81,20 @@ describe('evicting a variant into a faction of its own (#2928, #2911)', () => {
     expect(switcher?.variants.map((variant) => variant._id)).toEqual(branch);
   });
 
+  test('a branch still arriving after its evicted variant is deleted keeps the new faction, with a live default', async () => {
+    const { t, owner, stranger, settle, row, dreamrules, child, grandchild } = await branchesFixture();
+    const evicted = await owner.mutation(api.factionVariants.evict, { faction_id: dreamrules.id });
+    /* Its owner deletes the evicted variant, the new faction's only one so far, and the faction goes with it. */
+    await stranger.mutation(api.factions.softDelete, { id: dreamrules.id });
+    const newFamily = () => t.run(async (ctx) => (await ctx.db.get(evicted.family_id))!);
+    expect((await newFamily()).is_deleted).toBe(true);
+
+    await settle();
+    expect(await newFamily()).toMatchObject({ is_deleted: false, default_variant_id: child.id });
+    expect((await row(child.id)).family_id).toBe(evicted.family_id);
+    expect((await row(grandchild.id)).family_id).toBe(evicted.family_id);
+  });
+
   test('the old parent’s later saves no longer reach the evicted variant', async () => {
     const { owner, root, data, save, settle, dreamrules, grandchild } = await branchesFixture();
     await owner.mutation(api.factionVariants.evict, { faction_id: dreamrules.id });

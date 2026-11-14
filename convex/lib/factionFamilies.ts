@@ -8,6 +8,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
 import { parseStoredFactionForRead } from './factionInput';
+import { takeSharedFields } from './factionVariants';
 
 /** The variant name a faction gets when no live ruleset links it. */
 export const ORIGINAL_VARIANT_NAME = 'Original';
@@ -155,33 +156,8 @@ export function variantsOf(ctx: Pick<QueryCtx, 'db'>, familyId: Id<'faction_fami
 export const VARIANT_LISTING_LIMIT = 200;
 
 /**
- * Orders a Faction's variants as its listings show them (#2928): the default variant first, then the order its maintainers gave, then any variant that order does not name, oldest first.
- */
-export function variantListingOrder(family: Doc<'faction_families'>) {
-  const order = family.variant_order ?? [];
-  const rank = new Map(order.map((id, index) => [id, index]));
-  const position = (variant: Doc<'factions'>) =>
-    variant._id === family.default_variant_id ? -1 : (rank.get(variant._id) ?? order.length);
-  return (a: Doc<'factions'>, b: Doc<'factions'>) => position(a) - position(b) || a._creationTime - b._creationTime;
-}
-
-/** The Faction's live variants in listing order, the default first, reading at most `VARIANT_LISTING_LIMIT` of them. */
-export async function liveVariantsInOrder(ctx: Pick<QueryCtx, 'db'>, family: Doc<'faction_families'>) {
-  const live: Doc<'factions'>[] = [];
-  for await (const row of variantsOf(ctx, family._id)) {
-    if (!row.is_deleted) {
-      live.push(row);
-    }
-    if (live.length === VARIANT_LISTING_LIMIT) {
-      break;
-    }
-  }
-  return live.sort(variantListingOrder(family));
-}
-
-/**
  * The Faction's variants in listing order, the soft-deleted ones too, read one at a time so a caller can stop at the first it wants, since a variant's row can be large.
- * The default first, then the maintainers' order, then the rest oldest first.
+ * The default comes first, then the order its maintainers gave, then any variant that order does not name, oldest first (#2928).
  * @yields Each variant of the Faction, once.
  */
 async function* variantsInOrder(ctx: Pick<QueryCtx, 'db'>, family: Doc<'faction_families'>) {
@@ -200,6 +176,23 @@ async function* variantsInOrder(ctx: Pick<QueryCtx, 'db'>, family: Doc<'faction_
   }
 }
 
+/**
+ * The Faction's live variants in listing order, the default first, at most `VARIANT_LISTING_LIMIT` of them.
+ * The limit counts in listing order, so the default and the variants its maintainers ordered are never the ones left out.
+ */
+export async function liveVariantsInOrder(ctx: Pick<QueryCtx, 'db'>, family: Doc<'faction_families'>) {
+  const live: Doc<'factions'>[] = [];
+  for await (const row of variantsInOrder(ctx, family)) {
+    if (!row.is_deleted) {
+      live.push(row);
+    }
+    if (live.length === VARIANT_LISTING_LIMIT) {
+      break;
+    }
+  }
+  return live;
+}
+
 /** The first live variant of the Faction in listing order that `accept` takes, or null. */
 export async function firstLiveVariant(
   ctx: Pick<QueryCtx, 'db'>,
@@ -214,9 +207,37 @@ export async function firstLiveVariant(
   return null;
 }
 
-/** Makes the variant its Faction's default, which the Faction then mirrors. */
+/**
+ * Makes the variant its Faction's default, which the Faction then mirrors.
+ * The variant first takes the Faction's shared fields, which a push still on its way may not have brought it, so the mirror never puts older values back.
+ */
 export async function makeDefaultVariant(ctx: MutationCtx, family: Doc<'faction_families'>, variant: Doc<'factions'>) {
-  await ctx.db.patch(family._id, { default_variant_id: variant._id, ...mirroredFields(variant) });
+  await takeSharedFields(ctx, family.data, variant);
+  const current = (await ctx.db.get(variant._id))!;
+  await ctx.db.patch(family._id, { default_variant_id: variant._id, ...mirroredFields(current) });
+}
+
+/** Whether the Faction's default is a live variant of it. */
+async function hasLiveDefault(ctx: MutationCtx, family: Doc<'faction_families'>) {
+  const current = await ctx.db.get(family.default_variant_id);
+  return !!current && !current.is_deleted && current.family_id === family._id;
+}
+
+/**
+ * A live variant that comes into a Faction makes it whole again: it becomes the default when the Faction has no live one, and a Faction deleted for want of a live variant comes back.
+ * A branch still on its way after an eviction arrives like this when the variant evicted ahead of it has since been deleted (#2911).
+ */
+export async function takeInLiveVariant(ctx: MutationCtx, familyId: Id<'faction_families'>, variant: Doc<'factions'>) {
+  const family = await ctx.db.get(familyId);
+  if (!family || variant.is_deleted) {
+    return;
+  }
+  if (family.is_deleted) {
+    await ctx.db.patch(family._id, { is_deleted: false });
+  }
+  if (!(await hasLiveDefault(ctx, family))) {
+    await makeDefaultVariant(ctx, family, variant);
+  }
 }
 
 /** Passes the Faction's default on to its first other live variant, when `leaving` is the default and there is one. */
@@ -245,8 +266,7 @@ async function keepDefaultLive(ctx: MutationCtx, before: Doc<'factions'> | null,
     await passDefaultOn(ctx, family, after._id);
     return;
   }
-  const current = await ctx.db.get(family.default_variant_id);
-  if (!current || current.is_deleted || current.family_id !== family._id) {
+  if (!(await hasLiveDefault(ctx, family))) {
     await makeDefaultVariant(ctx, family, after);
   }
 }
