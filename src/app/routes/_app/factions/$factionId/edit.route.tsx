@@ -98,14 +98,8 @@ function FactionEditPage() {
   const setFactionGroup = useSetFactionGroup();
 
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const {
-    resolved: viewerResolved,
-    viewerAccess,
-    rights,
-    canDeleteFaction,
-    canOpenEditor,
-    withinRights,
-  } = useFactionEditRights(page);
+  const editRights = useFactionEditRights(page);
+  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor, withinRights } = editRights;
   const assignableGroups = useViewerAssignableGroups();
   const { faction, assetPublishing } = page;
   const authoringFaction = faction ?? loaderData.faction;
@@ -259,7 +253,7 @@ function FactionEditPage() {
             destructiveActions={
               canDelete ? (
                 <DeleteVariantHold
-                  mayDeleteFaction={canDeleteFaction}
+                  mayDeleteFaction={editRights.canDeleteFaction}
                   variantContext={variantContext}
                   pending={deleteFaction.isPending}
                   onConfirm={(andFaction) =>
