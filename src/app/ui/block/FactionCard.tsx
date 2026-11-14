@@ -1,7 +1,8 @@
-import { Avatar, Text, UnstyledButton } from '@mantine/core';
+import { Avatar, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { TokenImage } from '@ui/content/TokenImage';
 import type { ReactNode } from 'react';
 
@@ -18,7 +19,7 @@ import styles from './FactionCard.module.css';
  *
  * A Block.
  * Callers hand it the faction document;
- * this owns which piece becomes what: the background renders as full-bleed artwork, the Faction leader leads the cast, the first three supporting leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
+ * this owns which piece becomes what: the background renders as full-bleed artwork, the Faction leader leads the cast, the first three supporting leaders fan out beside it, the name captions the bottom with the complexity glyph at its right, and the faction's rulesets stand under the name as their covers.
  * The artwork is game-asset content, not a pane treatment;
  * nothing here is a slot.
  */
@@ -29,6 +30,7 @@ export function FactionCard({
   livePreview = false,
 }: {
   faction: FactionCatalogueEntry;
+  /** The ruleset the list is narrowed to, whose cover leads the card's rulesets. */
   selectedRulesetSlug?: string;
   /** Authoring previews render the current draft instead of its last publication. */
   livePreview?: boolean;
@@ -39,9 +41,15 @@ export function FactionCard({
   action?: ReactNode;
 }) {
   const { name, emblem, background, factionLeader, leaders } = faction.data;
-  const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
+  const selected = faction.rulesets.find((ruleset) => ruleset.slug === selectedRulesetSlug);
+  const rulesets = selected
+    ? [selected, ...faction.rulesets.filter((ruleset) => ruleset !== selected)]
+    : faction.rulesets;
+  /* Four covers fit the compact caption; a fifth ruleset turns the fourth place into the "+N". */
+  const shown = rulesets.length > RULESET_COVER_LIMIT ? rulesets.slice(0, RULESET_COVER_LIMIT - 1) : rulesets;
+  const rest = rulesets.slice(shown.length);
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -65,46 +73,72 @@ export function FactionCard({
               </TokenAvatar>
             )}
           </div>
-          <div className={styles.cast} aria-hidden>
-            <div className={styles.factionLeader}>
-              {livePreview ? (
-                <LeaderToken {...factionLeader} strength={undefined} background={background} emblem={emblem} />
-              ) : (
-                <TokenAvatar
-                  src={faction.tokenImages?.members[factionLeader.memberId]}
-                  name={factionLeader.name}
-                  color={tokenColor}
-                />
-              )}
+          {/* The cast stands on the caption: a taller caption lifts the tokens rather than running over them. */}
+          <div className={styles.stage}>
+            <div className={styles.cast} aria-hidden>
+              <div className={styles.factionLeader}>
+                {livePreview ? (
+                  <LeaderToken {...factionLeader} strength={undefined} background={background} emblem={emblem} />
+                ) : (
+                  <TokenAvatar
+                    src={faction.tokenImages?.members[factionLeader.memberId]}
+                    name={factionLeader.name}
+                    color={tokenColor}
+                  />
+                )}
+              </div>
+              <div className={styles.leaders}>
+                {leaders.slice(0, 3).map((leader, index) => (
+                  <span key={`${leader.name}-${leader.image}-${index}`}>
+                    {livePreview ? (
+                      <LeaderToken {...leader} background={background} emblem={emblem} />
+                    ) : (
+                      <TokenAvatar
+                        src={faction.tokenImages?.members[leader.memberId]}
+                        name={leader.name}
+                        color={tokenColor}
+                      />
+                    )}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className={styles.leaders}>
-              {leaders.slice(0, 3).map((leader, index) => (
-                <span key={`${leader.name}-${leader.image}-${index}`}>
-                  {livePreview ? (
-                    <LeaderToken {...leader} background={background} emblem={emblem} />
-                  ) : (
-                    <TokenAvatar
-                      src={faction.tokenImages?.members[leader.memberId]}
-                      name={leader.name}
-                      color={tokenColor}
-                    />
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className={styles.caption}>
-            <div className={styles.captionText}>
-              <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
-                {name}
-              </Text>
-              {rulesetLabel ? (
-                <Text className={styles.ruleset} size="xs" lineClamp={1}>
-                  {rulesetLabel}
+            <div className={styles.caption}>
+              <div className={styles.captionText}>
+                <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
+                  {name}
                 </Text>
-              ) : null}
+                {rulesets.length > 0 ? (
+                  /* One picture to a reader who cannot see it, naming every ruleset, those behind the "+N" too. */
+                  <Avatar.Group
+                    className={styles.rulesets}
+                    spacing={6}
+                    role="img"
+                    aria-label={rulesets.map((ruleset) => ruleset.name).join(', ')}
+                  >
+                    {shown.map((ruleset) => (
+                      <Tooltip key={ruleset.id} label={ruleset.name} withArrow>
+                        {/* Unnamed, since the row names every ruleset; with no cover it is the name's initial on the name's own colour. */}
+                        <NameDisc
+                          src={ruleset.coverThumbUrl}
+                          name={ruleset.name}
+                          size="var(--ruleset-cover-size)"
+                          color={ruleset.coverThumbUrl ? undefined : nameDiscColor(ruleset.name)}
+                        />
+                      </Tooltip>
+                    ))}
+                    {rest.length > 0 ? (
+                      <Tooltip label={rest.map((ruleset) => ruleset.name).join(', ')} withArrow>
+                        <Avatar size="var(--ruleset-cover-size)" radius="xl" variant="filled" color="dark">
+                          +{rest.length}
+                        </Avatar>
+                      </Tooltip>
+                    ) : null}
+                  </Avatar.Group>
+                ) : null}
+              </div>
+              <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
             </div>
-            <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
           </div>
         </BackgroundRenderer>
       </UnstyledButton>
@@ -112,6 +146,9 @@ export function FactionCard({
     </div>
   );
 }
+
+/* How many places the card's row of ruleset covers has; one more ruleset than this and the last place counts the rest. */
+const RULESET_COVER_LIMIT = 4;
 
 /*
  * One of the card's tokens as a disc.
@@ -144,17 +181,4 @@ function TokenAvatar({
       {src ? <TokenImage src={src} name={name} shape="round" /> : children}
     </Avatar>
   );
-}
-
-/** The card's ruleset caption: the selected ruleset when the faction is in it, else its first. */
-function factionRulesetLabel(faction: Pick<FactionCatalogueEntry, 'rulesets'>, selectedRulesetSlug?: string) {
-  if (faction.rulesets.length === 0) {
-    return null;
-  }
-  const primary = faction.rulesets.find((ruleset) => ruleset.slug === selectedRulesetSlug) ?? faction.rulesets[0];
-  if (!primary) {
-    return null;
-  }
-  const additionalCount = faction.rulesets.length - 1;
-  return additionalCount > 0 ? `${primary.name} +${additionalCount}` : primary.name;
 }
