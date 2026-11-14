@@ -16,7 +16,7 @@ import { tableCountSchema, tableIdentitySchema, tableSeatSchema } from './schema
 export const PLAY_DRAFT_CATALOGUE_TTL_MS = 30_000;
 
 /** The longest variant name a draft row holds; the catalogue cuts a longer one to fit. */
-export const DRAFT_VARIANT_NAME_MAX = 160;
+const DRAFT_VARIANT_NAME_MAX = 160;
 
 /** One faction as the draft knows it: enough to draw its real token, and whether it may be dealt. */
 const draftFactionSchema = z.object({
