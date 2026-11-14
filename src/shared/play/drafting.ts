@@ -27,6 +27,12 @@ const draftFactionSchema = z.object({
   linked: z.boolean(),
   /* Its token is published: only these can be drafted; the capture at assignment judges the rest. */
   published: z.boolean(),
+  /*
+   * The Faction this row is a variant of, and the variant's own name.
+   * Optional so a draft stored before variants were named still reads.
+   */
+  familyId: tableIdentitySchema.optional(),
+  variantName: z.string().max(160).optional(),
 });
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
 

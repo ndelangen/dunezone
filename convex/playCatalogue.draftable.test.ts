@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { factionMemberPublicationId } from '../src/shared/asset-publishing/componentPublication';
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { draftStateSchema, emptyDraft, playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -114,6 +115,52 @@ describe('the draft reads the catalogue', () => {
       background: assetPublishingFaction.background,
       color: assetPublishingFaction.themeColor,
     });
+  });
+
+  test('each row names its Faction and its variant, so two variants of one Faction share a family', async () => {
+    const t = applicationTest();
+    const { ruleset, linked, other } = await t.run(seed);
+    const { family, advanced } = await t.run(async (ctx) => {
+      const source = (await ctx.db.get('factions', linked))!;
+      const family = await ctx.db.insert('faction_families', {
+        slug: 'atreides',
+        data: null,
+        owner_id: source.owner_id,
+        group_id: null,
+        default_variant_id: linked,
+        is_open: false,
+        is_deleted: false,
+        created_at: source.created_at,
+        updated_at: source.updated_at,
+      });
+      await ctx.db.patch('factions', linked, { family_id: family, variant_name: 'Original', variant_slug: 'original' });
+      const { _id: _sourceId, _creationTime: _created, ...fields } = (await ctx.db.get('factions', linked))!;
+      const advanced = await ctx.db.insert('factions', {
+        ...fields,
+        slug: 'atreides-advanced',
+        variant_name: 'Advanced Dune',
+        variant_slug: 'advanced-dune',
+        parent_id: linked,
+      });
+      return { family, advanced };
+    });
+    const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
+    expect(factions.find((faction) => faction.id === linked)).toMatchObject({
+      familyId: family,
+      variantName: 'Original',
+    });
+    expect(factions.find((faction) => faction.id === advanced)).toMatchObject({
+      familyId: family,
+      variantName: 'Advanced Dune',
+    });
+    /* A row made before variants had a family still reads, named as the variant switcher names it. */
+    const fremen = factions.find((faction) => faction.id === other)!;
+    expect(fremen.familyId).toBeUndefined();
+    expect(fremen.variantName).toBe('Original');
+    /* The rows parse as the game Worker parses them, and a draft stored before the fields still reads. */
+    expect(playDraftableFactionsSchema.parse({ factions }).factions).toEqual(factions);
+    const stored = factions.map(({ familyId: _familyId, variantName: _variantName, ...rest }) => rest);
+    expect(draftStateSchema.parse(emptyDraft(2, stored)).factions).toEqual(stored);
   });
 
   test('a faction becomes published once its token back completes, and its leader front reads once that face completes', async () => {
