@@ -9,7 +9,10 @@ import type { CatalogueSort } from './catalogueOrder';
 export type CatalogueEntryFields = WithoutSystemFields<Doc<'catalogue_entries'>>;
 
 /** What a source lists as, once; it is written into the `'all'` list and into the list of each of its facets. */
-export type CatalogueSourceFields = Omit<CatalogueEntryFields, 'partition'>;
+export type CatalogueSourceFields = Omit<CatalogueEntryFields, 'partition'> & {
+  /** The address a source leads to on one of its lists, where it differs from `slug`: a Faction's ruleset list opens the variant linked to it (#2929). */
+  partitionSlugs?: Record<string, string>;
+};
 
 export type CatalogueKind = {
   /** The orders this kind's lists offer; each is one aggregate namespace per list. */

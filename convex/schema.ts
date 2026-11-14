@@ -460,6 +460,10 @@ export default defineSchema({
     facets: v.array(v.string()),
     /** The Faction a variant's entry belongs to, so a Faction's own entry can gather its variants without reading them (#2929). */
     family_id: v.optional(v.string()),
+    /** A Faction's entry: how many live variants it has, which variant its card draws, and every variant's complexity, which the filter matches (#2929). */
+    variant_count: v.optional(v.number()),
+    card_source_id: v.optional(v.string()),
+    complexity_scores: v.optional(v.array(v.number())),
   })
     .index('by_kind_source', ['kind', 'source_id', 'partition'])
     .index('by_kind_family', ['kind', 'family_id', 'partition'])

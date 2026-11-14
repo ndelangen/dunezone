@@ -17,9 +17,10 @@ async function fixture() {
     factionIds: [id],
   } = await seedCatalogue(t, [{ name: 'Budget faction', rulesets: rulesets.map((ruleset) => ruleset.slug) }], rulesets);
   const data = catalogueFactionData({ name: 'Budget faction' });
+  /* One batch checks the variant and the Faction it belongs to, whose entries are built from the variant's, so the variant's text leaves room for both (#2929). */
   await t.run((ctx) =>
     ctx.db.patch('factions', id!, {
-      data: { ...data, rules: { ...data.rules, startText: 'x'.repeat(220 * 1024) } },
+      data: { ...data, rules: { ...data.rules, startText: 'x'.repeat(200 * 1024) } },
     })
   );
   const source = await t.run((ctx) => ctx.db.get('factions', id!));

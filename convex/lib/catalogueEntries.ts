@@ -15,6 +15,7 @@ import {
   registerCatalogueOrderTriggers,
 } from './catalogueOrder';
 import { factionCatalogueKind } from './factionCatalogue';
+import { factionFamilyCatalogueKind } from './factionFamilyCatalogue';
 import { faqCatalogueKind } from './faqCatalogue';
 import { profileCatalogueKind } from './profileCatalogue';
 import { rulesetCatalogueKind } from './rulesetCatalogue';
@@ -27,6 +28,7 @@ import { rulesetCatalogueKind } from './rulesetCatalogue';
  */
 export const CATALOGUE_KINDS = {
   faction: factionCatalogueKind,
+  faction_family: factionFamilyCatalogueKind,
   asset: assetCatalogueKind,
   profile: profileCatalogueKind,
   faq: faqCatalogueKind,
@@ -65,8 +67,12 @@ async function entriesFor(ctx: QueryCtx, kind: CatalogueKindName, sourceId: stri
 async function expectedEntries(ctx: QueryCtx, kind: CatalogueKindName, sourceId: string) {
   const source = await CATALOGUE_KINDS[kind].expected(ctx, sourceId);
   const expected = new Map<string, CatalogueEntryFields>();
-  for (const partition of source ? [ALL_PARTITION, ...source.facets] : []) {
-    expected.set(partition, { ...source!, partition });
+  if (!source) {
+    return expected;
+  }
+  const { partitionSlugs, ...fields } = source;
+  for (const partition of [ALL_PARTITION, ...fields.facets]) {
+    expected.set(partition, { ...fields, partition, slug: partitionSlugs?.[partition] ?? fields.slug });
   }
   return expected;
 }
@@ -213,6 +219,21 @@ export function registerCatalogueTriggers(triggers: Triggers<DataModel, Mutation
   });
   triggers.register('rulesets', async (ctx, change) => {
     await reconcileCatalogueEntry(ctx, 'ruleset', change.id);
+  });
+  /* A Faction's entry is built from its variants' `'all'` entries, so any change to one rebuilds it, under the Faction it left and the one it joined. */
+  triggers.register('catalogue_entries', async (ctx, change) => {
+    const variant = change.newDoc ?? change.oldDoc;
+    if (variant?.kind !== 'faction' || variant.partition !== ALL_PARTITION) {
+      return;
+    }
+    for (const familyId of new Set([change.oldDoc?.family_id, change.newDoc?.family_id])) {
+      if (familyId) {
+        await reconcileCatalogueEntry(ctx, 'faction_family', familyId);
+      }
+    }
+  });
+  triggers.register('faction_families', async (ctx, change) => {
+    await reconcileCatalogueEntry(ctx, 'faction_family', change.id);
   });
   registerCatalogueOrderTriggers(triggers, (kind) => (isCatalogueKindName(kind) ? CATALOGUE_KINDS[kind].sorts : []));
 }
