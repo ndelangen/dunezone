@@ -188,7 +188,7 @@ describe('FAQ reference public pages', () => {
     expect(faction.page[0]).toMatchObject({
       kind: 'faction',
       id: ids.faction,
-      faction: { rulesets: [{ slug: 'advanced' }] },
+      faction: { rulesets: [{ slug: 'advanced', coverThumbUrl: null }] },
     });
     await t.run((ctx) => ctx.db.patch('assets', ids.assets[0]!, { is_deleted: true }));
     const deleted = await t.query(api.faqReferences.options, { kind: 'asset', q: 'card-treachery', paginationOpts });

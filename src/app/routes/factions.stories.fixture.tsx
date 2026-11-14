@@ -306,6 +306,52 @@ function drawnCover(sky: string, dune: string) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+/** The catalogue's factions beside House Atreides, each with the rulesets it is in. */
+const COVERED_FACTIONS = [
+  { name: 'Fremen of the Deep Desert', rulesets: ['dreamrules', 'spring-cup', 'sietch-house-rules'] },
+  { name: 'Spacing Guild', rulesets: ['sietch-house-rules'] },
+  { name: 'Bene Tleilax', rulesets: [] },
+] as const;
+
+/**
+ * A catalogue whose cards cite their rulesets by cover.
+ * House Atreides is in six rulesets, the Fremen in three, the Guild in one and the Tleilaxu in none, and one ruleset has no cover, as most start out.
+ */
+export const withRulesetCovers = db((baseline) => {
+  baseline.rulesets[0]!.image_cover = drawnCover('#27445c', '#c98a3c');
+  baseline.rulesets.push(
+    { ...ruleset({ name: 'Dreamrules' }), image_cover: drawnCover('#4a2d5e', '#d9a15a') },
+    { ...ruleset({ name: 'Spring Cup' }), image_cover: drawnCover('#2f5a3f', '#e0c06a') },
+    ruleset({ name: 'Sietch house rules' }),
+    { ...ruleset({ name: 'Landsraad' }), image_cover: drawnCover('#1f4f55', '#d2a24c') },
+    { ...ruleset({ name: 'Two players' }), image_cover: drawnCover('#5c2a27', '#e2b36b') }
+  );
+  for (const slug of ['dreamrules', 'spring-cup', 'sietch-house-rules', 'landsraad', 'two-players']) {
+    baseline.ruleset_factions.push({
+      ruleset_id: ref(`ruleset:${slug}`),
+      faction_id: ref('faction:house-atreides'),
+      position: 0,
+    });
+  }
+  for (const listed of COVERED_FACTIONS) {
+    const row = faction({ name: listed.name });
+    baseline.factions.push(row);
+    for (const [position, slug] of listed.rulesets.entries()) {
+      baseline.ruleset_factions.push({ ruleset_id: ref(`ruleset:${slug}`), faction_id: ref(row.$key!), position });
+    }
+  }
+});
+
+/** The row of ruleset covers on the catalogue card named `name`, or null where the card has none. */
+export function cardRulesetCovers(page: ReturnType<typeof within>, name: RegExp) {
+  const [card] = gridCards(page, name);
+  return (
+    within(card!)
+      .getAllByRole('img')
+      .find((picture) => !picture.getAttribute('aria-label')?.includes('complexity')) ?? null
+  );
+}
+
 /** The variants beside the Original, in the order they were made, each with its parent and the rulesets it is in. */
 const SWITCHER_VARIANTS = [
   { name: 'Dreamrules', parent: 'house-atreides', rulesets: ['dreamrules'] },

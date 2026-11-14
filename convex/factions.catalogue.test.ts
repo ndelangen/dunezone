@@ -95,6 +95,52 @@ describe('faction catalogue page', () => {
     expect(catalogue.spotlights.freshlyUpdated?.data.name).toBe('Recently updated');
   });
 
+  test('cites each ruleset on a card with its cover thumb, or null where it has none', async () => {
+    const t = applicationTest();
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
+      const ruleset = (name: string, image_cover: string | null) =>
+        ctx.db.insert('rulesets', {
+          name,
+          about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
+          slug: name.toLowerCase(),
+          created_at: '2026-07-01T00:00:00.000Z',
+          updated_at: '2026-07-01T00:00:00.000Z',
+          owner_id: ownerId,
+          group_id: null,
+          is_deleted: false,
+          image_cover,
+        });
+      const coveredId = await ruleset('Covered', 'https://covers.example/covered.webp');
+      const bareId = await ruleset('Bare', null);
+      const factionId = await ctx.db.insert('factions', {
+        owner_id: ownerId,
+        data: { ...assetPublishingFaction, name: 'Cited' },
+        slug: 'cited',
+        created_at: '2026-07-20T00:00:00.000Z',
+        updated_at: '2026-07-20T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: coveredId, faction_id: factionId, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: factionId, position: 0 });
+    });
+
+    const cited = [
+      { slug: 'bare', coverThumbUrl: null },
+      { slug: 'covered', coverThumbUrl: 'https://covers.example/covered.webp' },
+    ];
+    const browsed = await t.query(api.factions.catalogue, {});
+    expect(browsed.cards[0]?.rulesets).toMatchObject(cited);
+    expect(browsed.spotlights.newArrival?.rulesets).toMatchObject(cited);
+    /* A search and a ruleset's own list read their cards the same way. */
+    const searched = await t.query(api.factions.catalogue, { q: 'cited', ruleset: 'covered' });
+    expect(searched.cards[0]?.rulesets).toMatchObject(cited);
+    /* The toolbar's list names and counts a ruleset; it draws no cover. */
+    expect(browsed.rulesets.every((ruleset) => !('coverThumbUrl' in ruleset))).toBe(true);
+  });
+
   test('ships what the catalogue draws and leaves the rest of the blob behind', async () => {
     const t = applicationTest();
     await t.run(async (rawCtx) => {
