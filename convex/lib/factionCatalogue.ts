@@ -310,7 +310,8 @@ type ListedFaction = Doc<'catalogue_entries'>;
 
 /**
  * Reads the card of the variant a Faction's entry draws, naming only the live rulesets any variant is linked to, name then id.
- * The card leads where the entry does: the Faction's own address, or on a ruleset's list the variant linked to it (#2929).
+ * The card leads to the variant it draws, at that variant's own address, so a visit never takes the Faction address's redirect.
+ * That is the default variant, or on a ruleset's list the variant linked to it (#2929).
  */
 function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
   /* A card cites a ruleset by its summary alone, not by the count the toolbar's list carries. */
@@ -340,7 +341,7 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
         .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
         .sort(compareRulesets)
     );
-    return { ...card, slug: entry.slug, variantCount: entry.variant_count ?? 1 };
+    return { ...card, variantCount: entry.variant_count ?? 1 };
   };
 }
 

@@ -43,14 +43,14 @@ async function linkRuleset(
 }
 
 describe('the catalogue lists factions, not variants (#2929)', () => {
-  test('a faction with three variants is one card, counting three, that opens the faction', async () => {
+  test('a faction with three variants is one card, counting three, that opens its default variant', async () => {
     const { t, root, addVariant } = await variantsFixture();
     await addVariant('Second');
     await addVariant('Third');
 
     const catalogue = await t.query(api.factions.catalogue, {});
     expect(catalogue).toMatchObject({ total: 1, catalogueTotal: 1 });
-    expect(catalogue.cards).toMatchObject([{ _id: root._id, slug: 'atreides', variantCount: 3 }]);
+    expect(catalogue.cards).toMatchObject([{ _id: root._id, slug: 'atreides-original', variantCount: 3 }]);
   });
 
   test('filtered by a ruleset that links only the second variant, the card opens that variant', async () => {
@@ -62,7 +62,7 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
     const filtered = await t.query(api.factions.catalogue, { ruleset: 'house-rules' });
     expect(filtered.cards).toMatchObject([{ _id: second.id, slug: second.slug, variantCount: 3 }]);
     expect(filtered.rulesets.find((ruleset) => ruleset.slug === 'house-rules')?.factionCount).toBe(1);
-    expect((await t.query(api.factions.catalogue, {})).cards.map((card) => card.slug)).toEqual(['atreides']);
+    expect((await t.query(api.factions.catalogue, {})).cards.map((card) => card.slug)).toEqual(['atreides-original']);
   });
 
   test('a search by a variant’s name finds its faction’s card', async () => {
@@ -70,7 +70,7 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
     await addVariant('Dreamrules');
 
     const found = await t.query(api.factions.catalogue, { q: 'dreamrules' });
-    expect(found.cards.map((card) => card.slug)).toEqual(['atreides']);
+    expect(found.cards.map((card) => card.slug)).toEqual(['atreides-original']);
   });
 
   test('a complexity filter finds a faction through its harder second variant, whatever the sort', async () => {
@@ -81,7 +81,7 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
 
     for (const sort of ['name', 'complexity-asc'] as const) {
       const page = await t.query(api.factions.catalogue, { complexity: '8-10', sort });
-      expect(page.cards.map((card) => card.slug)).toEqual(['atreides']);
+      expect(page.cards.map((card) => card.slug)).toEqual(['atreides-original']);
     }
     expect((await t.query(api.factions.catalogue, { complexity: '8-10', q: 'atreides' })).cards).toHaveLength(1);
   });
@@ -97,7 +97,7 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
     await addVariant('Later');
 
     const { spotlights } = await t.query(api.factions.catalogue, {});
-    expect(spotlights.newArrival?.slug).toBe('fremen');
-    expect(spotlights.freshlyUpdated?.slug).toBe('atreides');
+    expect(spotlights.newArrival?.slug).toBe('fremen-original');
+    expect(spotlights.freshlyUpdated?.slug).toBe('atreides-original');
   });
 });
