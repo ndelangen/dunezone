@@ -10379,5 +10379,35 @@
     "description": "The Hand and spice window on the dune.zone game table, showing spice, leaders, alliance cards and the traitor card slot.",
     "tags": ["dune.zone", "tutorial", "hand", "spice"],
     "subjects": ["places", "symbols"]
+  },
+  "/vector/emblem/landsraad-house-colus.svg": {
+    "description": "A symmetrical pointed crest with a central teardrop, four curved upright lobes and flowing lower arms.",
+    "tags": ["Colus", "crest", "teardrop", "curved lobes"],
+    "subjects": ["symbols"]
+  },
+  "/vector/emblem/landsraad-house-hagal.svg": {
+    "description": "A seven-rib scallop shell with narrow radial gaps and a connected lower hinge.",
+    "tags": ["Hagal", "scallop", "shell", "fan"],
+    "subjects": ["symbols"]
+  },
+  "/vector/emblem/landsraad-house-molay.svg": {
+    "description": "A thick crescent opening to the right beside a separate five-point star.",
+    "tags": ["Molay", "crescent", "moon", "star"],
+    "subjects": ["symbols"]
+  },
+  "/vector/emblem/landsraad-house-thorvald.svg": {
+    "description": "A squat three-tower castle with a raised center, six rectangular windows and a rectangular doorway.",
+    "tags": ["Thorvald", "castle", "fortress", "towers"],
+    "subjects": ["symbols"]
+  },
+  "/vector/emblem/landsraad-house-vok.svg": {
+    "description": "A domed upper sweep above a separate rounded drop that tapers toward the upper right.",
+    "tags": ["Vok", "sweep", "drop"],
+    "subjects": ["symbols"]
+  },
+  "/vector/emblem/landsraad-five-houses.svg": {
+    "description": "Five circular badges containing the Colus, Thorvald, Molay, Vok and Hagal marks, linked by a thin ring inside a double border.",
+    "tags": ["Landsraad", "five houses", "council", "seal", "ring"],
+    "subjects": ["symbols"]
   }
 }

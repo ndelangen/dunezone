@@ -14770,5 +14770,53 @@
     "subjects": ["places", "symbols"],
     "credit": "blog-picture",
     "sourceHash": "8ba1865e94ef307796cf1c5b303ee78cd34f6a830b9c3bc39dbe41d7663922ad"
+  },
+  "/vector/emblem/landsraad-house-colus.svg": {
+    "description": "A symmetrical pointed crest with a central teardrop, four curved upright lobes and flowing lower arms.",
+    "tags": ["Colus", "crest", "teardrop", "curved lobes"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "sourceHash": "be467b441629b0906592dec276a4aa86eaf1c4177d95e74ccd50349806bc97cb"
+  },
+  "/vector/emblem/landsraad-house-hagal.svg": {
+    "description": "A seven-rib scallop shell with narrow radial gaps and a connected lower hinge.",
+    "tags": ["Hagal", "scallop", "shell", "fan"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "sourceHash": "bd341d9cb629b3a786dd4e0b842a4a1873905d0a014ec1f500f80a8e89084091"
+  },
+  "/vector/emblem/landsraad-house-molay.svg": {
+    "description": "A thick crescent opening to the right beside a separate five-point star.",
+    "tags": ["Molay", "crescent", "moon", "star"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "sourceHash": "e13ca4f64d472e01333f7a1a30ec832e16f2e4237d0d545e4e451560e640ada6"
+  },
+  "/vector/emblem/landsraad-house-thorvald.svg": {
+    "description": "A squat three-tower castle with a raised center, six rectangular windows and a rectangular doorway.",
+    "tags": ["Thorvald", "castle", "fortress", "towers"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "sourceHash": "edff5d688c05e8f77a3309a3f74dfa803372c9750295bcc330399b04f5c52e56"
+  },
+  "/vector/emblem/landsraad-house-vok.svg": {
+    "description": "A domed upper sweep above a separate rounded drop that tapers toward the upper right.",
+    "tags": ["Vok", "sweep", "drop"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Reconstructed from user-supplied promotional screenshots and traced into SVG for Dune Zone. The individual symbol designer has not been verified.",
+    "sourceHash": "fd562dfff433d640cffaf8c5843f43a30d877c8ea9ddd83afd0d74f3f9ae6b97"
+  },
+  "/vector/emblem/landsraad-five-houses.svg": {
+    "description": "Five circular badges containing the Colus, Thorvald, Molay, Vok and Hagal marks, linked by a thin ring inside a double border.",
+    "tags": ["Landsraad", "five houses", "council", "seal", "ring"],
+    "subjects": ["symbols"],
+    "credit": "gf9-landsraad-emblem",
+    "creditDetail": "Assembled from the five AI-reconstructed, traced house marks using the promotional seal layout. The individual symbol designer has not been verified.",
+    "sourceHash": "25e5a268d1008e1841d00c9366b7826d70a5ee308af894fa25e2db22a6274482"
   }
 }

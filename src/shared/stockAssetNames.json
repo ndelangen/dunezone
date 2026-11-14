@@ -136,5 +136,11 @@
   "/vector/troop/machine-19.svg": "Box Head Walker",
   "/vector/troop/machine-20.svg": "Ribbed Head Walker",
   "/vector/troop/machine-21.svg": "Multi-Limbed Mech",
-  "/vector/troop/pewpew.svg": "Pistol Gunner"
+  "/vector/troop/pewpew.svg": "Pistol Gunner",
+  "/vector/emblem/landsraad-house-colus.svg": "House Colus",
+  "/vector/emblem/landsraad-house-hagal.svg": "House Hagal",
+  "/vector/emblem/landsraad-house-molay.svg": "House Molay",
+  "/vector/emblem/landsraad-house-thorvald.svg": "House Thorvald",
+  "/vector/emblem/landsraad-house-vok.svg": "House Vok",
+  "/vector/emblem/landsraad-five-houses.svg": "Landsraad five houses"
 }
