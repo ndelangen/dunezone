@@ -58,6 +58,27 @@ export const catalogue_entries_factions_owner_verify_v1 = migrations.define({
 });
 
 /**
+ * Marks every live variant's entries with its Faction and adds the variant's name to their search text (#2929).
+ * The entries exist already, so each reconcile replaces a row in place, and a replay writes nothing.
+ */
+export const catalogue_entries_factions_family_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await repairCatalogueEntry(ctx, 'faction', row._id);
+  },
+});
+
+/** Proves every live variant's entries name its Faction, in each of its lists exactly once. */
+export const catalogue_entries_factions_family_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, row) => {
+    await assertCatalogueSourceExact(ctx, 'faction', row._id);
+  },
+});
+
+/**
  * This module's migrations under their ids, spread into `MIGRATION_IDS` so the deploy and the guard script run them like any other.
  * Typed by hand: inferred from `internal`, the type would name this module's own exports and the generated api would reference itself.
  */
@@ -66,4 +87,6 @@ export const CATALOGUE_MIGRATION_IDS: Record<string, FunctionReference<'mutation
   catalogue_entries_rulesets_verify_v1: internal.catalogueMigrations.catalogue_entries_rulesets_verify_v1,
   catalogue_entries_factions_owner_v1: internal.catalogueMigrations.catalogue_entries_factions_owner_v1,
   catalogue_entries_factions_owner_verify_v1: internal.catalogueMigrations.catalogue_entries_factions_owner_verify_v1,
+  catalogue_entries_factions_family_v1: internal.catalogueMigrations.catalogue_entries_factions_family_v1,
+  catalogue_entries_factions_family_verify_v1: internal.catalogueMigrations.catalogue_entries_factions_family_verify_v1,
 };

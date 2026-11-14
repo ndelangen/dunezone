@@ -190,10 +190,11 @@ export const factionCatalogueKind: CatalogueKind = {
     }
     const { name, names, complexity } = factionSearchFields(faction.data);
     return {
+      ...(faction.family_id ? { family_id: faction.family_id } : {}),
       kind: 'faction',
       source_id: faction._id,
       slug: faction.slug,
-      search_text: catalogueSearchText(names),
+      search_text: catalogueSearchText(faction.variant_name ? [...names, faction.variant_name] : names),
       name_key: catalogueNameKey(name),
       created_at: catalogueTimestamp(faction.created_at),
       updated_at: catalogueTimestamp(faction.updated_at),
