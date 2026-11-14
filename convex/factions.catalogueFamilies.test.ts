@@ -73,6 +73,19 @@ describe('the catalogue lists factions, not variants (#2929)', () => {
     expect(found.cards.map((card) => card.slug)).toEqual(['atreides']);
   });
 
+  test('a complexity filter finds a faction through its harder second variant, whatever the sort', async () => {
+    const { t, root, addVariant, save } = await variantsFixture();
+    await save(root._id, { ...assetPublishingFaction, complexity: { calculated: 0.2 } });
+    const hard = await addVariant('Hard');
+    await save(hard.id, { ...assetPublishingFaction, complexity: { calculated: 0.9 } });
+
+    for (const sort of ['name', 'complexity-asc'] as const) {
+      const page = await t.query(api.factions.catalogue, { complexity: '8-10', sort });
+      expect(page.cards.map((card) => card.slug)).toEqual(['atreides']);
+    }
+    expect((await t.query(api.factions.catalogue, { complexity: '8-10', q: 'atreides' })).cards).toHaveLength(1);
+  });
+
   test('a new variant makes its faction freshly updated, never a new arrival', async () => {
     const { t, owner, addVariant } = await variantsFixture();
     vi.setSystemTime(Date.now() + 60_000);
