@@ -342,6 +342,34 @@ export function draftingSnapshot(
   };
 }
 
+/*
+ * The Factions the variant stories give several variants, each with its variants' names in order.
+ * Fremen is a Faction with the one variant, which reads by its own name alone; every faction not listed is a row from before rows named their Faction.
+ */
+const VARIANTS: Readonly<Record<string, readonly string[]>> = {
+  'house-atreides': ['Original', 'Classic', 'Kwisatz Haderach'],
+  'house-harkonnen': ['Original', 'Brutal'],
+  'bene-gesserit': ['Original', 'Advanced co-existence with spiritual advisors'],
+  fremen: ['Original'],
+};
+
+/**
+ * `draftingSnapshot` on a catalogue where Atreides, Harkonnen and the Bene Gesserit have several variants.
+ * A Faction's first variant keeps the faction's id, and each later one adds its name to it: `house-atreides-classic`.
+ */
+export function variantDraftingSnapshot(...args: Parameters<typeof draftingSnapshot>): GameSnapshot {
+  const snapshot = draftingSnapshot(...args);
+  const factions = snapshot.draft!.factions.flatMap((faction) =>
+    (VARIANTS[faction.id] ?? []).length === 0
+      ? [faction]
+      : VARIANTS[faction.id]!.map((variantName, index) => {
+          const id = index === 0 ? faction.id : `${faction.id}-${variantName.toLowerCase().replaceAll(' ', '-')}`;
+          return { ...faction, id, slug: id, familyId: faction.id, variantName };
+        })
+  );
+  return { ...snapshot, draft: { ...snapshot.draft!, factions } };
+}
+
 /** The drafting chip's warning line, with the help it carries for assistive technology; it speaks through the header's polite region, so it has no alert role of its own. */
 export function headerAlert(canvasElement: HTMLElement) {
   const header = canvasElement.ownerDocument.querySelector<HTMLElement>('.seated-header')!;

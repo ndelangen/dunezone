@@ -1,7 +1,16 @@
 import { randomInt } from 'node:crypto';
 
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
-import { draftedPool, emptyDraft, factionOf, isBanned, setAsideReason } from '../../src/shared/play/drafting';
+import {
+  bannersOf,
+  draftFactionName,
+  draftedPool,
+  draftedSibling,
+  emptyDraft,
+  factionOf,
+  isBanned,
+  setAsideReason,
+} from '../../src/shared/play/drafting';
 import type { DraftAction, DraftFaction, DraftState } from '../../src/shared/play/drafting';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { StoredControls } from '../../src/shared/play/inventory';
@@ -55,7 +64,9 @@ function withEvent(
   faction: DraftFaction
 ): StoredSnapshot {
   const table = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const message = listMessage(viewer.viewerSeat, kind, faction.name);
+  /* A pick is of one variant, so it is named; a ban covers the whole Faction, so the Faction alone is. */
+  const picked = kind === 'draft-pick' || kind === 'draft-unpick';
+  const message = listMessage(viewer.viewerSeat, kind, picked ? draftFactionName(draft, faction) : faction.name);
   const next = nextSnapshot(snapshot, accepted(table, kind, message));
   const controls = snapshot.controls ?? emptyPublicControls();
   return { ...next, draft, controls: { ...controls, ready: [] } };
@@ -81,8 +92,7 @@ function requirePickable(draft: DraftState, faction: DraftFaction, picks: readon
   if (picks.includes(faction.id)) {
     throw new GameRejection(`${faction.name} is already in your draft.`);
   }
-  const sibling = (id: string) => id !== faction.id && factionOf(draft, id) === factionOf(draft, faction.id);
-  if (draftedPool(draft).some(sibling)) {
+  if (draftedSibling(draft, faction.id)) {
     throw new GameRejection(
       `Another variant of ${faction.name} is already drafted; a game deals one variant per faction.`
     );
@@ -133,7 +143,7 @@ function listsAfter(draft: DraftState, seat: string, kind: ListChange, faction: 
       return { ...draft, picks: { ...draft.picks, [seat]: own.picks.filter((id) => id !== faction.id) } };
     case 'draft-ban': {
       const banned = factionOf(draft, faction.id);
-      if (own.bans.some((id) => factionOf(draft, id) === banned)) {
+      if (bannersOf(draft, faction.id).includes(seat)) {
         throw new GameRejection(`You already banned ${faction.name}.`);
       }
       /* A ban covers the whole Faction and strips every variant of it from every draft list; removing the last ban restores no pick. */
@@ -239,8 +249,8 @@ export function draftWithSetAside(
 ): DraftState {
   const drafted = draftedPool(draft).some((id) => id in refused);
   const named = Object.entries(refused).map(([id, reason]) => {
-    const name = draft.factions.find((faction) => faction.id === id)?.name ?? id;
-    return `${name} (${reason.replace(/\.$/, '')})`;
+    const faction = draft.factions.find((candidate) => candidate.id === id);
+    return `${faction ? draftFactionName(draft, faction) : id} (${reason.replace(/\.$/, '')})`;
   });
   return {
     ...draft,
@@ -290,11 +300,14 @@ export function dealtSnapshot(
   const { draft: _ended, ...rest } = stored;
   const dealt = assignmentEvents(
     rest,
-    deal.map((entry) => ({
-      seat: entry.seat,
-      factionName: draft.factions.find((candidate) => candidate.id === entry.factionId)?.name ?? entry.factionId,
-      position: entry.position,
-    }))
+    deal.map((entry) => {
+      const faction = draft.factions.find((candidate) => candidate.id === entry.factionId);
+      return {
+        seat: entry.seat,
+        factionName: faction ? draftFactionName(draft, faction) : entry.factionId,
+        position: entry.position,
+      };
+    })
   );
   const controls = table.closeRosterRequests(dealt.controls ?? emptyPublicControls(), table.now);
   return {

@@ -13,15 +13,18 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import {
-  bannedIds,
+  bannedFactions,
   bannersOf,
+  draftFactionName,
   draftGates,
   draftStatus,
   draftWarning,
   draftedPool,
+  draftedSibling,
   isBanned,
   pickersOf,
   setAsideReason,
+  variantLabel,
 } from '@shared/play/drafting';
 import type { DraftFaction, DraftState, DraftWarning } from '@shared/play/drafting';
 import type { PublicControls } from '@shared/play/inventory';
@@ -75,7 +78,13 @@ function playersOf(table: TableProjection): Player[] {
     .sort((a, b) => seats.indexOf(a.seat) - seats.indexOf(b.seat));
 }
 
-function unavailableReason(banned: boolean, published: boolean, setAside: string | undefined): string | undefined {
+/** Why a row cannot be drafted, in the words under its name; a sibling in the drafted pool is the last thing in its way. */
+function unavailableReason(
+  banned: boolean,
+  published: boolean,
+  setAside: string | undefined,
+  sibling: DraftFaction | undefined
+): string | undefined {
   switch (true) {
     case banned:
       return 'Banned; remove every ban on it first';
@@ -83,6 +92,8 @@ function unavailableReason(banned: boolean, published: boolean, setAside: string
       return 'Not generated yet: its assets are not published';
     case setAside !== undefined:
       return `Not ready to deal: ${setAside}`;
+    case sibling !== undefined:
+      return `Drafted as ${sibling.variantName ?? sibling.name}`;
     default:
       return undefined;
   }
@@ -258,10 +269,25 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
   );
 }
 
-/* The pooled zones at the ledger's edges: every banned faction on the left, every drafted one on the right. */
+/*
+ * The pooled zones at the ledger's edges: every banned Faction on the left, every drafted variant on the right.
+ * A ban covers a whole Faction, so it goes by the Faction's name alone; a drafted token names its variant.
+ */
 const POOL_ZONES = {
-  banned: { title: 'Banned', zone: styles.zoneBanned, list: undefined, ids: bannedIds, by: bannersOf },
-  drafted: { title: 'Drafted', zone: styles.zoneDrafted, list: styles.zoneListEnd, ids: draftedPool, by: pickersOf },
+  banned: {
+    title: 'Banned',
+    zone: styles.zoneBanned,
+    list: undefined,
+    ids: bannedFactions,
+    by: bannersOf,
+  },
+  drafted: {
+    title: 'Drafted',
+    zone: styles.zoneDrafted,
+    list: styles.zoneListEnd,
+    ids: draftedPool,
+    by: pickersOf,
+  },
 } as const;
 
 function PoolZone({
@@ -282,7 +308,7 @@ function PoolZone({
                 faction={faction}
                 size={2.6}
                 banned={kind === 'banned'}
-                label={`${faction.name}, ${kind} by ${names(players, zone.by(draft, id))}`}
+                label={`${kind === 'banned' ? faction.name : draftFactionName(draft, faction)}, ${kind} by ${names(players, zone.by(draft, id))}`}
               />
             </li>
           ) : null;
@@ -318,7 +344,7 @@ export function DraftingOverlay({ client, table, error = null }: Props & Readonl
         size={size}
         banned={kind === 'ban'}
         dim={kind === 'pick' && (isBanned(draft, id) || setAsideReason(draft, id) !== undefined)}
-        label={ledgerTitle(mine, kind, faction.name, owner.name)}
+        label={ledgerTitle(mine, kind, kind === 'ban' ? faction.name : draftFactionName(draft, faction), owner.name)}
         onClick={mine && !locked(table) ? () => client.command({ kind: undo, factionId: id }) : undefined}
       />
     );
@@ -536,54 +562,73 @@ function FactionRow({
   client,
   table,
   draft,
+  pool,
   faction,
   players,
-}: Props & Readonly<{ draft: DraftState; faction: DraftFaction; players: Player[] }>) {
+}: Props & Readonly<{ draft: DraftState; pool: readonly string[]; faction: DraftFaction; players: Player[] }>) {
   const own = table.viewer.viewerSeat;
   const banned = isBanned(draft, faction.id);
   const picked = (draft.picks[own] ?? []).includes(faction.id);
-  const mine = (draft.bans[own] ?? []).includes(faction.id);
   const aside = setAsideReason(draft, faction.id);
-  const why = unavailableReason(banned, faction.published, aside);
+  const sibling = draftedSibling(draft, faction.id, pool);
+  const why = unavailableReason(banned, faction.published, aside, sibling);
   const dealable = faction.published && aside === undefined;
   const pickers = pickersOf(draft, faction.id);
   const banners = bannersOf(draft, faction.id);
+  /* A ban is on the whole Faction, so the seat that banned any variant of it lifts the ban from this row too. */
+  const mine = banners.includes(own);
+  const variant = variantLabel(draft, faction);
   return (
-    <li className={clsx(styles.row, banned && styles.rowBanned)}>
-      <FactionToken faction={faction} size={2.2} banned={banned} dim={!dealable} label={faction.name} />
-      <div>
-        <Text size="sm" fw={700}>
-          {faction.name}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {why ?? factionTag(faction)}
-        </Text>
+    <li className={clsx(styles.row, (banned || sibling) && styles.rowOut)}>
+      <FactionToken
+        faction={faction}
+        size={2.2}
+        banned={banned}
+        dim={!dealable}
+        label={draftFactionName(draft, faction)}
+      />
+      <div className={styles.rowBody}>
+        <div className={styles.rowWords}>
+          <Text size="sm" fw={700}>
+            {faction.name}
+            {/* The dot holds to the variant, so a name too long for its line breaks before the dot and never leaves it behind. */}
+            {variant !== undefined && (
+              <Text span fw={400} c="dimmed">
+                {' ·\u00A0'}
+                {variant}
+              </Text>
+            )}
+          </Text>
+          <Text size="xs" c="dimmed">
+            {why ?? factionTag(faction)}
+          </Text>
+        </div>
+        <Group gap="xs" className={styles.rowStatus}>
+          {pickers.length > 0 && <Attribution verb="picked" players={players} seats={pickers} />}
+          {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
+        </Group>
+        <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
+          <LabeledAction
+            size="compact-sm"
+            pressed={picked}
+            icon={<Check size={14} />}
+            disabledReason={lockedReason(table) ?? (picked || !why ? undefined : `${why}.`)}
+            onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
+          >
+            {picked ? 'Drafted' : 'Draft'}
+          </LabeledAction>
+          <LabeledAction
+            size="compact-sm"
+            intent="negative"
+            pressed={mine}
+            icon={<Ban size={14} />}
+            disabledReason={lockedReason(table)}
+            onClick={() => client.command({ kind: mine ? 'draft-unban' : 'draft-ban', factionId: faction.id })}
+          >
+            {mine ? 'Banned' : 'Ban'}
+          </LabeledAction>
+        </Group>
       </div>
-      <Group gap="xs" className={styles.rowStatus}>
-        {pickers.length > 0 && <Attribution verb="picked" players={players} seats={pickers} />}
-        {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
-      </Group>
-      <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
-        <LabeledAction
-          size="compact-sm"
-          pressed={picked}
-          icon={<Check size={14} />}
-          disabledReason={lockedReason(table) ?? (picked || !why ? undefined : `${why}.`)}
-          onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
-        >
-          {picked ? 'Drafted' : 'Draft'}
-        </LabeledAction>
-        <LabeledAction
-          size="compact-sm"
-          intent="negative"
-          pressed={mine}
-          icon={<Ban size={14} />}
-          disabledReason={lockedReason(table)}
-          onClick={() => client.command({ kind: mine ? 'draft-unban' : 'draft-ban', factionId: faction.id })}
-        >
-          {mine ? 'Banned' : 'Ban'}
-        </LabeledAction>
-      </Group>
     </li>
   );
 }
@@ -598,9 +643,13 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
     return null;
   }
   const players = playersOf(table);
+  const pool = draftedPool(draft);
   const needle = query.trim().toLowerCase();
+  /* The search reads the Faction's name and then the variant's, so "atreides classic" finds that variant. */
   const rows = draft.factions.filter(
-    (faction) => (showAll || faction.linked) && faction.name.toLowerCase().includes(needle)
+    (faction) =>
+      (showAll || faction.linked) &&
+      `${faction.name} ${variantLabel(draft, faction) ?? ''}`.toLowerCase().includes(needle)
   );
   return (
     <Stack gap="sm" className={styles.panel} data-drafting-panel="">
@@ -627,6 +676,7 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
             client={client}
             table={table}
             draft={draft}
+            pool={pool}
             faction={faction}
             players={players}
           />

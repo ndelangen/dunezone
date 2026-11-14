@@ -2,15 +2,20 @@ import { describe, expect, it } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../factions/fixtures/assetPublishingFaction';
 import {
+  bannedFactions,
+  bannersOf,
   dealSeats,
+  draftFactionName,
   draftGates,
   draftStateSchema,
   draftWarning,
   draftVariantName,
   draftedPool,
+  draftedSibling,
   emptyDraft,
   isBanned,
   resolveFactionPool,
+  variantLabel,
 } from './drafting';
 import type { DraftFaction, DraftState } from './drafting';
 
@@ -141,6 +146,34 @@ describe('variants of one Faction', () => {
     const filled = resolveFactionPool(variants({}), 2, first) ?? [];
     expect(filled.filter((id) => id.startsWith('a'))).toHaveLength(1);
     expect(resolveFactionPool(variants({}), 3, first)).toBeNull();
+  });
+
+  it('names a variant only where the catalogue holds several of its Faction', () => {
+    const named = (id: string, variantName?: string) => ({ ...variant(id), name: 'Atreides', variantName });
+    const lone = { ...faction('c', true), familyId: 'c', variantName: 'Original' };
+    const draft = emptyDraft(2, [named('a1', 'Original'), named('a2', 'Classic'), named('a3'), lone], 1);
+    expect(variantLabel(draft, draft.factions[1]!)).toBe('Classic');
+    expect(draftFactionName(draft, draft.factions[1]!)).toBe('Atreides · Classic');
+    /* A Faction with one variant goes by its own name, and so does a row stored before variants were named. */
+    expect(draftFactionName(draft, lone)).toBe('C');
+    expect(draftFactionName(draft, draft.factions[2]!)).toBe('Atreides');
+  });
+
+  it('finds the other variant already drafted, never the row itself', () => {
+    const drafted = variants({ s1: ['a2'], s2: ['c'] });
+    expect(draftedSibling(drafted, 'a1')?.id).toBe('a2');
+    expect(draftedSibling(drafted, 'a2')).toBeUndefined();
+    expect(draftedSibling(drafted, 'c')).toBeUndefined();
+    /* A banned Faction has nothing in the pool, so its variants are held back by the ban alone. */
+    expect(draftedSibling(variants({ s1: ['a2'] }, { s2: ['a3'] }), 'a1')).toBeUndefined();
+  });
+
+  it('counts a ban on any variant as that seat banning the Faction, once', () => {
+    const banned = variants({}, { s1: ['a1'], s2: ['a3', 'c'], s3: [] });
+    expect(bannersOf(banned, 'a2')).toEqual(['s1', 's2']);
+    expect(bannersOf(banned, 'c')).toEqual(['s2']);
+    expect(bannersOf(variants({}, { s3: [] }), 'a2')).toEqual([]);
+    expect(bannedFactions(banned)).toEqual(['a1', 'c']);
   });
 });
 
