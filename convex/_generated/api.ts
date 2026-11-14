@@ -81,6 +81,7 @@ import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
 import type * as lib_factionFamilies from "../lib/factionFamilies.js";
+import type * as lib_factionFamilyCatalogue from "../lib/factionFamilyCatalogue.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_factionVariants from "../lib/factionVariants.js";
 import type * as lib_faqCatalogue from "../lib/faqCatalogue.js";
@@ -287,6 +288,7 @@ const fullApi: ApiFromModules<{
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
   "lib/factionFamilies": typeof lib_factionFamilies;
+  "lib/factionFamilyCatalogue": typeof lib_factionFamilyCatalogue;
   "lib/factionInput": typeof lib_factionInput;
   "lib/factionVariants": typeof lib_factionVariants;
   "lib/faqCatalogue": typeof lib_faqCatalogue;
