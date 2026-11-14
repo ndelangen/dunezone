@@ -163,6 +163,11 @@ export type CataloguePageRequest = {
   pageSize: number;
   /** An inclusive range of `complexity_score`, 0 to 10. */
   complexity?: [number, number];
+  /**
+   * Whether the range matches an entry when any of its `complexity_scores` falls in it, as a Faction matches through any variant (#2929).
+   * The complexity index orders by one score only, so such a range reads the whole list, at most `CATALOGUE_BOUNDED_READ` entries, and filters it.
+   */
+  anyScore?: boolean;
 };
 
 export type CataloguePageSelection = {
@@ -184,6 +189,11 @@ function compareBy(sort: CatalogueSort, direction: CatalogueDirection) {
     }
     return 0;
   };
+}
+
+/** Whether one of the entry's complexity scores, or its only one, falls in the inclusive range. */
+function inComplexityRange(entry: Entry, [low, high]: [number, number]) {
+  return (entry.complexity_scores ?? [entry.complexity_score]).some((score) => score >= low && score <= high);
 }
 
 /* Complexity values sit in [0, 1] and creation times are positive, so these keys bracket every item of the score range. */
@@ -253,32 +263,35 @@ export function searchIndexText(text: string) {
   return words.length > SEARCH_TERM_LIMIT ? words.slice(0, SEARCH_TERM_LIMIT).join(' ') : text;
 }
 
-/** At most `CATALOGUE_BOUNDED_READ` candidates in the complexity range, from the complexity index. */
-async function readBounded(ctx: QueryCtx, request: CataloguePageRequest) {
-  const { kind, partition } = request;
-  const [low, high] = request.complexity ?? [0, 10];
-  return await ctx.db
+/**
+ * At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory.
+ * Matching any score reads the whole list by its own score and filters, since a variant's score can lie outside the entry's.
+ */
+async function boundedPage(
+  ctx: QueryCtx,
+  request: CataloguePageRequest & { complexity: [number, number] },
+  offset: number
+) {
+  const { kind, partition, anyScore, complexity } = request;
+  const [low, high] = anyScore ? [0, 10] : complexity;
+  const read = await ctx.db
     .query('catalogue_entries')
     .withIndex('by_kind_partition_complexity', (q) =>
       q.eq('kind', kind).eq('partition', partition).gte('complexity_score', low).lte('complexity_score', high)
     )
     .take(CATALOGUE_BOUNDED_READ);
-}
-
-/** At most `CATALOGUE_BOUNDED_READ` matches, ordered and paged in memory. */
-async function boundedPage(ctx: QueryCtx, request: CataloguePageRequest, offset: number) {
-  const matches = await readBounded(ctx, request);
+  const matches = read.filter((entry) => inComplexityRange(entry, complexity));
   matches.sort(compareBy(request.sort, request.direction));
   return {
     entries: matches.slice(offset, offset + request.pageSize),
     total: matches.length,
-    exact: matches.length < CATALOGUE_BOUNDED_READ,
+    exact: read.length < CATALOGUE_BOUNDED_READ,
   };
 }
 
 /**
  * One page of one list, exact at any size whenever the aggregate can count it: no complexity range, or a complexity range on the complexity sort.
- * A complexity range on another sort reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
+ * A complexity range on another sort, or one matching any score, reads at most `CATALOGUE_BOUNDED_READ` matches and pages over them in memory.
  * A text search is `selectCatalogueSearch`'s, never a page's.
  */
 export async function selectCataloguePage(
@@ -286,8 +299,10 @@ export async function selectCataloguePage(
   request: CataloguePageRequest
 ): Promise<CataloguePageSelection> {
   const offset = (Math.max(1, Math.floor(request.page)) - 1) * request.pageSize;
-  const countable = !request.complexity || request.sort === 'complexity';
-  return countable ? await aggregatePage(ctx, request, offset) : await boundedPage(ctx, request, offset);
+  const { complexity } = request;
+  return !complexity || (request.sort === 'complexity' && !request.anyScore)
+    ? await aggregatePage(ctx, request, offset)
+    : await boundedPage(ctx, { ...request, complexity }, offset);
 }
 
 export type CatalogueSearchRequest = {
@@ -360,8 +375,8 @@ function openSearchList(ctx: QueryCtx, request: CatalogueSearchRequest, partitio
 
 function searchFilter(request: CatalogueSearchRequest) {
   const words = matchesEveryWord(request.text);
-  const [low, high] = request.complexity ?? [0, 10];
-  return (entry: Entry) => entry.complexity_score >= low && entry.complexity_score <= high && words(entry);
+  const range = request.complexity ?? [0, 10];
+  return (entry: Entry) => inComplexityRange(entry, range) && words(entry);
 }
 
 /** Reads on in one list, never again from its start, until it keeps `wanted` matches, runs out, or reaches `cap` candidates. */
