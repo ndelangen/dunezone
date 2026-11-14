@@ -14,7 +14,7 @@ import { CanonicalFactionStoredObject, toStoredHeroKey } from '../src/shared/fac
 import { assetSupplySchema, factionDefinitionWireSchema, rulesetSupplySchema } from '../src/shared/play/capture';
 import { isSpawnType, SPAWN_TYPES } from '../src/shared/play/captureTypes';
 import type { SpawnType } from '../src/shared/play/captureTypes';
-import { DRAFT_VARIANT_NAME_MAX, playDraftableFactionsSchema } from '../src/shared/play/drafting';
+import { draftVariantName, playDraftableFactionsSchema } from '../src/shared/play/drafting';
 import { SPAWN_PICKER_STEP, spawnableAssetsSchema } from '../src/shared/play/inventory';
 import type { SpawnableAsset } from '../src/shared/play/inventory';
 import type { Doc, Id } from './_generated/dataModel';
@@ -231,7 +231,7 @@ export const draftableFactions = publicQuery({
           (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
         familyId: row.family_id,
         /* Named as the variant switcher names it; a name past the draft's bound is cut, since the id is what a game keys on. */
-        variantName: variantName(row).slice(0, DRAFT_VARIANT_NAME_MAX),
+        variantName: draftVariantName(variantName(row)),
       });
     }
     return await resolveBackgrounds(ctx, { factions });

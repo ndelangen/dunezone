@@ -39,6 +39,12 @@ const draftFactionSchema = z.object({
 });
 export type DraftFaction = z.infer<typeof draftFactionSchema>;
 
+/** A variant name cut to the draft's bound, never through the middle of a character a surrogate pair encodes. */
+export const draftVariantName = (name: string): string => {
+  const cut = name.slice(0, DRAFT_VARIANT_NAME_MAX);
+  return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut;
+};
+
 /** The catalogue's answer to a drafting game: every live faction with its link to the game's ruleset. */
 export const playDraftableFactionsSchema = z.object({ factions: z.array(draftFactionSchema).max(500) });
 
