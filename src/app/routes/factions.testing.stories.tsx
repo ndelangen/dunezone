@@ -891,9 +891,11 @@ export const DetailCreatesAVariantAndOpensIt = meta.story({
     /* The server refuses a name another variant has, and its words show in the popover. */
     await userEvent.type(name, 'Dreamrules');
     await userEvent.click(create);
-    await expect(
-      form.findByText('This faction already has a variant called “Dreamrules”.', {}, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+    /* The alert fades in, so its words are in the page a moment before they are visible. */
+    await waitFor(
+      () => expect(form.getByText('This faction already has a variant called “Dreamrules”.')).toBeVisible(),
+      { timeout: 30_000 }
+    );
     await userEvent.clear(name);
     await userEvent.type(name, 'Tournament');
     await userEvent.click(form.getByRole('radio', { name: 'Original' }));
