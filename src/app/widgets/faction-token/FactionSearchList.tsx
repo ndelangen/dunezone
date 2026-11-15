@@ -18,7 +18,7 @@ export type FactionSearchStatus = 'loading' | 'more' | 'loading-more' | 'done';
 /**
  * A search over every faction on Dune Zone, drawn for the tools: a field, then one row per faction with its token.
  * A faction already at the table stays in the list, ticked, so the player sees it is there.
- * A tool seats one variant per Faction, so a sibling of a seated variant stays too, dimmed, and says which variant is seated.
+ * A tool that seats one variant per Faction keeps a sibling of a seated variant in the list too, dimmed, saying which variant is seated.
  * The page reads the factions and hands them in.
  */
 export function FactionSearchList({

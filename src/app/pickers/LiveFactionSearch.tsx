@@ -3,9 +3,9 @@ import { useState } from 'react';
 
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import type { CatalogueChoice } from '@app/db/cataloguePicker';
+import { FactionSearchList } from '@app/widgets/faction-token/FactionSearchList';
+import type { FactionSearchStatus } from '@app/widgets/faction-token/FactionSearchList';
 import type { FactionToken, ListedFactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
-import type { FactionSearchStatus } from '@app/widgets/treachery-tracker/FactionSearchList';
 
 /* How far a catalogue read has got, in the search list's words; anything else means it has read them all. */
 const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
