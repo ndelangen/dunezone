@@ -81,8 +81,8 @@ describe('the Faction a Nexus card’s link leads to (#2921)', () => {
   test('a Faction’s id answers with the Faction, and so does a variant’s, on a card the move has not reached yet', async () => {
     const { t, familyId, variant } = await twoFactions();
 
-    const linked = await t.query(api.factionFamilies.nexusLink, { id: familyId });
-    expect(linked).toEqual({ id: familyId, slug: 'atreides', variantCount: 2 });
+    const linked = expect.objectContaining({ id: familyId, slug: 'atreides', variantCount: 2 });
+    expect(await t.query(api.factionFamilies.nexusLink, { id: familyId })).toEqual(linked);
     expect(await t.query(api.factionFamilies.nexusLink, { id: variant.id })).toEqual(linked);
   });
 

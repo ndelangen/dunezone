@@ -5,7 +5,7 @@ import { v } from 'convex/values';
 import { components, internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
-import { retargetAssetReceipts } from './contentImports';
+import { rebaseAssetReceipts } from './contentImports';
 import { internalMutation } from './functions';
 import { nexusFactionTarget } from './lib/nexusFaction';
 import schema from './schema';
@@ -84,9 +84,11 @@ export const nexus_link_family_v1 = migrations.define({
 const MOVE_SCAN_LIMIT = 4000;
 
 /**
- * Refreshes the import receipts of every moved card, since the new link changes the state an import compares against, which would otherwise read as a conflict.
+ * Carries the import receipts of the moved cards onto their new link, since it changes the state an import compares against.
+ * A receipt moves only where it recorded the card exactly as it was before the move, rebuilt from the record's variant link.
+ * A card edited by hand since its import keeps its receipt and still reads as a conflict, and a deleted card's receipts stay as they are.
  * It acts on the first record only, so the receipts are scanned once and never once per card.
- * The deploy runs it after `nexus_link_family_v1`, whose id sorts first, and a replay recomputes the same hashes.
+ * The deploy runs it after `nexus_link_family_v1`, whose id sorts first, and a replay finds no receipt that recorded a variant link.
  */
 export const nexus_link_family_v1_receipts = migrations.define({
   table: 'nexus_link_moves',
@@ -98,12 +100,17 @@ export const nexus_link_family_v1_receipts = migrations.define({
     if (moves.length > MOVE_SCAN_LIMIT) {
       throw new Error('There are too many moved Nexus cards to refresh their import receipts in one transaction.');
     }
-    await retargetAssetReceipts(
-      ctx,
-      new Map(),
-      moves.map((row) => row.asset_id),
-      false
-    );
+    const dataBefore = new Map<string, unknown>();
+    for (const row of moves) {
+      const asset = await ctx.db.get('assets', row.asset_id);
+      if (asset && !asset.is_deleted) {
+        dataBefore.set(row.asset_id, {
+          ...asset.data,
+          factionLink: { id: row.variant_id, slug: row.variant_slug },
+        });
+      }
+    }
+    await rebaseAssetReceipts(ctx, dataBefore);
   },
 });
 
@@ -153,7 +160,9 @@ export const undoNexusLinkMoves = internalMutation({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, args) => {
     const page = await ctx.db.query('nexus_link_moves').paginate({ numItems: UNDO_BATCH, cursor: args.cursor });
-    const restored = [];
+    /* Each restored live card's data as the move left it, so only a receipt that recorded that state follows the card back. */
+    const dataBefore = new Map<string, unknown>();
+    let restored = 0;
     for (const move of page.page) {
       const asset = await ctx.db.get('assets', move.asset_id);
       const variant = await ctx.db.get('factions', move.variant_id);
@@ -164,17 +173,20 @@ export const undoNexusLinkMoves = internalMutation({
         data: { ...asset.data, factionLink: { id: move.variant_id, slug: move.variant_slug } },
       });
       await ctx.db.delete('nexus_link_moves', move._id);
-      restored.push(asset._id);
+      restored += 1;
+      if (!asset.is_deleted) {
+        dataBefore.set(asset._id, asset.data);
+      }
     }
-    if (restored.length > 0) {
-      await retargetAssetReceipts(ctx, new Map(), restored, false);
+    if (dataBefore.size > 0) {
+      await rebaseAssetReceipts(ctx, dataBefore);
     }
     if (!page.isDone) {
       await ctx.scheduler.runAfter(0, internal.nexusLinkMigrations.undoNexusLinkMoves, {
         cursor: page.continueCursor,
       });
     }
-    return { restored: restored.length, kept: page.page.length - restored.length };
+    return { restored, kept: page.page.length - restored };
   },
 });
 

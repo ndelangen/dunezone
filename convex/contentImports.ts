@@ -197,6 +197,22 @@ function subjectHash(subject: Subject) {
 /* Receipts are few, one per imported package item; a store past this bound stops the caller rather than reading without limit. */
 const RECEIPT_SCAN_LIMIT = 5000;
 
+async function allReceipts(ctx: MutationCtx) {
+  const receipts = await ctx.db.query('content_import_receipts').take(RECEIPT_SCAN_LIMIT + 1);
+  if (receipts.length > RECEIPT_SCAN_LIMIT) {
+    throw new ConvexError('There are too many import receipts to reconcile in one transaction.');
+  }
+  return receipts;
+}
+
+/** The state an asset receipt compares against, read as an import reads it. */
+async function assetSubjectFor(ctx: MutationCtx, receipt: Receipt, subjectId: string) {
+  const row = await ctx.db.get('assets', subjectId as Id<'assets'>);
+  return await subjectById(ctx, { kind: 'asset', type: row?.type ?? '' } as ContentImportItem, subjectId, {
+    ruleset: { _id: receipt.ruleset_id },
+  } as Target);
+}
+
 /**
  * Keeps package receipts true after Assets were merged outside an import.
  * A receipt naming a key of `moves` follows the Asset to its value, and every receipt naming a moved-to or `touched` Asset records that Asset's current state, so the next preview reads those Assets as unchanged rather than as conflicts.
@@ -209,13 +225,9 @@ export async function retargetAssetReceipts(
   touched: readonly string[],
   dryRun: boolean
 ) {
-  const receipts = await ctx.db.query('content_import_receipts').take(RECEIPT_SCAN_LIMIT + 1);
-  if (receipts.length > RECEIPT_SCAN_LIMIT) {
-    throw new ConvexError('There are too many import receipts to reconcile in one transaction.');
-  }
   const refreshed = new Set([...moves.values(), ...touched]);
   const changed = [];
-  for (const receipt of receipts) {
+  for (const receipt of await allReceipts(ctx)) {
     const subjectId = moves.get(receipt.subject_id) ?? receipt.subject_id;
     if (receipt.kind !== 'asset' || !refreshed.has(subjectId)) {
       continue;
@@ -224,13 +236,33 @@ export async function retargetAssetReceipts(
     if (dryRun) {
       continue;
     }
-    const row = await ctx.db.get('assets', subjectId as Id<'assets'>);
-    const subject = await subjectById(ctx, { kind: 'asset', type: row?.type ?? '' } as ContentImportItem, subjectId, {
-      ruleset: { _id: receipt.ruleset_id },
-    } as Target);
+    const subject = await assetSubjectFor(ctx, receipt, subjectId);
     await ctx.db.patch(receipt._id, { subject_id: subjectId, state_hash: subjectHash(subject) });
   }
   return changed;
+}
+
+/**
+ * Carries receipts across a change to Assets' data made outside an import, such as a migration.
+ * `dataBefore` holds each changed Asset's data as it stood before the change.
+ * A receipt moves to the Asset's current state only where it recorded exactly that earlier state.
+ * One that recorded anything else, such as an edit made by hand since the import, keeps its hash and still reads as a conflict.
+ * A missing or deleted Asset, which no import reads, keeps its receipts too.
+ */
+export async function rebaseAssetReceipts(ctx: MutationCtx, dataBefore: ReadonlyMap<string, unknown>) {
+  for (const receipt of await allReceipts(ctx)) {
+    if (receipt.kind !== 'asset' || !dataBefore.has(receipt.subject_id)) {
+      continue;
+    }
+    const row = await ctx.db.get('assets', receipt.subject_id as Id<'assets'>);
+    if (!row || row.is_deleted) {
+      continue;
+    }
+    const subject = await assetSubjectFor(ctx, receipt, receipt.subject_id);
+    if (receipt.state_hash === subjectHash({ ...subject, data: dataBefore.get(receipt.subject_id) })) {
+      await ctx.db.patch(receipt._id, { state_hash: subjectHash(subject) });
+    }
+  }
 }
 async function destinationFor(
   ctx: MutationCtx,

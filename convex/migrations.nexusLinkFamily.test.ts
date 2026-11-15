@@ -141,47 +141,94 @@ describe('moving Nexus card links from a variant to its Faction (#2921)', () => 
 });
 
 describe('the import receipts of moved Nexus cards', () => {
-  test('are refreshed after the move, so the next preview reads the card as its own rather than as a conflict', async () => {
+  /*
+   * Three imported cards as an import before #2921 left them: linked to the variant, each receipt recording that state.
+   * One is then edited by hand and one deleted, both after their import.
+   */
+  async function receiptedCards() {
     const { t, owner } = await rulebookFixture();
     migrationsTest.register(t);
     const target = { rulesetSlug: 'rulebook-test-rules', groupSlug: 'rulebook-authors' };
+    const nexus = (key: string) => ({
+      key,
+      kind: 'asset',
+      type: 'card-nexus',
+      data: { ...GF9_NEXUS_CARDS[0], name: `Nexus ${key}`, factionLink: { id: 'replace-me', slug: 'replace-me' } },
+      bindings: [
+        { path: ['factionLink', 'id'], key: 'atreides', field: 'id' },
+        { path: ['factionLink', 'slug'], key: 'atreides', field: 'slug' },
+      ],
+    });
     const bundle = contentImportPackageSchema.parse({
       format: 'dunezone-package',
       version: 1,
       packageKey: 'test-package',
       items: [
         { key: 'atreides', kind: 'faction', data: assetPublishingFaction },
-        {
-          key: 'nexus',
-          kind: 'asset',
-          type: 'card-nexus',
-          data: { ...GF9_NEXUS_CARDS[0], factionLink: { id: 'replace-me', slug: 'replace-me' } },
-          bindings: [
-            { path: ['factionLink', 'id'], key: 'atreides', field: 'id' },
-            { path: ['factionLink', 'slug'], key: 'atreides', field: 'slug' },
-          ],
-        },
+        nexus('clean'),
+        nexus('edited'),
+        nexus('deleted'),
       ],
     });
-    const apply = (item: (typeof bundle.items)[number]) =>
-      owner.mutation(api.contentImports.applyItem, { packageKey: bundle.packageKey, item, target, expectedHash: null });
-    const faction = await apply(bundle.items[0]!);
-    const card = await apply(bundle.items[1]!);
-    /* The card as an import before #2921 left it: linked to the variant, with its receipt recording that state. */
+    const applied = [];
+    for (const item of bundle.items) {
+      applied.push(
+        await owner.mutation(api.contentImports.applyItem, {
+          packageKey: bundle.packageKey,
+          item,
+          target,
+          expectedHash: null,
+        })
+      );
+    }
+    const faction = applied[0]!;
+    const [clean, edited, deleted] = applied.slice(1).map((card) => card.id as Id<'assets'>) as [
+      Id<'assets'>,
+      Id<'assets'>,
+      Id<'assets'>,
+    ];
     await t.run(async (ctx) => {
-      const row = (await ctx.db.get('assets', card.id as Id<'assets'>))!;
-      await ctx.db.patch('assets', row._id, {
-        data: { ...row.data, factionLink: { id: faction.id, slug: faction.slug } },
-      });
-      await retargetAssetReceipts(ctx, new Map(), [row._id], false);
+      for (const id of [clean, edited, deleted]) {
+        const row = (await ctx.db.get('assets', id))!;
+        await ctx.db.patch('assets', id, {
+          data: { ...row.data, factionLink: { id: faction.id, slug: faction.slug } },
+        });
+      }
+      await retargetAssetReceipts(ctx, new Map(), [clean, edited, deleted], false);
+      const row = (await ctx.db.get('assets', edited))!;
+      await ctx.db.patch('assets', edited, { data: { ...row.data, cunning: 'Changed by hand.' } });
+      await ctx.db.patch('assets', deleted, { is_deleted: true });
     });
-    const cardStatus = async () =>
-      (await owner.mutation(api.contentImports.preview, { package: bundle, target })).entries[1]!.status;
-    expect(await cardStatus()).toBe('update');
+    const statuses = async () =>
+      (await owner.mutation(api.contentImports.preview, { package: bundle, target })).entries
+        .slice(1, 3)
+        .map((entry) => entry.status);
+    const deletedReceipt = () =>
+      t.run(async (ctx) =>
+        (await ctx.db.query('content_import_receipts').collect()).find((receipt) => receipt.subject_id === deleted)
+      );
+    return { t, statuses, deletedReceipt };
+  }
+
+  test('follow a moved card only where they recorded it as it was, and a deleted card keeps its own', async () => {
+    const { t, statuses, deletedReceipt } = await receiptedCards();
+    expect(await statuses()).toEqual(['update', 'conflict']);
+    const receiptOfDeleted = await deletedReceipt();
+    expect(receiptOfDeleted).toBeDefined();
 
     await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1, {});
-    expect(await cardStatus()).toBe('conflict');
+    expect(await t.run((ctx) => ctx.db.query('nexus_link_moves').collect())).toHaveLength(3);
+    expect(await statuses()).toEqual(['conflict', 'conflict']);
     await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1_receipts, {});
-    expect(await cardStatus()).toBe('update');
+    expect(await t.query(internal.migrations.verifyMigration, { id: 'nexus_link_family_v1_receipts' })).toMatchObject({
+      complete: true,
+      state: 'success',
+    });
+    expect(await statuses()).toEqual(['update', 'conflict']);
+    expect(await deletedReceipt()).toEqual(receiptOfDeleted);
+
+    await t.mutation(internal.nexusLinkMigrations.undoNexusLinkMoves, { cursor: null });
+    expect(await statuses()).toEqual(['update', 'conflict']);
+    expect(await deletedReceipt()).toEqual(receiptOfDeleted);
   });
 });
