@@ -7,6 +7,7 @@ import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { TouchSurface, useTouchActionSize } from '@ui/surface/TouchSheet';
 import clsx from 'clsx';
 import { Minus, Plus, RotateCcw, Settings2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -17,7 +18,7 @@ import { useOrderedRulesetFactions } from '@app/db/rulesets';
 import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
-import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
+import { TrackerPopover } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -183,7 +184,7 @@ function BattleWheelTool({ rulesets, defaultRulesetId, starting, search, loadFac
   const faction = state.faction;
   const opened = setup || !faction;
   return (
-    <TrackerTouch>
+    <TouchSurface>
       <div className={styles.tool}>
         <header className={styles.header}>
           <WhoButton faction={faction} ruleset={ruleset} onClick={() => setSetup(true)} />
@@ -238,7 +239,7 @@ function BattleWheelTool({ rulesets, defaultRulesetId, starting, search, loadFac
           </main>
         )}
       </div>
-    </TrackerTouch>
+    </TouchSurface>
   );
 }
 
@@ -508,7 +509,7 @@ function Stepper({
   detail?: string;
 }>) {
   /* A thumb's width on a phone. */
-  const size = useActionSize();
+  const size = useTouchActionSize();
   return (
     <div className={styles.stepper}>
       {icon ? <span className={styles.stepperIcon}>{icon}</span> : null}

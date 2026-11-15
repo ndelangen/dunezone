@@ -7,6 +7,7 @@ import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { TouchSurface, useTouchActionSize } from '@ui/surface/TouchSheet';
 import { ChevronRight, Eye, Lock, LockOpen, MapPin, Minus, Plus, RotateCcw, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
@@ -16,7 +17,7 @@ import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
-import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
+import { TrackerPopover } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { Token } from '@game/assets/faction/token/Token';
 
 import styles from './route.module.css';
@@ -125,7 +126,7 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
   const locket = usePredictionLocket();
   const locked = locket.state.locked;
   return (
-    <TrackerTouch>
+    <TouchSurface>
       <div className={styles.tool}>
         <header className={styles.header}>
           <span className={styles.title}>Prediction locket</span>
@@ -137,7 +138,7 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
           <PickingView locket={locket} starting={starting} search={search} lockTime={lockTime} />
         )}
       </div>
-    </TrackerTouch>
+    </TouchSurface>
   );
 }
 
@@ -205,7 +206,7 @@ function PickingView({
   const { state, pickFaction, pickTurn, pickTimeZone, lock } = locket;
   const timeZone = state.timeZone ?? phoneTimeZone();
   const { locking, failed, start } = useLocking(lockTime, lock);
-  const size = useActionSize();
+  const size = useTouchActionSize();
   const onLock = () => {
     /* Busy, the action ignores a second press, so only the picks need checking. */
     if (state.faction && state.turn) {
@@ -367,7 +368,7 @@ function LockedView({
   const [peeking, setPeeking] = useState(false);
   /* One zone for the time and its caption, so a fallback to UTC is called UTC. */
   const zone = shownZone(locked.timeZone);
-  const size = useActionSize();
+  const size = useTouchActionSize();
   const shown = locked.revealed || peeking;
   return (
     <>

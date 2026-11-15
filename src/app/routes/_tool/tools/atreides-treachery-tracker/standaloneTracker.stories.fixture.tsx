@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
+import { FactionSearchList } from '@app/widgets/faction-token/FactionSearchList';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import type { CardDef } from '@app/widgets/treachery-tracker/tracker';
 import { DREAMRULES_DECK, FACTIONS } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
-import { FactionSearchList } from './FactionSearchList';
 import type { Fetched, SetupDeck } from './StandaloneTracker';
 import { TrackerSetup } from './StandaloneTracker';
 import type { DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
