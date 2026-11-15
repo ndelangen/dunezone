@@ -1,48 +1,19 @@
 /// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
-import type { convexTest } from 'convex-test';
 import { expect, test } from 'vite-plus/test';
-import type { z } from 'zod';
 
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
-import type { NexusCardAsset } from '../src/shared/assets/schema';
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { variantsFixture } from './factionVariants.test.fixture';
+import { linkedNexusCard } from './nexusCards.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
-
-async function linkedCard(
-  t: ReturnType<typeof convexTest>,
-  ownerId: Id<'users'>,
-  card: z.infer<typeof NexusCardAsset>
-) {
-  const slug = card.faction.toLowerCase().replaceAll(' ', '-');
-  const id = await t.run((ctx) =>
-    ctx.db.insert('factions', {
-      owner_id: ownerId,
-      data: {
-        ...assetPublishingFaction,
-        name: card.faction,
-        emblem: card.factionSymbol.image,
-        background: card.factionSymbol.background,
-      },
-      slug,
-      created_at: '2026-10-12T00:00:00Z',
-      updated_at: '2026-10-12T00:00:00Z',
-      is_deleted: false,
-      group_id: null,
-    })
-  );
-  return { ...card, factionLink: { id, slug } };
-}
 
 test('Nexus writes enforce the fixed sections and reject oversized effects without changing the saved card', async () => {
   const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
-  const card = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
+  const card = await linkedNexusCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
   const created = await owner.mutation(api.assets.create, { type: 'card-nexus', data: card });
   for (const update of [
     { subName: 'Custom' },
@@ -66,11 +37,11 @@ test('a renderer regeneration scan republishes live Nexus cards and skips delete
   const t = applicationTest();
   const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
   const owner = t.withIdentity({ subject: ownerId });
-  const liveData = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
+  const liveData = await linkedNexusCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
   const live = await owner.mutation(api.assets.create, { type: 'card-nexus', data: liveData });
   const deleted = await owner.mutation(api.assets.create, {
     type: 'card-nexus',
-    data: await linkedCard(t, ownerId, GF9_NEXUS_CARDS[1]!),
+    data: await linkedNexusCard(t, ownerId, GF9_NEXUS_CARDS[1]!),
   });
   await t.run(async (ctx) => {
     await ctx.db.patch(deleted.id, { is_deleted: true });
@@ -95,7 +66,7 @@ test('new Nexus cards require a live faction and use its authoritative header ar
   await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data: GF9_NEXUS_CARDS[0]! })).rejects.toThrow(
     'Choose a faction'
   );
-  const linked = await linkedCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
+  const linked = await linkedNexusCard(t, ownerId, GF9_NEXUS_CARDS[0]!);
   const created = await owner.mutation(api.assets.create, {
     type: 'card-nexus',
     data: {
@@ -132,26 +103,35 @@ test('a Nexus card links a whole faction, stored under the faction’s own id an
   });
 });
 
-test('a card that links one variant still saves as it is, and saving it with the faction’s id moves its link there', async () => {
+test('a live variant’s id is stored as its faction’s, and a deleted variant’s is refused', async () => {
   const { t, owner, addVariant, familyId } = await variantsFixture();
   const variant = await addVariant('Dreamrules');
+  const retired = await addVariant('Retired');
   const card = GF9_NEXUS_CARDS[0]!;
-  const variantLink = { id: variant.id, slug: variant.slug };
+  const familyLink = { id: familyId, slug: 'atreides' };
   const created = await owner.mutation(api.assets.create, {
     type: 'card-nexus',
-    data: { ...card, factionLink: variantLink },
+    data: { ...card, factionLink: { id: variant.id, slug: variant.slug } },
   });
   const stored = async () => (await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data;
-  expect((await stored())?.factionLink).toEqual(variantLink);
+  expect((await stored())?.factionLink).toEqual(familyLink);
 
-  await owner.mutation(api.assets.update, { id: created.id, data: { ...(await stored()), cunning: 'Changed' } });
-  expect(await stored()).toMatchObject({ cunning: 'Changed', factionLink: variantLink });
-
-  await owner.mutation(api.assets.update, {
-    id: created.id,
-    data: { ...(await stored()), factionLink: { id: familyId, slug: 'atreides' } },
+  await t.run(async (ctx) => {
+    const row = (await ctx.db.get('assets', created.id))!;
+    await ctx.db.patch('assets', created.id, {
+      data: { ...row.data, factionLink: { id: variant.id, slug: variant.slug } },
+    });
   });
-  expect((await stored())?.factionLink).toEqual({ id: familyId, slug: 'atreides' });
+  await owner.mutation(api.assets.update, { id: created.id, data: { ...(await stored()), cunning: 'Changed' } });
+  expect(await stored()).toMatchObject({ cunning: 'Changed', factionLink: familyLink });
+
+  await owner.mutation(api.factions.softDelete, { id: retired.id });
+  await expect(
+    owner.mutation(api.assets.update, {
+      id: created.id,
+      data: { ...card, factionLink: { id: retired.id, slug: retired.slug } },
+    })
+  ).rejects.toThrow('available faction');
 });
 
 test('a deleted faction, or one left without a live variant, cannot be linked', async () => {

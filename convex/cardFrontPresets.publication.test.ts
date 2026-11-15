@@ -9,9 +9,9 @@ import { GF9_STRONGHOLD_CARDS } from '../src/shared/assets/gf9StrongholdDeck';
 import { EXAMPLE_HOMEWORLD_CARD } from '../src/shared/assets/homeworldTemplate';
 import { standardStormCard } from '../src/shared/assets/standardStormDeck';
 import { TREACHERY_STYLES } from '../src/shared/assets/treacheryStyles';
-import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { linkedNexusCard } from './nexusCards.test.fixture';
 
 afterEach(() => vi.useRealTimers());
 const stronghold = INITIAL_CARD_FRONT_PRESETS.find((preset) => preset.key === 'stronghold')!;
@@ -67,32 +67,14 @@ const families = [
   })),
 ];
 
-async function linkedNexusCard({ t, authorId }: Awaited<ReturnType<typeof fixture>>) {
-  const nexus = GF9_NEXUS_CARDS[0]!;
-  const factionId = await t.run((ctx) =>
-    ctx.db.insert('factions', {
-      owner_id: authorId,
-      data: {
-        ...assetPublishingFaction,
-        name: nexus.faction,
-        emblem: nexus.factionSymbol.image,
-        background: nexus.factionSymbol.background,
-      },
-      slug: 'atreides',
-      created_at: '2026-10-13T00:00:00Z',
-      updated_at: '2026-10-13T00:00:00Z',
-      is_deleted: false,
-      group_id: null,
-    })
-  );
-  return { ...nexus, factionLink: { id: factionId, slug: 'atreides' } };
-}
-
 test.each(families)('$key captures its shared style without changing authored data', async (family) => {
   vi.useFakeTimers();
   const context = await fixture();
   const { t, admin, author } = context;
-  const card = family.type === 'card-nexus' ? await linkedNexusCard(context) : family.card;
+  const card =
+    family.type === 'card-nexus'
+      ? await linkedNexusCard(context.t, context.authorId, GF9_NEXUS_CARDS[0]!)
+      : family.card;
   const preset = INITIAL_CARD_FRONT_PRESETS.find((entry) => entry.key === family.key)!;
   const created = await author.mutation(api.assets.create, { type: family.type, data: card });
   const style = { ...preset.style, head: { ...preset.style.head, influence: 0.91 } };

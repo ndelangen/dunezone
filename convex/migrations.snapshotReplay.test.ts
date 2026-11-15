@@ -8,6 +8,7 @@ import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
 import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
@@ -98,7 +99,12 @@ describe('a snapshot load', () => {
       /* Production gave the faction its family and variant name before the snapshot was cut. */
       await syncFactionFamily(ctx, faction, await ctx.db.get(faction));
       const { family_id } = (await ctx.db.get(faction))!;
-      return [deck, token, spice, ...(await Promise.all(modeRows)), faction, family_id!];
+      /* A Nexus card as production stores it once `nexus_link_family_v1` has run: linked to the Faction. */
+      const nexus = await asset('card-nexus', 'linked-nexus', {
+        ...GF9_NEXUS_CARDS[0],
+        factionLink: { id: family_id, slug: 'retuned' },
+      });
+      return [deck, token, spice, ...(await Promise.all(modeRows)), faction, family_id!, nexus];
     });
     const rows = () => t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
     const loaded = await rows();

@@ -257,7 +257,7 @@ export function useNexusFactionChoices(q: string) {
 }
 
 /**
- * The Faction a Nexus card's link leads to, by the id the link carries: its own id and address and its variant count, with the variant's name where an older card links one.
+ * The Faction a Nexus card's link leads to, by the id the link carries: its own id and address and its variant count.
  * Undefined while loading, null when the link leads nowhere.
  */
 export function useNexusLinkedFaction(id: string) {

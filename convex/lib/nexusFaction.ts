@@ -4,7 +4,8 @@ import { parseStoredFactionForRead } from './factionInput';
 
 /*
  * A Nexus card links a whole Faction (#2921).
- * A card saved before that links one variant, and keeps working until its link is moved to the variant's Faction.
+ * A card saved before that links one variant until `nexus_link_family_v1` moves its link to the variant's Faction.
+ * The reads here still take a variant, for Play's seats, which carry variant ids, and for a card the move has not reached yet.
  */
 
 type Reader = Pick<QueryCtx, 'db'>;
@@ -23,6 +24,19 @@ export async function nexusLinkTarget(ctx: Reader, id: string) {
   const variantId = ctx.db.normalizeId('factions', id);
   const variant = variantId ? await ctx.db.get('factions', variantId) : null;
   return variant && !variant.is_deleted ? { kind: 'variant' as const, variant } : null;
+}
+
+/**
+ * The Faction a link leads to: a Faction's own id, or a live variant's Faction, so a stale draft, an old tab or an import that names a variant still stores the Faction.
+ * Null where neither leads to a Faction with a live default variant.
+ */
+export async function nexusFactionTarget(ctx: Reader, id: string) {
+  const target = await nexusLinkTarget(ctx, id);
+  const faction =
+    target?.kind === 'variant' && target.variant.family_id
+      ? await nexusLinkTarget(ctx, target.variant.family_id)
+      : target;
+  return faction?.kind === 'faction' ? faction : null;
 }
 
 type NexusLinkTarget = NonNullable<Awaited<ReturnType<typeof nexusLinkTarget>>>;

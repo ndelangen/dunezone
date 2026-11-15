@@ -241,6 +241,17 @@ export default defineSchema({
    * A record currently holding the address, live or deleted, always wins over these rows.
    */
   former_slugs: defineTable(formerSlugValidator).index('by_kind_and_scope_and_slug', ['kind', 'scope', 'slug']),
+  /**
+   * The variant link each Nexus card held before `nexus_link_family_v1` moved it to the variant's Faction (#2921), one row per card moved.
+   * Only `undoNexusLinkMoves` reads it.
+   * It goes with that migration's module once production no longer needs the undo.
+   */
+  nexus_link_moves: defineTable({
+    asset_id: v.id('assets'),
+    variant_id: v.id('factions'),
+    variant_slug: v.string(),
+    family_id: v.id('faction_families'),
+  }),
   profiles: defineTable({
     user_id: v.id('users'),
     merged_into_profile_id: v.optional(v.id('profiles')),
