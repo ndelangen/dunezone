@@ -5,10 +5,7 @@ import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import type { ComponentProps } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
-import { db } from '@db/storybook';
-import { withFactionVariants } from '@app/pickers/factionVariants.stories.fixture';
-
-import { INITIAL_NEXUS_DRAFT, INITIAL_NEXUS_MEMORY, NexusCardEditor } from './NexusCardEditor';
+import { INITIAL_NEXUS_MEMORY, NexusCardEditor } from './NexusCardEditor';
 
 const meta = preview.meta({
   title: 'Nexus Card Editor',
@@ -73,19 +70,5 @@ export const Faction = meta.story({
     await expect(canvas.getByRole('img', { name: '3 variants' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Change faction' })).toBeVisible();
     await expect(canvas.queryByRole('option')).toBeNull();
-  },
-});
-
-/** A new card links nothing: the field says so and offers no tool, since the list under it is already open. */
-export const FactionNew = meta.story({
-  ...inWorkbench,
-  args: { chapter: 'faction' as const, draft: { ...INITIAL_NEXUS_DRAFT, name: 'New nexus card' } },
-  parameters: { ...inWorkbench.parameters, database: db(withFactionVariants) },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('No faction linked yet.')).toBeVisible();
-    await expect(canvas.queryByRole('button', { name: /faction/ })).toBeNull();
-    /* The list is the picker's own; it is waited on only so the capture is taken once it has settled. */
-    await canvas.findAllByRole('option');
   },
 });

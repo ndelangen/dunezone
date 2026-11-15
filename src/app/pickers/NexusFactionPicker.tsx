@@ -53,7 +53,10 @@ export function NexusFactionPicker({
               data-bwignore
               data-form-type="other"
               value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
+              onChange={(event) => {
+                setSearch(event.currentTarget.value);
+                combobox.resetSelectedOption();
+              }}
             />
           </Combobox.EventsTarget>
         )}

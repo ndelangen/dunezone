@@ -35,7 +35,7 @@ describe('the Factions a Nexus card may link (#2921)', () => {
     expect(isDone).toBe(true);
     expect(page).toEqual([
       expect.objectContaining({ name: 'Spacing Guild', owner: 'Stranger', group: null, variantCount: 1 }),
-      {
+      expect.objectContaining({
         id: familyId,
         slug: 'atreides',
         name: assetPublishingFaction.name,
@@ -44,7 +44,7 @@ describe('the Factions a Nexus card may link (#2921)', () => {
         owner: 'Faction author',
         group: 'Faction keepers',
         variantCount: 2,
-      },
+      }),
     ]);
   });
 

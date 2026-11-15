@@ -45,6 +45,9 @@ export const PickFaction = meta.story({
   render: (args) => <LiveEditor onPatch={args.onPatch} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    /* A new card links nothing: the field says so and offers no tool, since the list under it is already open. */
+    await expect(canvas.getByText('No faction linked yet.')).toBeVisible();
+    await expect(canvas.queryByRole('button', { name: /faction/ })).toBeNull();
     await userEvent.type(await canvas.findByRole('searchbox', { name: 'Search factions' }), 'Kwisatz');
     /* The search is its own read, so its one match is waited on before the rest are seen to be gone. */
     const atreides = await canvas.findByRole('option', { name: /House Atreides/ });
