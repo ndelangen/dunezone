@@ -1687,6 +1687,7 @@ function BiddingScreen({
         return (
           <LiveFactionSearch
             seated={state.seats.map((seat) => seat.id)}
+            onePerFaction
             onPick={(faction) => {
               void onAddFaction(faction.id, context);
               setPanel(null);

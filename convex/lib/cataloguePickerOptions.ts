@@ -3,7 +3,7 @@ import type { PaginationOptions } from 'convex/server';
 import type { QueryCtx } from '../types';
 import { readBoardListing } from './boardListing';
 import { searchIndexText } from './catalogueOrder';
-import { pickerVariantLabel } from './factionFamilies';
+import { pickerVariantLabel, seatedSiblingName, seatedVariants } from './factionFamilies';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
@@ -20,6 +20,7 @@ function catalogueEntryTarget(ctx: QueryCtx, kind: 'faction' | 'asset', sourceId
 /**
  * The legacy FAQ picker and grouped picker share indexed search, paging and live target projection.
  * Each choice comes with its variant's name where its Faction has several, and null otherwise or on an asset.
+ * Given the factions a tool has seated, a faction choice also names the seated sibling that keeps it from the table.
  */
 export async function loadCataloguePickerOptions(
   ctx: QueryCtx,
@@ -28,9 +29,11 @@ export async function loadCataloguePickerOptions(
     partition: string;
     q: string;
     paginationOpts: PaginationOptions;
+    seated?: readonly string[];
   }
 ) {
   const text = args.q.trim();
+  const seated = args.kind === 'faction' && args.seated ? await seatedVariants(ctx, args.seated) : [];
   const rows = text
     ? await ctx.db
         .query('catalogue_entries')
@@ -63,6 +66,7 @@ export async function loadCataloguePickerOptions(
       return {
         choice: await faqReferencePreview(ctx, live),
         variant: live.kind === 'faction' ? await pickerVariantLabel(ctx, live.faction) : null,
+        seatedAs: live.kind === 'faction' ? seatedSiblingName(seated, live.faction) : null,
       };
     })
   );

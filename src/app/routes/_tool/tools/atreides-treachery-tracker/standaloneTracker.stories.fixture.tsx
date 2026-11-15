@@ -65,7 +65,16 @@ const StorySearch: FactionSearch = ({ seated, onPick }) => {
     <FactionSearchList
       query={query}
       onQuery={setQuery}
-      factions={MORE_FACTIONS.filter((faction) => faction.name.toLowerCase().includes(query.trim().toLowerCase()))}
+      factions={[
+        ...MORE_FACTIONS,
+        /* A second variant of House Atreides, kept out while the first is seated, as the catalogue's read says. */
+        {
+          id: 'house-atreides-dreamrules',
+          name: 'House Atreides',
+          variant: 'Dreamrules',
+          ...(seated.includes('house-atreides') ? { seatedAs: 'Original' } : {}),
+        },
+      ].filter((faction) => faction.name.toLowerCase().includes(query.trim().toLowerCase()))}
       seated={seated}
       status="done"
       onMore={() => {}}

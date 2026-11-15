@@ -39,6 +39,11 @@
   cursor: default;
 }
 
+/* A sibling of a seated variant is out of the table's reach, as a drafted variant's sibling is in the drafting panel. */
+.rowOut {
+  opacity: 0.6;
+}
+
 .name {
   overflow: hidden;
   text-overflow: ellipsis;

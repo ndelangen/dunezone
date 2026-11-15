@@ -38,6 +38,31 @@ export async function pickerVariantLabel(ctx: QueryCtx, variant: Doc<'factions'>
   return (entry?.variant_count ?? 1) > 1 ? variantName(variant) : null;
 }
 
+/* The query is public, so the seats it reads for a page are capped; a tool seats no more than this. */
+const MOST_SEATS = 24;
+
+/** The variants a tool has seated, read once for a page of choices; an id that is no faction's is passed over. */
+export async function seatedVariants(ctx: QueryCtx, seated: readonly string[]) {
+  const variants = await Promise.all(
+    seated.slice(0, MOST_SEATS).map(async (id) => {
+      const factionId = ctx.db.normalizeId('factions', id);
+      return factionId ? await ctx.db.get('factions', factionId) : null;
+    })
+  );
+  return variants.filter((variant) => variant !== null);
+}
+
+/**
+ * The name of the seated variant that keeps this one from the table: another variant of its Faction, since a tool seats one variant per Faction.
+ * Null where no sibling is seated, and for a variant with no Faction yet.
+ */
+export function seatedSiblingName(seated: readonly Doc<'factions'>[], variant: Doc<'factions'>) {
+  const sibling = variant.family_id
+    ? seated.find((other) => other.family_id === variant.family_id && other._id !== variant._id)
+    : undefined;
+  return sibling ? variantName(sibling) : null;
+}
+
 type FactionData = ReturnType<typeof parseStoredFactionForRead>;
 
 /** Which side of the split a save changes, so each side is authorized by whoever maintains it. */
