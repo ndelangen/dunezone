@@ -207,7 +207,7 @@ describe('the import receipts of moved Nexus cards', () => {
       t.run(async (ctx) =>
         (await ctx.db.query('content_import_receipts').collect()).find((receipt) => receipt.subject_id === deleted)
       );
-    return { t, statuses, deletedReceipt };
+    return { t, statuses, deletedReceipt, clean };
   }
 
   test('follow a moved card only where they recorded it as it was, and a deleted card keeps its own', async () => {
@@ -230,5 +230,18 @@ describe('the import receipts of moved Nexus cards', () => {
     await t.mutation(internal.nexusLinkMigrations.undoNexusLinkMoves, { cursor: null });
     expect(await statuses()).toEqual(['update', 'conflict']);
     expect(await deletedReceipt()).toEqual(receiptOfDeleted);
+  });
+
+  test('stay put for a card relinked by hand between the move and the receipts step', async () => {
+    const { t, statuses, clean } = await receiptedCards();
+    await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1, {});
+    await t.run(async (ctx) => {
+      const row = (await ctx.db.get('assets', clean))!;
+      await ctx.db.patch('assets', clean, {
+        data: { ...row.data, factionLink: { id: 'elsewhere', slug: 'elsewhere' } },
+      });
+    });
+    await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1_receipts, {});
+    expect(await statuses()).toEqual(['conflict', 'conflict']);
   });
 });

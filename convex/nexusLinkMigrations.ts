@@ -86,7 +86,7 @@ const MOVE_SCAN_LIMIT = 4000;
 /**
  * Carries the import receipts of the moved cards onto their new link, since it changes the state an import compares against.
  * A receipt moves only where it recorded the card exactly as it was before the move, rebuilt from the record's variant link.
- * A card edited by hand since its import keeps its receipt and still reads as a conflict, and a deleted card's receipts stay as they are.
+ * A card edited by hand since its import, or relinked since the move, keeps its receipt and still reads as a conflict, and a deleted card's receipts stay as they are.
  * It acts on the first record only, so the receipts are scanned once and never once per card.
  * The deploy runs it after `nexus_link_family_v1`, whose id sorts first, and a replay finds no receipt that recorded a variant link.
  */
@@ -103,7 +103,8 @@ export const nexus_link_family_v1_receipts = migrations.define({
     const dataBefore = new Map<string, unknown>();
     for (const row of moves) {
       const asset = await ctx.db.get('assets', row.asset_id);
-      if (asset && !asset.is_deleted) {
+      /* A card relinked by hand since the move keeps its receipt, so the edit still reads as a conflict. */
+      if (asset && !asset.is_deleted && asset.data?.factionLink?.id === row.family_id) {
         dataBefore.set(row.asset_id, {
           ...asset.data,
           factionLink: { id: row.variant_id, slug: row.variant_slug },
