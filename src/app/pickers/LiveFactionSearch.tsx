@@ -14,8 +14,8 @@ const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
   LoadingMore: 'loading-more',
 };
 
-/** The catalogue's faction choices as a search list offers them: each with its token, and its variant where the catalogue names one. */
-export function listedFactionTokens(choices: readonly CatalogueChoice[]): ListedFactionToken[] {
+/* The catalogue's faction choices as a search list offers them: each with its token, and its variant where the catalogue names one. */
+function listedFactionTokens(choices: readonly CatalogueChoice[]): ListedFactionToken[] {
   return choices.flatMap((choice) =>
     choice.kind === 'faction'
       ? [

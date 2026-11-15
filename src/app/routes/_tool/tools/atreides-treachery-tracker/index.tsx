@@ -8,20 +8,17 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { Layers } from 'lucide-react';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 
-import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useTreacheryDecks } from '@app/db/play';
 import type { TreacheryDeckRead } from '@app/db/play';
 import { useTrackerToolSetup } from '@app/db/rulesets';
 import { useTreacheryDeckChoices } from '@app/db/treacheryTrackerTool';
 import type { TreacheryDeckChoice } from '@app/db/treacheryTrackerTool';
-import { listedFactionTokens } from '@app/pickers/LiveFactionSearch';
+import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import { faceCopies } from '@app/widgets/treachery-tracker/CardArt';
 import { cardDefs } from '@app/widgets/treachery-tracker/tracker';
 
-import { FactionSearchList } from './FactionSearchList';
-import type { FactionSearchStatus } from './FactionSearchList';
 import styles from './index.module.css';
 import { playGame, savedGame, startGame } from './standaloneGame';
 import type { StandaloneGame } from './standaloneGame';
@@ -226,27 +223,5 @@ function gameFrom(
   );
 }
 
-/* How far a catalogue read has got, in the search list's words; anything else means it has read them all. */
-const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
-  LoadingFirstPage: 'loading',
-  CanLoadMore: 'more',
-  LoadingMore: 'loading-more',
-};
-
-/* Every faction on Dune Zone, searched by name, as the setup's Add a faction lists them. */
-const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
-  const [query, setQuery] = useState('');
-  const read = useCataloguePickerGroup('faction', query.trim(), undefined, seated);
-  const status = SEARCH_STATUS[read.status] ?? 'done';
-  return (
-    <FactionSearchList
-      query={query}
-      onQuery={setQuery}
-      factions={listedFactionTokens(read.results)}
-      seated={seated}
-      status={status}
-      onMore={() => read.loadMore(12)}
-      onPick={onPick}
-    />
-  );
-};
+/* Every faction on Dune Zone, searched by name, as the setup's Add a faction lists them: one variant per Faction. */
+const FactionSearch: FactionSearchType = (props) => <LiveFactionSearch onePerFaction {...props} />;
