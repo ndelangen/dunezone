@@ -104,6 +104,7 @@ import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
 import type * as lib_linkedAccountProfiles from "../lib/linkedAccountProfiles.js";
 import type * as lib_loginUser from "../lib/loginUser.js";
 import type * as lib_memoised from "../lib/memoised.js";
+import type * as lib_nexusFaction from "../lib/nexusFaction.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playDiscord from "../lib/playDiscord.js";
 import type * as lib_playDiscordVoice from "../lib/playDiscordVoice.js";
@@ -311,6 +312,7 @@ const fullApi: ApiFromModules<{
   "lib/linkedAccountProfiles": typeof lib_linkedAccountProfiles;
   "lib/loginUser": typeof lib_loginUser;
   "lib/memoised": typeof lib_memoised;
+  "lib/nexusFaction": typeof lib_nexusFaction;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playDiscord": typeof lib_playDiscord;
   "lib/playDiscordVoice": typeof lib_playDiscordVoice;

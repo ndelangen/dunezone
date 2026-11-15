@@ -69,9 +69,9 @@ import {
   syncCustomCardTokenRelations,
   validateCustomCardTokens,
 } from './lib/customCardTokens';
-import { parseStoredFactionForRead } from './lib/factionInput';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
+import { nexusLinkFace, nexusLinkOf, nexusLinkTarget } from './lib/nexusFaction';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -577,7 +577,10 @@ async function withValidatedBack(
   return data;
 }
 
-/* A linked Nexus face snapshots the faction artwork through the ordinary asset writer. */
+/*
+ * A linked Nexus face snapshots the faction artwork through the ordinary asset writer.
+ * The link names a Faction, or on a card saved before #2921 one of its variants, and is stored as whichever it names.
+ */
 async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
   if (type !== 'card-nexus') {
     return input;
@@ -589,18 +592,17 @@ async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, 
     }
     return card;
   }
-  const id = ctx.db.normalizeId('factions', card.factionLink.id);
-  const row = id ? await ctx.db.get('factions', id) : null;
-  if (!row || row.is_deleted) {
+  const target = await nexusLinkTarget(ctx, card.factionLink.id);
+  if (!target) {
     throw new ConvexError('Choose an available faction for this Nexus card');
   }
-  const faction = parseStoredFactionForRead(row.data);
+  const face = nexusLinkFace(target);
   return {
     ...card,
-    factionLink: { id: row._id, slug: row.slug },
-    faction: faction.name,
-    factionSymbol: { image: faction.emblem, background: faction.background },
-    icon: [faction.background, faction.emblem],
+    factionLink: nexusLinkOf(target),
+    faction: face.name,
+    factionSymbol: { image: face.emblem, background: face.background },
+    icon: [face.background, face.emblem],
   };
 }
 
