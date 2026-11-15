@@ -103,8 +103,11 @@ export const nexus_link_family_v1_receipts = migrations.define({
     const dataBefore = new Map<string, unknown>();
     for (const row of moves) {
       const asset = await ctx.db.get('assets', row.asset_id);
+      const family = await ctx.db.get('faction_families', row.family_id);
+      const link = asset?.data?.factionLink;
       /* A card relinked by hand since the move keeps its receipt, so the edit still reads as a conflict. */
-      if (asset && !asset.is_deleted && asset.data?.factionLink?.id === row.family_id) {
+      const asMoved = link?.id === row.family_id && link?.slug === family?.slug;
+      if (asset && !asset.is_deleted && asMoved) {
         dataBefore.set(row.asset_id, {
           ...asset.data,
           factionLink: { id: row.variant_id, slug: row.variant_slug },

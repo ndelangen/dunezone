@@ -232,13 +232,16 @@ describe('the import receipts of moved Nexus cards', () => {
     expect(await deletedReceipt()).toEqual(receiptOfDeleted);
   });
 
-  test('stay put for a card relinked by hand between the move and the receipts step', async () => {
+  test.each([
+    { to: 'another Faction', relink: () => ({ id: 'elsewhere', slug: 'elsewhere' }) },
+    { to: 'a new slug', relink: (link: { id: string }) => ({ id: link.id, slug: 'renamed' }) },
+  ])('stay put for a card relinked to $to between the move and the receipts step', async ({ relink }) => {
     const { t, statuses, clean } = await receiptedCards();
     await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1, {});
     await t.run(async (ctx) => {
       const row = (await ctx.db.get('assets', clean))!;
       await ctx.db.patch('assets', clean, {
-        data: { ...row.data, factionLink: { id: 'elsewhere', slug: 'elsewhere' } },
+        data: { ...row.data, factionLink: relink(row.data.factionLink) },
       });
     });
     await t.mutation(internal.nexusLinkMigrations.nexus_link_family_v1_receipts, {});
