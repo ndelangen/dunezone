@@ -61,6 +61,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'counters',
     'former_slugs',
     'migration_runs',
+    'nexus_link_moves',
     'catalogue_entries',
     'profile_standings',
     'group_standings',

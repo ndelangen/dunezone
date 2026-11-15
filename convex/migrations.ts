@@ -38,6 +38,7 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso } from './lib/utils';
+import { NEXUS_LINK_MIGRATION_IDS } from './nexusLinkMigrations';
 import { PUBLICATION_MIGRATION_IDS } from './publicationMigrations';
 import schema from './schema';
 import type { MutationCtx } from './types';
@@ -55,6 +56,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
+  ...NEXUS_LINK_MIGRATION_IDS,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,

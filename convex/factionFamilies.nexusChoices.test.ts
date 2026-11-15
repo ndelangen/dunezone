@@ -78,15 +78,12 @@ describe('the Factions a Nexus card may link (#2921)', () => {
 });
 
 describe('the Faction a Nexus card’s link leads to (#2921)', () => {
-  test('a Faction’s id answers with the Faction, and a variant’s with its Faction and the variant’s name', async () => {
+  test('a Faction’s id answers with the Faction, and so does a variant’s, on a card the move has not reached yet', async () => {
     const { t, familyId, variant } = await twoFactions();
 
     const linked = await t.query(api.factionFamilies.nexusLink, { id: familyId });
-    expect(linked).toEqual({ id: familyId, slug: 'atreides', variantCount: 2, formerVariant: null });
-    expect(await t.query(api.factionFamilies.nexusLink, { id: variant.id })).toEqual({
-      ...linked,
-      formerVariant: 'Kwisatz Haderach',
-    });
+    expect(linked).toEqual({ id: familyId, slug: 'atreides', variantCount: 2 });
+    expect(await t.query(api.factionFamilies.nexusLink, { id: variant.id })).toEqual(linked);
   });
 
   test('a deleted variant, a Faction with no live variant and an unknown id lead nowhere', async () => {

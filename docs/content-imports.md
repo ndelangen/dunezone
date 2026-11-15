@@ -107,6 +107,8 @@ Local and production database IDs differ. Declare explicit bindings for fields t
 
 This fragment illustrates the bindings only; the card still needs every required Nexus field. The importer rewrites those two fields and leaves other strings alone. Put `atreides` before this card. The same mechanism handles faction references in Rulebook blocks, saved board and token IDs, card backs, and faction extras that refer to asset slugs. Stock artwork keeps its catalogue path and needs no binding.
 
+A Nexus card links a whole faction. A faction item is imported as one variant, so the card binds that variant, and the asset writer stores the variant's faction instead: the saved `factionLink` holds the faction's own ID and address, not the bound ones.
+
 Bindings must point to existing fields. Dependency cycles and forward references fail package validation. Do not paste local database IDs into a production package without replacing their references.
 
 ## Existing records and safe retries

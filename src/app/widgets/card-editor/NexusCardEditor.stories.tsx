@@ -62,7 +62,7 @@ export const Faction = meta.story({
   args: {
     chapter: 'faction' as const,
     draft: LINKED,
-    linkedFaction: { ...LINKED.factionLink, variantCount: 3, formerVariant: null },
+    linkedFaction: { ...LINKED.factionLink, variantCount: 3 },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

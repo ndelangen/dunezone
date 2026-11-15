@@ -9,13 +9,7 @@ import { ALL_PARTITION } from './lib/catalogueOrder';
 import { paginateCatalogueEntries } from './lib/cataloguePickerOptions';
 import { liveGroupOrNull, requireFactionFamily } from './lib/collaborativeAccess';
 import { factionSharedValidator } from './lib/factionData';
-import {
-  loadEmptyFactionsOf,
-  makeDefaultVariant,
-  VARIANT_LISTING_LIMIT,
-  variantName,
-  variantsOf,
-} from './lib/factionFamilies';
+import { loadEmptyFactionsOf, makeDefaultVariant, VARIANT_LISTING_LIMIT, variantsOf } from './lib/factionFamilies';
 import { nexusLinkTarget } from './lib/nexusFaction';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -189,7 +183,7 @@ export const nexusChoices = publicQuery({
 
 /**
  * The Faction a Nexus card's link leads to, by the id the link carries, for the editor's Faction field: its id and address, and how many live variants it has.
- * A card saved before #2921 links one variant: its Faction comes back with that variant's name, so the editor can say what the link was.
+ * A card `nexus_link_family_v1` has not moved yet links one variant, whose Faction comes back.
  * Null for an id that names no live Faction or variant.
  */
 export const nexusLink = publicQuery({
@@ -200,7 +194,6 @@ export const nexusLink = publicQuery({
       id: v.id('faction_families'),
       slug: v.string(),
       variantCount: v.number(),
-      formerVariant: v.union(v.string(), v.null()),
     })
   ),
   handler: async (ctx, args) => {
@@ -228,7 +221,6 @@ export const nexusLink = publicQuery({
       id: family._id,
       slug: family.slug,
       variantCount: entry?.variant_count ?? 1,
-      formerVariant: target.kind === 'variant' ? variantName(target.variant) : null,
     };
   },
 });

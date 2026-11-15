@@ -1,4 +1,4 @@
-import { Group, Stack, Text } from '@mantine/core';
+import { Group, Stack } from '@mantine/core';
 import { GENERIC, EMBLEM } from '@shared/assetIds';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
@@ -71,8 +71,6 @@ export type NexusLinkedFaction = Readonly<{
   slug: string;
   /** How many live variants the Faction has. */
   variantCount: number;
-  /** The variant the draft still links, on a card saved before a Nexus card linked a whole Faction; null once it links the Faction. */
-  formerVariant: string | null;
 }>;
 
 /** What linking a Faction changes on the card: the link, and the name, symbol and colours it supplies. */
@@ -118,22 +116,15 @@ function FactionFields({
         }
         input={
           draft.factionLink && factionEmblem.success ? (
-            <Stack gap="xs">
-              <Group gap="sm">
-                <FactionLink
-                  slug={linkedFaction?.slug ?? draft.factionLink.slug}
-                  name={draft.faction}
-                  emblem={factionEmblem.data}
-                  background={draft.factionSymbol.background}
-                />
-                {linkedFaction ? <FactionVariantCount count={linkedFaction.variantCount} /> : null}
-              </Group>
-              {linkedFaction?.formerVariant ? (
-                <Text size="xs" c="dimmed">
-                  Linked the {linkedFaction.formerVariant} variant before. It now links the faction.
-                </Text>
-              ) : null}
-            </Stack>
+            <Group gap="sm">
+              <FactionLink
+                slug={linkedFaction?.slug ?? draft.factionLink.slug}
+                name={draft.faction}
+                emblem={factionEmblem.data}
+                background={draft.factionSymbol.background}
+              />
+              {linkedFaction ? <FactionVariantCount count={linkedFaction.variantCount} /> : null}
+            </Group>
           ) : (
             <EmptyNote>No faction linked yet.</EmptyNote>
           )

@@ -71,7 +71,7 @@ import {
 } from './lib/customCardTokens';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
-import { nexusLinkFace, nexusLinkOf, nexusLinkTarget } from './lib/nexusFaction';
+import { nexusFactionTarget, nexusLinkFace, nexusLinkOf } from './lib/nexusFaction';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -579,7 +579,8 @@ async function withValidatedBack(
 
 /*
  * A linked Nexus face snapshots the faction artwork through the ordinary asset writer.
- * The link names a Faction, or on a card saved before #2921 one of its variants, and is stored as whichever it names.
+ * The link is stored as a whole Faction (#2921): a live variant's id is taken for its Faction, so a stale draft, an open tab from before the move, or an import that binds a variant saves the Faction.
+ * Refusing a variant outright waits for the slice 10 narrow.
  */
 async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
   if (type !== 'card-nexus') {
@@ -592,7 +593,7 @@ async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, 
     }
     return card;
   }
-  const target = await nexusLinkTarget(ctx, card.factionLink.id);
+  const target = await nexusFactionTarget(ctx, card.factionLink.id);
   if (!target) {
     throw new ConvexError('Choose an available faction for this Nexus card');
   }

@@ -209,24 +209,12 @@ export const nexusCardSession: CardSessionConfig<
       : status;
   },
   warnings: nexusDraftWarnings,
-  /*
-   * A card saved before a Nexus card linked a whole Faction links one variant.
-   * Opening it changes nothing; its first edit carries the Faction's own link with it, so the save that follows re-points the card.
-   */
   renderEditor: (slot) => (
     <NexusFactionRead
       draft={slot.state.data}
-      render={(linked) => {
-        const repoint = linked?.formerVariant ? { factionLink: { id: linked.id, slug: linked.slug } } : null;
-        return (
-          <NexusCardEditor
-            {...cardEditorProps(slot)}
-            {...memoryEditorProps(slot)}
-            patch={(update) => slot.patch(repoint ? { ...repoint, ...update } : update)}
-            linkedFaction={linked ?? undefined}
-          />
-        );
-      }}
+      render={(linked) => (
+        <NexusCardEditor {...cardEditorProps(slot)} {...memoryEditorProps(slot)} linkedFaction={linked ?? undefined} />
+      )}
     />
   ),
 };

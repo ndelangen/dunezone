@@ -185,7 +185,8 @@ bun run migrations:static-check
   [`convex/publicationMigrations.ts`](../convex/publicationMigrations.ts) for the publication queue listings.
   A migration's module path is part of its identity in the component, so moving one runs it again
   in production; each stays in the module it was born in.
-  A new module for a one-off family (the November 2026 emblem rename and Arrakis move each had one) is
+  A new module for a one-off family (the November 2026 emblem rename and Arrakis move each had one, and
+  `nexusLinkMigrations.ts` does, with its `nexus_link_moves` undo records and `undoNexusLinkMoves`) is
   deleted once all its ids are pruned.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in

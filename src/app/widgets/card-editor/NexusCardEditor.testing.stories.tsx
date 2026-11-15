@@ -1,6 +1,5 @@
 import { TextInput } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
-import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
@@ -23,7 +22,7 @@ function LiveEditor({ onPatch }: Readonly<{ onPatch: (update: Partial<NexusDraft
           onPatch(update);
           setDraft((current) => ({ ...current, ...update }));
         }}
-        linkedFaction={draft.factionLink ? { ...draft.factionLink, variantCount: 3, formerVariant: null } : undefined}
+        linkedFaction={draft.factionLink ? { ...draft.factionLink, variantCount: 3 } : undefined}
         memory={INITIAL_NEXUS_MEMORY}
         remember={fn()}
         chapter="faction"
@@ -65,36 +64,6 @@ export const PickFaction = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Change faction' }));
     await expect(canvas.findByRole('option', { name: /House Atreides/ })).resolves.toHaveAttribute(
       'data-combobox-active'
-    );
-  },
-});
-
-/**
- * A card saved while it linked one variant: the field leads to that variant's Faction, and a dimmed line names the variant the card still links.
- * The page reads both facts and hands them in.
- */
-export const FormerVariant = meta.story({
-  render: () => (
-    <WorkbenchLayout>
-      <NexusCardEditor
-        nameField={<TextInput aria-label="Name" readOnly value="Atreides" />}
-        draft={{ ...GF9_NEXUS_CARDS[0]!, factionLink: { id: 'classic', slug: 'house-atreides-classic' } }}
-        patch={fn()}
-        linkedFaction={{ id: 'house-atreides', slug: 'house-atreides', variantCount: 3, formerVariant: 'Classic' }}
-        memory={INITIAL_NEXUS_MEMORY}
-        remember={fn()}
-        chapter="faction"
-        onChapterChange={fn()}
-        onSettle={fn()}
-      />
-    </WorkbenchLayout>
-  ),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('Linked the Classic variant before. It now links the faction.')).toBeVisible();
-    await expect(canvas.getByRole('link', { name: 'Atreides' })).toHaveAttribute(
-      'href',
-      expect.stringMatching(/\/factions\/house-atreides$/)
     );
   },
 });
