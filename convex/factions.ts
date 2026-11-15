@@ -40,6 +40,7 @@ import {
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
+import { nexusLinkOf, nexusLinkTarget } from './lib/nexusFaction';
 import { requireAuthUserId } from './lib/policy';
 import {
   enqueueFactionLeaderPublications,
@@ -156,15 +157,15 @@ export const detailPage = publicQuery({
 /**
  * A live faction's page address by its id, for Play, whose seats carry only the id.
  * The game shows the faction as it captured it, and reads only the address live, since renaming a faction moves its page.
+ * The id names a variant, or a whole Faction as a Nexus card's link does (#2921), whose address is the Faction's own.
  * Null for an unknown or deleted faction, so a game table never fails on it.
  */
 export const pageSlug = publicQuery({
   args: { id: v.string() },
   returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
-    const id = ctx.db.normalizeId('factions', args.id);
-    const row = id ? await ctx.db.get('factions', id) : null;
-    return row && !row.is_deleted ? row.slug : null;
+    const target = await nexusLinkTarget(ctx, args.id);
+    return target ? nexusLinkOf(target).slug : null;
   },
 });
 

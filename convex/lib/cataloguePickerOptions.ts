@@ -18,6 +18,29 @@ function catalogueEntryTarget(ctx: QueryCtx, kind: 'faction' | 'asset', sourceId
 }
 
 /**
+ * One page of a catalogue list for a picker: the entries a search finds, or without one the whole list, newest first.
+ * Paging by cursor, so a picker reads no more of a long list than its reader asks for.
+ */
+export async function paginateCatalogueEntries(
+  ctx: QueryCtx,
+  args: { kind: string; partition: string; q: string; paginationOpts: PaginationOptions }
+) {
+  const text = args.q.trim();
+  return text
+    ? await ctx.db
+        .query('catalogue_entries')
+        .withSearchIndex('search_text', (q) =>
+          q.search('search_text', searchIndexText(text)).eq('kind', args.kind).eq('partition', args.partition)
+        )
+        .paginate(args.paginationOpts)
+    : await ctx.db
+        .query('catalogue_entries')
+        .withIndex('by_kind_partition_created', (q) => q.eq('kind', args.kind).eq('partition', args.partition))
+        .order('desc')
+        .paginate(args.paginationOpts);
+}
+
+/**
  * The legacy FAQ picker and grouped picker share indexed search, paging and live target projection.
  * Each choice comes with its variant's name where its Faction has several, and null otherwise or on an asset.
  * Given the factions a tool has seated, a faction choice also names the seated sibling that keeps it from the table.
@@ -32,20 +55,8 @@ export async function loadCataloguePickerOptions(
     seated?: readonly string[];
   }
 ) {
-  const text = args.q.trim();
   const seated = args.kind === 'faction' && args.seated ? await seatedVariants(ctx, args.seated) : [];
-  const rows = text
-    ? await ctx.db
-        .query('catalogue_entries')
-        .withSearchIndex('search_text', (q) =>
-          q.search('search_text', searchIndexText(text)).eq('kind', args.kind).eq('partition', args.partition)
-        )
-        .paginate(args.paginationOpts)
-    : await ctx.db
-        .query('catalogue_entries')
-        .withIndex('by_kind_partition_created', (q) => q.eq('kind', args.kind).eq('partition', args.partition))
-        .order('desc')
-        .paginate(args.paginationOpts);
+  const rows = await paginateCatalogueEntries(ctx, args);
   const page = await Promise.all(
     rows.page.map(async (entry) => {
       const target = catalogueEntryTarget(ctx, args.kind, entry.source_id);

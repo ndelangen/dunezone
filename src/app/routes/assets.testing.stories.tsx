@@ -1,10 +1,13 @@
 import { testingPreview } from '@sb/preview';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
+import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
 import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { loadAssetPage } from '@db/assets';
 import { db, ref, asset } from '@db/storybook';
+import { withFactionVariants } from '@app/pickers/factionVariants.stories.fixture';
 
 import { storyPage, findDetailFace } from './assets.stories.fixture';
 import { findSave } from './authoringToolbarPlay';
@@ -409,16 +412,21 @@ export const CreateStrongholdCardSaves = meta.story({
   },
 });
 
+/** A new Nexus card links a whole Faction: one pick from the open list, with no confirmation, and the saved card keeps it. */
 export const CreateNexusCardLinksFaction = meta.story({
   args: { path: '/assets/card-nexus/create' },
+  parameters: { database: db(withFactionVariants) },
   play: async () => {
     const page = within(document.body);
     await userEvent.type(await page.findByRole('textbox', { name: 'Name' }), 'My Nexus');
     await userEvent.click(page.getByRole('tab', { name: 'Faction' }));
-    await userEvent.click(page.getByRole('button', { name: 'Choose faction' }));
     await userEvent.click(await page.findByRole('option', { name: /House Atreides/ }, { timeout: 30_000 }));
-    await userEvent.click(page.getByRole('button', { name: 'Link faction' }));
-    await expect(page.getByRole('textbox', { name: 'Faction' })).toHaveValue('House Atreides');
+    await expect(page.queryByRole('option')).toBeNull();
+    await expect(page.getByRole('link', { name: 'House Atreides' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\/factions\/house-atreides$/)
+    );
+    await expect(page.findByRole('img', { name: '3 variants' })).resolves.toBeVisible();
     await expect(page.queryByRole('combobox', { name: 'Faction symbol' })).toBeNull();
     await userEvent.click(page.getByRole('tab', { name: 'Effects' }));
     for (const label of ['Betrayal', 'Cunning', 'Secret Ally']) {
@@ -427,8 +435,56 @@ export const CreateNexusCardLinksFaction = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('tab', { name: 'Faction' }));
-    await expect(page.getByRole('textbox', { name: 'Faction' })).toHaveValue('House Atreides');
+    await expect(page.getByRole('link', { name: 'House Atreides' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Change faction' })).toBeVisible();
+    await expect(page.queryByText(/variant before/)).toBeNull();
+  },
+});
+
+/**
+ * A card saved while it linked one variant opens unchanged, showing that variant's Faction and saying which variant it linked.
+ * Its first edit carries the Faction's link, so the save that follows stores the Faction's own id and address.
+ */
+export const EditNexusCardLinkedToVariant = meta.story({
+  args: { path: '/assets/card-nexus/old-atreides-nexus/edit' },
+  parameters: {
+    database: db((baseline) => {
+      withFactionVariants(baseline);
+      const card = asset({
+        type: 'card-nexus',
+        data: { ...GF9_NEXUS_CARDS[0]!, name: 'Old Atreides nexus', faction: 'House Atreides' },
+      });
+      /* The link is added after the row is parsed, since the variant's id exists only once the database is seeded. */
+      card.data = {
+        ...card.data,
+        factionLink: { id: ref('faction:house-atreides-dreamrules'), slug: 'house-atreides-dreamrules' },
+      };
+      baseline.assets.push(card);
+      return baseline;
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: 'Faction' }, { timeout: 30_000 }));
+    await expect(
+      page.findByText('Linked the Dreamrules variant before. It now links the faction.')
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'House Atreides' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\/factions\/house-atreides$/)
+    );
+    await expect(findSave(canvasElement)).resolves.toHaveAccessibleDescription(/^No unsaved changes/);
+    await userEvent.click(page.getByRole('tab', { name: 'Effects' }));
+    await userEvent.type(page.getByRole('textbox', { name: 'Cunning' }), ' Changed.');
+    await userEvent.click(page.getByRole('button', { name: 'Save card' }));
+    await waitFor(async () =>
+      expect((await loadAssetPage('card-nexus', 'old-atreides-nexus'))?.asset.data.factionLink?.slug).toBe(
+        'house-atreides'
+      )
+    );
+    await userEvent.click(page.getByRole('tab', { name: 'Faction' }));
+    await expect(page.findByRole('img', { name: '3 variants' })).resolves.toBeVisible();
+    await expect(page.queryByText(/variant before/)).toBeNull();
   },
 });
 

@@ -244,6 +244,26 @@ export function useFactionPageSlug(id: string) {
   return useLiveQuery(api.factions.pageSlug, { id });
 }
 
+/** One Faction as the Nexus card's picker lists it: one row per Faction, never one per variant. */
+export type NexusFactionChoice = FunctionReturnType<typeof api.factionFamilies.nexusChoices>['page'][number];
+
+/** How many Factions the Nexus card's picker reads at a time. */
+const NEXUS_CHOICES_PAGE = 8;
+
+/** The Factions a Nexus card may link, searched by a Faction's names and its variants'; each search is its own read. */
+export function useNexusFactionChoices(q: string) {
+  const query = usePaginatedQuery(api.factionFamilies.nexusChoices, { q }, { initialNumItems: NEXUS_CHOICES_PAGE });
+  return { ...query, loadMore: () => query.loadMore(NEXUS_CHOICES_PAGE) };
+}
+
+/**
+ * The Faction a Nexus card's link leads to, by the id the link carries: its own id and address and its variant count, with the variant's name where an older card links one.
+ * Undefined while loading, null when the link leads nowhere.
+ */
+export function useNexusLinkedFaction(id: string) {
+  return useLiveQuery(api.factionFamilies.nexusLink, { id }, { hold: false });
+}
+
 /**
  * One live catalogue page, taking `loadFactionCataloguePage`'s result for the same arguments as `initialData`.
  * A searched page is not held warm after it is left: every committed search is its own subscription, and holding each would keep re-running them on every faction write.

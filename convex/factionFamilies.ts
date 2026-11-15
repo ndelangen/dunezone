@@ -1,12 +1,23 @@
+import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 
-import type { Id } from './_generated/dataModel';
-import { mutation, viewerQuery } from './functions';
+import type { Doc, Id } from './_generated/dataModel';
+import { mutation, publicQuery, viewerQuery } from './functions';
 import { optionalActiveUserId } from './lib/accountLifecycle';
-import { requireFactionFamily } from './lib/collaborativeAccess';
+import { isActiveProfile } from './lib/accountLifecycle';
+import { ALL_PARTITION } from './lib/catalogueOrder';
+import { paginateCatalogueEntries } from './lib/cataloguePickerOptions';
+import { liveGroupOrNull, requireFactionFamily } from './lib/collaborativeAccess';
 import { factionSharedValidator } from './lib/factionData';
-import { loadEmptyFactionsOf, makeDefaultVariant, VARIANT_LISTING_LIMIT, variantsOf } from './lib/factionFamilies';
-import type { MutationCtx } from './types';
+import {
+  loadEmptyFactionsOf,
+  makeDefaultVariant,
+  VARIANT_LISTING_LIMIT,
+  variantName,
+  variantsOf,
+} from './lib/factionFamilies';
+import { nexusLinkTarget } from './lib/nexusFaction';
+import type { MutationCtx, QueryCtx } from './types';
 
 /*
  * The Faction's settings (#2928): the default variant, the variant order and whether the Faction is open.
@@ -122,5 +133,102 @@ export const ownEmpty = viewerQuery({
   handler: async (ctx) => {
     const viewerId = await optionalActiveUserId(ctx);
     return viewerId ? await loadEmptyFactionsOf(ctx, viewerId) : [];
+  },
+});
+
+/** One Faction as the Nexus card's picker lists it: what a row draws, who maintains it, and how many live variants it has. */
+const nexusChoiceValidator = v.object({
+  id: v.id('faction_families'),
+  slug: v.string(),
+  ...factionSharedValidator.pick('name', 'emblem', 'background').fields,
+  owner: v.union(v.string(), v.null()),
+  group: v.union(v.string(), v.null()),
+  variantCount: v.number(),
+});
+
+/** The Faction of one catalogue entry as a picker row, or null where it is deleted or its shared fields do not parse. */
+async function nexusFactionChoice(ctx: QueryCtx, entry: Doc<'catalogue_entries'>) {
+  const id = ctx.db.normalizeId('faction_families', entry.source_id);
+  const family = id ? await ctx.db.get('faction_families', id) : null;
+  if (!family || family.is_deleted || !family.data) {
+    return null;
+  }
+  const owner = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', family.owner_id))
+    .unique();
+  const group = family.group_id ? liveGroupOrNull(await ctx.db.get('groups', family.group_id)) : null;
+  return {
+    id: family._id,
+    slug: family.slug,
+    name: family.data.name,
+    emblem: family.data.emblem,
+    background: family.data.background,
+    /* A deleted or departing account no longer answers to its name, and a deleted Group names nothing (ADR-0003). */
+    owner: owner && isActiveProfile(owner) ? (owner.username ?? null) : null,
+    group: group?.name.trim() || null,
+    variantCount: entry.variant_count ?? 1,
+  };
+}
+
+/**
+ * The Factions a Nexus card may link, one per Faction and never one per variant (#2921), newest first.
+ * A search finds a Faction by its own names and by any variant's, as the catalogue does, since its entry holds them all.
+ * Each page reads its catalogue entries, and for each its Faction, owner and Group;
+ * no variant is read, as the entry holds the variant count (#2929).
+ */
+export const nexusChoices = publicQuery({
+  args: { q: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(nexusChoiceValidator),
+  handler: async (ctx, args) => {
+    const entries = await paginateCatalogueEntries(ctx, { ...args, kind: 'faction_family', partition: ALL_PARTITION });
+    const page = await Promise.all(entries.page.map((entry) => nexusFactionChoice(ctx, entry)));
+    return { ...entries, page: page.filter((choice) => choice !== null) };
+  },
+});
+
+/**
+ * The Faction a Nexus card's link leads to, by the id the link carries, for the editor's Faction field: its id and address, and how many live variants it has.
+ * A card saved before #2921 links one variant: its Faction comes back with that variant's name, so the editor can say what the link was.
+ * Null for an id that names no live Faction or variant.
+ */
+export const nexusLink = publicQuery({
+  args: { id: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      id: v.id('faction_families'),
+      slug: v.string(),
+      variantCount: v.number(),
+      formerVariant: v.union(v.string(), v.null()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const target = await nexusLinkTarget(ctx, args.id);
+    if (!target) {
+      return null;
+    }
+    const family =
+      target.kind === 'faction'
+        ? target.family
+        : target.variant.family_id
+          ? await ctx.db.get('faction_families', target.variant.family_id)
+          : null;
+    if (!family || family.is_deleted) {
+      return null;
+    }
+    /* The count is read off the Faction's catalogue entry, which holds it without reading the variants (#2929). */
+    const entry = await ctx.db
+      .query('catalogue_entries')
+      .withIndex('by_kind_source', (q) =>
+        q.eq('kind', 'faction_family').eq('source_id', family._id).eq('partition', ALL_PARTITION)
+      )
+      .first();
+    return {
+      id: family._id,
+      slug: family.slug,
+      variantCount: entry?.variant_count ?? 1,
+      formerVariant: target.kind === 'variant' ? variantName(target.variant) : null,
+    };
   },
 });

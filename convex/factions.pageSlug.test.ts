@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { variantsFixture } from './factionVariants.test.fixture';
 
 test('a Play seat finds a live faction page by the id it carries, and nothing for a deleted or unknown faction', async () => {
   const t = applicationTest();
@@ -31,4 +32,17 @@ test('a Play seat finds a live faction page by the id it carries, and nothing fo
   await expect(t.query(api.factions.pageSlug, { id: deleted })).resolves.toBeNull();
   /* The local fixtures seat factions under plain names, which are no faction id at all. */
   await expect(t.query(api.factions.pageSlug, { id: 'harkonnen' })).resolves.toBeNull();
+});
+
+test('a Nexus card’s link finds its own address, whether it names a whole Faction or one variant (#2921)', async () => {
+  const { t, owner, root, addVariant, familyId } = await variantsFixture();
+  const variant = await addVariant('Kwisatz Haderach');
+
+  await expect(t.query(api.factions.pageSlug, { id: familyId })).resolves.toBe('atreides');
+  await expect(t.query(api.factions.pageSlug, { id: variant.id })).resolves.toBe(variant.slug);
+
+  /* A Faction left with no live variant has no page to lead to. */
+  await owner.mutation(api.factions.softDelete, { id: root._id });
+  await owner.mutation(api.factions.softDelete, { id: variant.id });
+  await expect(t.query(api.factions.pageSlug, { id: familyId })).resolves.toBeNull();
 });

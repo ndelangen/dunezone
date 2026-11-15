@@ -19,6 +19,7 @@ import type { FactionInput } from '../../../shared/factions/schema';
 import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
 import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
+import { resolveSeedValue } from '../../../shared/seedReferences';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
 import type {
@@ -359,7 +360,12 @@ function validateReferences(database: StorybookDatabase, keys: Set<string>) {
   }
 }
 
-function validateDomainRows(database: Pick<StorybookDatabase, 'factions' | 'rulesets' | 'assets'>) {
+function validateDomainRows(
+  database: Pick<StorybookDatabase, 'factions' | 'rulesets' | 'assets'>,
+  keys: ReadonlySet<string>
+) {
+  /* An id inside an asset's data, such as a Nexus card's linked faction, exists only once the rows are seeded, so its key stands in for it here. */
+  const placeholders = new Map([...keys].map((key) => [key, key]));
   for (const row of database.factions) {
     FactionInputSchema.parse(row.data);
     FactionRowSlugSchema.parse(row.slug);
@@ -373,7 +379,7 @@ function validateDomainRows(database: Pick<StorybookDatabase, 'factions' | 'rule
     }
   }
   for (const row of database.assets) {
-    parseAssetDataForWrite(row.type, row.data);
+    parseAssetDataForWrite(row.type, resolveSeedValue(row.data, placeholders));
   }
 }
 
@@ -384,12 +390,15 @@ function patchedRows<Row extends { $patch?: object }>(rows: Row[]): Row[] {
 function validateDatabase(database: StorybookDatabase) {
   const keys = collectKeys(database);
   validateReferences(database, keys);
-  validateDomainRows(database);
-  validateDomainRows({
-    factions: patchedRows(database.factions),
-    rulesets: patchedRows(database.rulesets),
-    assets: patchedRows(database.assets),
-  });
+  validateDomainRows(database, keys);
+  validateDomainRows(
+    {
+      factions: patchedRows(database.factions),
+      rulesets: patchedRows(database.rulesets),
+      assets: patchedRows(database.assets),
+    },
+    keys
+  );
 }
 
 function orderSeedDocuments(documents: SeedInsertDocument[]) {

@@ -10,6 +10,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { variantsFixture } from './factionVariants.test.fixture';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
 async function linkedCard(
@@ -112,4 +113,51 @@ test('new Nexus cards require a live faction and use its authoritative header ar
   await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data: linked })).rejects.toThrow(
     'available faction'
   );
+});
+
+test('a Nexus card links a whole faction, stored under the faction’s own id and address with its shared artwork', async () => {
+  const { t, owner, familyId, family } = await variantsFixture();
+  const card = GF9_NEXUS_CARDS[1]!;
+  const created = await owner.mutation(api.assets.create, {
+    type: 'card-nexus',
+    data: { ...card, factionLink: { id: familyId, slug: 'wrong' } },
+  });
+  const shared = (await family()).data!;
+  expect((await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data).toEqual({
+    ...card,
+    factionLink: { id: familyId, slug: 'atreides' },
+    faction: shared.name,
+    factionSymbol: { image: shared.emblem, background: shared.background },
+    icon: [shared.background, shared.emblem],
+  });
+});
+
+test('a card that links one variant still saves as it is, and saving it with the faction’s id moves its link there', async () => {
+  const { t, owner, addVariant, familyId } = await variantsFixture();
+  const variant = await addVariant('Dreamrules');
+  const card = GF9_NEXUS_CARDS[0]!;
+  const variantLink = { id: variant.id, slug: variant.slug };
+  const created = await owner.mutation(api.assets.create, {
+    type: 'card-nexus',
+    data: { ...card, factionLink: variantLink },
+  });
+  const stored = async () => (await assetPageAs(t, { type: 'card-nexus', slug: created.slug }))?.asset.data;
+  expect((await stored())?.factionLink).toEqual(variantLink);
+
+  await owner.mutation(api.assets.update, { id: created.id, data: { ...(await stored()), cunning: 'Changed' } });
+  expect(await stored()).toMatchObject({ cunning: 'Changed', factionLink: variantLink });
+
+  await owner.mutation(api.assets.update, {
+    id: created.id,
+    data: { ...(await stored()), factionLink: { id: familyId, slug: 'atreides' } },
+  });
+  expect((await stored())?.factionLink).toEqual({ id: familyId, slug: 'atreides' });
+});
+
+test('a deleted faction, or one left without a live variant, cannot be linked', async () => {
+  const { owner, root, familyId, family } = await variantsFixture();
+  const data = { ...GF9_NEXUS_CARDS[0]!, factionLink: { id: familyId, slug: 'atreides' } };
+  await owner.mutation(api.factions.softDelete, { id: root._id });
+  expect((await family()).is_deleted).toBe(true);
+  await expect(owner.mutation(api.assets.create, { type: 'card-nexus', data })).rejects.toThrow('available faction');
 });
