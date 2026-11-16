@@ -14,6 +14,7 @@ import { parseStoredFactionForRead } from './lib/factionInput';
 import { inBranchOf, moveChildrenLater, moveToFamily, storeVariantData } from './lib/factionVariants';
 import { recordFormerSlug } from './lib/formerSlugs';
 import { requireAdminUserId } from './lib/policy';
+import { enqueueAssetPublication } from './lib/publication';
 import {
   rulebookAuthoredHash,
   rulebookDraftContentsHash,
@@ -134,6 +135,19 @@ async function leftBehind(ctx: Reader, familyId: Id<'faction_families'>, inBranc
   return { live, deleted };
 }
 
+/** The branch rows with the names they will have, each marked when the target or another row of the branch already has it. */
+function withNameClashes(branch: readonly Doc<'factions'>[], rootName: string, takenSlugs: ReadonlySet<string>) {
+  const named = branch.map((row, index) => ({ row, name: index === 0 ? rootName : row.variant_name }));
+  const counts = new Map<string, number>();
+  for (const { name } of named) {
+    counts.set(slugify(name), (counts.get(slugify(name)) ?? 0) + 1);
+  }
+  return named.map((entry) => {
+    const slug = slugify(entry.name);
+    return { ...entry, nameClash: takenSlugs.has(slug) || (counts.get(slug) ?? 0) > 1 };
+  });
+}
+
 /**
  * Everything an attach would change, refused where it may not happen: what the merge preview shows and the merge does.
  * `maps` holds the id pairs of each row whose leader or troop ids change: the variant, and each variant below it that follows it in those fields.
@@ -161,11 +175,12 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
     source: await ctx.db.get('faction_families', variant.family_id),
     fields,
     moves,
-    branch: branch.map((row, index) => {
-      const rowName = index === 0 ? name : row.variant_name;
-      return { row, name: rowName, nameClash: takenSlugs.has(slugify(rowName)) };
-    }),
-    maps: branchMaps(branch, parentData ? idPairsByField(parentData, data, fields) : {}),
+    branch: withNameClashes(branch, name, takenSlugs),
+    /* The same pairs `attach` reads off what it stored, including a leader `resolveVariantData` gives a fresh identity. */
+    maps: branchMaps(
+      branch,
+      parentData ? idPairsByField(resolveVariantData(parentData, data, fields), data, ID_FIELDS) : {}
+    ),
     /** Whether the variant's Faction is left with no live variant, so it retires into the one it joins. */
     retiresSource: !left.live,
     /** The deleted variants that stay in a Faction that retires, unless they are merged too. */
@@ -478,7 +493,11 @@ async function relinkNexusCards(ctx: MutationCtx, retiredFamilyId: Id<'faction_f
     .paginate({ cursor, numItems: 50 });
   for (const card of page.page) {
     if ((card.data as { factionLink?: { id?: string } } | null)?.factionLink?.id === retiredFamilyId) {
-      await ctx.db.patch('assets', card._id, { data: await withNexusFaction(ctx, 'card-nexus', card.data) });
+      const data = await withNexusFaction(ctx, 'card-nexus', card.data);
+      await ctx.db.patch('assets', card._id, { data });
+      if (!card.is_deleted) {
+        await enqueueAssetPublication(ctx, { _id: card._id, type: card.type, slug: card.slug, data });
+      }
     }
   }
   return page.isDone ? null : page.continueCursor;

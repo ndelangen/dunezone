@@ -4,10 +4,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
+import type { RulebookContentsV1 } from '../src/shared/rulebooks/contents';
+import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { variantsFixture, withStartText } from './factionVariants.test.fixture';
 import type { FactionData } from './factionVariants.test.fixture';
+import { recordFormerSlug } from './lib/formerSlugs';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 
 beforeEach(() => vi.useFakeTimers());
@@ -27,6 +30,21 @@ function duplicateOf(data: FactionData): FactionData {
     },
     'Start with 20 spice.'
   );
+}
+
+/** Valid Rulebook Contents whose first page holds an illustration of `source`, so the hashes of a rewrite are real ones. */
+function contentsIllustrating(source: { factionId: string; memberId: string }): RulebookContentsV1 {
+  const contents = createRulebookStarterContents();
+  const page = contents.pagesById[contents.pageOrder[0]!]!;
+  const region = Object.keys(page.blockOrderByRegion)[0] as keyof typeof page.blockOrderByRegion;
+  (page.blocksById as Record<string, unknown>).ZZZZ = {
+    id: 'ZZZZ',
+    kind: 'referenced-illustration',
+    source: { kind: 'faction-member', ...source },
+    caption: 'The duplicate’s leader',
+  };
+  (page.blockOrderByRegion[region] as string[]).push('ZZZZ');
+  return contents;
 }
 
 async function mergeFixture() {
@@ -165,6 +183,62 @@ describe('the admin merge tool (#2932)', () => {
 
     const cardRow = await f.t.run(async (ctx) => (await ctx.db.get(card.id))!);
     expect((cardRow.data as { factionLink: { id: Id<'faction_families'> } }).factionLink.id).toBe(f.familyId);
+  });
+
+  test('rewritten Contents get fresh hashes that match them', async () => {
+    const f = await mergeFixture();
+    const contents = contentsIllustrating({
+      factionId: f.duplicate._id,
+      memberId: f.duplicateData.leaders[0]!.memberId,
+    });
+    expect(rulebookDraftContentsHash(contents)).toBeDefined();
+    const stored = await f.rulebookWith(contents);
+
+    await f.admin.mutation(api.factionMerge.attach, f.args);
+    await f.settle();
+
+    const rewritten = contentsIllustrating({ factionId: f.duplicate._id, memberId: f.original.leaders[0]!.memberId });
+    const [draft, edition] = await f.t.run(
+      async (ctx) => [(await ctx.db.get(stored.draftId))!, (await ctx.db.get(stored.editionId))!] as const
+    );
+    expect(draft.contents).toEqual(rewritten);
+    expect(draft.contents_hash).toBeDefined();
+    expect(draft.contents_hash).toBe(rulebookDraftContentsHash(rewritten));
+    expect(edition.contents_hash).toBeDefined();
+    expect(edition.contents_hash).toBe(rulebookEditionContentsHash(rewritten));
+  });
+
+  test('refuses a name that another variant of the moving branch keeps', async () => {
+    const f = await mergeFixture();
+    await f.stranger.mutation(api.factionVariants.create, {
+      faction_id: f.duplicate._id,
+      name: 'Dreamrules',
+      group_id: null,
+      parent_id: f.duplicate._id,
+    });
+    await f.settle();
+    await expect(f.admin.mutation(api.factionMerge.attach, { ...f.args, name: 'Dreamrules' })).rejects.toThrow(
+      'already has a variant'
+    );
+  });
+
+  test('a former address of a Faction merged away leads to the Faction it joined', async () => {
+    const f = await mergeFixture();
+    const formerSlug = (await f.family(f.duplicateFamilyId)).slug;
+    await f.t.run(async (ctx) => {
+      await ctx.db.patch('faction_families', f.duplicateFamilyId, { slug: 'renamed-duplicate' });
+      await recordFormerSlug(ctx, {
+        kind: 'faction_family',
+        scope: '',
+        slug: formerSlug,
+        record_id: f.duplicateFamilyId,
+      });
+    });
+    await f.admin.mutation(api.factionMerge.attach, f.args);
+    await f.settle();
+    expect(await f.t.query(api.formerAddresses.resolve, { address: { kind: 'faction', slug: formerSlug } })).toBe(
+      `/factions/${(await f.row(f.root._id)).slug}`
+    );
   });
 
   test('a variant below the duplicate that follows its leaders moves along and has its references rewritten too', async () => {
