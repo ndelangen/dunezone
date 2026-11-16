@@ -11,7 +11,6 @@ import { factionPageAs, groupPageAs, rulesetDetailPageAs } from './viewerAccess.
 
 const now = '2026-08-05T00:00:00.000Z';
 
-/* The fixture inserts its rows raw, past the triggers, so a test that needs a Faction gives the variant one as the backfill would. */
 async function groupAccessFixture() {
   const t = applicationTest();
   const ids = await t.run(async (ctx) => {

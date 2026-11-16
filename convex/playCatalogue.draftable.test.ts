@@ -120,12 +120,15 @@ describe('the draft reads the catalogue', () => {
   test('a row names its Faction and its variant', async () => {
     const t = applicationTest();
     const { ruleset, linked } = await t.run(seed);
-    const family = await t.run(async (ctx) => (await ctx.db.get('factions', linked))!.family_id);
+    const family = await t.run(async (ctx) => {
+      await ctx.db.patch('factions', linked, { variant_name: 'Classic' });
+      return (await ctx.db.get('factions', linked))!.family_id;
+    });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
     expect(family).toBeDefined();
     expect(factions.find((faction) => faction.id === linked)).toMatchObject({
       familyId: family,
-      variantName: 'Original',
+      variantName: 'Classic',
     });
   });
 
