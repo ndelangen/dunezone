@@ -1,4 +1,4 @@
-import { useMutation, usePaginatedQuery, useQueries, useQuery } from 'convex/react';
+import { useMutation, usePaginatedQuery, useQueries } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -40,7 +40,20 @@ function placeArgs(placement: MergePlacement) {
  * Undefined while loading or when nothing was asked, and null when the variant or its Faction is gone.
  */
 export function useMergeFaction(factionId: string | null) {
-  return useQuery(api.factionMerge.variants, factionId ? { faction_id: factionId as Id<'factions'> } : 'skip');
+  /* A query map with no entry asks for nothing, which lets one hook serve a choice not made yet. */
+  const queries = useMemo((): Record<
+    string,
+    { query: typeof api.factionMerge.variants; args: { faction_id: Id<'factions'> } }
+  > => {
+    return factionId
+      ? { faction: { query: api.factionMerge.variants, args: { faction_id: factionId as Id<'factions'> } } }
+      : {};
+  }, [factionId]);
+  const answer = useQueries(queries).faction as MergeFaction | null | Error | undefined;
+  if (answer instanceof Error) {
+    throw answer;
+  }
+  return answer;
 }
 
 /**
