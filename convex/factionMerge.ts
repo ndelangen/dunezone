@@ -88,11 +88,8 @@ function branchMaps(branch: readonly Doc<'factions'>[], rootPairs: IdPairsByFiel
   return maps;
 }
 
-/**
- * Everything an attach would change, refused where it may not happen: what the merge preview shows and the merge does.
- * `maps` holds the id pairs of each row whose leader or troop ids change: the variant, and each variant below it that follows it in those fields.
- */
-async function planAttach(ctx: Reader, args: AttachArgs) {
+/** The rows an attach names, refused where the attach may not happen. */
+async function attachRows(ctx: Reader, args: AttachArgs) {
   const variant = await ctx.db.get('factions', args.faction_id);
   if (!variant) {
     throw new ConvexError('That variant no longer exists.');
@@ -102,7 +99,7 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
     throw new ConvexError('That faction no longer exists.');
   }
   const parent = args.parent_id ? await ctx.db.get('factions', args.parent_id) : null;
-  if (args.parent_id && (!parent || parent.is_deleted || parent.family_id !== target._id)) {
+  if (args.parent_id && !isLiveVariantOf(parent, target._id)) {
     throw new ConvexError('The parent must be a live variant of the faction it joins.');
   }
   if (parent && (await inBranchOf(ctx, parent._id, variant._id))) {
@@ -112,6 +109,32 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
   if (!slugify(name)) {
     throw new ConvexError('Give the variant a name.');
   }
+  return { variant, target, parent, name };
+}
+
+function isLiveVariantOf(row: Doc<'factions'> | null, familyId: Id<'faction_families'>) {
+  return !!row && !row.is_deleted && row.family_id === familyId;
+}
+
+/** The variants a Faction keeps when `branch` leaves it: whether any is live, and how many are deleted. */
+async function leftBehind(ctx: Reader, familyId: Id<'faction_families'>, inBranch: ReadonlySet<Id<'factions'>>) {
+  let live = false;
+  let deleted = 0;
+  for await (const row of variantsOf(ctx, familyId)) {
+    if (!inBranch.has(row._id)) {
+      live ||= !row.is_deleted;
+      deleted += row.is_deleted ? 1 : 0;
+    }
+  }
+  return { live, deleted };
+}
+
+/**
+ * Everything an attach would change, refused where it may not happen: what the merge preview shows and the merge does.
+ * `maps` holds the id pairs of each row whose leader or troop ids change: the variant, and each variant below it that follows it in those fields.
+ */
+async function planAttach(ctx: Reader, args: AttachArgs) {
+  const { variant, target, parent, name } = await attachRows(ctx, args);
   const data = parseStoredFactionForRead(variant.data);
   const parentData = parent ? parseStoredFactionForRead(parent.data) : null;
   const fields = parentData ? matchingFields(parentData, data) : [];
@@ -124,16 +147,7 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
     }
   }
   const moves = variant.family_id !== target._id;
-  let liveLeftBehind = false;
-  let deletedLeftBehind = 0;
-  if (moves) {
-    for await (const row of variantsOf(ctx, variant.family_id)) {
-      if (!inBranch.has(row._id)) {
-        liveLeftBehind ||= !row.is_deleted;
-        deletedLeftBehind += row.is_deleted ? 1 : 0;
-      }
-    }
-  }
+  const left = moves ? await leftBehind(ctx, variant.family_id, inBranch) : { live: true, deleted: 0 };
   return {
     variant,
     name,
@@ -148,9 +162,9 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
     }),
     maps: branchMaps(branch, parentData ? idPairsByField(parentData, data, fields) : {}),
     /** Whether the variant's Faction is left with no live variant, so it retires into the one it joins. */
-    retiresSource: moves && !liveLeftBehind,
+    retiresSource: !left.live,
     /** The deleted variants that stay in a Faction that retires, unless they are merged too. */
-    deletedLeftBehind: moves && !liveLeftBehind ? deletedLeftBehind : 0,
+    deletedLeftBehind: left.live ? 0 : left.deleted,
   };
 }
 
@@ -403,58 +417,69 @@ export const rewriteReferences = internalMutation({
   handler: async (ctx, args) => {
     const next = (fields: Pick<typeof args, 'phase' | 'cursor'>) =>
       ctx.scheduler.runAfter(0, internal.factionMerge.rewriteReferences, { ...args, ...fields });
-    if (args.phase !== 'nexus') {
-      const maps = new Map(args.maps.map(({ factionId, ...map }) => [factionId as string, map]));
-      const page = await documentPage(ctx, args.phase, maps, { cursor: args.cursor, numItems: 1 });
-      for (const { row, value, rewritten } of page.page) {
-        if (!rewritten) {
-          continue;
-        }
-        if ('rulebook_id' in row) {
-          const contentsHash = rulebookDraftContentsHash(value);
-          const rulebook = await ctx.db.get('rulebooks', row.rulebook_id);
-          await ctx.db.patch('rulebook_drafts', row._id, {
-            contents: value,
-            revision: row.revision + 1,
-            contents_hash: contentsHash,
-            authored_hash: authoredHash(rulebook?.settings, contentsHash),
-          });
-        } else {
-          const contentsHash = rulebookEditionContentsHash(value);
-          const edition = await ctx.db.get('rulebook_editions', row.edition_id);
-          await ctx.db.patch('rulebook_edition_contents', row._id, { contents: value });
-          if (edition) {
-            await ctx.db.patch('rulebook_editions', edition._id, {
-              contents_hash: contentsHash,
-              authored_hash: authoredHash(edition.settings, contentsHash),
-            });
-          }
-        }
-      }
-      if (!page.isDone) {
-        await next({ phase: args.phase, cursor: page.continueCursor });
-      } else if (args.phase === 'drafts') {
-        await next({ phase: 'editions', cursor: null });
-      } else if (args.retiredFamilyId) {
-        await next({ phase: 'nexus', cursor: null });
+    if (args.phase === 'nexus') {
+      const cursor = args.retiredFamilyId ? await relinkNexusCards(ctx, args.retiredFamilyId, args.cursor) : null;
+      if (cursor) {
+        await next({ phase: 'nexus', cursor });
       }
       return null;
     }
-    if (!args.retiredFamilyId) {
-      return null;
-    }
-    const page = await ctx.db
-      .query('assets')
-      .withIndex('by_type_deleted', (q) => q.eq('type', 'card-nexus'))
-      .paginate({ cursor: args.cursor, numItems: 50 });
-    for (const card of page.page) {
-      if ((card.data as { factionLink?: { id?: string } } | null)?.factionLink?.id === args.retiredFamilyId) {
-        await ctx.db.patch('assets', card._id, { data: await withNexusFaction(ctx, 'card-nexus', card.data) });
+    const maps = new Map(args.maps.map(({ factionId, ...map }) => [factionId as string, map]));
+    const page = await documentPage(ctx, args.phase, maps, { cursor: args.cursor, numItems: 1 });
+    for (const { row, value, rewritten } of page.page) {
+      if (rewritten) {
+        await saveRewritten(ctx, row, value);
       }
     }
     if (!page.isDone) {
-      await next({ phase: 'nexus', cursor: page.continueCursor });
+      await next({ phase: args.phase, cursor: page.continueCursor });
+    } else if (args.phase === 'drafts') {
+      await next({ phase: 'editions', cursor: null });
+    } else if (args.retiredFamilyId) {
+      await next({ phase: 'nexus', cursor: null });
     }
     return null;
   },
 });
+
+/** Saves rewritten Contents: a draft's revision moves on; an Edition's hashes follow its Contents. */
+async function saveRewritten(
+  ctx: MutationCtx,
+  row: Doc<'rulebook_drafts'> | Doc<'rulebook_edition_contents'>,
+  value: unknown
+) {
+  if ('rulebook_id' in row) {
+    const contentsHash = rulebookDraftContentsHash(value);
+    const rulebook = await ctx.db.get('rulebooks', row.rulebook_id);
+    await ctx.db.patch('rulebook_drafts', row._id, {
+      contents: value,
+      revision: row.revision + 1,
+      contents_hash: contentsHash,
+      authored_hash: authoredHash(rulebook?.settings, contentsHash),
+    });
+    return;
+  }
+  const contentsHash = rulebookEditionContentsHash(value);
+  const edition = await ctx.db.get('rulebook_editions', row.edition_id);
+  await ctx.db.patch('rulebook_edition_contents', row._id, { contents: value });
+  if (edition) {
+    await ctx.db.patch('rulebook_editions', edition._id, {
+      contents_hash: contentsHash,
+      authored_hash: authoredHash(edition.settings, contentsHash),
+    });
+  }
+}
+
+/** Saves a page of the Nexus cards linked to a retired Faction through the Nexus writer, which leads them on; the next cursor, or null when done. */
+async function relinkNexusCards(ctx: MutationCtx, retiredFamilyId: Id<'faction_families'>, cursor: string | null) {
+  const page = await ctx.db
+    .query('assets')
+    .withIndex('by_type_deleted', (q) => q.eq('type', 'card-nexus'))
+    .paginate({ cursor, numItems: 50 });
+  for (const card of page.page) {
+    if ((card.data as { factionLink?: { id?: string } } | null)?.factionLink?.id === retiredFamilyId) {
+      await ctx.db.patch('assets', card._id, { data: await withNexusFaction(ctx, 'card-nexus', card.data) });
+    }
+  }
+  return page.isDone ? null : page.continueCursor;
+}
