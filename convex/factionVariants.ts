@@ -45,7 +45,8 @@ async function parentFor(ctx: MutationCtx, base: Doc<'factions'>, parentId: Id<'
 }
 
 /** The new variant's own slug, which no other variant of the Faction may already use. */
-async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
+/** The new variant's slug within its Faction, refused where the name gives none or a sibling already has it. */
+export async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
   const variantSlug = slugify(name);
   if (!variantSlug) {
     throw new ConvexError('Give the variant a name.');

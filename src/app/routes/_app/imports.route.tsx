@@ -22,13 +22,17 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
 const FACTION_ACTIONS = {
   'create-faction': 'create faction',
+  'add-variant': 'add variant to',
   'update-variant': 'update variant',
   'link-variant': 'link existing variant',
 } as const;
 
 /** A faction item about to be written says what it does to factions and variants; everything else says its status (#2916). */
-function actionLabel(entry: { status: string; action?: keyof typeof FACTION_ACTIONS }) {
-  return entry.action ? FACTION_ACTIONS[entry.action] : entry.status;
+function actionLabel(entry: { status: string; action?: keyof typeof FACTION_ACTIONS; faction?: string }) {
+  if (!entry.action) {
+    return entry.status;
+  }
+  return entry.faction ? `${FACTION_ACTIONS[entry.action]} ${entry.faction}` : FACTION_ACTIONS[entry.action];
 }
 
 export const Route = createFileRoute('/_app/imports')({
