@@ -231,6 +231,7 @@ export async function insertVariant(
     groupId,
     address,
     data,
+    inherited: followed,
   }: {
     base: Doc<'factions'>;
     parent: Doc<'factions'> | null;
@@ -240,9 +241,15 @@ export async function insertVariant(
     address: string;
     /** The variant's own copy; without one it copies its parent and follows it in every inheritable field. */
     data?: Doc<'factions'>['data'];
+    /** With `data` and a parent: the fields the copy follows the parent in, which it takes from the parent. */
+    inherited?: readonly string[];
   }
 ) {
-  const source = data ?? parseStoredFactionForRead((parent ?? base).data);
+  const inherited = !parent ? [] : data ? normalizeInheritedFields(followed ?? []) : [...INHERITABLE_FIELDS];
+  const source =
+    parent && data
+      ? resolveVariantData(parseStoredFactionForRead(parent.data), parseStoredFactionForRead(data), inherited)
+      : (data ?? parseStoredFactionForRead((parent ?? base).data));
   const now = nowIso();
   const id = await ctx.db.insert('factions', {
     owner_id: ownerId,
@@ -256,9 +263,7 @@ export async function insertVariant(
     variant_name: name,
     variant_slug: slugify(name),
     revision: 0,
-    ...(parent
-      ? { parent_id: parent._id, inherited: data ? [] : [...INHERITABLE_FIELDS], problems: variantProblems(source) }
-      : {}),
+    ...(parent ? { parent_id: parent._id, inherited, problems: variantProblems(source) } : {}),
   });
   const row = (await ctx.db.get(id))!;
   await enqueueFactionSheetPublication(ctx, row);
