@@ -105,6 +105,21 @@ describe('a package item naming an existing variant', () => {
     expect((await linksIn(t, ids.otherRulesetId)).map((link) => link.faction_id)).toEqual([theirs._id]);
   });
 
+  test('writes the copy once the importer may edit a variant it only linked before', async () => {
+    const { t, owner, outsider, ids } = await importedVariant();
+    const theirs = await outsider.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const data = { ...assetPublishingFaction, rules: { ...assetPublishingFaction.rules, spiceCount: 7 } };
+    const bundle = packageFor('expansion', [{ key: 'theirs', kind: 'faction', variant: theirs.slug, data }]);
+    expect(await importAll(owner, bundle, second)).toMatchObject([{ status: 'linked' }]);
+
+    await t.run((ctx) => ctx.db.patch(theirs._id, { owner_id: ids.ownerId }));
+    expect(
+      (await owner.mutation(api.contentImports.preview, { package: bundle, target: second })).entries[0]
+    ).toMatchObject({ status: 'update', action: 'update-variant' });
+    expect(await importAll(owner, bundle, second)).toMatchObject([{ status: 'updated' }]);
+    expect((await t.run((ctx) => ctx.db.get(theirs._id)))!.data.rules.spiceCount).toBe(7);
+  });
+
   test('cannot also name it with existing', () => {
     expect(() =>
       packageFor('expansion', [

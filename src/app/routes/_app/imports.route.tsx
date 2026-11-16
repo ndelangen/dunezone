@@ -26,11 +26,9 @@ const FACTION_ACTIONS = {
   'link-variant': 'link existing variant',
 } as const;
 
-/** A faction item says what it does to factions and variants; a conflict or an unchanged item, and every other kind, say their status (#2916). */
+/** A faction item about to be written says what it does to factions and variants; everything else says its status (#2916). */
 function actionLabel(entry: { status: string; action?: keyof typeof FACTION_ACTIONS }) {
-  return entry.action && (entry.status === 'create' || entry.status === 'update')
-    ? FACTION_ACTIONS[entry.action]
-    : entry.status;
+  return entry.action ? FACTION_ACTIONS[entry.action] : entry.status;
 }
 
 export const Route = createFileRoute('/_app/imports')({

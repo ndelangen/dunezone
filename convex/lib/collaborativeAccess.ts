@@ -456,11 +456,11 @@ export async function factionSaveCheck(ctx: MutationCtx, factionId: Id<'factions
  * An import's preview runs it too, so a preview never offers an update its apply step would refuse.
  */
 export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
-  const { unchanged: _unchanged, allowed, ...access } = await factionSaveCheck(ctx, factionId, proposedData);
-  if (!allowed) {
+  const check = await factionSaveCheck(ctx, factionId, proposedData);
+  if (!check.allowed) {
     throw new Error('Not authorized');
   }
-  return access;
+  return check;
 }
 
 /**

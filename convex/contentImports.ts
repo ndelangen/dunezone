@@ -305,22 +305,17 @@ function linksVariant(item: ContentImportItem) {
   return item.kind === 'faction' && !!item.variant;
 }
 
-/** Whether linking `subject` also writes `data` to it, and whether the package's copy differs from it. */
-async function variantLinkPlan(ctx: MutationCtx, subject: Subject, data: unknown) {
-  const check = await factionSaveCheck(ctx, subject.id as Id<'factions'>, data);
-  return { writes: !check.unchanged && check.allowed, differs: !check.unchanged };
-}
-
-const LINK_ONLY_MESSAGE =
-  'This copy differs from the variant, which you cannot edit, so the variant is linked as it is.';
-
+/**
+ * Refuses an import the importer may not make.
+ * For an item that links a variant it refuses nothing, and answers whether the import also writes the package's copy, links an unchanged variant, or links one the importer may not edit although the copy differs.
+ */
 async function authorizeSubject(
   ctx: MutationCtx,
   target: Target,
   item: ContentImportItem,
   subject: Subject,
   data: unknown
-) {
+): Promise<'write' | 'link' | 'link-blocked' | undefined> {
   if (item.kind === 'rulebook') {
     const row = await ctx.db.get('rulebooks', subject.id as Id<'rulebooks'>);
     if (row?.ruleset_id !== target.ruleset._id) {
@@ -332,7 +327,8 @@ async function authorizeSubject(
     return;
   }
   if (linksVariant(item)) {
-    return;
+    const check = await factionSaveCheck(ctx, subject.id as Id<'factions'>, data);
+    return check.unchanged ? 'link' : check.allowed ? 'write' : 'link-blocked';
   }
   if (item.kind === 'faction') {
     await requireFactionSave(ctx, subject.id as Id<'factions'>, data);
@@ -389,17 +385,17 @@ export const preview = mutation({
         validateImportData(item, data);
         const receipt = await receiptFor(ctx, target, bundle.packageKey, item.key);
         const subject = await findSubject(ctx, target, item, receipt);
-        if (subject) {
-          await authorizeSubject(ctx, target, item, subject, data);
-        }
+        const mode = subject ? await authorizeSubject(ctx, target, item, subject, data) : undefined;
+        const linkOnly = mode === 'link' || mode === 'link-blocked';
         const hash = subject ? subjectHash(subject) : null;
         const destination = await destinationFor(ctx, target, item, subject);
-        const link = subject && linksVariant(item) ? await variantLinkPlan(ctx, subject, data) : null;
-        const linkOnly = link !== null && !link.writes;
         const conflict = !linkOnly && !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
-        const unchanged = linkOnly
-          ? !!subject?.linked
-          : !item.bindings?.length && receipt?.item_hash === rulebookContentsHash(item) && receipt.state_hash === hash;
+        /* A receipt of a link that wrote nothing still matches once the importer may edit the variant, so a write is never unchanged. */
+        const unchanged =
+          mode !== 'write' &&
+          !item.bindings?.length &&
+          receipt?.item_hash === rulebookContentsHash(item) &&
+          receipt.state_hash === hash;
         entries.push({
           key: item.key,
           kind: item.kind,
@@ -412,7 +408,7 @@ export const preview = mutation({
               : unchanged
                 ? ('unchanged' as const)
                 : ('update' as const),
-          ...(item.kind === 'faction'
+          ...(item.kind === 'faction' && !conflict && !unchanged
             ? {
                 action: !subject
                   ? ('create-faction' as const)
@@ -425,8 +421,12 @@ export const preview = mutation({
             ? { message: 'This record changed since its last import. Export and review it before continuing.' }
             : destination.message
               ? { message: destination.message }
-              : linkOnly && link.differs
-                ? { message: LINK_ONLY_MESSAGE }
+              : /* Preview binds placeholders, so a bound copy always reads as differing. */
+                mode === 'link-blocked' && !item.bindings?.length
+                ? {
+                    message:
+                      'This copy differs from the variant, which you cannot edit, so the variant is linked as it is.',
+                  }
                 : {}),
         });
       } catch (error) {
@@ -511,15 +511,14 @@ export const applyItem = mutation({
         return binding;
       })
     );
-    if (previous) {
-      await authorizeSubject(ctx, target, item, previous, data);
-    }
-    const linkOnly = !!previous && linksVariant(item) && !(await variantLinkPlan(ctx, previous, data)).writes;
+    const mode = previous ? await authorizeSubject(ctx, target, item, previous, data) : undefined;
+    const linkOnly = mode === 'link' || mode === 'link-blocked';
     if (!linkOnly && receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
       throw new ConvexError('This record changed since its last import. Export and review it before continuing.');
     }
     const resolvedHash = rulebookContentsHash([...bindings.entries()]);
     if (
+      mode !== 'write' &&
       receipt?.item_hash === inputHash &&
       receipt.resolved_hash === resolvedHash &&
       receipt.state_hash === hash &&
@@ -626,7 +625,7 @@ export const applyItem = mutation({
     return {
       id,
       slug: current.slug,
-      status: !previous ? 'created' : !linkOnly ? 'updated' : previous.linked ? 'unchanged' : 'linked',
+      status: !previous ? 'created' : linkOnly ? 'linked' : 'updated',
       hash: savedHash,
     };
   },
