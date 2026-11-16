@@ -38,7 +38,9 @@ A faction's `data` follows [`FactionWriteSchema`](../src/shared/factions/schema.
 
 A faction item without the fields below creates a new faction with one variant. To reuse a variant that already exists, for example one that another Ruleset imported, add `"variant": "<variant address>"`. The address is the variant's `/factions/` path segment. The import links that variant to the Ruleset and creates no new faction. It updates the variant only when the package's copy differs and you may edit the variant; otherwise it links the variant as it is, and the preview says so. The variant keeps its Group. Name a variant with `variant` or with `existing`, not both: `existing` updates the record and requires edit access.
 
-The preview's Action column says what each faction item does: create faction, update variant or link existing variant.
+To add the item as a new variant of an existing faction instead, add `"faction": "<faction address>"`, the faction's own `/factions/` address. The faction must be open, or you must own it or belong to its Group. The variant is named after the target Ruleset unless the item gives `"variantName"`, and no other variant of that faction may already have the name. The variant takes the faction's shared fields (name, emblem, background, theme colour and colours), whatever the item's copy says, so a package cannot change the faction itself. `faction` cannot be combined with `variant` or `existing`. Once the variant is imported, the receipt ties the item to it: importing the item again updates that variant, and a changed `faction` or `variantName` is ignored. Use a new item key to add another variant.
+
+The preview's Action column says what each faction item does: create faction, add variant (with the new variant's name), update variant or link existing variant.
 
 ```json
 {

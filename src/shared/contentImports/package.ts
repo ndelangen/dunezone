@@ -49,10 +49,22 @@ export const contentImportItemSchema = z.discriminatedUnion('kind', [
       link: z.boolean().optional(),
       /** An existing variant's address: the import links it to the Ruleset, and updates it only where the content differs and the importer may edit it (#2916). */
       variant: keySchema.optional(),
+      /** An existing Faction's address: the item becomes a new variant of it rather than a new Faction (#2916). */
+      faction: keySchema.optional(),
+      /** The new variant's name; the target Ruleset's name when left out. */
+      variantName: z.string().trim().min(1).max(160).optional(),
     })
     .refine((item) => !(item.variant && item.existing), {
       path: ['variant'],
       message: 'Name the variant once, with variant or existing.',
+    })
+    .refine((item) => !(item.faction && (item.variant || item.existing)), {
+      path: ['faction'],
+      message: 'A new variant of a faction cannot also name an existing record.',
+    })
+    .refine((item) => !item.variantName || item.faction, {
+      path: ['variantName'],
+      message: 'Name a variant only when adding it to a faction.',
     }),
   z.strictObject({
     ...common,

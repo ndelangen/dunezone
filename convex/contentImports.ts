@@ -9,12 +9,15 @@ import {
   validateImportData,
 } from '../src/shared/contentImports/package';
 import type { ContentImportItem } from '../src/shared/contentImports/package';
+import { withStoredComponentIds } from '../src/shared/factions/componentIdentity';
+import { splitSharedFields } from '../src/shared/factions/sharedFields';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { replaceAssetMembers } from './assets';
+import { requireNewVariant } from './factionVariants';
 import { mutation } from './functions';
 import { canonicalJson } from './lib/canonicalJson';
 import {
@@ -25,8 +28,11 @@ import {
   requireGroupReassignment,
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
+import { liveDefaultVariant } from './lib/factionAddresses';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { rulebookContentsHash } from './lib/rulebookEditionContents';
+import { slugify } from './lib/utils';
 import type { MutationCtx } from './types';
 
 const targetValidator = v.object({ rulesetSlug: v.string(), groupSlug: v.string() });
@@ -306,6 +312,80 @@ function linksVariant(item: ContentImportItem) {
 }
 
 /**
+ * The Faction a `faction` item adds a new variant to, and the variant's name and slug, refused as the variant editor refuses them (#2916).
+ * The variant is named after the target Ruleset unless the item names it.
+ */
+async function newVariantTarget(ctx: MutationCtx, target: Target, item: ContentImportItem) {
+  if (item.kind !== 'faction' || !item.faction) {
+    return null;
+  }
+  const slug = item.faction;
+  const family = await ctx.db
+    .query('faction_families')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique();
+  const base = await liveDefaultVariant(ctx, family);
+  if (!family || !base) {
+    throw new ConvexError(`Faction ${slug} was not found.`);
+  }
+  if (!family.data) {
+    throw new ConvexError(`Faction ${slug} cannot be read, so no variant can be added to it.`);
+  }
+  const name = item.variantName ?? target.ruleset.name;
+  return { family, base, name, variantSlug: await requireNewVariant(ctx, family, name) };
+}
+
+/** The variant a `faction` item adds, by Faction and variant slug, as the variant editor tells variants apart. */
+function variantClaim(target: Target, item: ContentImportItem) {
+  return item.kind === 'faction' && item.faction
+    ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
+    : null;
+}
+
+/**
+ * The variants earlier items of a package add, so preview refuses a duplicate on a later page as apply would.
+ * An item its receipt already ties to a variant adds none, whatever name it gives now.
+ */
+async function variantClaims(ctx: MutationCtx, target: Target, packageKey: string, items: ContentImportItem[]) {
+  const claims = new Set<string>();
+  for (const item of items) {
+    const claim = variantClaim(target, item);
+    if (claim && !(await receiptFor(ctx, target, packageKey, item.key))) {
+      claims.add(claim);
+    }
+  }
+  return claims;
+}
+
+/** Records the variant an item adds, refusing one an earlier item of the package already adds. */
+function claimVariant(claims: Set<string>, target: Target, item: ContentImportItem, name: string) {
+  const claim = variantClaim(target, item)!;
+  if (claims.has(claim)) {
+    throw new ConvexError(`Another item of this package already adds the variant “${name}”.`);
+  }
+  claims.add(claim);
+}
+
+function sharedFieldsOf(data: unknown) {
+  return splitSharedFields(data as Parameters<typeof splitSharedFields>[0]).shared;
+}
+
+/** A `faction` item's copy keeps its Faction's shared fields, which are the Faction's to change and not the package's. */
+function withSharedFieldsOf(item: ContentImportItem, data: unknown, shared: object | null | undefined) {
+  return item.kind === 'faction' && item.faction && shared ? { ...(data as object), ...shared } : data;
+}
+
+/** A faction copy imported onto a stored variant keeps the identities of the members and troops it names (#2931). */
+function withIdentitiesOf(item: ContentImportItem, data: unknown, subject: Subject | null) {
+  return item.kind === 'faction' && subject
+    ? withStoredComponentIds(
+        data as Parameters<typeof withStoredComponentIds>[0],
+        parseStoredFactionForRead(subject.data)
+      )
+    : data;
+}
+
+/**
  * Refuses an import the importer may not make.
  * For an item that links a variant it refuses nothing, and answers whether the import also writes the package's copy, links an unchanged variant, or links one the importer may not edit although the copy differs.
  */
@@ -361,10 +441,17 @@ export const preview = mutation({
         name: v.string(),
         status: v.union(v.literal('create'), v.literal('update'), v.literal('unchanged'), v.literal('conflict')),
         expectedHash: v.union(v.string(), v.null()),
-        /** What a faction item does: make a new faction, update a variant, or only link an existing one. */
+        /** What a faction item does: make a new faction, add a variant to `faction`, update a variant, or only link an existing one. */
         action: v.optional(
-          v.union(v.literal('create-faction'), v.literal('update-variant'), v.literal('link-variant'))
+          v.union(
+            v.literal('create-faction'),
+            v.literal('add-variant'),
+            v.literal('update-variant'),
+            v.literal('link-variant')
+          )
         ),
+        /** The name of the variant an `add-variant` item adds. */
+        variant: v.optional(v.string()),
         message: v.optional(v.string()),
       })
     ),
@@ -379,15 +466,35 @@ export const preview = mutation({
     const maximumEnd = Math.min(cursor + 50, bundle.items.length);
     let end = cursor;
     const entries = [];
+    const adding = await variantClaims(ctx, target, bundle.packageKey, bundle.items.slice(0, cursor));
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
-        const data = bindImportData(item, (key) => ({ id: key, slug: key }));
-        validateImportData(item, data);
+        const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
+        validateImportData(item, bound);
         const receipt = await receiptFor(ctx, target, bundle.packageKey, item.key);
         const subject = await findSubject(ctx, target, item, receipt);
+        const added = subject ? null : await newVariantTarget(ctx, target, item);
+        if (added) {
+          claimVariant(adding, target, item, added.name);
+        }
+        const data = withIdentitiesOf(
+          item,
+          withSharedFieldsOf(item, bound, subject ? sharedFieldsOf(subject.data) : added?.family.data),
+          subject
+        );
         const mode = subject ? await authorizeSubject(ctx, target, item, subject, data) : undefined;
         const linkOnly = mode === 'link' || mode === 'link-blocked';
         const hash = subject ? subjectHash(subject) : null;
+        const action =
+          item.kind !== 'faction'
+            ? undefined
+            : added
+              ? ('add-variant' as const)
+              : !subject
+                ? ('create-faction' as const)
+                : linkOnly
+                  ? ('link-variant' as const)
+                  : ('update-variant' as const);
         const destination = await destinationFor(ctx, target, item, subject);
         const conflict = !linkOnly && !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
         /* A receipt of a link that wrote nothing still matches once the importer may edit the variant, so a write is never unchanged. */
@@ -408,15 +515,7 @@ export const preview = mutation({
               : unchanged
                 ? ('unchanged' as const)
                 : ('update' as const),
-          ...(item.kind === 'faction' && !conflict && !unchanged
-            ? {
-                action: !subject
-                  ? ('create-faction' as const)
-                  : linkOnly
-                    ? ('link-variant' as const)
-                    : ('update-variant' as const),
-              }
-            : {}),
+          ...(action && !conflict && !unchanged ? { action, ...(added ? { variant: added.name } : {}) } : {}),
           ...(conflict
             ? { message: 'This record changed since its last import. Export and review it before continuing.' }
             : destination.message
@@ -501,7 +600,7 @@ export const applyItem = mutation({
         ...(contentDependencies.has(key) ? { dataHash: rulebookContentsHash('data' in row ? row.data : row) } : {}),
       });
     }
-    const data = validateImportData(
+    const bound = validateImportData(
       item,
       bindImportData(item, (key) => {
         const binding = bindings.get(key);
@@ -510,6 +609,12 @@ export const applyItem = mutation({
         }
         return binding;
       })
+    );
+    const added = previous ? null : await newVariantTarget(ctx, target, item);
+    const data = withIdentitiesOf(
+      item,
+      withSharedFieldsOf(item, bound, previous ? sharedFieldsOf(previous.data) : null),
+      previous
     );
     const mode = previous ? await authorizeSubject(ctx, target, item, previous, data) : undefined;
     const linkOnly = mode === 'link' || mode === 'link-blocked';
@@ -539,6 +644,14 @@ export const applyItem = mutation({
         if (!linksVariant(item) && previous.groupId !== target.group._id) {
           await ctx.runMutation(api.factions.setGroup, { id: id as Id<'factions'>, group_id: target.group._id });
         }
+      } else if (added) {
+        const created = await ctx.runMutation(api.factionVariants.create, {
+          faction_id: added.base._id,
+          name: added.name,
+          group_id: target.group._id,
+          data,
+        });
+        id = created.id;
       } else {
         const created = await ctx.runMutation(api.factions.create, { data, group_id: target.group._id });
         id = created._id;
