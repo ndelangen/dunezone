@@ -23,6 +23,7 @@ import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/admin/accounts.route'
 import { Route as AppAdminDiscordRouteRouteImport } from './routes/_app/admin/discord.route'
+import { Route as AppAdminFactionMergeRouteRouteImport } from './routes/_app/admin/faction-merge.route'
 import { Route as AppAdminGameDebuggerRouteRouteImport } from './routes/_app/admin/game-debugger/route'
 import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
@@ -163,6 +164,12 @@ const AppAdminDiscordRouteRoute = AppAdminDiscordRouteRouteImport.update({
   path: '/discord',
   getParentRoute: () => AppAdminRouteRoute,
 } as any)
+const AppAdminFactionMergeRouteRoute =
+  AppAdminFactionMergeRouteRouteImport.update({
+    id: '/faction-merge',
+    path: '/faction-merge',
+    getParentRoute: () => AppAdminRouteRoute,
+  } as any)
 const AppAdminGameDebuggerRouteRoute =
   AppAdminGameDebuggerRouteRouteImport.update({
     id: '/game-debugger',
@@ -565,6 +572,7 @@ export interface FileRoutesByFullPath {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
   '/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -646,6 +654,7 @@ export interface FileRoutesByTo {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
   '/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -734,6 +743,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/admin/accounts': typeof AppAdminAccountsRouteRoute
   '/_app/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/_app/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/_app/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -821,6 +831,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/admin/accounts'
     | '/admin/discord'
+    | '/admin/faction-merge'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
@@ -902,6 +913,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/admin/accounts'
     | '/admin/discord'
+    | '/admin/faction-merge'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
@@ -989,6 +1001,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/admin/accounts'
     | '/_app/admin/discord'
+    | '/_app/admin/faction-merge'
     | '/_app/admin/game-debugger'
     | '/_app/admin/jobs'
     | '/_app/admin/migrations'
@@ -1168,6 +1181,13 @@ declare module '@tanstack/react-router' {
       path: '/discord'
       fullPath: '/admin/discord'
       preLoaderRoute: typeof AppAdminDiscordRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/faction-merge': {
+      id: '/_app/admin/faction-merge'
+      path: '/faction-merge'
+      fullPath: '/admin/faction-merge'
+      preLoaderRoute: typeof AppAdminFactionMergeRouteRouteImport
       parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/admin/game-debugger': {
@@ -1673,6 +1693,7 @@ declare module '@tanstack/react-router' {
 interface AppAdminRouteRouteChildren {
   AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
   AppAdminDiscordRouteRoute: typeof AppAdminDiscordRouteRoute
+  AppAdminFactionMergeRouteRoute: typeof AppAdminFactionMergeRouteRoute
   AppAdminGameDebuggerRouteRoute: typeof AppAdminGameDebuggerRouteRoute
   AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
@@ -1684,6 +1705,7 @@ interface AppAdminRouteRouteChildren {
 const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
   AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
   AppAdminDiscordRouteRoute: AppAdminDiscordRouteRoute,
+  AppAdminFactionMergeRouteRoute: AppAdminFactionMergeRouteRoute,
   AppAdminGameDebuggerRouteRoute: AppAdminGameDebuggerRouteRoute,
   AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,

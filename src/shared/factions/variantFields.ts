@@ -31,6 +31,28 @@ export const INHERITABLE_FIELDS = [
 
 export type InheritableField = (typeof INHERITABLE_FIELDS)[number];
 
+/**
+ * Each inheritable field under the name the faction editor gives its Use parent variant choice.
+ * `rules.fate` is the exception there: the editor names it by the variant's own label for the rule, Fate or Karama.
+ */
+export const INHERITABLE_FIELD_LABELS: Record<InheritableField, string> = {
+  factionLeader: 'Faction leader',
+  leaders: 'Supporting leaders',
+  decals: 'Decals',
+  planet: 'Planets',
+  troops: 'Troops',
+  'rules.startText': 'Starting instructions',
+  'rules.revivalText': 'Revival instructions',
+  'rules.spiceCount': 'Starting spice',
+  'rules.treacheryTracker': 'Treachery tracker',
+  'rules.advantages': 'Faction advantages',
+  'rules.fate': 'Fate',
+  'rules.alliance': 'Alliance advantage',
+  extras: 'Faction Extras',
+  extraPhases: 'Faction phases',
+  'complexity.manual': 'Complexity',
+};
+
 type Path = [string] | [string, string];
 
 function pathOf(field: InheritableField): Path {

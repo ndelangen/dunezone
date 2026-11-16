@@ -47,7 +47,7 @@ export function FactionFormSectionComplexity({
   retainedManualRating: number | null;
   onRetainedManualRatingChange: (rating: number) => void;
 }) {
-  const inheritance = useInheritableField('complexity.manual', 'Complexity');
+  const inheritance = useInheritableField('complexity.manual');
   if (inheritance.parentValue) {
     return (
       <Stack component="section" aria-label="Faction complexity">

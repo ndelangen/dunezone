@@ -254,6 +254,8 @@ export const snapshotPolicy = {
       /* It may name deleted variants the snapshot leaves out; listings pass over any id that is not a variant of the faction. */
       variant_order: 'keep',
       is_deleted: 'keep',
+      /* Only a deleted Faction is merged into another, and the snapshot keeps no deleted Faction. */
+      merged_into: 'drop',
       created_at: 'keep',
       updated_at: 'keep',
     },
