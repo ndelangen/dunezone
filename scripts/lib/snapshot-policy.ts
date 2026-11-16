@@ -403,6 +403,8 @@ export const retiredTables = {
   play_auth_registrations: 'retired Play sign-in registrations',
   /* Left the schema after `nexus_link_moves_clear_v1` (#2971) deleted its rows, the undo records of the Nexus link move. */
   nexus_link_moves: 'the undo record of a one-off production migration',
+  /* Left the schema in f0cf05e83, which kept its rows in production: private game notification delivery state. */
+  play_game_discord_nudges: 'retired private game notification delivery state',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**

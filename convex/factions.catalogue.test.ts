@@ -186,7 +186,6 @@ describe('faction catalogue page', () => {
       'rulesets',
       'slug',
       'updated_at',
-      'variantCount',
     ]);
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
       'background',
