@@ -24,7 +24,7 @@ function ExtraLabel({ extra }: { extra: FactionExtra }) {
  * The asset-picker list reads the listed assets while this chapter is open, and the catalogue only while its add popover is.
  */
 export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
-  const inheritance = useInheritableField('extras', 'Faction Extras');
+  const inheritance = useInheritableField('extras');
   if (inheritance.parentValue) {
     return inheritance.parentValue;
   }

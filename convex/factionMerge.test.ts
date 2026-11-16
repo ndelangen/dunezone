@@ -38,7 +38,8 @@ async function mergeFixture() {
   const duplicate = await f.stranger.mutation(api.factions.create, { data: duplicateOf(original), group_id: null });
   const duplicateData = await f.data(duplicate._id);
   const duplicateFamilyId = (await f.row(duplicate._id)).family_id;
-  const args = { faction_id: duplicate._id, family_id: f.familyId, parent_id: f.root._id, name: 'Spice rich' };
+  const place = { faction_id: duplicate._id, family_id: f.familyId, parent_id: f.root._id };
+  const args = { ...place, name: 'Spice rich' };
   /** A Rulebook whose draft and one Edition hold `contents`. */
   const rulebookWith = (contents: unknown) =>
     f.t.run(async (ctx) => {
@@ -84,7 +85,7 @@ async function mergeFixture() {
       const contentsId = await ctx.db.insert('rulebook_edition_contents', { edition_id: editionId, contents });
       return { draftId, editionId, contentsId };
     });
-  return { ...f, admin, original, duplicate, duplicateData, duplicateFamilyId, args, rulebookWith };
+  return { ...f, admin, original, duplicate, duplicateData, duplicateFamilyId, place, args, rulebookWith };
 }
 
 describe('the admin merge tool (#2932)', () => {
@@ -93,20 +94,17 @@ describe('the admin merge tool (#2932)', () => {
     const reference = { factionId: f.duplicate._id, memberId: f.duplicateData.leaders[0]!.memberId };
     await f.rulebookWith({ blocks: [reference, reference] });
 
-    const preview = await f.admin.query(api.factionMerge.preview, f.args);
-    expect(preview).toMatchObject({
-      moves: true,
-      retiresSource: true,
-      deletedLeftBehind: 0,
-      custom: ['rules.startText'],
-    });
+    const preview = await f.admin.query(api.factionMerge.preview, f.place);
+    expect(preview.custom).toEqual(['rules.startText']);
     expect(preview.followed).toContain('leaders');
+    /* The preview takes no name, so it speaks of the name the variant has now, which the kept Faction's first variant shares. */
+    const current = (await f.row(f.duplicate._id)).variant_name;
     expect(preview.branch).toEqual([
-      { _id: f.duplicate._id, name: 'Spice rich', isDeleted: false, changesIds: true, nameClash: false },
+      { _id: f.duplicate._id, name: current, isDeleted: false, changesIds: true, nameClash: true },
     ]);
-    const taken = (await f.row(f.root._id)).variant_name;
-    const clashing = await f.admin.query(api.factionMerge.preview, { ...f.args, name: taken });
-    expect(clashing.branch[0]!.nameClash).toBe(true);
+    await expect(f.admin.mutation(api.factionMerge.attach, { ...f.args, name: current })).rejects.toThrow(
+      /already has a variant called/
+    );
     for (const documents of ['drafts', 'editions'] as const) {
       const found = await f.admin.query(api.factionMerge.referencePreview, {
         ...f.args,
@@ -242,12 +240,13 @@ describe('the admin merge tool (#2932)', () => {
       [child.id, f.root._id, false],
       [dropped.id, child.id, true],
     ]);
+    expect(listed?.variants.slice(1).map(({ slug }) => slug)).toEqual(['dreamrules', 'first-draft']);
     await expect(f.stranger.query(api.factionMerge.variants, { faction_id: child.id })).rejects.toThrow();
   });
 
   test('only admins may merge', async () => {
     const f = await mergeFixture();
-    await expect(f.owner.query(api.factionMerge.preview, f.args)).rejects.toThrow();
+    await expect(f.owner.query(api.factionMerge.preview, f.place)).rejects.toThrow();
     await expect(f.owner.mutation(api.factionMerge.attach, f.args)).rejects.toThrow();
   });
 });

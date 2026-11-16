@@ -77,6 +77,15 @@ function lookup(map: Record<string, string>, id: string) {
   return Object.hasOwn(map, id) ? map[id] : undefined;
 }
 
+/** The keys that hold an id, each with the map its ids are rewritten through. */
+const ID_MAPS: Partial<Record<string, keyof ComponentIdMap>> = { memberId: 'members', troopId: 'troops' };
+
+/** The id a leader or troop reference is rewritten to, or nothing when the entry is no reference the map covers. */
+function replacementFor(map: ComponentIdMap | undefined, key: string, child: unknown) {
+  const kind = Object.hasOwn(ID_MAPS, key) ? ID_MAPS[key] : undefined;
+  return map && kind && typeof child === 'string' ? lookup(map[kind], child) : undefined;
+}
+
 export function isEmptyIdMap(map: ComponentIdMap) {
   return Object.keys(map.members).length === 0 && Object.keys(map.troops).length === 0;
 }
@@ -102,10 +111,7 @@ export function rewriteComponentReferences(
     const map = scope === undefined ? undefined : maps.get(scope);
     return Object.fromEntries(
       Object.entries(record).map(([key, child]) => {
-        const replacement =
-          map && typeof child === 'string'
-            ? lookup(key === 'memberId' ? map.members : key === 'troopId' ? map.troops : {}, child)
-            : undefined;
+        const replacement = replacementFor(map, key, child);
         if (replacement !== undefined) {
           rewritten += 1;
           return [key, replacement];

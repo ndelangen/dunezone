@@ -74,7 +74,7 @@ export function FactionFormSectionAlliance({
   form: FactionFormApi;
   showPreview?: boolean;
 }) {
-  const decals = useInheritableField('decals', 'Decals');
+  const decals = useInheritableField('decals');
   return (
     <Stack component="section" gap="md" aria-label="Alliance card">
       <Grid gap="xl" align="start">

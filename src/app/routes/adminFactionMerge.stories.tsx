@@ -1,15 +1,12 @@
 import preview from '@sb/preview';
 
-import {
-  chooseMerge,
-  chooseMove,
-  chooseParent,
-  factionMergePath,
-  mergeFactions,
-  review,
-} from './adminFactionMerge.stories.fixture';
+import { factionMergePath, mergeFactions } from './adminFactionMerge.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
+/*
+ * The page keeps its choices in itself, so the one presentation it has without a press is the empty one.
+ * Every state past a choice is reached by a play, and those stories are in the testing file.
+ */
 const meta = preview.meta({
   title: 'Admin/Faction merge',
   ...pageStoryMeta,
@@ -17,39 +14,9 @@ const meta = preview.meta({
   parameters: { ...pageStoryMeta.parameters, database: mergeFactions },
 });
 
-/** A duplicate with three variants, one of them deleted, placed under the kept faction's first variant. */
-export const MergePreview = meta.story({
-  play: async ({ canvasElement }) => {
-    await chooseMerge(canvasElement, 'advanced', 'Add Atreides (advanced) · Advanced game');
-  },
-});
+/** Before any choice: the faction to keep, the checkbox that turns the page to its own variants, and the faction to merge. */
+export const Default = meta.story({});
 
-/** Reviewed in place, as the account merge is: what the write does, then Merge or Cancel. */
-export const MergeReview = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await chooseMerge(canvasElement, 'advanced', 'Add Atreides (advanced) · Advanced game');
-    await review(page, 'Review merge');
-  },
-});
-
-/** The duplicate's variant has a name the kept faction already uses, which the name field says and the review waits for. */
-export const NameClash = meta.story({
-  play: async ({ canvasElement }) => {
-    await chooseMerge(canvasElement, 'copy', 'Add Atreides copy');
-  },
-});
-
-/** The checkbox turns the page to the kept faction's own variants: Dreamrules, with the variant under it, moves to another parent. */
-export const Reparent = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await chooseMove(canvasElement, 'Dreamrules');
-    await chooseParent(page, 'Tournament play');
-  },
-});
-
-export const MergePreviewPhone = meta.story({
+export const DefaultPhone = meta.story({
   globals: { ...pageStoryMeta.globals, viewport: { value: 'appMobile' } },
-  play: async ({ canvasElement }) => {
-    await chooseMerge(canvasElement, 'advanced', 'Add Atreides (advanced) · Advanced game');
-  },
 });

@@ -37,10 +37,15 @@ import type { MutationCtx, QueryCtx } from './types';
  * Each field whose content equals the parent's, ids aside, switches to Use parent variant, and every reference to the ids it gives up is rewritten.
  */
 
-const attachArgs = {
+/** Where a variant goes: the Faction it joins and the parent it follows there. */
+const placeArgs = {
   faction_id: v.id('factions'),
   family_id: v.id('faction_families'),
   parent_id: v.union(v.id('factions'), v.null()),
+};
+
+const attachArgs = {
+  ...placeArgs,
   /** The variant's name in the Faction it joins; its current name when left out. */
   name: v.optional(v.string()),
 };
@@ -171,15 +176,12 @@ async function planAttach(ctx: Reader, args: AttachArgs) {
 /**
  * What a merge would do, for the admin to check before running it (#2914).
  * The references it rewrites are listed by `referencePreview`, a page at a time.
+ * It takes no name, so typing one does not ask again: the page checks the variant's new name against the slugs `variants` lists, and the merge refuses a clash either way.
+ * `nameClash` is therefore about the name each variant has now, which is the one a variant below the moving one keeps.
  */
 export const preview = adminQuery({
-  args: attachArgs,
+  args: placeArgs,
   returns: v.object({
-    targetName: v.string(),
-    sourceName: v.union(v.string(), v.null()),
-    moves: v.boolean(),
-    retiresSource: v.boolean(),
-    deletedLeftBehind: v.number(),
     followed: v.array(v.string()),
     custom: v.array(v.string()),
     branch: v.array(
@@ -195,11 +197,6 @@ export const preview = adminQuery({
   handler: async (ctx, args) => {
     const plan = await planAttach(ctx, args);
     return {
-      targetName: plan.target.data?.name ?? plan.target.slug,
-      sourceName: plan.source?.data?.name ?? null,
-      moves: plan.moves,
-      retiresSource: plan.retiresSource,
-      deletedLeftBehind: plan.deletedLeftBehind,
       followed: plan.fields,
       custom: plan.parent ? INHERITABLE_FIELDS.filter((field) => !plan.fields.includes(field)) : [],
       branch: plan.branch.map(({ row, name, nameClash }) => ({
@@ -230,6 +227,8 @@ export const variants = adminQuery({
         v.object({
           _id: v.id('factions'),
           name: v.string(),
+          /** The name as its address says it, which no other variant of the Faction may share. */
+          slug: v.string(),
           parentId: v.union(v.id('factions'), v.null()),
           isDeleted: v.boolean(),
         })
@@ -247,6 +246,7 @@ export const variants = adminQuery({
       rows.push({
         _id: row._id,
         name: row.variant_name,
+        slug: row.variant_slug,
         parentId: row.parent_id ?? null,
         isDeleted: row.is_deleted,
       });

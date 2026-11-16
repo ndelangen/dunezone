@@ -254,7 +254,7 @@ export function FactionFormSectionPhases({
   onSelectedIndexChange?: (index: number) => void;
 }) {
   const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
-  const inheritance = useInheritableField('extraPhases', 'Faction phases');
+  const inheritance = useInheritableField('extraPhases');
   if (inheritance.parentValue) {
     return inheritance.parentValue;
   }

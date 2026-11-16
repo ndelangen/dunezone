@@ -1,4 +1,5 @@
 import { Checkbox, Stack, Text } from '@mantine/core';
+import { INHERITABLE_FIELD_LABELS } from '@shared/factions/variantFields';
 import type { InheritableField } from '@shared/factions/variantFields';
 import { Disclosure } from '@ui/block/Disclosure';
 import { complexityOutOfTen } from '@ui/content/complexity';
@@ -134,8 +135,9 @@ function InheritanceChoice({
  * One field a variant may take from its parent, for a chapter that places the choice in the field's own header (#2927).
  * `choice` is the Use parent variant checkbox, which unchecked leaves the field custom, and `parentValue` replaces the field's controls while it follows the parent: the parent's value, read-only.
  * Both are null outside a variant with a parent, where every field is the variant's own.
+ * The choice is named by `title`, which is the field's shared label unless the chapter names the field itself.
  */
-export function useInheritableField(field: InheritableField, title: string) {
+export function useInheritableField(field: InheritableField, title = INHERITABLE_FIELD_LABELS[field]) {
   const inheritance = useContext(InheritanceContext);
   if (!inheritance) {
     return { choice: null, parentValue: null };

@@ -97,7 +97,7 @@ export function FactionFormSectionAdvantages({
   onSelectedIndexChange?: (index: number) => void;
 }) {
   const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
-  const inheritance = useInheritableField('rules.advantages', 'Faction advantages');
+  const inheritance = useInheritableField('rules.advantages');
   if (inheritance.parentValue) {
     return inheritance.parentValue;
   }

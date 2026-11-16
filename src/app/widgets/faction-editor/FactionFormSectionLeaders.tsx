@@ -145,7 +145,7 @@ export function FactionFormSectionLeaders({
   onSelectedIndexChange?: (index: number) => void;
 } & StrengthRefusalProps) {
   const [selected, setSelectedIndex] = useListSelection(selectedIndex, onSelectedIndexChange);
-  const inheritance = useInheritableField('leaders', 'Supporting leaders');
+  const inheritance = useInheritableField('leaders');
   /* Moving to another leader drops text the last one refused, so coming back shows its saved strength. */
   const selectIndex = (index: number) => {
     if (strengthRefusal !== null) {

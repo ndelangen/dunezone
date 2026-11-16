@@ -121,7 +121,7 @@ export function FactionFormSectionPlanets({
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
-  const inheritance = useInheritableField('planet', 'Planets');
+  const inheritance = useInheritableField('planet');
   if (inheritance.parentValue) {
     return inheritance.parentValue;
   }

@@ -5,6 +5,7 @@ import {
   chooseMerge,
   chooseMove,
   chooseParent,
+  expectUnblocked,
   factionMergePath,
   mergeFactions,
   review,
@@ -21,25 +22,36 @@ const meta = testingPreview.meta({
 
 const LOAD = { timeout: 30_000 };
 
-/** The preview names what stays custom, what moves along and what is rewritten; the confirmed merge links to the merged variant. */
+/** The preview says, a label first, what stays custom, what follows the parent and what moves along; the confirmed merge links to the merged variant. */
 export const MergesTheDuplicate = meta.story({
   play: async ({ canvasElement }) => {
     const page = await chooseMerge(canvasElement, 'advanced', 'Add Atreides (advanced) · Advanced game');
-    await expect(page.findByText(/2 fields differ from Original and stay custom/, {}, LOAD)).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: /13 equal fields follow the parent/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: '2 variants move along, 1 deleted' })).toBeVisible();
-    await expect(page.findByRole('button', { name: '4 references to rewrite' }, LOAD)).resolves.toBeVisible();
+    await expect(
+      page.findByText('Stays custom: Starting instructions, Starting spice', {}, LOAD)
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Follows the parent (13)' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Moves along (2, 1 deleted)' })).toBeVisible();
     await review(page, 'Review merge');
-    await expect(page.getByText('This is a production write. It cannot be undone.')).toBeVisible();
     await expect(page.getByText(/will lead to House Atreides once it has no live variant left/)).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Merge into House Atreides' }));
     const merged = await page.findByRole('link', { name: 'Advanced game' }, LOAD);
     await expect(merged).toHaveAttribute('href', '/factions/house-atreides-advanced-game');
-    await expect(page.queryByRole('heading', { name: 'The whole merge' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Review merge' })).toBeNull();
   },
 });
 
-/** A taken name is said on the name field and holds the review until the admin gives another. */
+/** The references are counted only once their line is opened, since the count reads every Rulebook draft and Edition. */
+export const CountsReferencesWhenOpened = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await chooseMerge(canvasElement, 'advanced', 'Add Atreides (advanced) · Advanced game');
+    await expect(page.queryByText(/^Advanced rules,/)).toBeNull();
+    await userEvent.click(await page.findByRole('button', { name: 'References to rewrite' }, LOAD));
+    await expect(page.findByText('Advanced rules, draft: 2', {}, LOAD)).resolves.toBeVisible();
+    await expect(page.getByText('Advanced rules, Edition 1: 2')).toBeVisible();
+  },
+});
+
+/** A taken name is said on the name field and holds the review until the admin gives another; the review then opens. */
 export const NameClashBlocksReview = meta.story({
   play: async ({ canvasElement }) => {
     const page = await chooseMerge(canvasElement, 'copy', 'Add Atreides copy');
@@ -51,8 +63,11 @@ export const NameClashBlocksReview = meta.story({
     const name = page.getByRole('textbox', { name: 'Variant name' });
     await userEvent.clear(name);
     await userEvent.type(name, 'Second printing');
-    await expect(button).toBeEnabled();
     await expect(page.queryByText(/already has a variant called/)).toBeNull();
+    await expectUnblocked(button);
+    await userEvent.click(button);
+    await expect(page.findByText('This is a production write. It cannot be undone.')).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Merge into House Atreides' })).toBeVisible();
   },
 });
 

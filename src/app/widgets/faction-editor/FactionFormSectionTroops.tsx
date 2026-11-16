@@ -281,7 +281,7 @@ export function FactionFormSectionTroops({
   const [internalSideByIndex, setInternalSideByIndex] = useState<Record<number, 'front' | 'back'>>({});
   const troopSideTabByIndex = sideByIndex ?? internalSideByIndex;
   const setTroopSideTabByIndex = onSideByIndexChange ?? setInternalSideByIndex;
-  const inheritance = useInheritableField('troops', 'Troops');
+  const inheritance = useInheritableField('troops');
   if (inheritance.parentValue) {
     return inheritance.parentValue;
   }

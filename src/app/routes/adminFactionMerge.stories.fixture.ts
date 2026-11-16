@@ -2,7 +2,7 @@ import type { FactionInput } from '@shared/factions/schema';
 import { INHERITABLE_FIELDS } from '@shared/factions/variantFields';
 import { rulebookNameKey } from '@shared/rulebooks/metadata';
 import { slugify } from '@shared/slugify';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, faction, ref } from '@db/storybook';
 import type { StorybookDatabase, StorybookRow } from '@db/storybook';
@@ -127,9 +127,9 @@ export const mergeFactions = db(withMergeFactions);
 type Page = ReturnType<typeof within>;
 const LOAD = { timeout: 30_000 };
 
-/** Opens one side's faction search and picks the row the search names `row`. */
+/** Opens one side's faction field and picks the row the search names `row`. */
 async function pickFaction(page: Page, side: 'keep' | 'merge into it', search: string, row: string) {
-  await userEvent.click(await page.findByRole('button', { name: `Choose faction: faction to ${side}` }, LOAD));
+  await userEvent.click(await page.findByRole('button', { name: `Choose faction to ${side}` }, LOAD));
   await userEvent.type(await page.findByRole('searchbox', { name: 'Search factions' }), search);
   await userEvent.click(await page.findByRole('button', { name: row }, LOAD));
 }
@@ -139,7 +139,7 @@ export async function chooseMerge(canvasElement: HTMLElement, search: string, ro
   const page = within(canvasElement.ownerDocument.body);
   await pickFaction(page, 'keep', 'House', 'Add House Atreides · Original');
   await pickFaction(page, 'merge into it', search, row);
-  await expect(page.findByRole('heading', { name: 'The whole merge' }, LOAD)).resolves.toBeVisible();
+  await expect(page.findByRole('button', { name: 'Review merge' }, LOAD)).resolves.toBeVisible();
   return page;
 }
 
@@ -150,7 +150,7 @@ export async function chooseMove(canvasElement: HTMLElement, variant: string) {
   await userEvent.click(page.getByRole('checkbox', { name: /Move one of its own variants/ }));
   await userEvent.click(await page.findByRole('combobox', { name: 'Variant to move' }));
   await userEvent.click(await page.findByRole('option', { name: variant }));
-  await expect(page.findByRole('heading', { name: 'The whole move' }, LOAD)).resolves.toBeVisible();
+  await expect(page.findByRole('button', { name: 'Review move' }, LOAD)).resolves.toBeVisible();
   return page;
 }
 
@@ -160,9 +160,15 @@ export async function chooseParent(page: Page, parent: string) {
   await userEvent.click(await page.findByRole('option', { name: parent }));
 }
 
+/** The button once nothing blocks it; a blocked LabeledAction stays focusable and says so with `aria-disabled`, which `toBeEnabled` does not read. */
+export async function expectUnblocked(button: HTMLElement) {
+  await waitFor(() => expect(button).not.toHaveAttribute('aria-disabled', 'true'), LOAD);
+}
+
 /** Waits for the preview to settle, then opens the review. */
 export async function review(page: Page, action: 'Review merge' | 'Review move') {
   const button = page.getByRole('button', { name: action });
-  await expect(button).toBeEnabled();
+  await expectUnblocked(button);
   await userEvent.click(button);
+  await expect(page.findByText('This is a production write. It cannot be undone.')).resolves.toBeVisible();
 }
