@@ -94,16 +94,3 @@ describe('moving Nexus card links from a variant to its Faction (#2921)', () => 
     });
   });
 });
-
-test('the clear step empties the undo records the move left', async () => {
-  const f = await savedBeforeFactionLinks();
-  const record = { asset_id: f.ids.variant, variant_id: f.dreamrules.id, variant_slug: 'x', family_id: f.familyId };
-  await f.t.run(async (ctx) => {
-    await ctx.db.insert('nexus_link_moves', record);
-    await ctx.db.insert('nexus_link_moves', record);
-  });
-
-  await f.t.mutation(internal.nexusLinkMigrations.nexus_link_moves_clear_v1, {});
-
-  expect(await f.t.run((ctx) => ctx.db.query('nexus_link_moves').collect())).toEqual([]);
-});

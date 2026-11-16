@@ -75,21 +75,13 @@ export const nexus_link_family_v1 = migrations.define({
 });
 
 /**
- * Carried the import receipts of the moved cards onto their new link, reading the old links from `nexus_link_moves`.
- * Production has run it, and the records it read are being emptied, so its body is a no-op and its id stays.
+ * Carried the import receipts of the moved cards onto their new link, reading the old links from the since-dropped `nexus_link_moves` table.
+ * Production has run it and the records it read are gone, so its body is a no-op and its id stays.
  */
 export const nexus_link_family_v1_receipts = migrations.define({
   table: 'assets',
   customRange: (q) => q.withIndex('by_type_deleted', (range) => range.eq('type', 'card-nexus')),
   migrateOne: async () => {},
-});
-
-/** Empties `nexus_link_moves`, the undo records of the move, whose undo was dropped; the table leaves the schema once it is empty. */
-export const nexus_link_moves_clear_v1 = migrations.define({
-  table: 'nexus_link_moves',
-  migrateOne: async (ctx, move) => {
-    await ctx.db.delete('nexus_link_moves', move._id);
-  },
 });
 
 /** Proves no card still links a variant it could have moved from; the cards that could not move pass, and `unmovedNexusLinks` lists them. */
@@ -130,5 +122,4 @@ export const NEXUS_LINK_MIGRATION_IDS: Record<string, FunctionReference<'mutatio
   nexus_link_family_v1: internal.nexusLinkMigrations.nexus_link_family_v1,
   nexus_link_family_v1_receipts: internal.nexusLinkMigrations.nexus_link_family_v1_receipts,
   nexus_link_family_verify_v1: internal.nexusLinkMigrations.nexus_link_family_verify_v1,
-  nexus_link_moves_clear_v1: internal.nexusLinkMigrations.nexus_link_moves_clear_v1,
 };
