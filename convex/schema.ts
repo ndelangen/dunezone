@@ -323,14 +323,10 @@ export default defineSchema({
     updated_at: v.string(),
     is_deleted: v.boolean(),
     group_id: v.union(v.id('groups'), v.null()),
-    /**
-     * The Faction family this row is a variant of, with the variant's own name and slug.
-     * Optional while `faction_families_v1` gives every existing row its family;
-     * a faction write sets them through a trigger.
-     */
-    family_id: v.optional(v.id('faction_families')),
-    variant_name: v.optional(v.string()),
-    variant_slug: v.optional(v.string()),
+    /** The Faction this row is a variant of, with the variant's own name and slug; `insertFaction` writes them with the row. */
+    family_id: v.id('faction_families'),
+    variant_name: v.string(),
+    variant_slug: v.string(),
     /**
      * The variant this one takes its inherited fields from, in the same Faction, fixed at creation (#2927).
      * `inherited` names those fields;

@@ -31,7 +31,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionDataChange, firstLiveVariant, insertFaction, variantName } from './lib/factionFamilies';
+import { factionDataChange, firstLiveVariant, insertFaction } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
@@ -118,8 +118,8 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
 }
 
 /** The Faction's public access facts, from which the browser decides who may change the shared fields. */
-async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'> | undefined) {
-  const family = familyId ? await ctx.db.get('faction_families', familyId) : null;
+async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get('faction_families', familyId);
   if (!family) {
     return null;
   }
@@ -321,9 +321,7 @@ export const listForLoadPicker = viewerQuery({
     /* A Faction's variants are counted from the rows, so the count holds only within the 500 rows read above. */
     const variantCounts = new Map<string, number>();
     for (const row of factionRows) {
-      if (row.family_id) {
-        variantCounts.set(row.family_id, (variantCounts.get(row.family_id) ?? 0) + 1);
-      }
+      variantCounts.set(row.family_id, (variantCounts.get(row.family_id) ?? 0) + 1);
     }
 
     const rows = factionRows.map((row) => {
@@ -338,7 +336,7 @@ export const listForLoadPicker = viewerQuery({
         groupLabel,
         ownerId: row.owner_id,
         ownerUsername: ownerUsernameById.get(row.owner_id) ?? null,
-        variant: row.family_id && (variantCounts.get(row.family_id) ?? 0) > 1 ? variantName(row) : null,
+        variant: (variantCounts.get(row.family_id) ?? 0) > 1 ? row.variant_name : null,
       };
     });
 
@@ -544,8 +542,8 @@ async function requireLastVariantOfOwnFaction(ctx: MutationCtx, variant: Doc<'fa
 }
 
 /** Deletes the Faction once it holds no live variant, if the viewer is the one who may delete it. */
-async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'> | undefined) {
-  const family = familyId ? await ctx.db.get(familyId) : null;
+async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get(familyId);
   if (!family || family.is_deleted || (await liveDefaultVariant(ctx, family))) {
     return;
   }

@@ -7,7 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
-import { syncFactionFamily } from './lib/factionFamilies';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 const STAMP = '2026-01-01T00:00:00.000Z';
 
@@ -25,7 +25,7 @@ async function addressesFixture() {
   const familySlug = (id: Id<'factions'>) =>
     t.run(async (ctx) => {
       const faction = await ctx.db.get(id);
-      return (faction?.family_id && (await ctx.db.get(faction.family_id))?.slug) ?? null;
+      return (faction && (await ctx.db.get(faction.family_id))?.slug) ?? null;
     });
   return { t, ownerId, owner, create, rename, resolve, page, familySlug };
 }
@@ -88,7 +88,7 @@ describe('faction and variant addresses (#2909)', () => {
     const { t, ownerId, page } = await addressesFixture();
     /* A row as slice 2 left it: a family of its own that holds the same address. */
     const id = await t.run(async (ctx) => {
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         group_id: null,
         data: { ...assetPublishingFaction, name: 'Ix' },
@@ -97,7 +97,6 @@ describe('faction and variant addresses (#2909)', () => {
         updated_at: STAMP,
         is_deleted: false,
       });
-      await syncFactionFamily(ctx, factionId, await ctx.db.get(factionId));
       await ctx.db.patch(factionId, { slug: 'ix' });
       return factionId;
     });

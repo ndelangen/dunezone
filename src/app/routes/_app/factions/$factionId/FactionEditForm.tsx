@@ -223,7 +223,7 @@ function factionMaintainers({ owner, family }: FactionDetailPageData) {
  */
 function FactionChapterNotice({ page, rights }: Readonly<{ page: FactionDetailPageData; rights: FactionEditRights }>) {
   const factionName = page.faction.data.name;
-  const variantName = page.faction.variant_name ?? 'Original';
+  const variantName = page.faction.variant_name;
   if (!rights.shared) {
     return (
       <Notice title={`Only the maintainers of ${factionName} can change these`}>

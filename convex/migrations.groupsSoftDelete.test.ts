@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 const now = '2026-08-09T00:00:00.000Z';
 
@@ -27,7 +28,7 @@ describe('Group lifecycle audit', () => {
         created_by: ownerId,
         is_deleted: false,
       });
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { name: 'Orphaned Faction' },
         slug: 'orphaned-faction',

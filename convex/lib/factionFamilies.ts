@@ -7,7 +7,7 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { ALL_PARTITION } from './catalogueOrder';
-import { allocateFactionAddress, allocateVariantAddress } from './factionAddresses';
+import { allocateFactionAddress } from './factionAddresses';
 import type { parseStoredFactionForRead } from './factionInput';
 import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
 
@@ -15,28 +15,20 @@ import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
 export const ORIGINAL_VARIANT_NAME = 'Original';
 const ORIGINAL_VARIANT_SLUG = slugify(ORIGINAL_VARIANT_NAME);
 
-/** The name a variant goes by; one made before variants had names is the Original. */
-export function variantName(variant: Doc<'factions'>) {
-  return variant.variant_name ?? ORIGINAL_VARIANT_NAME;
-}
-
 /**
  * What a paging picker calls a variant: its name where its Faction has several live variants to tell apart, else null.
  * A page cannot count its own siblings, so the count is read off the Faction's catalogue entry, which holds it without reading the variants (#2929).
- * A variant with no Faction yet, or whose Faction is not listed, stands alone.
+ * A variant whose Faction is not listed stands alone.
  */
 export async function pickerVariantLabel(ctx: QueryCtx, variant: Doc<'factions'>) {
   const familyId = variant.family_id;
-  if (!familyId) {
-    return null;
-  }
   const entry = await ctx.db
     .query('catalogue_entries')
     .withIndex('by_kind_source', (q) =>
       q.eq('kind', 'faction_family').eq('source_id', familyId).eq('partition', ALL_PARTITION)
     )
     .first();
-  return (entry?.variant_count ?? 1) > 1 ? variantName(variant) : null;
+  return (entry?.variant_count ?? 1) > 1 ? variant.variant_name : null;
 }
 
 /* The query is public, so the seats it reads for a page are capped; a tool seats no more than this. */
@@ -55,13 +47,11 @@ export async function seatedVariants(ctx: QueryCtx, seated: readonly string[]) {
 
 /**
  * The name of the seated variant that keeps this one from the table: another variant of its Faction, since a tool seats one variant per Faction.
- * Null where no sibling is seated, and for a variant with no Faction yet.
+ * Null where no sibling is seated.
  */
 export function seatedSiblingName(seated: readonly Doc<'factions'>[], variant: Doc<'factions'>) {
-  const sibling = variant.family_id
-    ? seated.find((other) => other.family_id === variant.family_id && other._id !== variant._id)
-    : undefined;
-  return sibling ? variantName(sibling) : null;
+  const sibling = seated.find((other) => other.family_id === variant.family_id && other._id !== variant._id);
+  return sibling?.variant_name ?? null;
 }
 
 type FactionData = ReturnType<typeof parseStoredFactionForRead>;
@@ -90,19 +80,6 @@ function mirroredFields(faction: Pick<Doc<'factions'>, 'data' | 'updated_at'>) {
     data: data ? splitSharedFields(data).shared : null,
     updated_at: faction.updated_at,
   };
-}
-
-/** The name of the first live ruleset that links the faction, by when the link was made, or "Original" when none does or its name is blank. */
-async function firstVariantName(ctx: Pick<QueryCtx, 'db'>, factionId: Id<'factions'>) {
-  for await (const link of ctx.db
-    .query('ruleset_factions')
-    .withIndex('by_faction', (q) => q.eq('faction_id', factionId))) {
-    const ruleset = await ctx.db.get(link.ruleset_id);
-    if (ruleset && !ruleset.is_deleted) {
-      return ruleset.name.trim() || ORIGINAL_VARIANT_NAME;
-    }
-  }
-  return ORIGINAL_VARIANT_NAME;
 }
 
 type NewFaction = Omit<WithoutSystemFields<Doc<'factions'>>, 'family_id' | 'variant_name' | 'variant_slug'>;
@@ -134,44 +111,17 @@ export async function insertFaction(ctx: MutationCtx, { slug, ...fields }: NewFa
   return row;
 }
 
-async function createFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
-  const familyId = await ctx.db.insert('faction_families', {
-    ...mirroredFields(faction),
-    owner_id: faction.owner_id,
-    is_deleted: faction.is_deleted,
-    created_at: faction.created_at,
-    slug: faction.slug,
-    group_id: faction.group_id,
-    default_variant_id: faction._id,
-    is_open: false,
-  });
-  const variantName = await firstVariantName(ctx, faction._id);
-  const variantSlug = slugify(variantName) || ORIGINAL_VARIANT_SLUG;
-  /* The faction keeps the address it was made at, and the variant moves under it (#2909). */
-  await ctx.db.patch(faction._id, {
-    family_id: familyId,
-    variant_name: variantName,
-    variant_slug: variantSlug,
-    slug: await allocateVariantAddress(ctx, faction.slug, faction._id, variantSlug),
-  });
-}
-
 /**
- * Gives a faction its family, or brings the family it has up to date;
+ * Brings a faction's family up to date with its default variant;
  * rerunning it on an unchanged faction writes nothing.
- * The variant name is chosen once, when the family is made, so later ruleset links never rename it.
  */
 export async function syncFactionFamily(ctx: MutationCtx, id: Id<'factions'>, faction: Doc<'factions'> | null) {
   if (!faction) {
     await deleteOrphanedFamily(ctx, id);
     return;
   }
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
-  if (!family) {
-    await createFamily(ctx, faction);
-    return;
-  }
-  if (family.default_variant_id !== faction._id) {
+  const family = await ctx.db.get(faction.family_id);
+  if (family?.default_variant_id !== faction._id) {
     return;
   }
   const fields = mirroredFields(faction);
@@ -187,6 +137,27 @@ function mirrors(family: Doc<'faction_families'>, fields: ReturnType<typeof mirr
 }
 
 /** A family goes with its single variant when that row is removed outright, such as by account deletion. */
+type SeedFaction = NewFaction & Partial<Pick<Doc<'factions'>, 'family_id' | 'variant_name' | 'variant_slug'>>;
+
+/**
+ * Writes a seeded faction, such as one in the Storybook baseline: one that names no Faction is made with one, as `factions.create` makes it, and a variant with a parent joins its parent's.
+ * The Faction is made with its first variant, so no seed can name it.
+ */
+export async function insertSeedFaction(ctx: MutationCtx, faction: SeedFaction) {
+  const { family_id, variant_name, variant_slug, parent_id } = faction;
+  if (family_id && variant_name && variant_slug) {
+    return await ctx.db.insert('factions', { ...faction, family_id, variant_name, variant_slug });
+  }
+  if (!parent_id) {
+    return (await insertFaction(ctx, faction))._id;
+  }
+  const parent = await ctx.db.get(parent_id);
+  if (!parent || !variant_name || !variant_slug) {
+    throw new Error(`A seeded variant of ${parent_id} needs its parent and its own name and slug`);
+  }
+  return await ctx.db.insert('factions', { ...faction, family_id: parent.family_id, variant_name, variant_slug });
+}
+
 async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
   const family = await ctx.db
     .query('faction_families')
@@ -199,12 +170,9 @@ async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
 
 /** Throws unless the faction is a variant of a family that exists and, while it is the only variant, mirrors it exactly. */
 export async function assertFactionFamily(ctx: Pick<QueryCtx, 'db'>, faction: Doc<'factions'>) {
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
+  const family = await ctx.db.get(faction.family_id);
   if (!family) {
     throw new Error(`Faction ${faction._id} has no family`);
-  }
-  if (!faction.variant_name || !faction.variant_slug) {
-    throw new Error(`Faction ${faction._id} has no variant name`);
   }
   assertMirrorsDefaultVariant(family, faction);
 }
@@ -362,7 +330,7 @@ export async function passDefaultOn(ctx: MutationCtx, family: Doc<'faction_famil
  * a variant that comes back becomes the default of a Faction left with no live one.
  */
 async function keepDefaultLive(ctx: MutationCtx, before: Doc<'factions'> | null, after: Doc<'factions'> | null) {
-  if (!after?.family_id || (before?.is_deleted ?? false) === after.is_deleted) {
+  if (!after || (before?.is_deleted ?? false) === after.is_deleted) {
     return;
   }
   const family = await ctx.db.get(after.family_id);

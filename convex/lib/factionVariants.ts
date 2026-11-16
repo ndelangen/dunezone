@@ -15,7 +15,7 @@ import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
-import { ORIGINAL_VARIANT_NAME, passDefaultOn, takeInLiveVariant } from './factionFamilies';
+import { passDefaultOn, takeInLiveVariant } from './factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './factionInput';
 import { recordFormerSlug } from './formerSlugs';
 import {
@@ -113,9 +113,6 @@ export async function followParent(ctx: MutationCtx, parent: Doc<'factions'>, ch
  * Each push reads the Faction's current values, so an older push that runs late carries the newer save's values, never its own.
  */
 export async function pushSharedFields(ctx: MutationCtx, faction: Doc<'factions'>) {
-  if (!faction.family_id) {
-    return;
-  }
   const { shared } = splitSharedFields(parseStoredFactionForRead(faction.data));
   await ctx.db.patch(faction.family_id, { data: shared });
   await ctx.scheduler.runAfter(0, internal.factionVariants.pushSharedFields, {
@@ -179,12 +176,7 @@ export async function moveToFamily(
   fields: Partial<Pick<Doc<'factions'>, 'parent_id' | 'inherited'>> = {}
 ) {
   await leaveFamily(ctx, variant);
-  const slug = await allocateVariantAddress(
-    ctx,
-    family.slug,
-    variant._id,
-    variant.variant_slug ?? slugify(ORIGINAL_VARIANT_NAME)
-  );
+  const slug = await allocateVariantAddress(ctx, family.slug, variant._id, variant.variant_slug);
   await recordFormerSlug(ctx, { kind: 'faction', scope: '', slug: variant.slug, record_id: variant._id });
   await ctx.db.patch(variant._id, { ...fields, family_id: family._id, slug });
   const moved = (await ctx.db.get(variant._id))!;
@@ -195,7 +187,7 @@ export async function moveToFamily(
 
 /** Takes the variant out of its current Faction's order, and passes that Faction's default on when it is the default. */
 async function leaveFamily(ctx: MutationCtx, variant: Doc<'factions'>) {
-  const from = variant.family_id ? await ctx.db.get(variant.family_id) : null;
+  const from = await ctx.db.get(variant.family_id);
   if (!from) {
     return;
   }

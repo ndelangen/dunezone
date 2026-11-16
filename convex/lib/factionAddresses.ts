@@ -33,10 +33,6 @@ export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_famil
   return variant && !variant.is_deleted ? variant : null;
 }
 
-async function familyOf(ctx: Reader, faction: Doc<'factions'>) {
-  return faction.family_id ? await ctx.db.get(faction.family_id) : null;
-}
-
 async function addressFree(ctx: MutationCtx, slug: string, own: Own) {
   if (slug === 'create') {
     return false;
@@ -69,10 +65,10 @@ export async function allocateVariantAddress(
   return await allocateFactionAddress(ctx, `${familySlug}-${variantSlug}`, { factionId });
 }
 
-/** The variant's family and its own slug, once the variant has both. */
+/** The variant's family and its own slug; null only where the family row is gone. */
 async function placeInFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
-  const family = await familyOf(ctx, faction);
-  return family && faction.variant_slug ? { family, variantSlug: faction.variant_slug } : null;
+  const family = await ctx.db.get(faction.family_id);
+  return family && { family, variantSlug: faction.variant_slug };
 }
 
 type PlaceInFamily = NonNullable<Awaited<ReturnType<typeof placeInFamily>>>;
@@ -129,7 +125,7 @@ async function renameFamily(
 
 /** Throws unless the variant answers at an address of its own under its faction's. */
 export async function assertVariantAddress(ctx: Reader, faction: Doc<'factions'>) {
-  const family = await familyOf(ctx, faction);
+  const family = await ctx.db.get(faction.family_id);
   if (!family || !faction.slug.startsWith(`${family.slug}-`)) {
     throw new Error(`Faction ${faction._id} has no address of its own under its family's`);
   }

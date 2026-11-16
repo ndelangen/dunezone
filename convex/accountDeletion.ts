@@ -1080,7 +1080,7 @@ async function restoreFactionFamily(
   operation: Doc<'account_deletion_operations'>,
   variant: Doc<'factions'>
 ) {
-  const family = variant.family_id ? await ctx.db.get('faction_families', variant.family_id) : null;
+  const family = await ctx.db.get('faction_families', variant.family_id);
   if (family?.is_deleted && family.owner_id === operation.source_user_id) {
     await ctx.db.patch(family._id, { is_deleted: false });
   }

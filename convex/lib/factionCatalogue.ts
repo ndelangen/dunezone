@@ -167,8 +167,8 @@ function factionSearchFields(data: unknown) {
 /**
  * A variant is found by its own name too, except the name every first variant got by default, which would match nearly every faction (#2929).
  */
-function variantSearchNames(names: string[], variantName: string | undefined) {
-  return variantName && variantName !== ORIGINAL_VARIANT_NAME ? [...names, variantName] : names;
+function variantSearchNames(names: string[], variantName: string) {
+  return variantName !== ORIGINAL_VARIANT_NAME ? [...names, variantName] : names;
 }
 
 /**

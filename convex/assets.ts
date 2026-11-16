@@ -579,8 +579,7 @@ async function withValidatedBack(
 
 /*
  * A linked Nexus face snapshots the faction artwork through the ordinary asset writer.
- * The link is stored as a whole Faction (#2921): a live variant's id is taken for its Faction, so a stale draft, an open tab from before the move, or an import that binds a variant saves the Faction.
- * Refusing a variant outright waits for the slice 10 narrow.
+ * The link is stored as a whole Faction (#2921): a live variant's id is taken for its Faction, so a stale draft, an open tab from before the move, or an import whose binding names a faction item, which is a variant, saves the Faction.
  */
 async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
   if (type !== 'card-nexus') {

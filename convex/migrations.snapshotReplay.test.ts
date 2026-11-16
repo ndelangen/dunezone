@@ -14,8 +14,8 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionTest } from './factions.test.fixture';
-import { syncFactionFamily } from './lib/factionFamilies';
 import guards from './migration-guards.json';
 
 /** The migrations `migration-guards.ts dev-strict` starts after every snapshot load, in the order it starts them. */
@@ -91,13 +91,11 @@ describe('a snapshot load', () => {
         slug: 'moved-spice',
         data: { ...publishingSpiceCard, board: { asset_id: token, tints: [], tokens: [] } },
       });
-      const faction = await ctx.db.insert('factions', {
+      const faction = await insertFactionRow(ctx, {
         ...owned,
         slug: 'retuned',
         data: { ...assetPublishingFaction, decals: [retunedDecal] },
       });
-      /* Production gave the faction its family and variant name before the snapshot was cut. */
-      await syncFactionFamily(ctx, faction, await ctx.db.get(faction));
       const { family_id } = (await ctx.db.get(faction))!;
       /* A Nexus card as production stores it once `nexus_link_family_v1` has run: linked to the Faction. */
       const nexus = await asset('card-nexus', 'linked-nexus', {
@@ -153,7 +151,7 @@ describe('a snapshot load', () => {
         const ownerId = await ctx.db.insert('users', placeholderOwner.user());
         await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
         const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
-        await ctx.db.insert('factions', { ...owned, slug: 'published', data: assetPublishingFaction });
+        await insertFactionRow(ctx, { ...owned, slug: 'published', data: assetPublishingFaction });
         const rulesetId = await ctx.db.insert('rulesets', {
           ...owned,
           name: 'Published rules',

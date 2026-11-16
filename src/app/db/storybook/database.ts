@@ -26,6 +26,7 @@ import type {
   SeedDocument,
   SeedInsertDocument,
   SeedPatch,
+  SeedRow,
   SeedReference,
   WithSeedReferences,
   WorkerIdentity,
@@ -37,7 +38,7 @@ const GROUP_KEY = 'group:arrakeen-rules-council';
 const RULESET_KEY = 'ruleset:classicrules';
 const FACTION_KEY = 'faction:house-atreides';
 
-export type StorybookRow<TableName extends TableNames> = WithSeedReferences<WithoutSystemFields<Doc<TableName>>> &
+export type StorybookRow<TableName extends TableNames> = SeedRow<TableName> &
   (
     | { $key?: string; $patch?: undefined }
     | {

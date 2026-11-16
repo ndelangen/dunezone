@@ -3,6 +3,7 @@
 
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncFactionCard } from './lib/factionCards';
 import type { MutationCtx } from './types';
 
@@ -41,9 +42,10 @@ export async function insertStoredFactions(
 ): Promise<Id<'factions'>[]> {
   return await t.run(async (ctx) => {
     const ownerId = await ctx.db.insert('users', { name: 'Faction owner' });
-    return await Promise.all(
-      rows.map(({ slug, data, isDeleted = false }) =>
-        ctx.db.insert('factions', {
+    const ids: Id<'factions'>[] = [];
+    for (const { slug, data, isDeleted = false } of rows) {
+      ids.push(
+        await insertFactionRow(ctx, {
           owner_id: ownerId,
           data: { name: slug, ...data },
           slug,
@@ -52,8 +54,9 @@ export async function insertStoredFactions(
           is_deleted: isDeleted,
           group_id: null,
         })
-      )
-    );
+      );
+    }
+    return ids;
   });
 }
 

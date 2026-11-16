@@ -37,7 +37,7 @@ async function readFaction(ctx: QueryCtx, id: Id<'factions'>) {
     .query('publication_assets')
     .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'faction-token').eq('asset_id', id))
     .unique();
-  const factionSlug = (row.family_id ? await ctx.db.get(row.family_id) : null)?.slug ?? row.slug;
+  const factionSlug = (await ctx.db.get(row.family_id))?.slug;
   return {
     id,
     name: parsed.data.name,

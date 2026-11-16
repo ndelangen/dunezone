@@ -602,7 +602,7 @@ function CreateVariantForm({
         <Text size="xs" c="dimmed">
           {parent
             ? `Starts with all ${INHERITABLE_FIELDS.length} fields using ${parent.name}. Untick Use parent variant on any of them in the editor to make it custom.`
-            : `Starts as a copy of ${faction.variant_name ?? 'this variant'}, with every field its own. A variant without a parent can never be given one.`}
+            : `Starts as a copy of ${faction.variant_name}, with every field its own. A variant without a parent can never be given one.`}
         </Text>
         {createVariant.error ? (
           <FormError title="Variant could not be created">{mutationErrorMessage(createVariant.error)}</FormError>
@@ -689,7 +689,7 @@ function VariantProblemsNotice({
   problems,
 }: Readonly<{ faction: VariantFaction; problems: ReturnType<typeof variantProblemList> }>) {
   const count = problems.all.length === 1 ? '1 problem' : `${problems.all.length} problems`;
-  const variantName = faction.variant_name ?? 'This variant';
+  const variantName = faction.variant_name;
   /* Only the variant's editors see this notice, and the parent's name is theirs to ask for. */
   const parentName = useFactionVariantContext(faction._id)?.parent?.name ?? 'its parent variant';
   const fromParent = problems.fromParent.length;

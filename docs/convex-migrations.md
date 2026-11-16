@@ -260,6 +260,10 @@ release, after both verify migrations succeeded in production, behind the
 `emblem_rename_presets_narrow` guard entry (pruned with the rename on 10 November 2026). A snapshot cut before 9 November 2026 cannot load, since no
 migration remains to rewrite its old names; load `--data=fixture` or a newer `--snapshot-file`.
 
+Since the `faction_family_narrow` release (#2933), every faction row must name its Faction and its variant
+(`family_id`, `variant_name`, `variant_slug`). A snapshot cut before Faction families reached production
+cannot load either, because the schema refuses its faction rows before `faction_families_v1` can run.
+
 The deploy runs every widen id in alphabetical order (`deploySet` in
 `scripts/migration-guards.ts`); `requires` on a widen entry does not order anything. Name a
 verify migration so it sorts after the migrations it checks.

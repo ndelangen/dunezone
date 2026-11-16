@@ -21,11 +21,22 @@ export type WithSeedReferences<Value> =
           ? { [Key in keyof Value]: WithSeedReferences<Value[Key]> }
           : Value;
 
+/* The fields `insertFaction` writes, which a seeded faction with no parent may leave out. */
+type MadeWithItsFaction = 'family_id' | 'variant_name' | 'variant_slug';
+
+/** A row as a seed writes it: a faction may leave its Faction to be made with it, as `factions.create` makes it. */
+export type SeedRow<TableName extends TableNames> = WithSeedReferences<
+  TableName extends 'factions'
+    ? Omit<WithoutSystemFields<Doc<'factions'>>, MadeWithItsFaction> &
+        Partial<Pick<Doc<'factions'>, MadeWithItsFaction>>
+    : WithoutSystemFields<Doc<TableName>>
+>;
+
 export type SeedDocumentFor<TableName extends TableNames> = {
   operation?: 'insert';
   key?: string;
   table: TableName;
-  value: WithSeedReferences<WithoutSystemFields<Doc<TableName>>>;
+  value: SeedRow<TableName>;
 };
 
 export type SeedInsertDocument = {

@@ -27,15 +27,12 @@ export async function nexusLinkTarget(ctx: Reader, id: string) {
 }
 
 /**
- * The Faction a link leads to: a Faction's own id, or a live variant's Faction, so a stale draft, an old tab or an import that names a variant still stores the Faction.
+ * The Faction a link leads to: a Faction's own id, or a live variant's Faction, so a stale draft, an old tab or an import binding that names a variant still stores the Faction.
  * Null where neither leads to a Faction with a live default variant.
  */
 export async function nexusFactionTarget(ctx: Reader, id: string) {
   const target = await nexusLinkTarget(ctx, id);
-  const faction =
-    target?.kind === 'variant' && target.variant.family_id
-      ? await nexusLinkTarget(ctx, target.variant.family_id)
-      : target;
+  const faction = target?.kind === 'variant' ? await nexusLinkTarget(ctx, target.variant.family_id) : target;
   return faction?.kind === 'faction' ? faction : null;
 }
 

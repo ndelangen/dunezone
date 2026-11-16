@@ -79,7 +79,7 @@ describe('a ruleset’s faction order', () => {
     expect((await railNames(fixture)).names).toEqual(['Duncan', 'Bene Gesserit', 'Atreides']);
 
     const late = await fixture.t.run(async (rawCtx) =>
-      applicationTriggers.wrapDB(rawCtx).db.insert('factions', {
+      insertFactionRow(applicationTriggers.wrapDB(rawCtx), {
         owner_id: fixture.ruleset.owner_id,
         data: { ...assetPublishingFaction, name: 'Arrival' },
         slug: 'arrival',
