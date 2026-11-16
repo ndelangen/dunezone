@@ -72,6 +72,48 @@ describe('a package item giving a parent', () => {
     expect(entries.map((entry) => entry.status)).toEqual(['unchanged', 'unchanged']);
   });
 
+  test('a parent change that recalculates its complexity is not a change to the variant', async () => {
+    const { t, owner, family } = await importedFaction();
+    const { advantages: _advantages, ...rules } = assetPublishingFaction.rules;
+    const items = (advantages: typeof assetPublishingFaction.rules.advantages) => [
+      {
+        key: 'heavy',
+        kind: 'faction',
+        faction: family.slug,
+        variantName: 'Spice heavy',
+        data: { ...spiceHeavy, rules: { ...spiceHeavy.rules, advantages } },
+      },
+      { key: 'heavier', kind: 'faction', faction: family.slug, parent: 'heavy', data: { ...spiceHeavy, rules } },
+    ];
+    await importAll(owner, packageFor('expansion', items(assetPublishingFaction.rules.advantages)), second);
+    const before = (await t.run((ctx) => ctx.db.query('factions').order('desc').first()))!;
+
+    vi.useFakeTimers();
+    const longer = [
+      ...assetPublishingFaction.rules.advantages,
+      { text: 'You see the shape of every bid to come. '.repeat(20) },
+    ];
+    const next = packageFor('expansion', items(longer));
+    expect(await importAll(owner, next, second)).toMatchObject([{ status: 'updated' }, { status: 'unchanged' }]);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    const after = (await t.run((ctx) => ctx.db.get(before._id)))!;
+    expect(after.data.complexity.calculated).not.toBe(before.data.complexity.calculated);
+    const { entries } = await owner.mutation(api.contentImports.preview, { package: next, target: second });
+    expect(entries.map((entry) => entry.status)).toEqual(['unchanged', 'unchanged']);
+  });
+
+  test('a key an earlier item owns names that item, not a variant at the same address', async () => {
+    const { t, owner, outsider, family } = await importedFaction();
+    await outsider.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const theirs = (await t.run((ctx) => ctx.db.query('factions').order('desc').first()))!;
+    const bundle = packageFor('expansion', [
+      { key: theirs.slug, kind: 'faction', faction: family.slug, variantName: 'Spice heavy', data: spiceHeavy },
+      { key: 'child', kind: 'faction', faction: family.slug, parent: theirs.slug, data: withoutTroopsOrSpice() },
+    ]);
+    const { entries } = await owner.mutation(api.contentImports.preview, { package: bundle, target: second });
+    expect(entries.map((entry) => entry.status)).toEqual(['create', 'create']);
+  });
+
   test('refuses a parent item of another faction before anything imports', async () => {
     const { t, owner, outsider, family } = await importedFaction();
     await outsider.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });

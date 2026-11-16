@@ -68,8 +68,18 @@ export function withParentFields<T extends object>(parent: object, data: T, fiel
 }
 
 /** The copy without the named fields: what a variant holds of its own when it follows its parent in them. */
-export function withoutFields<T extends object>(data: T, fields: readonly InheritableField[]): T {
+function withoutFields<T extends object>(data: T, fields: readonly InheritableField[]): T {
   return fields.reduce((copy, field) => writeField(copy, field, undefined), data);
+}
+
+/**
+ * What a variant holds of its own while it follows its parent in the named fields: everything but those fields and the calculated complexity, which `resolveVariantData` rewrites on every push-down.
+ * A push-down can still give one of the variant's own leaders a fresh identity when it collides with an inherited one, which this does not hide.
+ */
+export function ownVariantData<T extends { complexity?: object }>(data: T, fields: readonly InheritableField[]) {
+  const { complexity, ...own } = withoutFields(data, fields);
+  const { calculated: _calculated, ...rest } = (complexity ?? {}) as { calculated?: number };
+  return { ...own, complexity: rest };
 }
 
 /** Keeps only names of inheritable fields, once each and in their canonical order. */
