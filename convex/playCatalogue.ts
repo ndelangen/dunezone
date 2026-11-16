@@ -35,7 +35,6 @@ import { assetDisplayName } from './lib/assetInput';
 import { resolveBackgrounds } from './lib/backgroundPresets';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 import { catalogueSearchLimit, catalogueSearchReach, selectCatalogueSearch } from './lib/catalogueOrder';
-import { variantName } from './lib/factionFamilies';
 import { profileSummaryReader } from './lib/profileSummary';
 import { rulesetBoard } from './lib/rulesetBoard';
 import { listRulesetAssetSlots } from './lib/rulesetSlots';
@@ -231,7 +230,7 @@ export const draftableFactions = publicQuery({
           (await publishedFace(ctx, 'faction-token', publicationFaceId(row._id, 'back'))) !== null,
         familyId: row.family_id,
         /* Named as the variant switcher names it; a name past the draft's bound is cut, since the id is what a game keys on. */
-        variantName: draftVariantName(variantName(row)),
+        variantName: draftVariantName(row.variant_name),
       });
     }
     return await resolveBackgrounds(ctx, { factions });

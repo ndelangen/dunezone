@@ -202,11 +202,7 @@ export const nexusLink = publicQuery({
       return null;
     }
     const family =
-      target.kind === 'faction'
-        ? target.family
-        : target.variant.family_id
-          ? await ctx.db.get('faction_families', target.variant.family_id)
-          : null;
+      target.kind === 'faction' ? target.family : await ctx.db.get('faction_families', target.variant.family_id);
     if (!family || family.is_deleted) {
       return null;
     }

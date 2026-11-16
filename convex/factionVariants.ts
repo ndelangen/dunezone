@@ -11,7 +11,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress } from './lib/factionAddresses';
 import { listFactionRulesetCovers } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { defaultVariantOf, liveVariantsInOrder, variantName, variantsOf } from './lib/factionFamilies';
+import { defaultVariantOf, liveVariantsInOrder, variantsOf } from './lib/factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './lib/factionInput';
 import {
   followParent,
@@ -86,12 +86,12 @@ async function newVariantCopy(ctx: MutationCtx, family: Doc<'faction_families'>,
 
 /** The Faction's live variants a new one may take as its parent, in the Faction's variant order. */
 async function liveVariantChoices(ctx: QueryCtx, family: Doc<'faction_families'>) {
-  return (await liveVariantsInOrder(ctx, family)).map((row) => ({ _id: row._id, name: variantName(row) }));
+  return (await liveVariantsInOrder(ctx, family)).map((row) => ({ _id: row._id, name: row.variant_name }));
 }
 
 /** The variant's Faction, which every variant has once `faction_families_v1` ran. */
 async function familyOf(ctx: QueryCtx, variant: Doc<'factions'>) {
-  const family = variant.family_id ? await ctx.db.get(variant.family_id) : null;
+  const family = await ctx.db.get(variant.family_id);
   if (!family) {
     throw new Error(`Faction ${variant._id} has no family`);
   }
@@ -145,7 +145,7 @@ export const switcher = publicQuery({
   ),
   handler: async (ctx, args) => {
     const variant = await ctx.db.get(args.faction_id);
-    const family = variant?.family_id ? await ctx.db.get(variant.family_id) : null;
+    const family = variant && (await ctx.db.get(variant.family_id));
     if (!variant || variant.is_deleted || !family || family.is_deleted) {
       return null;
     }
@@ -158,7 +158,7 @@ export const switcher = publicQuery({
       variants: await Promise.all(
         variants.map(async (row) => ({
           _id: row._id,
-          name: variantName(row),
+          name: row.variant_name,
           slug: row.slug,
           parentId: row.parent_id ?? null,
           ownerName: await activeUsername(ctx, row.owner_id),
@@ -186,7 +186,7 @@ export const editorContext = viewerQuery({
   ),
   handler: async (ctx, args) => {
     const variant = await ctx.db.get(args.faction_id);
-    const family = variant?.family_id ? await ctx.db.get(variant.family_id) : null;
+    const family = variant && (await ctx.db.get(variant.family_id));
     if (!variant || variant.is_deleted || !family) {
       return null;
     }
@@ -197,7 +197,7 @@ export const editorContext = viewerQuery({
     }
     const parent = variant.parent_id ? await ctx.db.get(variant.parent_id) : null;
     return {
-      parent: parent && { name: variantName(parent), data: parseStoredFactionForRead(parent.data) },
+      parent: parent && { name: parent.variant_name, data: parseStoredFactionForRead(parent.data) },
       variants: await liveVariantChoices(ctx, family),
       familySlug: family.slug,
     };
@@ -355,7 +355,7 @@ export const moveBranch = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const parent = await ctx.db.get(args.parentId);
-    const family = parent?.family_id ? await ctx.db.get(parent.family_id) : null;
+    const family = parent && (await ctx.db.get(parent.family_id));
     if (!family) {
       return null;
     }

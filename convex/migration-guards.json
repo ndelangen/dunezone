@@ -285,6 +285,16 @@
       "id": "publication_job_listings_narrow",
       "phase": "narrow",
       "requires": ["publication_job_listings_v1", "publication_job_listings_verify_v1"]
+    },
+    {
+      "id": "faction_family_narrow",
+      "phase": "narrow",
+      "requires": [
+        "faction_families_v1",
+        "faction_families_verify_v1",
+        "faction_variant_addresses_v1",
+        "faction_variant_addresses_verify_v1"
+      ]
     }
   ]
 }

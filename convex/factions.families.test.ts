@@ -25,20 +25,6 @@ async function familiesFixture() {
   const t = applicationTest();
   const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction author' }));
   const owner = t.withIdentity({ subject: ownerId });
-  /* A row as production holds it before the migration: written straight to the database, so no trigger gives it a family. */
-  const legacyRow = (slug: string, is_deleted = false) =>
-    t.run(
-      async (ctx) =>
-        await ctx.db.insert('factions', {
-          owner_id: ownerId,
-          group_id: null,
-          data: { ...assetPublishingFaction, name: slug },
-          slug,
-          created_at: STAMP,
-          updated_at: STAMP,
-          is_deleted,
-        })
-    );
   const ruleset = (name: string, is_deleted = false) =>
     t.run(
       async (ctx) =>
@@ -63,7 +49,7 @@ async function familiesFixture() {
   const familyOf = (id: Id<'factions'>) =>
     t.run(async (ctx) => {
       const faction = await ctx.db.get(id);
-      return faction?.family_id ? await ctx.db.get(faction.family_id) : null;
+      return faction ? await ctx.db.get(faction.family_id) : null;
     });
   const migrate = async () => {
     vi.useFakeTimers();
@@ -73,7 +59,7 @@ async function familiesFixture() {
     vi.useRealTimers();
     return await t.query(internal.migrations.assertReadyForNarrow, { required: ids });
   };
-  return { t, ownerId, owner, legacyRow, ruleset, link, variant, familyOf, migrate };
+  return { t, ownerId, owner, ruleset, link, variant, familyOf, migrate };
 }
 
 describe('Faction families', () => {
@@ -94,43 +80,15 @@ describe('Faction families', () => {
     });
   });
 
-  test('the migration gives every row a family, deleted rows included, named after its first live ruleset', async () => {
-    const { legacyRow, ruleset, link, variant, familyOf, migrate } = await familiesFixture();
-    const linked = await legacyRow('linked');
-    const unlinked = await legacyRow('unlinked');
-    const blank = await legacyRow('blank');
-    await link(await ruleset('  '), blank);
-    const deleted = await legacyRow('deleted', true);
-    await link(await ruleset('Retired rules', true), linked);
-    await link(await ruleset('Advanced Dune'), linked);
-    await link(await ruleset('House rules'), linked);
-
-    await expect(migrate()).resolves.toMatchObject({ ok: true });
-
-    expect(await variant(linked)).toMatchObject({ variant_name: 'Advanced Dune', variant_slug: 'advanced-dune' });
-    expect(await variant(unlinked)).toMatchObject({ variant_name: 'Original' });
-    expect(await variant(blank)).toMatchObject({ variant_name: 'Original', variant_slug: 'original' });
-    expect(await familyOf(deleted)).toMatchObject({ is_deleted: true, default_variant_id: deleted });
-    expect(await familyOf(linked)).toMatchObject({ slug: 'linked', data: { ...SHARED, name: 'linked' } });
-  });
-
   test('rerunning the migration changes nothing', async () => {
-    const { legacyRow, variant, familyOf, migrate } = await familiesFixture();
-    const id = await legacyRow('stable');
+    const { owner, variant, familyOf, migrate } = await familiesFixture();
+    const { _id: id } = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
     await migrate();
     const before = [await variant(id), await familyOf(id)];
 
     await migrate();
 
     expect([await variant(id), await familyOf(id)]).toEqual(before);
-  });
-
-  test('the verify step refuses a faction without a family', async () => {
-    const { t, legacyRow } = await familiesFixture();
-    const id = await legacyRow('orphan');
-    await expect(t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(id))!))).rejects.toThrow(
-      /has no family/
-    );
   });
 
   test('the verify step refuses a family that no longer mirrors its variant', async () => {

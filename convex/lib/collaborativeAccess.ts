@@ -414,7 +414,7 @@ export async function requireFactionFamily(
 
 /** Whether the viewer may change the shared fields of this variant's Faction; a variant not yet given one falls back to its owner. */
 async function canEditSharedFields(ctx: MutationCtx, access: LoadedFactionAccess) {
-  const family = access.subject.family_id ? await ctx.db.get('faction_families', access.subject.family_id) : null;
+  const family = await ctx.db.get('faction_families', access.subject.family_id);
   if (!family) {
     return access.viewerAccess.capabilities.rename;
   }

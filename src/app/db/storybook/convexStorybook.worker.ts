@@ -11,6 +11,7 @@ import type { Value } from 'convex/values';
 import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
 import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
+import { insertFaction } from '../../../../convex/lib/factionFamilies';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -129,28 +130,24 @@ type WorldRequest = Exclude<
 >;
 
 /**
- * A seeded variant with a parent joins its parent's Faction.
- * A trigger makes that Faction when the parent is inserted, so no seed can name it.
+ * A seeded faction that names no Faction is made with one, as `factions.create` makes it, and a seeded variant with a parent joins its parent's.
+ * The Faction is made with its first variant, so no seed can name it.
  */
-async function inParentsFamily<TableName extends TableNames>(
-  db: DatabaseWriter,
-  table: TableName,
-  value: WithoutSystemFields<Doc<TableName>>
-) {
-  const faction = value as Partial<Doc<'factions'>>;
-  if (table !== 'factions' || !faction.parent_id || faction.family_id) {
-    return value;
-  }
-  return { ...value, family_id: (await db.get('factions', faction.parent_id))?.family_id };
-}
-
 async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
   document: SeedDocumentFor<TableName>,
   references: Map<string, string>
-) {
+): Promise<Id<TableNames>> {
   const value = resolveSeedValue(document.value, references) as WithoutSystemFields<Doc<TableName>>;
-  return await db.insert(document.table, await inParentsFamily(db, document.table, value));
+  const faction = value as Partial<Doc<'factions'>>;
+  if (document.table !== 'factions' || faction.family_id) {
+    return await db.insert(document.table, value);
+  }
+  if (!faction.parent_id) {
+    return (await insertFaction({ db } as MutationCtx, faction as Parameters<typeof insertFaction>[1]))._id;
+  }
+  const family_id = (await db.get('factions', faction.parent_id))!.family_id;
+  return await db.insert('factions', { ...faction, family_id } as WithoutSystemFields<Doc<'factions'>>);
 }
 
 async function patchDocument<TableName extends TableNames>(
@@ -168,7 +165,7 @@ async function patchDocument<TableName extends TableNames>(
 
 /**
  * A seeded variant's Faction goes by `<the variant's key>:family`, so a seed patch can change it.
- * A trigger makes the Faction, so no seed row holds it.
+ * The Faction is made with the variant, so no seed row holds it.
  */
 async function nameFamily(db: DatabaseWriter, key: string, id: Id<TableNames>, references: Map<string, string>) {
   const familyId = db.normalizeId('factions', id) ? (await db.get('factions', id as Id<'factions'>))?.family_id : null;

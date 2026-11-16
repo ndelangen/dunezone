@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { CATALOGUE_STAMP, catalogueFactionData } from './factions.catalogue.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import { factionOwnerPartition } from './lib/factionCatalogue';
@@ -30,19 +31,19 @@ async function unmaintained() {
       is_deleted: false,
       image_cover: null,
     });
-    const live = await ctx.db.insert('factions', {
+    const live = await insertFactionRow(ctx, {
       ...owned,
       slug: 'atreides',
       is_deleted: false,
       data: catalogueFactionData({ name: 'Atreides', complexity: 0.4 }),
     });
-    const renamed = await ctx.db.insert('factions', {
+    const renamed = await insertFactionRow(ctx, {
       ...owned,
       slug: 'fremen',
       is_deleted: false,
       data: catalogueFactionData({ name: 'Fremen' }),
     });
-    const deleted = await ctx.db.insert('factions', {
+    const deleted = await insertFactionRow(ctx, {
       ...owned,
       slug: 'gone',
       is_deleted: true,

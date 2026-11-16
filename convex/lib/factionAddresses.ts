@@ -34,7 +34,7 @@ export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_famil
 }
 
 async function familyOf(ctx: Reader, faction: Doc<'factions'>) {
-  return faction.family_id ? await ctx.db.get(faction.family_id) : null;
+  return await ctx.db.get(faction.family_id);
 }
 
 async function addressFree(ctx: MutationCtx, slug: string, own: Own) {
@@ -72,7 +72,7 @@ export async function allocateVariantAddress(
 /** The variant's family and its own slug, once the variant has both. */
 async function placeInFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
   const family = await familyOf(ctx, faction);
-  return family && faction.variant_slug ? { family, variantSlug: faction.variant_slug } : null;
+  return family && { family, variantSlug: faction.variant_slug };
 }
 
 type PlaceInFamily = NonNullable<Awaited<ReturnType<typeof placeInFamily>>>;
