@@ -400,7 +400,7 @@ export const retiredTables = {
   play_tickets: 'retired Play admission tickets',
   play_auth_registrations: 'retired Play sign-in registrations',
   /* Left the schema after `nexus_link_moves_clear_v1` (#2971) deleted its rows, the undo records of the Nexus link move. */
-  nexus_link_moves: 'the dropped undo record of a one-off production migration',
+  nexus_link_moves: 'the undo record of a one-off production migration',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**

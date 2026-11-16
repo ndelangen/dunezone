@@ -75,7 +75,7 @@ export const nexus_link_family_v1 = migrations.define({
 });
 
 /**
- * Carried the import receipts of the moved cards onto their new link, reading the old links from the since-dropped `nexus_link_moves` table.
+ * Carried the import receipts of the moved cards onto their new link, reading the old links from `nexus_link_moves`, since dropped.
  * Production has run it and the records it read are gone, so its body is a no-op and its id stays.
  */
 export const nexus_link_family_v1_receipts = migrations.define({
