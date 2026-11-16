@@ -16,18 +16,18 @@ import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { replaceAssetMembers } from './assets';
-import { newVariantSlug } from './factionVariants';
+import { requireNewVariant } from './factionVariants';
 import { mutation } from './functions';
 import { canonicalJson } from './lib/canonicalJson';
 import {
   requireAssetUpdate,
   factionSaveCheck,
-  loadFactionFamilyAccess,
   requireAssignableGroup,
   requireFactionSave,
   requireGroupReassignment,
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
+import { liveDefaultVariant } from './lib/factionAddresses';
 import { requireAuthUserId } from './lib/policy';
 import { rulebookContentsHash } from './lib/rulebookEditionContents';
 import type { MutationCtx } from './types';
@@ -309,8 +309,8 @@ function linksVariant(item: ContentImportItem) {
 }
 
 /**
- * The Faction a `faction` item adds a new variant to, and the variant's name, refused as the variant editor refuses them (#2916).
- * The Faction must be open or maintained by the importer, and no other variant of it may already have the name.
+ * The Faction a `faction` item adds a new variant to, and the variant's name and slug, refused as the variant editor refuses them (#2916).
+ * The variant is named after the target Ruleset unless the item names it.
  */
 async function newVariantTarget(ctx: MutationCtx, target: Target, item: ContentImportItem) {
   if (item.kind !== 'faction' || !item.faction) {
@@ -321,23 +321,24 @@ async function newVariantTarget(ctx: MutationCtx, target: Target, item: ContentI
     .query('faction_families')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!family || family.is_deleted) {
+  const base = await liveDefaultVariant(ctx, family);
+  if (!family || !base) {
     throw new ConvexError(`Faction ${slug} was not found.`);
   }
-  if (!family.is_open && !(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
-    throw new ConvexError(`${itemName(family.data)} is closed, and you may not add variants to it.`);
+  if (!family.data) {
+    throw new ConvexError(`Faction ${slug} cannot be read, so no variant can be added to it.`);
   }
   const name = item.variantName ?? target.ruleset.name;
-  await newVariantSlug(ctx, family._id, name);
-  return { family, name };
+  return { family, base, name, variantSlug: await requireNewVariant(ctx, family, name) };
 }
 
-/** A `faction` item's copy takes its Faction's shared fields, which are the Faction's to change and not the package's. */
-function withSharedFieldsOf(item: ContentImportItem, data: unknown, source: unknown) {
-  if (item.kind !== 'faction' || !item.faction || typeof source !== 'object' || source === null) {
-    return data;
-  }
-  return { ...(data as object), ...splitSharedFields(source as Parameters<typeof splitSharedFields>[0]).shared };
+function sharedFieldsOf(data: unknown) {
+  return splitSharedFields(data as Parameters<typeof splitSharedFields>[0]).shared;
+}
+
+/** A `faction` item's copy keeps its Faction's shared fields, which are the Faction's to change and not the package's. */
+function withSharedFieldsOf(item: ContentImportItem, data: unknown, shared: object | null | undefined) {
+  return item.kind === 'faction' && item.faction && shared ? { ...(data as object), ...shared } : data;
 }
 
 /**
@@ -405,8 +406,8 @@ export const preview = mutation({
             v.literal('link-variant')
           )
         ),
-        /** The name of the Faction an `add-variant` item adds to. */
-        faction: v.optional(v.string()),
+        /** The name of the variant an `add-variant` item adds. */
+        variant: v.optional(v.string()),
         message: v.optional(v.string()),
       })
     ),
@@ -421,6 +422,8 @@ export const preview = mutation({
     const maximumEnd = Math.min(cursor + 50, bundle.items.length);
     let end = cursor;
     const entries = [];
+    /* Two items of one package may not add the same variant, which the second apply would refuse. */
+    const adding = new Set<string>();
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
         const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
@@ -428,10 +431,27 @@ export const preview = mutation({
         const receipt = await receiptFor(ctx, target, bundle.packageKey, item.key);
         const subject = await findSubject(ctx, target, item, receipt);
         const added = subject ? null : await newVariantTarget(ctx, target, item);
-        const data = withSharedFieldsOf(item, bound, subject?.data ?? added?.family.data);
+        if (added) {
+          const claim = `${added.family._id}/${added.variantSlug}`;
+          if (adding.has(claim)) {
+            throw new ConvexError(`Another item of this package already adds the variant “${added.name}”.`);
+          }
+          adding.add(claim);
+        }
+        const data = withSharedFieldsOf(item, bound, subject ? sharedFieldsOf(subject.data) : added?.family.data);
         const mode = subject ? await authorizeSubject(ctx, target, item, subject, data) : undefined;
         const linkOnly = mode === 'link' || mode === 'link-blocked';
         const hash = subject ? subjectHash(subject) : null;
+        const action =
+          item.kind !== 'faction'
+            ? undefined
+            : added
+              ? ('add-variant' as const)
+              : !subject
+                ? ('create-faction' as const)
+                : linkOnly
+                  ? ('link-variant' as const)
+                  : ('update-variant' as const);
         const destination = await destinationFor(ctx, target, item, subject);
         const conflict = !linkOnly && !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
         /* A receipt of a link that wrote nothing still matches once the importer may edit the variant, so a write is never unchanged. */
@@ -452,18 +472,7 @@ export const preview = mutation({
               : unchanged
                 ? ('unchanged' as const)
                 : ('update' as const),
-          ...(item.kind === 'faction' && !conflict && !unchanged
-            ? {
-                action: added
-                  ? ('add-variant' as const)
-                  : !subject
-                    ? ('create-faction' as const)
-                    : linkOnly
-                      ? ('link-variant' as const)
-                      : ('update-variant' as const),
-                ...(added ? { faction: itemName(added.family.data) } : {}),
-              }
-            : {}),
+          ...(action && !conflict && !unchanged ? { action, ...(added ? { variant: added.name } : {}) } : {}),
           ...(conflict
             ? { message: 'This record changed since its last import. Export and review it before continuing.' }
             : destination.message
@@ -559,7 +568,7 @@ export const applyItem = mutation({
       })
     );
     const added = previous ? null : await newVariantTarget(ctx, target, item);
-    const data = withSharedFieldsOf(item, bound, previous?.data ?? added?.family.data);
+    const data = withSharedFieldsOf(item, bound, previous ? sharedFieldsOf(previous.data) : null);
     const mode = previous ? await authorizeSubject(ctx, target, item, previous, data) : undefined;
     const linkOnly = mode === 'link' || mode === 'link-blocked';
     if (!linkOnly && receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
@@ -590,12 +599,12 @@ export const applyItem = mutation({
         }
       } else if (added) {
         const created = await ctx.runMutation(api.factionVariants.create, {
-          faction_id: added.family.default_variant_id,
+          faction_id: added.base._id,
           name: added.name,
           group_id: target.group._id,
+          data,
         });
         id = created.id;
-        await ctx.runMutation(api.factions.update, { id: created.id, data });
       } else {
         const created = await ctx.runMutation(api.factions.create, { data, group_id: target.group._id });
         id = created._id;

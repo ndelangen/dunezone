@@ -19,7 +19,7 @@ describe('open factions (#2928)', () => {
         parent_id: root._id,
         group_id: null,
       });
-    await expect(addOwnVariant('Mine')).rejects.toThrow('Not authorized');
+    await expect(addOwnVariant('Mine')).rejects.toThrow(/closed/);
 
     await owner.mutation(api.factionFamilies.setOpen, { family_id: familyId, is_open: true });
     /* The switcher tells everyone the faction is open and names the parents on offer, which is all the create form needs. */
@@ -32,7 +32,7 @@ describe('open factions (#2928)', () => {
     expect((await row(mine.id)).owner_id).not.toBe(root.owner_id);
 
     await owner.mutation(api.factionFamilies.setOpen, { family_id: familyId, is_open: false });
-    await expect(addOwnVariant('Another')).rejects.toThrow('Not authorized');
+    await expect(addOwnVariant('Another')).rejects.toThrow(/closed/);
     /* Closing keeps the variants already in it. */
     expect(await row(mine.id)).toMatchObject({ family_id: familyId, is_deleted: false });
   });

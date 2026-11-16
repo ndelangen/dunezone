@@ -402,7 +402,7 @@ function savedFactionExtras(data: unknown): FactionExtra[] {
  * One the faction already listed is kept even after its asset is removed, so unrelated edits still save;
  * Play names it as not ready until the author fixes or removes it.
  */
-async function assertAddedFactionExtrasExist(
+export async function assertAddedFactionExtrasExist(
   ctx: MutationCtx,
   extras: readonly FactionExtra[] | undefined,
   saved: readonly FactionExtra[]

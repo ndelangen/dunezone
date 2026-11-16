@@ -230,6 +230,7 @@ export async function insertVariant(
     ownerId,
     groupId,
     address,
+    data,
   }: {
     base: Doc<'factions'>;
     parent: Doc<'factions'> | null;
@@ -237,9 +238,11 @@ export async function insertVariant(
     ownerId: Id<'users'>;
     groupId: Id<'groups'> | null;
     address: string;
+    /** The variant's own copy; without one it copies its parent and follows it in every inheritable field. */
+    data?: Doc<'factions'>['data'];
   }
 ) {
-  const source = parseStoredFactionForRead((parent ?? base).data);
+  const source = data ?? parseStoredFactionForRead((parent ?? base).data);
   const now = nowIso();
   const id = await ctx.db.insert('factions', {
     owner_id: ownerId,
@@ -253,7 +256,9 @@ export async function insertVariant(
     variant_name: name,
     variant_slug: slugify(name),
     revision: 0,
-    ...(parent ? { parent_id: parent._id, inherited: [...INHERITABLE_FIELDS], problems: variantProblems(source) } : {}),
+    ...(parent
+      ? { parent_id: parent._id, inherited: data ? [] : [...INHERITABLE_FIELDS], problems: variantProblems(source) }
+      : {}),
   });
   const row = (await ctx.db.get(id))!;
   await enqueueFactionSheetPublication(ctx, row);

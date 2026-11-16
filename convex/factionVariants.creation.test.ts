@@ -40,7 +40,7 @@ describe('adding faction variants (#2927)', () => {
     const { owner, stranger, root, addVariant } = await variantsFixture();
     await expect(
       stranger.mutation(api.factionVariants.create, { faction_id: root._id, name: 'Mine', group_id: null })
-    ).rejects.toThrow('Not authorized');
+    ).rejects.toThrow(/closed/);
     await addVariant('Dreamrules');
     await expect(addVariant('dreamrules!')).rejects.toThrow('already has a variant called');
 

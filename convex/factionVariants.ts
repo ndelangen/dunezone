@@ -3,6 +3,7 @@ import { ConvexError, v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
+import { assertAddedFactionExtrasExist } from './factions';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { isActiveProfile } from './lib/accountLifecycle';
 import { loadCollaborativeAccess, loadFactionFamilyAccess } from './lib/collaborativeAccess';
@@ -11,7 +12,7 @@ import { allocateFactionAddress } from './lib/factionAddresses';
 import { listFactionRulesetCovers } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { liveVariantsInOrder, variantName, variantsOf } from './lib/factionFamilies';
-import { parseStoredFactionForRead } from './lib/factionInput';
+import { factionInputForWrite, parseStoredFactionForRead } from './lib/factionInput';
 import {
   followParent,
   inBranchOf,
@@ -44,9 +45,8 @@ async function parentFor(ctx: MutationCtx, base: Doc<'factions'>, parentId: Id<'
   return parent;
 }
 
-/** The new variant's own slug, which no other variant of the Faction may already use. */
 /** The new variant's slug within its Faction, refused where the name gives none or a sibling already has it. */
-export async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
+async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_families'>, name: string) {
   const variantSlug = slugify(name);
   if (!variantSlug) {
     throw new ConvexError('Give the variant a name.');
@@ -57,6 +57,31 @@ export async function newVariantSlug(ctx: MutationCtx, familyId: Id<'faction_fam
     }
   }
   return variantSlug;
+}
+
+/**
+ * The slug of a new variant called `name`, where the importer or editor may add it to `family` (#2928).
+ * Its maintainers may always add variants.
+ * Anyone signed in may add one to an open Faction.
+ */
+export async function requireNewVariant(ctx: MutationCtx, family: Doc<'faction_families'>, name: string) {
+  if (family.is_deleted) {
+    throw new ConvexError('That faction no longer exists.');
+  }
+  if (!family.is_open && !(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
+    throw new ConvexError('This faction is closed, and you may not add variants to it.');
+  }
+  return await newVariantSlug(ctx, family._id, name);
+}
+
+/** A copy given with a new variant, with its Faction's shared fields, which are the Faction's to change and not the copy's. */
+async function newVariantCopy(ctx: MutationCtx, family: Doc<'faction_families'>, input: unknown) {
+  if (!family.data) {
+    throw new ConvexError('This faction cannot be read, so no variant can be added to it with its own copy.');
+  }
+  const data = factionInputForWrite(input);
+  await assertAddedFactionExtrasExist(ctx, data.extras, []);
+  return { ...data, ...family.data };
 }
 
 /** The Faction's live variants a new one may take as its parent, in the Faction's variant order. */
@@ -191,21 +216,18 @@ export const create = mutation({
     name: v.string(),
     parent_id: v.optional(v.id('factions')),
     group_id: v.optional(v.union(v.id('groups'), v.null())),
+    /** The new variant's own copy, as an import gives it; without one it copies its parent, or else the variant it was added from. */
+    data: v.optional(v.any()),
   },
   returns: v.object({ id: v.id('factions'), slug: v.string() }),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     const base = await liveVariant(ctx, args.faction_id);
     const family = await familyOf(ctx, base);
-    if (family.is_deleted) {
-      throw new ConvexError('That faction no longer exists.');
-    }
-    if (!family.is_open && !(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
-      throw new Error('Not authorized');
-    }
-    const parent = await parentFor(ctx, base, args.parent_id);
     const name = args.name.trim();
-    const variantSlug = await newVariantSlug(ctx, family._id, name);
+    const variantSlug = await requireNewVariant(ctx, family, name);
+    const parent = await parentFor(ctx, base, args.parent_id);
+    const data = args.data === undefined ? undefined : await newVariantCopy(ctx, family, args.data);
     const { group_id: groupId } = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
     const row = await insertVariant(ctx, {
       base,
@@ -214,6 +236,7 @@ export const create = mutation({
       ownerId: userId,
       groupId,
       address: await allocateFactionAddress(ctx, `${family.slug}-${variantSlug}`),
+      data,
     });
     return { id: row._id, slug: row.slug };
   },

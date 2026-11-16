@@ -60,7 +60,7 @@ describe('a package item naming an existing faction', () => {
     expect(plan.entries[0]).toMatchObject({
       status: 'create',
       action: 'add-variant',
-      faction: assetPublishingFaction.name,
+      variant: 'Other Rulebook test rules',
     });
     expect(await importAll(owner, bundle, second)).toMatchObject([{ status: 'created' }]);
 
@@ -94,6 +94,34 @@ describe('a package item naming an existing faction', () => {
     expect(
       (await owner.mutation(api.contentImports.preview, { package: clash, target: second })).entries[0]
     ).toMatchObject({ status: 'conflict', message: expect.stringMatching(/already has a variant/) });
+  });
+
+  test('takes a hand-written copy whose leaders and troops carry no IDs', async () => {
+    const { t, owner, family } = await importedFaction();
+    const { memberId: _leaderId, ...factionLeader } = changed.factionLeader;
+    const data = {
+      ...changed,
+      factionLeader,
+      leaders: changed.leaders.map(({ memberId: _memberId, ...leader }) => leader),
+      troops: changed.troops.map(({ troopId: _troopId, ...troop }) => troop),
+    };
+    const bundle = packageFor('expansion', [{ key: 'atreides', kind: 'faction', faction: family.slug, data }]);
+
+    expect(await importAll(owner, bundle, second)).toMatchObject([{ status: 'created' }]);
+    const added = (await t.run((ctx) => ctx.db.query('factions').order('desc').first()))!;
+    expect(added.data.rules.spiceCount).toBe(7);
+    expect(added.data.troops.every((troop: { troopId?: string }) => troop.troopId)).toBe(true);
+  });
+
+  test('refuses a second item of the package adding the same variant', async () => {
+    const { owner, family } = await importedFaction();
+    const bundle = packageFor('expansion', [
+      { key: 'one', kind: 'faction', faction: family.slug, data: changed },
+      { key: 'two', kind: 'faction', faction: family.slug, data: changed },
+    ]);
+    const { entries } = await owner.mutation(api.contentImports.preview, { package: bundle, target: second });
+    expect(entries.map((entry) => entry.status)).toEqual(['create', 'conflict']);
+    expect(entries[1]!.message).toMatch(/already adds the variant/);
   });
 
   test('refuses a closed faction the importer does not maintain', async () => {
