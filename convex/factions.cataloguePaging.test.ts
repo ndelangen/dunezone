@@ -416,7 +416,6 @@ describe('faction catalogue query', () => {
       'rulesets',
       'slug',
       'updated_at',
-      'variantCount',
     ]);
     expect(Object.keys(card?.data ?? {}).sort(compareCodeUnits)).toEqual([
       'background',

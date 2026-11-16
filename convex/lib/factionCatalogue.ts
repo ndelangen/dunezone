@@ -334,7 +334,7 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
       }
       return null;
     }
-    const card = await catalogueFactionFromCard(
+    return catalogueFactionFromCard(
       ctx,
       row,
       entry.facets
@@ -342,7 +342,6 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
         .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
         .sort(compareRulesets)
     );
-    return { ...card, variantCount: entry.variant_count ?? 1 };
   };
 }
 
