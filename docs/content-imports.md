@@ -36,6 +36,10 @@ Each item has one of these shapes. The examples below describe payload fields; u
 
 A faction's `data` follows [`FactionWriteSchema`](../src/shared/factions/schema.ts). `link: true` also adds it to the Ruleset. Its member and troop IDs remain stable across edits.
 
+A faction item without the fields below creates a new faction with one variant. To reuse a variant that already exists, for example one that another Ruleset imported, add `"variant": "<variant address>"`. The address is the variant's `/factions/` path segment. The import links that variant to the Ruleset and creates no new faction. It updates the variant only when the package's copy differs and you may edit the variant; otherwise it links the variant as it is, and the preview says so. The variant keeps its Group. Name a variant with `variant` or with `existing`, not both: `existing` updates the record and requires edit access.
+
+The preview's Action column says what each faction item does: create faction, update variant or link existing variant.
+
 ```json
 {
   "key": "nexus-deck",

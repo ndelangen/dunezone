@@ -41,7 +41,19 @@ export const importRulebookDataSchema = z.strictObject({
   ),
 });
 export const contentImportItemSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ ...common, kind: z.literal('faction'), data: z.unknown(), link: z.boolean().optional() }),
+  z
+    .strictObject({
+      ...common,
+      kind: z.literal('faction'),
+      data: z.unknown(),
+      link: z.boolean().optional(),
+      /** An existing variant's address: the import links it to the Ruleset, and updates it only where the content differs and the importer may edit it (#2916). */
+      variant: keySchema.optional(),
+    })
+    .refine((item) => !(item.variant && item.existing), {
+      path: ['variant'],
+      message: 'Name the variant once, with variant or existing.',
+    }),
   z.strictObject({
     ...common,
     kind: z.literal('asset'),
