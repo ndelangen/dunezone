@@ -25,7 +25,7 @@ async function addressesFixture() {
   const familySlug = (id: Id<'factions'>) =>
     t.run(async (ctx) => {
       const faction = await ctx.db.get(id);
-      return (faction?.family_id && (await ctx.db.get(faction.family_id))?.slug) ?? null;
+      return (faction && (await ctx.db.get(faction.family_id))?.slug) ?? null;
     });
   return { t, ownerId, owner, create, rename, resolve, page, familySlug };
 }

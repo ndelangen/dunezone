@@ -118,8 +118,8 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
 }
 
 /** The Faction's public access facts, from which the browser decides who may change the shared fields. */
-async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'> | undefined) {
-  const family = familyId ? await ctx.db.get('faction_families', familyId) : null;
+async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get('faction_families', familyId);
   if (!family) {
     return null;
   }
@@ -542,8 +542,8 @@ async function requireLastVariantOfOwnFaction(ctx: MutationCtx, variant: Doc<'fa
 }
 
 /** Deletes the Faction once it holds no live variant, if the viewer is the one who may delete it. */
-async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'> | undefined) {
-  const family = familyId ? await ctx.db.get(familyId) : null;
+async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get(familyId);
   if (!family || family.is_deleted || (await liveDefaultVariant(ctx, family))) {
     return;
   }

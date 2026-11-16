@@ -222,7 +222,7 @@ export function useFactionAccess(page: FactionDetailPageData) {
 
 /**
  * Whether the current viewer may change the shared fields and settings, which the variant's Faction holds: its owner and its own Group may, a variant's Group alone may not (#2910).
- * A variant not yet given a Faction leaves them to its owner, as the server does.
+ * Where the Faction is gone, they fall to the variant's owner, as the server does.
  */
 export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {
   const { family } = page;
@@ -234,7 +234,7 @@ export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {
   return {
     resolved,
     canEdit: family ? viewerAccess.capabilities.edit : viewerAccess.capabilities.rename,
-    /* Only the Faction's owner deletes it, and a variant without a Faction has none to delete. */
+    /* Only the Faction's owner deletes it. */
     canDelete: family ? viewerAccess.capabilities.delete : false,
   };
 }

@@ -11,7 +11,7 @@ import type { Value } from 'convex/values';
 import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
 import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
-import { insertFaction } from '../../../../convex/lib/factionFamilies';
+import { insertSeedFaction } from '../../../../convex/lib/factionFamilies';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -129,25 +129,16 @@ type WorldRequest = Exclude<
   { operation: 'contextConformance' | 'networkProbe' | 'ping' | 'reset' | 'subworkerProbe' }
 >;
 
-/**
- * A seeded faction that names no Faction is made with one, as `factions.create` makes it, and a seeded variant with a parent joins its parent's.
- * The Faction is made with its first variant, so no seed can name it.
- */
 async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
   document: SeedDocumentFor<TableName>,
   references: Map<string, string>
 ): Promise<Id<TableNames>> {
-  const value = resolveSeedValue(document.value, references) as WithoutSystemFields<Doc<TableName>>;
-  const faction = value as Partial<Doc<'factions'>>;
-  if (document.table !== 'factions' || faction.family_id) {
-    return await db.insert(document.table, value);
+  const value = resolveSeedValue(document.value, references);
+  if (document.table === 'factions') {
+    return await insertSeedFaction({ db } as MutationCtx, value as Parameters<typeof insertSeedFaction>[1]);
   }
-  if (!faction.parent_id) {
-    return (await insertFaction({ db } as MutationCtx, faction as Parameters<typeof insertFaction>[1]))._id;
-  }
-  const family_id = (await db.get('factions', faction.parent_id))!.family_id;
-  return await db.insert('factions', { ...faction, family_id } as WithoutSystemFields<Doc<'factions'>>);
+  return await db.insert(document.table, value as WithoutSystemFields<Doc<TableName>>);
 }
 
 async function patchDocument<TableName extends TableNames>(

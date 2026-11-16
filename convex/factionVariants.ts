@@ -89,7 +89,7 @@ async function liveVariantChoices(ctx: QueryCtx, family: Doc<'faction_families'>
   return (await liveVariantsInOrder(ctx, family)).map((row) => ({ _id: row._id, name: row.variant_name }));
 }
 
-/** The variant's Faction, which every variant has once `faction_families_v1` ran. */
+/** The variant's Faction. */
 async function familyOf(ctx: QueryCtx, variant: Doc<'factions'>) {
   const family = await ctx.db.get(variant.family_id);
   if (!family) {

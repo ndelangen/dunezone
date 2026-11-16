@@ -138,6 +138,43 @@ describe('provisioning seed documents', () => {
       expect(group?.slug).toBe(`group-of-${viewer?._id}`);
     });
   });
+
+  test('makes a seeded faction its Faction, and gives a seeded variant its parent’s', async () => {
+    const t = prepared();
+    const faction = (key: string, slug: string, extra: object = {}) => ({
+      key,
+      table: 'factions',
+      value: {
+        owner_id: { $seedRef: 'viewer' },
+        data: { name: slug },
+        slug,
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+        ...extra,
+      },
+    });
+    const documents = [
+      { key: 'viewer', table: 'users', value: { name: 'Seeded viewer' } },
+      faction('original', 'atreides'),
+      faction('variant', 'atreides-dreamrules', {
+        parent_id: { $seedRef: 'original' },
+        variant_name: 'Dreamrules',
+        variant_slug: 'dreamrules',
+      }),
+    ];
+
+    await t.mutation(internal.provisioning.insertSeedDocuments, { documents: JSON.stringify(documents) });
+
+    await t.run(async (ctx) => {
+      const [original, variant] = await ctx.db.query('factions').collect();
+      const family = await ctx.db.get(original!.family_id);
+      expect(original).toMatchObject({ slug: 'atreides-original', variant_name: 'Original' });
+      expect(family).toMatchObject({ slug: 'atreides', default_variant_id: original!._id });
+      expect(variant).toMatchObject({ family_id: family!._id, variant_name: 'Dreamrules' });
+    });
+  });
 });
 
 describe('snapshot Rulebook draft seed', () => {

@@ -137,6 +137,27 @@ function mirrors(family: Doc<'faction_families'>, fields: ReturnType<typeof mirr
 }
 
 /** A family goes with its single variant when that row is removed outright, such as by account deletion. */
+type SeedFaction = NewFaction & Partial<Pick<Doc<'factions'>, 'family_id' | 'variant_name' | 'variant_slug'>>;
+
+/**
+ * Writes a seeded faction, such as one in the Storybook baseline: one that names no Faction is made with one, as `factions.create` makes it, and a variant with a parent joins its parent's.
+ * The Faction is made with its first variant, so no seed can name it.
+ */
+export async function insertSeedFaction(ctx: MutationCtx, faction: SeedFaction) {
+  const { family_id, variant_name, variant_slug, parent_id } = faction;
+  if (family_id && variant_name && variant_slug) {
+    return await ctx.db.insert('factions', { ...faction, family_id, variant_name, variant_slug });
+  }
+  if (!parent_id) {
+    return (await insertFaction(ctx, faction))._id;
+  }
+  const parent = await ctx.db.get(parent_id);
+  if (!parent || !variant_name || !variant_slug) {
+    throw new Error(`A seeded variant of ${parent_id} needs its parent and its own name and slug`);
+  }
+  return await ctx.db.insert('factions', { ...faction, family_id: parent.family_id, variant_name, variant_slug });
+}
+
 async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
   const family = await ctx.db
     .query('faction_families')
