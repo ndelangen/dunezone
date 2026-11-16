@@ -197,7 +197,6 @@ export const snapshotPolicy = {
   counters: { drop: 'slug counters, which the allocators rebuild' },
   former_slugs: { drop: 'addresses renames left behind, which only old production links need' },
   migration_runs: { drop: 'migration status, which the local migration guard writes again' },
-  nexus_link_moves: { drop: 'the undo record of a one-off production migration' },
   catalogue_entries: {
     drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
   },
@@ -400,6 +399,8 @@ export const retiredTables = {
   /* The last two left the schema with the ticket admission path; Play has no games to keep, so their rows are not content. */
   play_tickets: 'retired Play admission tickets',
   play_auth_registrations: 'retired Play sign-in registrations',
+  /* Left the schema after `nexus_link_moves_clear_v1` (#2971) deleted its rows, the undo records of the Nexus link move. */
+  nexus_link_moves: 'the undo record of a one-off production migration',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**

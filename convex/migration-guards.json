@@ -277,11 +277,6 @@
       "requires": ["nexus_link_family_v1"]
     },
     {
-      "id": "nexus_link_moves_clear_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
       "id": "board_readiness_listing_narrow",
       "phase": "narrow",
       "requires": ["board_readiness_v1", "board_readiness_listing_v1"]
