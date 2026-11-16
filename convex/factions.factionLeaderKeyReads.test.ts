@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
@@ -45,7 +46,7 @@ async function seed() {
       approved_by: ownerId,
     });
     const row = (slug: string, data: Record<string, unknown>) =>
-      ctx.db.insert('factions', {
+      insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...data, name: slug },
         slug,

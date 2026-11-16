@@ -6,6 +6,7 @@ import { expect, test, vi } from 'vite-plus/test';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 test('maintains global and per-ruleset totals through wrapped writes', async () => {
@@ -23,7 +24,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
       created_at: '2026-08-04T10:00:00.000Z',
       updated_at: '2026-08-04T10:00:00.000Z',
     });
-    const activeFactionId = await ctx.db.insert('factions', {
+    const activeFactionId = await insertFactionRow(ctx, {
       owner_id: userId,
       data: {},
       slug: 'active-faction',
@@ -32,7 +33,7 @@ test('maintains global and per-ruleset totals through wrapped writes', async () 
       is_deleted: false,
       group_id: null,
     });
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: userId,
       data: {},
       slug: 'deleted-faction',

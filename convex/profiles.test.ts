@@ -4,6 +4,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 test('the profile directory includes activity counts', async () => {
@@ -35,7 +36,7 @@ test('the profile directory includes activity counts', async () => {
       approved_at: '2026-07-19T00:00:00.000Z',
       approved_by: userId,
     });
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: userId,
       data: {},
       slug: 'atreides',
@@ -44,7 +45,7 @@ test('the profile directory includes activity counts', async () => {
       is_deleted: false,
       group_id: null,
     });
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: userId,
       data: {},
       slug: 'deleted-faction',

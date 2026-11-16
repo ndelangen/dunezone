@@ -19,6 +19,7 @@ import { arrakisBoard } from '../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 afterEach(() => vi.useRealTimers());
 async function fixture(initialize = true) {
@@ -386,7 +387,7 @@ test('changing the Traitor family recaptures only Traitor faces', async () => {
   const { t, admin } = await fixture();
   await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', {});
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       data: assetPublishingFaction,
       slug: 'traitor-proof',
       owner_id: owner,

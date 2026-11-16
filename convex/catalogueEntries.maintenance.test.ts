@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { catalogueFactionData, CATALOGUE_STAMP } from './factions.catalogue.test.fixture';
 import { factionAuthor, factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -102,7 +103,7 @@ describe('catalogue entry maintenance', () => {
     const { factionId, rawOwnerId } = await t.run(async (rawCtx) => {
       const ctx = applicationTriggers.wrapDB(rawCtx);
       const rawOwnerId = await ctx.db.insert('users', { name: 'Raw owner' });
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: rawOwnerId,
         /* A blob the full read refuses still lists under its raw name, and its write succeeds. */
         data: { name: 'Legacy' },

@@ -7,6 +7,7 @@ import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 
@@ -606,7 +607,7 @@ test('a merge hands the merged account’s factions to the kept account, even wh
   const target = await account(t, 'target', 'google', true);
   const familyId = await t.run(async (raw) => {
     const ctx = applicationTriggers.wrapDB(raw);
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: source.userId,
       data: { ...assetPublishingFaction, name: 'Merged faction' },
       slug: 'merged-faction',

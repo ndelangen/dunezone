@@ -37,15 +37,16 @@ async function readFaction(ctx: QueryCtx, id: Id<'factions'>) {
     .query('publication_assets')
     .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'faction-token').eq('asset_id', id))
     .unique();
+  const factionSlug = (row.family_id ? await ctx.db.get(row.family_id) : null)?.slug ?? row.slug;
   return {
     id,
     name: parsed.data.name,
     src: publication ? publishedHref('faction-token', id, publication.cache_token) : null,
     color: parsed.data.themeColor,
-    /* These are the prototype's reminders, not an interpreter for custom faction powers. */
-    peeks: row.slug === 'house-atreides',
-    paid: row.slug === 'emperor',
-    initialHand: row.slug === 'house-harkonnen' ? 2 : 1,
+    /* These are the prototype's reminders, not an interpreter for custom faction powers, keyed by the Faction's address since each variant has one of its own under it. */
+    peeks: factionSlug === 'house-atreides',
+    paid: factionSlug === 'emperor',
+    initialHand: factionSlug === 'house-harkonnen' ? 2 : 1,
   };
 }
 

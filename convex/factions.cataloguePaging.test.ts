@@ -9,6 +9,7 @@ import { compareCodeUnits } from '../src/shared/compareText';
 import { FACTION_CATALOGUE_PAGE_SIZE, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { api } from './_generated/api';
 import type { DataModel, Id } from './_generated/dataModel';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { CATALOGUE_STAMP, catalogueFactionData, seedCatalogue } from './factions.catalogue.test.fixture';
 import type { SeededFaction } from './factions.catalogue.test.fixture';
 import { factionAuthor, factionTest } from './factions.test.fixture';
@@ -153,7 +154,7 @@ describe('faction catalogue query', () => {
       const ids: Id<'factions'>[] = [];
       for (let index = 0; index <= FACTION_CATALOGUE_PAGE_SIZE; index += 1) {
         ids.push(
-          await ctx.db.insert('factions', {
+          await insertFactionRow(ctx, {
             owner_id: chaniId,
             data: catalogueFactionData({ name: `Sietch ${String(index).padStart(2, '0')}` }),
             slug: `sietch-${index}`,
@@ -433,7 +434,7 @@ describe('faction catalogue query', () => {
     await t.run(async (rawCtx) => {
       const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { name: 'Zz malformed' },
         slug: 'malformed',

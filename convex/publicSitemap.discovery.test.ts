@@ -7,6 +7,7 @@ import { ASSET_TYPE_KEYS } from '../src/shared/assets/types';
 import { SITEMAP_RECORD_COLLECTIONS } from '../src/shared/publicDiscovery';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 test('discovery crosses page bounds, omits deleted records and keeps type-scoped slugs', async () => {
   const t = applicationTest();
@@ -21,10 +22,10 @@ test('discovery crosses page bounds, omits deleted records and keeps type-scoped
       updated_at: '2026-02-02T00:00:00.000Z',
     };
     for (let i = 0; i < 205; i += 1) {
-      await ctx.db.insert('factions', { ...row, slug: `faction-${i}` });
+      await insertFactionRow(ctx, { ...row, slug: `faction-${i}` });
     }
-    await ctx.db.insert('factions', { ...row, slug: 'deleted', is_deleted: true });
-    const renamed = await ctx.db.insert('factions', { ...row, slug: 'old-name' });
+    await insertFactionRow(ctx, { ...row, slug: 'deleted', is_deleted: true });
+    const renamed = await insertFactionRow(ctx, { ...row, slug: 'old-name' });
     await ctx.db.insert('assets', { ...row, slug: 'same-name', type: 'token-disc' });
     await ctx.db.insert('assets', { ...row, slug: 'same-name', type: 'card-treachery', updated_at: 'unknown' });
     await ctx.db.insert('assets', { ...row, slug: 'deleted', type: 'token-disc', is_deleted: true });

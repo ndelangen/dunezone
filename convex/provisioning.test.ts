@@ -8,6 +8,7 @@ import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCu
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { identifiesSomeone } from './lib/provisioningContract';
 
 function prepared() {
@@ -37,7 +38,7 @@ describe('provisioning ownership remap', () => {
         created_by: prodUser,
         is_deleted: false,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: prodUser,
         data: { name: 'House Cloned' },
         slug: 'house-cloned',

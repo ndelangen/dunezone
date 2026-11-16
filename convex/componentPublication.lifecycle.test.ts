@@ -9,6 +9,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { ensureFactionMemberIds } from '../src/shared/factions/memberIdentity';
 import { internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { enqueueFactionLeaderPublications } from './lib/publication';
 
 const tokenA = '10000000-1000-4000-8000-100000000001';
@@ -25,7 +26,7 @@ async function fixture(active = true) {
       renderer_revisions: active ? { 'faction-leader': 1 } : {},
       updated_at: Date.now(),
     });
-    return ctx.db.insert('factions', {
+    return insertFactionRow(ctx, {
       data: faction,
       slug: 'component-proof',
       owner_id: ownerId,

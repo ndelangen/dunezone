@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncFactionFamily } from './lib/factionFamilies';
 
 const STAMP = '2026-01-01T00:00:00.000Z';
@@ -88,7 +89,7 @@ describe('faction and variant addresses (#2909)', () => {
     const { t, ownerId, page } = await addressesFixture();
     /* A row as slice 2 left it: a family of its own that holds the same address. */
     const id = await t.run(async (ctx) => {
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         group_id: null,
         data: { ...assetPublishingFaction, name: 'Ix' },

@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { storedProfileAvatar } from './profiles.test.fixture';
@@ -131,7 +132,7 @@ describe('homepage page data', () => {
       const owner = await ctx.db.insert('users', { name: 'Faction maker' });
       for (let index = 0; index <= 500; index += 1) {
         const stamp = new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString();
-        await ctx.db.insert('factions', {
+        await insertFactionRow(ctx, {
           owner_id: owner,
           group_id: null,
           is_deleted: false,

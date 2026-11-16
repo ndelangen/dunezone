@@ -4,6 +4,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api } from './_generated/api';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 const stamp = '2026-11-09T00:00:00.000Z';
 
@@ -53,7 +54,7 @@ test('reads a faction with its linked background as the preset is now, and nothi
       updated_at: 1,
     });
     const row = (slug: string, is_deleted: boolean) =>
-      ctx.db.insert('factions', {
+      insertFactionRow(ctx, {
         owner_id: owner,
         slug,
         data: {
@@ -68,7 +69,7 @@ test('reads a faction with its linked background as the preset is now, and nothi
     return { live: await row('live', false), gone: await row('gone', true) };
   });
   expect(await t.query(api.battleWheelTool.faction, { factionId: ids.live })).toMatchObject({
-    faction: { id: ids.live, slug: 'live', name: assetPublishingFaction.name },
+    faction: { id: ids.live, slug: 'live-original', name: assetPublishingFaction.name },
     data: { background: preset },
   });
   expect(await t.query(api.battleWheelTool.faction, { factionId: ids.gone })).toBeNull();

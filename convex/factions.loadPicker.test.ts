@@ -5,6 +5,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import { variantsFixture } from './factionVariants.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -44,7 +45,7 @@ test('the load picker neither names a deleted Group nor counts its memberships',
         approved_at: STAMP,
         approved_by: userId,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: userId,
         data: { ...assetPublishingFaction, name: slug },
         slug,
@@ -88,7 +89,7 @@ test('the load picker does not name the owner of a deleted account', async () =>
     ] as const) {
       const owner = await ctx.db.insert('users', { name: username });
       await profile(owner, username, deleted);
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: owner,
         data: { ...assetPublishingFaction, name: username },
         slug: username.toLowerCase(),

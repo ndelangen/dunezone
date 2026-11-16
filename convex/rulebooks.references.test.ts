@@ -8,6 +8,7 @@ import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import type { RulebookContentsDraftV1 } from '../src/shared/rulebooks/contents';
 import { projectRulebookRenderDocument } from '../src/shared/rulebooks/projectRenderDocument';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
 async function referenceFixture() {
@@ -20,7 +21,7 @@ async function referenceFixture() {
     source: { kind: 'starter' },
   });
   const references = await t.run(async (ctx) => {
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: ids.ownerId,
       group_id: null,
       slug: 'referenced-faction',
@@ -224,7 +225,7 @@ describe('Rulebook live faction and Cover references', () => {
         throw new Error('Expected the fixture faction');
       }
       const { _id, _creationTime, ...fields } = faction;
-      return await ctx.db.insert('factions', {
+      return await insertFactionRow(ctx, {
         ...fields,
         slug: 'right-footer-faction',
         data: { ...assetPublishingFaction, name: 'Right faction', emblem: '/vector/emblem/fremen.svg' },

@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 const now = '2026-08-20T00:00:00.000Z';
@@ -58,7 +59,7 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
       approved_at: now,
       approved_by: ownerId,
     });
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: { ...assetPublishingFaction, name: `${prefix} Faction` },
       slug: `${prefix}-faction`,
@@ -67,7 +68,7 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
       is_deleted: false,
       group_id: groupId,
     });
-    const deletedFactionId = await ctx.db.insert('factions', {
+    const deletedFactionId = await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: { ...assetPublishingFaction, name: `${prefix} Old Faction` },
       slug: `${prefix}-old-faction`,

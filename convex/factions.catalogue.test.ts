@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 describe('faction catalogue page', () => {
@@ -47,7 +48,7 @@ describe('faction catalogue page', () => {
         is_deleted: true,
         image_cover: null,
       });
-      const arrivalId = await ctx.db.insert('factions', {
+      const arrivalId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'New arrival' },
         slug: 'new-arrival',
@@ -56,7 +57,7 @@ describe('faction catalogue page', () => {
         is_deleted: false,
         group_id: null,
       });
-      const updatedId = await ctx.db.insert('factions', {
+      const updatedId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Recently updated' },
         slug: 'recently-updated',
@@ -65,7 +66,7 @@ describe('faction catalogue page', () => {
         is_deleted: false,
         group_id: null,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Deleted faction' },
         slug: 'deleted-faction',
@@ -114,7 +115,7 @@ describe('faction catalogue page', () => {
         });
       const coveredId = await ruleset('Covered', 'https://covers.example/covered.webp');
       const bareId = await ruleset('Bare', null);
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Cited' },
         slug: 'cited',
@@ -126,7 +127,7 @@ describe('faction catalogue page', () => {
       await ctx.db.insert('ruleset_factions', { ruleset_id: coveredId, faction_id: factionId, position: 0 });
       await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: factionId, position: 0 });
       /* An older faction the same search finds, in the bare ruleset alone. */
-      const elsewhereId = await ctx.db.insert('factions', {
+      const elsewhereId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Cited elsewhere' },
         slug: 'cited-elsewhere',
@@ -164,7 +165,7 @@ describe('faction catalogue page', () => {
     await t.run(async (rawCtx) => {
       const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Narrowing owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Full blob' },
         slug: 'full-blob',
@@ -204,7 +205,7 @@ describe('faction catalogue page', () => {
     await t.run(async (rawCtx) => {
       const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: {},
         slug: 'malformed',
