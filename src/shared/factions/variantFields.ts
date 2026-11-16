@@ -45,16 +45,31 @@ export function readField(data: object, field: InheritableField): unknown {
 }
 
 /** A copy with the field set, or left out when the value is undefined, the way an optional field is stored. */
-function writeField(data: StoredFaction, field: InheritableField, value: unknown): StoredFaction {
+function writeField<T extends object>(data: T, field: InheritableField, value: unknown): T {
   const [key, inner] = pathOf(field);
   const record = data as Record<string, unknown>;
   const next = inner === undefined ? value : withKey((record[key] ?? {}) as Record<string, unknown>, inner, value);
-  return withKey(record, key, next) as StoredFaction;
+  return withKey(record, key, next) as T;
 }
 
 function withKey(record: Record<string, unknown>, key: string, value: unknown) {
   const { [key]: _old, ...rest } = record;
   return value === undefined ? rest : { ...rest, [key]: value };
+}
+
+/** The inheritable fields a copy leaves out, which a variant following a parent takes from it (#2916). */
+export function omittedFields(data: object): InheritableField[] {
+  return INHERITABLE_FIELDS.filter((field) => readField(data, field) === undefined);
+}
+
+/** The copy with each named field taken from the parent, before the copy is checked as a whole. */
+export function withParentFields<T extends object>(parent: object, data: T, fields: readonly InheritableField[]): T {
+  return fields.reduce((copy, field) => writeField(copy, field, readField(parent, field)), data);
+}
+
+/** The copy without the named fields: what a variant holds of its own when it follows its parent in them. */
+export function withoutFields<T extends object>(data: T, fields: readonly InheritableField[]): T {
+  return fields.reduce((copy, field) => writeField(copy, field, undefined), data);
 }
 
 /** Keeps only names of inheritable fields, once each and in their canonical order. */
