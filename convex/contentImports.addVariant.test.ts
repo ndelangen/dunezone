@@ -115,6 +115,18 @@ describe('a package item naming an existing faction', () => {
     expect(nextPage.entries[0]).toMatchObject({ status: 'conflict', message: expect.stringMatching(/already adds/) });
   });
 
+  test('does not count an item its receipt ties to a variant as adding the name it gives now', async () => {
+    const { owner, family } = await importedFaction();
+    const one = { key: 'one', kind: 'faction', faction: family.slug, variantName: 'First', data: changed };
+    await importAll(owner, packageFor('expansion', [one]), second);
+    const bundle = packageFor('expansion', [
+      { ...one, variantName: 'Second' },
+      { key: 'two', kind: 'faction', faction: family.slug, variantName: 'Second', data: changed },
+    ]);
+    const nextPage = await owner.mutation(api.contentImports.preview, { package: bundle, target: second, cursor: 1 });
+    expect(nextPage.entries[0]).toMatchObject({ status: 'create', action: 'add-variant' });
+  });
+
   test('refuses a closed faction the importer does not maintain', async () => {
     const { owner, outsider, t } = await importedFaction();
     await outsider.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });

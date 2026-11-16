@@ -440,7 +440,13 @@ export const preview = mutation({
       item.kind === 'faction' && item.faction
         ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
         : null;
-    const adding = new Set(bundle.items.slice(0, cursor).map(claimOf));
+    const adding = new Set<string | null>();
+    for (const earlier of bundle.items.slice(0, cursor)) {
+      /* An item its receipt already ties to a variant adds none, whatever name it gives now. */
+      if (claimOf(earlier) && !(await receiptFor(ctx, target, bundle.packageKey, earlier.key))) {
+        adding.add(claimOf(earlier));
+      }
+    }
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
         const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
