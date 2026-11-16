@@ -361,6 +361,8 @@ export default defineSchema({
      */
     variant_order: v.optional(v.array(v.id('factions'))),
     is_deleted: v.boolean(),
+    /** The Faction an admin merged this one into (#2932); set on a deleted Faction, whose addresses then lead to that one's default variant. */
+    merged_into: v.optional(v.id('faction_families')),
     created_at: v.string(),
     updated_at: v.string(),
   })

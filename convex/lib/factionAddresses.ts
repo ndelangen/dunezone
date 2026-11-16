@@ -24,8 +24,16 @@ export async function familyAt(ctx: Reader, slug: string) {
     .first();
 }
 
-/** The variant a faction's own address leads to: its default one, while both are live. */
+/**
+ * The variant a faction's own address leads to: its default one, while both are live.
+ * A faction merged into another leads to that one's default (#2932).
+ */
 export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_families'> | null) {
+  const seen = new Set<Id<'faction_families'>>();
+  while (family?.merged_into && !seen.has(family._id)) {
+    seen.add(family._id);
+    family = await ctx.db.get('faction_families', family.merged_into);
+  }
   const variant =
     family && !family.is_deleted && family.default_variant_id
       ? await ctx.db.get('factions', family.default_variant_id)

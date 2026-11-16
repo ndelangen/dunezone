@@ -12,7 +12,7 @@ import type { InheritableField } from '../../src/shared/factions/variantFields';
 import { slugify } from '../../src/shared/slugify';
 import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
-import type { MutationCtx } from '../_generated/server';
+import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { allocateVariantAddress } from './factionAddresses';
 import { passDefaultOn, takeInLiveVariant } from './factionFamilies';
@@ -150,7 +150,7 @@ export async function takeSharedFields(
 }
 
 /** Whether `variantId` is `rootId` or one of its descendants, found by walking up its parents. */
-export async function inBranchOf(ctx: MutationCtx, variantId: Id<'factions'>, rootId: Id<'factions'>) {
+export async function inBranchOf(ctx: Pick<QueryCtx, 'db'>, variantId: Id<'factions'>, rootId: Id<'factions'>) {
   const seen = new Set<Id<'factions'>>();
   let current: Id<'factions'> | undefined = variantId;
   while (current && !seen.has(current)) {
