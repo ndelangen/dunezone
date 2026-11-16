@@ -50,7 +50,7 @@ function canMove(
 
 /**
  * Rewrites each Nexus card's variant link to `{ id, slug }` of that variant's Faction.
- * It recorded the old link in `nexus_link_moves` for an undo, which was dropped once the move held (#2933).
+ * It recorded the old link in `nexus_link_moves` for an undo, which has since been dropped.
  * Only `factionLink` changes: the name, symbol, artwork and edit date stay, and nothing is queued for publication, since the card draws the same.
  * A card whose variant is deleted, whose Faction is gone, or whose stored slug is unreadable stays as it is, logged here and listed by `unmovedNexusLinks`.
  * A moved card names a Faction, so a replay writes nothing.
@@ -76,7 +76,7 @@ export const nexus_link_family_v1 = migrations.define({
 
 /**
  * Carried the import receipts of the moved cards onto their new link, reading the old links from `nexus_link_moves`.
- * Production has run it, and the records it read are gone, so its body is a no-op and its id stays.
+ * Production has run it, and the records it read are being emptied, so its body is a no-op and its id stays.
  */
 export const nexus_link_family_v1_receipts = migrations.define({
   table: 'assets',
@@ -84,7 +84,7 @@ export const nexus_link_family_v1_receipts = migrations.define({
   migrateOne: async () => {},
 });
 
-/** Empties `nexus_link_moves`, the undo records of the move, which Norbert chose to drop (#2933); the table leaves the schema once it is empty. */
+/** Empties `nexus_link_moves`, the undo records of the move, whose undo was dropped; the table leaves the schema once it is empty. */
 export const nexus_link_moves_clear_v1 = migrations.define({
   table: 'nexus_link_moves',
   migrateOne: async (ctx, move) => {
