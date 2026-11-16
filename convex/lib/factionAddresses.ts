@@ -25,15 +25,20 @@ export async function familyAt(ctx: Reader, slug: string) {
 }
 
 /**
- * The variant a faction's own address leads to: its default one, while both are live.
- * A faction merged into another leads to that one's default (#2932).
+ * The Faction that stands for this one now: itself, or the one an admin merged it into (#2932), followed to the end.
+ * Readers that resolve a Faction's address or link take it first, so the Faction and its default variant always agree.
  */
-export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_families'> | null) {
+export async function mergedInto(ctx: Reader, family: Doc<'faction_families'> | null) {
   const seen = new Set<Id<'faction_families'>>();
   while (family?.merged_into && !seen.has(family._id)) {
     seen.add(family._id);
     family = await ctx.db.get('faction_families', family.merged_into);
   }
+  return family;
+}
+
+/** The variant a faction's own address leads to: its default one, while both are live. */
+export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_families'> | null) {
   const variant =
     family && !family.is_deleted && family.default_variant_id
       ? await ctx.db.get('factions', family.default_variant_id)

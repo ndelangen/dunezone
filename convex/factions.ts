@@ -28,7 +28,13 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
+import {
+  allocateFactionAddress,
+  familyAt,
+  liveDefaultVariant,
+  mergedInto,
+  variantAddressAfterSave,
+} from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import { factionDataChange, firstLiveVariant, insertFaction } from './lib/factionFamilies';
@@ -85,7 +91,7 @@ async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
     (await ctx.db
       .query('factions')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
-      .unique()) ?? (await liveDefaultVariant(ctx, await familyAt(ctx, slug)));
+      .unique()) ?? (await liveDefaultVariant(ctx, await mergedInto(ctx, await familyAt(ctx, slug))));
   if (!row || row.is_deleted) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }

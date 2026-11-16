@@ -1,5 +1,5 @@
 import type { QueryCtx } from '../types';
-import { liveDefaultVariant } from './factionAddresses';
+import { liveDefaultVariant, mergedInto } from './factionAddresses';
 import { parseStoredFactionForRead } from './factionInput';
 
 /*
@@ -17,7 +17,7 @@ type Reader = Pick<QueryCtx, 'db'>;
 export async function nexusLinkTarget(ctx: Reader, id: string) {
   const familyId = ctx.db.normalizeId('faction_families', id);
   if (familyId) {
-    const family = await ctx.db.get('faction_families', familyId);
+    const family = await mergedInto(ctx, await ctx.db.get('faction_families', familyId));
     const variant = await liveDefaultVariant(ctx, family);
     return family && variant ? { kind: 'faction' as const, family, variant } : null;
   }

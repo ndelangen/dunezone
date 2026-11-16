@@ -3,7 +3,7 @@ import type { Infer } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { publicQuery } from './functions';
-import { familyAt, liveDefaultVariant } from './lib/factionAddresses';
+import { familyAt, liveDefaultVariant, mergedInto } from './lib/factionAddresses';
 import type { QueryCtx } from './types';
 
 const addressValidator = v.union(
@@ -89,11 +89,15 @@ async function factionAt(ctx: QueryCtx, slug: string) {
   }
   const family = await familyAt(ctx, slug);
   if (family) {
-    return await liveDefaultVariant(ctx, family);
+    return await liveDefaultVariant(ctx, await mergedInto(ctx, family));
   }
   const former = await formerRecord(ctx, 'factions', 'faction', '', slug);
   return (
-    former ?? (await liveDefaultVariant(ctx, await formerRecord(ctx, 'faction_families', 'faction_family', '', slug)))
+    former ??
+    (await liveDefaultVariant(
+      ctx,
+      await mergedInto(ctx, await formerRecord(ctx, 'faction_families', 'faction_family', '', slug))
+    ))
   );
 }
 

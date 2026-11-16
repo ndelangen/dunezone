@@ -63,13 +63,9 @@ export function idPairsByField(parent: Roster, variant: Roster, fields: readonly
   };
 }
 
-/** The pairs a row takes: those of the fields it follows, or every field for the variant that switches itself. */
-export function idMapFor(byField: IdPairsByField, fields?: readonly string[]): ComponentIdMap {
-  const takes = (field: keyof IdPairsByField) => (!fields || fields.includes(field) ? byField[field] : undefined);
-  return {
-    members: { ...takes('factionLeader'), ...takes('leaders') },
-    troops: { ...takes('troops') },
-  };
+/** The pairs as one map per kind of id. */
+export function idMapFor(byField: IdPairsByField): ComponentIdMap {
+  return { members: { ...byField.factionLeader, ...byField.leaders }, troops: { ...byField.troops } };
 }
 
 /** The pairs a child passes on to its own children: those of the fields it follows. */
