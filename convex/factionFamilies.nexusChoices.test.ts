@@ -78,7 +78,7 @@ describe('the Factions a Nexus card may link (#2921)', () => {
 });
 
 describe('the Faction a Nexus card’s link leads to (#2921)', () => {
-  test('a Faction’s id answers with the Faction, and so does a variant’s, on a card the move has not reached yet', async () => {
+  test('a Faction’s id answers with the Faction, and so does a live variant’s, on a card still linking one', async () => {
     const { t, familyId, variant } = await twoFactions();
 
     const linked = expect.objectContaining({ id: familyId, slug: 'atreides', variantCount: 2 });

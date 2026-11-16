@@ -183,7 +183,7 @@ export const nexusChoices = publicQuery({
 
 /**
  * The Faction a Nexus card's link leads to, by the id the link carries, for the editor's Faction field: its id and address, and how many live variants it has.
- * A card that still links one variant, as a card `nexus_link_family_v1` could not move does, gets that variant's Faction back.
+ * A card that still links one live variant, as one saved before the 15 November 2026 move (#2959) can, gets that variant's Faction back.
  * Null for an id that names no live Faction or variant.
  */
 export const nexusLink = publicQuery({

@@ -262,21 +262,6 @@
       "requires": ["publication_job_listings_v1"]
     },
     {
-      "id": "nexus_link_family_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "nexus_link_family_v1_receipts",
-      "phase": "widen",
-      "requires": ["nexus_link_family_v1"]
-    },
-    {
-      "id": "nexus_link_family_verify_v1",
-      "phase": "widen",
-      "requires": ["nexus_link_family_v1"]
-    },
-    {
       "id": "board_readiness_listing_narrow",
       "phase": "narrow",
       "requires": ["board_readiness_v1", "board_readiness_listing_v1"]

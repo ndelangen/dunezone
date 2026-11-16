@@ -97,7 +97,7 @@ describe('a snapshot load', () => {
         data: { ...assetPublishingFaction, decals: [retunedDecal] },
       });
       const { family_id } = (await ctx.db.get(faction))!;
-      /* A Nexus card as production stores it once `nexus_link_family_v1` has run: linked to the Faction. */
+      /* A Nexus card as production stores it since the 15 November 2026 move (#2959): linked to the Faction. */
       const nexus = await asset('card-nexus', 'linked-nexus', {
         ...GF9_NEXUS_CARDS[0],
         factionLink: { id: family_id, slug: 'retuned' },
