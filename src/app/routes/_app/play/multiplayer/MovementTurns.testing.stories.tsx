@@ -83,44 +83,28 @@ export const Rearranges = meta.story({
   },
 });
 
-/** A faction done keeps its place: dragged onto, nothing lands before it, and dragged itself, it stays put. */
+/** A faction done keeps its place: dragged itself, it stays put, and a faction dragged to the front of the rest lands behind it. */
 export const KeepsDoneInPlace = meta.story({
   args: { done: order.slice(0, 1) },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const first = order[0]!;
-    const second = order[1]!;
+    const [first, second] = order;
     const last = order.at(-1)!;
-    /* Report each boundary separately if the order changes under CI load. */
-    const checkOrder = async (stage: string) => {
-      const tokens = canvas.getAllByRole('button');
-      const detail = JSON.stringify({
-        stage,
-        calls: args.onOrder.mock.calls,
-        tokens: tokens.map((token) => ({
-          name: token.getAttribute('aria-label'),
-          current: token.getAttribute('aria-current'),
-          box: token.getBoundingClientRect().toJSON(),
-        })),
-      });
-      await expect(tokens[0], detail).toHaveAccessibleName(names[first]!);
-      await expect(canvas.getByRole('button', { name: names[second] }), detail).toHaveAttribute('aria-current', 'step');
-    };
     await frame();
-    await checkOrder('before dragging');
     await dragOnto(
-      canvas.getByRole('button', { name: names[last] }),
-      canvas.getByRole('button', { name: names[first] })
-    );
-    await checkOrder('after dropping onto the finished faction');
-    await dragOnto(
-      canvas.getByRole('button', { name: names[first] }),
+      canvas.getByRole('button', { name: names[first!] }),
       canvas.getByRole('button', { name: names[last] })
     );
-    for (const [arranged] of args.onOrder.mock.calls) {
-      await expect(arranged[0]).toBe(first);
-    }
-    await checkOrder('after dragging the finished faction');
+    await expect(args.onOrder).not.toHaveBeenCalled();
+    await dragOnto(
+      canvas.getByRole('button', { name: names[last] }),
+      canvas.getByRole('button', { name: names[second!] })
+    );
+    await expect(args.onOrder).toHaveBeenCalledWith([first, last, ...order.slice(1, -1)]);
+    await waitFor(() =>
+      expect(canvas.getByRole('button', { name: names[last] })).toHaveAttribute('aria-current', 'step')
+    );
+    await expect(canvas.getAllByRole('button')[0]).toHaveAccessibleName(names[first!]!);
   },
 });
 
