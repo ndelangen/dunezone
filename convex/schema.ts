@@ -243,8 +243,7 @@ export default defineSchema({
   former_slugs: defineTable(formerSlugValidator).index('by_kind_and_scope_and_slug', ['kind', 'scope', 'slug']),
   /**
    * The variant link each Nexus card held before `nexus_link_family_v1` moved it to the variant's Faction (#2921), one row per card moved.
-   * Only `undoNexusLinkMoves` reads it.
-   * It goes with that migration's module once production no longer needs the undo.
+   * Retired with its undo (#2933): nothing reads or writes it but `nexus_link_moves_clear_v1`, and it stays declared until that empties it and it is dropped.
    */
   nexus_link_moves: defineTable({
     asset_id: v.id('assets'),
