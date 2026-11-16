@@ -19,6 +19,7 @@ import { mutation } from './functions';
 import { canonicalJson } from './lib/canonicalJson';
 import {
   requireAssetUpdate,
+  factionSaveCheck,
   requireAssignableGroup,
   requireFactionSave,
   requireGroupReassignment,
@@ -32,10 +33,10 @@ const targetValidator = v.object({ rulesetSlug: v.string(), groupSlug: v.string(
 const resultValidator = v.object({
   id: v.string(),
   slug: v.string(),
-  status: v.union(v.literal('created'), v.literal('updated'), v.literal('unchanged')),
+  status: v.union(v.literal('created'), v.literal('updated'), v.literal('linked'), v.literal('unchanged')),
   hash: v.string(),
 });
-type ImportResult = { id: string; slug: string; status: 'created' | 'updated' | 'unchanged'; hash: string };
+type ImportResult = { id: string; slug: string; status: 'created' | 'updated' | 'linked' | 'unchanged'; hash: string };
 type Target = Awaited<ReturnType<typeof targetFor>>;
 type Receipt = Doc<'content_import_receipts'>;
 type Subject = {
@@ -164,28 +165,27 @@ async function findSubject(
     }
     return await subjectById(ctx, item, receipt.subject_id, target);
   }
-  if (!item.existing) {
+  const address = item.existing?.slug ?? (item.kind === 'faction' ? item.variant : undefined);
+  if (!address) {
     return null;
   }
   const row =
     item.kind === 'rulebook'
       ? await ctx.db
           .query('rulebooks')
-          .withIndex('by_ruleset_and_slug', (q) =>
-            q.eq('ruleset_id', target.ruleset._id).eq('slug', item.existing!.slug)
-          )
+          .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', target.ruleset._id).eq('slug', address))
           .unique()
       : item.kind === 'faction'
         ? await ctx.db
             .query('factions')
-            .withIndex('by_slug', (q) => q.eq('slug', item.existing!.slug))
+            .withIndex('by_slug', (q) => q.eq('slug', address))
             .unique()
         : await ctx.db
             .query('assets')
-            .withIndex('by_type_and_slug', (q) => q.eq('type', item.type).eq('slug', item.existing!.slug))
+            .withIndex('by_type_and_slug', (q) => q.eq('type', item.type).eq('slug', address))
             .unique();
   if (!row) {
-    throw new ConvexError(`Existing ${item.kind} ${item.existing.slug} was not found.`);
+    throw new ConvexError(`Existing ${item.kind} ${address} was not found.`);
   }
   return await subjectById(ctx, item, row._id, target);
 }
@@ -300,6 +300,20 @@ function itemName(data: unknown): string {
     : 'Unnamed';
 }
 
+/** A faction item naming an existing `variant` links it, and writes to it only where the content differs and the importer may edit it (#2916). */
+function linksVariant(item: ContentImportItem) {
+  return item.kind === 'faction' && !!item.variant;
+}
+
+/** Whether linking `subject` also writes `data` to it, and whether the package's copy differs from it. */
+async function variantLinkPlan(ctx: MutationCtx, subject: Subject, data: unknown) {
+  const check = await factionSaveCheck(ctx, subject.id as Id<'factions'>, data);
+  return { writes: !check.unchanged && check.allowed, differs: !check.unchanged };
+}
+
+const LINK_ONLY_MESSAGE =
+  'This copy differs from the variant, which you cannot edit, so the variant is linked as it is.';
+
 async function authorizeSubject(
   ctx: MutationCtx,
   target: Target,
@@ -315,6 +329,9 @@ async function authorizeSubject(
     if (itemName(data) !== itemName(subject.data)) {
       throw new ConvexError('Rename an existing Rulebook in its editor before importing it.');
     }
+    return;
+  }
+  if (linksVariant(item)) {
     return;
   }
   if (item.kind === 'faction') {
@@ -348,6 +365,10 @@ export const preview = mutation({
         name: v.string(),
         status: v.union(v.literal('create'), v.literal('update'), v.literal('unchanged'), v.literal('conflict')),
         expectedHash: v.union(v.string(), v.null()),
+        /** What a faction item does: make a new faction, update a variant, or only link an existing one. */
+        action: v.optional(
+          v.union(v.literal('create-faction'), v.literal('update-variant'), v.literal('link-variant'))
+        ),
         message: v.optional(v.string()),
       })
     ),
@@ -373,7 +394,12 @@ export const preview = mutation({
         }
         const hash = subject ? subjectHash(subject) : null;
         const destination = await destinationFor(ctx, target, item, subject);
-        const conflict = !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
+        const link = subject && linksVariant(item) ? await variantLinkPlan(ctx, subject, data) : null;
+        const linkOnly = link !== null && !link.writes;
+        const conflict = !linkOnly && !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
+        const unchanged = linkOnly
+          ? !!subject?.linked
+          : !item.bindings?.length && receipt?.item_hash === rulebookContentsHash(item) && receipt.state_hash === hash;
         entries.push({
           key: item.key,
           kind: item.kind,
@@ -383,16 +409,25 @@ export const preview = mutation({
             ? ('conflict' as const)
             : !subject
               ? ('create' as const)
-              : !item.bindings?.length &&
-                  receipt?.item_hash === rulebookContentsHash(item) &&
-                  receipt.state_hash === hash
+              : unchanged
                 ? ('unchanged' as const)
                 : ('update' as const),
+          ...(item.kind === 'faction'
+            ? {
+                action: !subject
+                  ? ('create-faction' as const)
+                  : linkOnly
+                    ? ('link-variant' as const)
+                    : ('update-variant' as const),
+              }
+            : {}),
           ...(conflict
             ? { message: 'This record changed since its last import. Export and review it before continuing.' }
             : destination.message
               ? { message: destination.message }
-              : {}),
+              : linkOnly && link.differs
+                ? { message: LINK_ONLY_MESSAGE }
+                : {}),
         });
       } catch (error) {
         entries.push({
@@ -444,9 +479,6 @@ export const applyItem = mutation({
     const inputHash = rulebookContentsHash(item);
     const destination = await destinationFor(ctx, target, item, previous);
     const reviewedReconciliation = item.expectedStateHash === hash && args.expectedHash === destination.expectedHash;
-    if (receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
-      throw new ConvexError('This record changed since its last import. Export and review it before continuing.');
-    }
     const bindings = new Map<string, { id: string; slug: string; dataHash?: string }>();
     const contentDependencies = new Set((item.bindings ?? []).map((binding) => binding.key));
     for (const key of new Set([
@@ -482,6 +514,10 @@ export const applyItem = mutation({
     if (previous) {
       await authorizeSubject(ctx, target, item, previous, data);
     }
+    const linkOnly = !!previous && linksVariant(item) && !(await variantLinkPlan(ctx, previous, data)).writes;
+    if (!linkOnly && receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
+      throw new ConvexError('This record changed since its last import. Export and review it before continuing.');
+    }
     const resolvedHash = rulebookContentsHash([...bindings.entries()]);
     if (
       receipt?.item_hash === inputHash &&
@@ -498,15 +534,17 @@ export const applyItem = mutation({
     if (item.kind === 'faction') {
       if (previous) {
         id = previous.id;
-        await ctx.runMutation(api.factions.update, { id: id as Id<'factions'>, data });
-        if (previous.groupId !== target.group._id) {
+        if (!linkOnly) {
+          await ctx.runMutation(api.factions.update, { id: id as Id<'factions'>, data });
+        }
+        if (!linksVariant(item) && previous.groupId !== target.group._id) {
           await ctx.runMutation(api.factions.setGroup, { id: id as Id<'factions'>, group_id: target.group._id });
         }
       } else {
         const created = await ctx.runMutation(api.factions.create, { data, group_id: target.group._id });
         id = created._id;
       }
-      if (item.link) {
+      if (item.link || linksVariant(item)) {
         await ctx.runMutation(api.rulesets.addFaction, {
           ruleset_id: target.ruleset._id,
           faction_id: id as Id<'factions'>,
@@ -585,7 +623,12 @@ export const applyItem = mutation({
     } else {
       await ctx.db.insert('content_import_receipts', value);
     }
-    return { id, slug: current.slug, status: previous ? 'updated' : 'created', hash: savedHash };
+    return {
+      id,
+      slug: current.slug,
+      status: !previous ? 'created' : !linkOnly ? 'updated' : previous.linked ? 'unchanged' : 'linked',
+      hash: savedHash,
+    };
   },
 });
 

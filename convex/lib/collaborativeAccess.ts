@@ -432,12 +432,11 @@ async function loadFactionForSave(ctx: MutationCtx, factionId: Id<'factions'>) {
 }
 
 /**
- * Authorizes a save of a variant's data, each side by who maintains it: the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
- * A save that changes nothing needs either right, so a Faction's maintainer can press Save on an unchanged draft.
- * Returns the access with the data as it will be stored.
- * An import's preview runs it too, so a preview never offers an update its apply step would refuse.
+ * Whether the viewer may save `proposedData` to the faction, and whether it changes anything, without refusing.
+ * `requireFactionSave` refuses where `allowed` is false.
+ * An import that only links a variant reads it to decide whether to write (#2916).
  */
-export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
+export async function factionSaveCheck(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
   const access = await loadFactionForSave(ctx, factionId);
   const data = factionInputForWrite(proposedData, access.subject.data);
   const change = factionDataChange(parseStoredFactionForRead(access.subject.data), data);
@@ -445,13 +444,23 @@ export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factio
   const unchanged = !change.shared && !change.variant;
   const unchangedWithoutVariantRight = unchanged && !canEditVariant;
   const needsSharedRight = change.shared || unchangedWithoutVariantRight;
-  if (needsSharedRight && !(await canEditSharedFields(ctx, access))) {
+  const allowed =
+    (!needsSharedRight || (await canEditSharedFields(ctx, access))) && (!change.variant || canEditVariant);
+  return { ...access, data, unchanged, allowed };
+}
+
+/**
+ * Authorizes a save of a variant's data, each side by who maintains it: the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
+ * A save that changes nothing needs either right, so a Faction's maintainer can press Save on an unchanged draft.
+ * Returns the access with the data as it will be stored.
+ * An import's preview runs it too, so a preview never offers an update its apply step would refuse.
+ */
+export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
+  const { unchanged: _unchanged, allowed, ...access } = await factionSaveCheck(ctx, factionId, proposedData);
+  if (!allowed) {
     throw new Error('Not authorized');
   }
-  if (change.variant && !canEditVariant) {
-    throw new Error('Not authorized');
-  }
-  return { ...access, data };
+  return access;
 }
 
 /**

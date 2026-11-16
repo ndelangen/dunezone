@@ -20,6 +20,19 @@ import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 
+const FACTION_ACTIONS = {
+  'create-faction': 'create faction',
+  'update-variant': 'update variant',
+  'link-variant': 'link existing variant',
+} as const;
+
+/** A faction item says what it does to factions and variants; a conflict or an unchanged item, and every other kind, say their status (#2916). */
+function actionLabel(entry: { status: string; action?: keyof typeof FACTION_ACTIONS }) {
+  return entry.action && (entry.status === 'create' || entry.status === 'update')
+    ? FACTION_ACTIONS[entry.action]
+    : entry.status;
+}
+
 export const Route = createFileRoute('/_app/imports')({
   validateSearch: (search: Record<string, unknown>) => ({
     ruleset: typeof search.ruleset === 'string' ? search.ruleset : '',
@@ -296,7 +309,7 @@ function ImportExportPage() {
                               <Text size="sm">{entry.message}</Text>
                             </Table.Td>
                             <Table.Td>{entry.kind}</Table.Td>
-                            <Table.Td>{entry.status}</Table.Td>
+                            <Table.Td>{actionLabel(entry)}</Table.Td>
                           </Table.Tr>
                         ))}
                       </Table.Tbody>

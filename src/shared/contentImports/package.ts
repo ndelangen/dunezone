@@ -41,7 +41,14 @@ export const importRulebookDataSchema = z.strictObject({
   ),
 });
 export const contentImportItemSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ ...common, kind: z.literal('faction'), data: z.unknown(), link: z.boolean().optional() }),
+  z.strictObject({
+    ...common,
+    kind: z.literal('faction'),
+    data: z.unknown(),
+    link: z.boolean().optional(),
+    /** An existing variant's address: the import links it to the Ruleset, and updates it only where the content differs and the importer may edit it (#2916). */
+    variant: keySchema.optional(),
+  }),
   z.strictObject({
     ...common,
     kind: z.literal('asset'),
@@ -84,6 +91,13 @@ export const contentImportPackageSchema = z
             message: `Put dependency ${key} before ${item.key}.`,
           });
         }
+      }
+      if (item.kind === 'faction' && item.variant && item.existing) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['items', index, 'variant'],
+          message: 'Name the variant once, with variant or existing.',
+        });
       }
       if (item.kind === 'asset' && item.members) {
         if (!['deck', 'bundle'].includes(item.type)) {
