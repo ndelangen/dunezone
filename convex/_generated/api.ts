@@ -164,7 +164,6 @@ import type * as lib_variantMerge from "../lib/variantMerge.js";
 import type * as members from "../members.js";
 import type * as migrations from "../migrations.js";
 import type * as migrationsTemplate from "../migrationsTemplate.js";
-import type * as nexusLinkMigrations from "../nexusLinkMigrations.js";
 import type * as playAdmission from "../playAdmission.js";
 import type * as playBugReports from "../playBugReports.js";
 import type * as playCatalogue from "../playCatalogue.js";
@@ -375,7 +374,6 @@ const fullApi: ApiFromModules<{
   members: typeof members;
   migrations: typeof migrations;
   migrationsTemplate: typeof migrationsTemplate;
-  nexusLinkMigrations: typeof nexusLinkMigrations;
   playAdmission: typeof playAdmission;
   playBugReports: typeof playBugReports;
   playCatalogue: typeof playCatalogue;

@@ -120,7 +120,7 @@ module would never run in production, and one in another module would share its 
 The migrations that rebuild derived tables (statistics, catalogue entries, profile discovery and
 activity, faction cards, board readiness, the publication queue) stay, because every load needs
 them: the snapshot leaves most of those tables out, and the faction cards and board readiness rows
-it keeps may predate the current projection. The 4 November 2026 cleanup removed 38 such one-offs and the 5 November one 12 more. The 10 November one removed the emblem, Arrakis and queue-order families (29 ids and 3 narrow entries). `convex/migrations.snapshotReplay.test.ts` replays the manifest
+it keeps may predate the current projection. The 4 November 2026 cleanup removed 38 such one-offs and the 5 November one 12 more. The 10 November one removed the emblem, Arrakis and queue-order families (29 ids and 3 narrow entries), and the 16 November one the Nexus link move family (3 ids). `convex/migrations.snapshotReplay.test.ts` replays the manifest
 over rows in their migrated shape, with a row for every deck cardback mode and every token back
 mode. Those rows are keyed by mode, so a mode added to either union fails
 typecheck until the test has a row that wears it.
@@ -185,8 +185,8 @@ bun run migrations:static-check
   [`convex/publicationMigrations.ts`](../convex/publicationMigrations.ts) for the publication queue listings.
   A migration's module path is part of its identity in the component, so moving one runs it again
   in production; each stays in the module it was born in.
-  A new module for a one-off family (the November 2026 emblem rename and Arrakis move each had one, and
-  `nexusLinkMigrations.ts` does) is deleted once all its ids are pruned.
+  A new module for a one-off family (the November 2026 emblem rename, Arrakis move and Nexus link move each
+  had one) is deleted once all its ids are pruned.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.

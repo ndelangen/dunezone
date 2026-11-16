@@ -4,8 +4,8 @@ import { parseStoredFactionForRead } from './factionInput';
 
 /*
  * A Nexus card links a whole Faction (#2921).
- * A card saved before that links one variant until `nexus_link_family_v1` moves its link to the variant's Faction.
- * The reads here still take a variant, for Play's seats, which carry variant ids, and for a card the move has not reached yet.
+ * A card saved before that linked one variant; the 15 November 2026 move (#2959) took production's links to the variant's Faction.
+ * The reads here still take a variant, for Play's seats, which carry variant ids, and for a card that move left on a deleted variant.
  */
 
 type Reader = Pick<QueryCtx, 'db'>;
