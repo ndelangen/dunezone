@@ -199,6 +199,53 @@ export const preview = adminQuery({
   },
 });
 
+/**
+ * A Faction's variants, the deleted ones too, each with its parent: what the merge page offers to move and to move under.
+ * The switcher lists only live variants, and a merge has to say which deleted ones stay behind.
+ * Null for an unknown variant or one whose Faction is deleted.
+ */
+export const variants = adminQuery({
+  args: { faction_id: v.id('factions') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      familyId: v.id('faction_families'),
+      name: v.string(),
+      defaultVariantId: v.union(v.id('factions'), v.null()),
+      variants: v.array(
+        v.object({
+          _id: v.id('factions'),
+          name: v.string(),
+          parentId: v.union(v.id('factions'), v.null()),
+          isDeleted: v.boolean(),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const variant = await ctx.db.get('factions', args.faction_id);
+    const family = variant && (await ctx.db.get('faction_families', variant.family_id));
+    if (!family || family.is_deleted) {
+      return null;
+    }
+    const rows = [];
+    for await (const row of variantsOf(ctx, family._id)) {
+      rows.push({
+        _id: row._id,
+        name: row.variant_name,
+        parentId: row.parent_id ?? null,
+        isDeleted: row.is_deleted,
+      });
+    }
+    return {
+      familyId: family._id,
+      name: family.data?.name ?? family.slug,
+      defaultVariantId: family.default_variant_id ?? null,
+      variants: rows,
+    };
+  },
+});
+
 /** The serialisable form of the maps, which the rewrite carries from transaction to transaction. */
 const mapsValidator = v.array(
   v.object({

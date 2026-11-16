@@ -228,6 +228,23 @@ describe('the admin merge tool (#2932)', () => {
     expect((moved.data as FactionData).leaders).toEqual(f.original.leaders);
   });
 
+  test('lists a Faction’s variants with their parents, the deleted ones too, to admins only', async () => {
+    const f = await mergeFixture();
+    const child = await f.addVariant('Dreamrules', f.root._id);
+    const dropped = await f.addVariant('First draft', child.id);
+    await f.t.run(async (ctx) => await ctx.db.patch(dropped.id, { is_deleted: true }));
+
+    const listed = await f.admin.query(api.factionMerge.variants, { faction_id: child.id });
+    expect(listed).toMatchObject({ familyId: f.familyId, defaultVariantId: f.root._id });
+    expect(listed?.name).toBe((await f.data(f.root._id)).name);
+    expect(listed?.variants.map(({ _id, parentId, isDeleted }) => [_id, parentId, isDeleted])).toEqual([
+      [f.root._id, null, false],
+      [child.id, f.root._id, false],
+      [dropped.id, child.id, true],
+    ]);
+    await expect(f.stranger.query(api.factionMerge.variants, { faction_id: child.id })).rejects.toThrow();
+  });
+
   test('only admins may merge', async () => {
     const f = await mergeFixture();
     await expect(f.owner.query(api.factionMerge.preview, f.args)).rejects.toThrow();

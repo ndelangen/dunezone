@@ -53,6 +53,20 @@ function AdminIndex() {
             </Section>
             <Divider />
             <Section
+              title="Faction merge"
+              action={
+                <Anchor renderRoot={(props) => <Link {...props} to="/admin/faction-merge" />}>
+                  Open faction merge
+                </Anchor>
+              }
+            >
+              <Text>
+                Merge a duplicate faction into the one you keep as variants, or move a variant under another parent. A
+                merge rewrites references in rulebooks and leads the duplicate's address to the kept faction.
+              </Text>
+            </Section>
+            <Divider />
+            <Section
               title="Game debugger"
               action={
                 <Anchor renderRoot={(props) => <Link {...props} to="/admin/game-debugger" />}>
