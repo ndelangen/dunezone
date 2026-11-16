@@ -64,7 +64,7 @@ describe('public Storybook deployment', () => {
       expect(isMediaPath('/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg')).toBe(true);
       expect(isMediaPath('/published/pointer-tokens/00000000000000000000010063assets/token.jpg')).toBe(false);
       expect(isMediaPath('/published/pointer-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg')).toBe(true);
-      expect(isMediaPath('/published/faction-tokens/000000000000000000010006factions/token.jpg')).toBe(false);
+      expect(isMediaPath('/published/faction-tokens/000000000000000000010007factions/token.jpg')).toBe(false);
       expect(isMediaPath('/published/faction-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg')).toBe(true);
       expect(isMediaPath('/iframe.html')).toBe(false);
       expect(isMediaPath('/media/x')).toBe(false);

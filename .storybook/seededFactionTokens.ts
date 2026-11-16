@@ -6,12 +6,12 @@
  * and a battle wheel story checks the search still shows these ids for these factions.
  */
 export const SEEDED_FACTION_TOKENS = {
-  '000000000000000000010006factions': 'house-atreides',
-  '000000000000000000010014factions': 'house-harkonnen',
-  '000000000000000000010021factions': 'emperor',
-  '000000000000000000010028factions': 'spacing-guild',
-  '000000000000000000010035factions': 'fremen',
-  '000000000000000000010042factions': 'bene-gesserit',
+  '000000000000000000010007factions': 'house-atreides',
+  '000000000000000000010015factions': 'house-harkonnen',
+  '000000000000000000010022factions': 'emperor',
+  '000000000000000000010029factions': 'spacing-guild',
+  '000000000000000000010036factions': 'fremen',
+  '000000000000000000010043factions': 'bene-gesserit',
 } as const;
 
 /** Where the static build keeps a seeded faction's token. */
