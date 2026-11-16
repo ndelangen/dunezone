@@ -14,7 +14,7 @@ import { splitSharedFields } from '../src/shared/factions/sharedFields';
 import {
   normalizeInheritedFields,
   omittedFields,
-  withoutFields,
+  ownVariantData,
   withParentFields,
 } from '../src/shared/factions/variantFields';
 import type { InheritableField } from '../src/shared/factions/variantFields';
@@ -212,10 +212,10 @@ async function findSubject(
   return await subjectById(ctx, item, row._id, target);
 }
 
-/** A variant's own state: a change its parent pushes down to the fields it follows is not a change to the variant (#2916). */
+/** A variant's own state: what a parent's push-down rewrites is not a change to the variant (#2916). */
 function subjectHash(subject: Subject) {
   return rulebookContentsHash(
-    subject.inherited ? { ...subject, data: withoutFields(subject.data as object, subject.inherited) } : subject
+    subject.inherited ? { ...subject, data: ownVariantData(subject.data as object, subject.inherited) } : subject
   );
 }
 
@@ -386,15 +386,17 @@ function claimVariant(claims: Set<string>, target: Target, item: ContentImportIt
 }
 
 /** The variant a `parent` names: the one an earlier item of the package imported, else an existing variant at that address. */
-async function variantNamed(ctx: MutationCtx, target: Target, packageKey: string, key: string) {
+async function variantNamed(ctx: MutationCtx, target: Target, packageKey: string, key: string, byAddress = true) {
   const receipt = await receiptFor(ctx, target, packageKey, key);
   const id = receipt?.kind === 'faction' ? ctx.db.normalizeId('factions', receipt.subject_id) : null;
   const row = id
     ? await ctx.db.get(id)
-    : await ctx.db
-        .query('factions')
-        .withIndex('by_slug', (q) => q.eq('slug', key))
-        .unique();
+    : byAddress
+      ? await ctx.db
+          .query('factions')
+          .withIndex('by_slug', (q) => q.eq('slug', key))
+          .unique()
+      : null;
   return row && !row.is_deleted ? row : null;
 }
 
@@ -550,12 +552,14 @@ export const preview = mutation({
     let end = cursor;
     const entries = [];
     const adding = await variantClaims(ctx, target, bundle.packageKey, bundle.items.slice(0, cursor));
-    /* The copy an earlier item of the package will import, for a later item that names it as its parent before it exists. */
-    const named = (key: string) => variantNamed(ctx, target, bundle.packageKey, key);
+    /* A key an item of the package owns names that item, never a variant that happens to answer at the same address. */
+    const named = (key: string) =>
+      variantNamed(ctx, target, bundle.packageKey, key, !bundle.items.some((candidate) => candidate.key === key));
     const lookup = (previous: Subject | null, familyId: Id<'faction_families'> | undefined): ParentLookup => ({
       previous,
       familyId,
       named,
+      /* The copy an earlier item of the package will import, for a later item that names it as its parent before it exists. */
       pending: async (key) => {
         const source = bundle.items.find((candidate) => candidate.key === key);
         if (source?.kind !== 'faction' || !source.faction) {
