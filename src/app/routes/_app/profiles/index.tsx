@@ -290,7 +290,7 @@ function ProfileRow({ entry }: { entry: ProfileDirectoryEntry }) {
       key: 'factions',
       icon: <Shield size={16} aria-hidden />,
       value: activity.factionCount,
-      label: `Factions owned: ${activity.factionCount}`,
+      label: `Variants owned: ${activity.factionCount}`,
     },
     {
       key: 'questions',
@@ -371,7 +371,7 @@ function DirectoryHighlights({
               key: 'factions',
               icon: <Shield size={16} aria-hidden />,
               value: count,
-              label: `Factions owned: ${count}`,
+              label: `Variants owned: ${count}`,
             }))}
           />
         </Section>
