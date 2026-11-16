@@ -335,6 +335,37 @@ async function newVariantTarget(ctx: MutationCtx, target: Target, item: ContentI
   return { family, base, name, variantSlug: await requireNewVariant(ctx, family, name) };
 }
 
+/** The variant a `faction` item adds, by Faction and variant slug, as the variant editor tells variants apart. */
+function variantClaim(target: Target, item: ContentImportItem) {
+  return item.kind === 'faction' && item.faction
+    ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
+    : null;
+}
+
+/**
+ * The variants earlier items of a package add, so preview refuses a duplicate on a later page as apply would.
+ * An item its receipt already ties to a variant adds none, whatever name it gives now.
+ */
+async function variantClaims(ctx: MutationCtx, target: Target, packageKey: string, items: ContentImportItem[]) {
+  const claims = new Set<string>();
+  for (const item of items) {
+    const claim = variantClaim(target, item);
+    if (claim && !(await receiptFor(ctx, target, packageKey, item.key))) {
+      claims.add(claim);
+    }
+  }
+  return claims;
+}
+
+/** Records the variant an item adds, refusing one an earlier item of the package already adds. */
+function claimVariant(claims: Set<string>, target: Target, item: ContentImportItem, name: string) {
+  const claim = variantClaim(target, item)!;
+  if (claims.has(claim)) {
+    throw new ConvexError(`Another item of this package already adds the variant “${name}”.`);
+  }
+  claims.add(claim);
+}
+
 function sharedFieldsOf(data: unknown) {
   return splitSharedFields(data as Parameters<typeof splitSharedFields>[0]).shared;
 }
@@ -435,18 +466,7 @@ export const preview = mutation({
     const maximumEnd = Math.min(cursor + 50, bundle.items.length);
     let end = cursor;
     const entries = [];
-    /* Two items of one package may not add the same variant, which the second apply would refuse; earlier pages count too. */
-    const claimOf = (item: ContentImportItem) =>
-      item.kind === 'faction' && item.faction
-        ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
-        : null;
-    const adding = new Set<string | null>();
-    for (const earlier of bundle.items.slice(0, cursor)) {
-      /* An item its receipt already ties to a variant adds none, whatever name it gives now. */
-      if (claimOf(earlier) && !(await receiptFor(ctx, target, bundle.packageKey, earlier.key))) {
-        adding.add(claimOf(earlier));
-      }
-    }
+    const adding = await variantClaims(ctx, target, bundle.packageKey, bundle.items.slice(0, cursor));
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
         const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
@@ -455,11 +475,7 @@ export const preview = mutation({
         const subject = await findSubject(ctx, target, item, receipt);
         const added = subject ? null : await newVariantTarget(ctx, target, item);
         if (added) {
-          const claim = claimOf(item);
-          if (adding.has(claim)) {
-            throw new ConvexError(`Another item of this package already adds the variant “${added.name}”.`);
-          }
-          adding.add(claim);
+          claimVariant(adding, target, item, added.name);
         }
         const data = withIdentitiesOf(
           item,
