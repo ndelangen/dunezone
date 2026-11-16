@@ -165,8 +165,13 @@ export function SortableRow<T extends { id: string }>({
       return;
     }
     const point = pointer.current;
-    if (!event.over) {
-      if (point && !within(row.current, point)) {
+    /*
+     * dnd-kit judges the piece under the pointer on its last render, which can still hold the move before the let-go,
+     * so a quick flick off the row would land on the slot it just crossed. Where the pointer was let go decides instead.
+     */
+    const away = point !== undefined && !within(row.current, point);
+    if (!event.over || away) {
+      if (away) {
         onDropOutside?.(item, point);
       }
       return;

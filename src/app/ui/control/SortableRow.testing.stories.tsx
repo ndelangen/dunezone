@@ -10,8 +10,16 @@ const meta = testingPreview.meta({
 
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-/* A mouse drag as the browser sends it: pressed on one element, moved in small steps to a point, and let go there. */
-async function drag(source: HTMLElement, to: { x: number; y: number }, held: () => void = () => {}) {
+/*
+ * A mouse drag as the browser sends it: pressed on one element, moved in small steps to a point, and let go there.
+ * A quick hand lets go in the same task as its last move, before the row has drawn that move.
+ */
+async function drag(
+  source: HTMLElement,
+  to: { x: number; y: number },
+  held: () => void = () => {},
+  { quick = false } = {}
+) {
   const from = source.getBoundingClientRect();
   const start = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
   const pointer = (type: string, x: number, y: number, on: EventTarget) =>
@@ -35,7 +43,9 @@ async function drag(source: HTMLElement, to: { x: number; y: number }, held: () 
       start.y + ((to.y - start.y) * step) / 12,
       source.ownerDocument
     );
-    await frame();
+    if (step < 12 || !quick) {
+      await frame();
+    }
   }
   held();
   pointer('pointerup', to.x, to.y, source.ownerDocument);
@@ -105,5 +115,22 @@ export const DisabledRow = meta.story({
     await drag(canvas.getByRole('img', { name: 'Shield' }), { x: below.left + 4, y: below.bottom + 80 });
     await expect(order(canvas)).toEqual(['Crysknife', 'Shield', 'Snooper', 'Chaumas', 'Cheap Hero']);
     await expect(output).toHaveTextContent('Nothing let go outside yet');
+  },
+});
+
+/** A quick flick just off the row lets the tile go outside, though the row had not yet drawn its last move, off the tile it crossed. */
+export const QuickFlickOffTheRow = meta.story({
+  render: () => <SortableRowDemo />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await frame();
+    const row = canvas.getByLabelText('Tiles').getBoundingClientRect();
+    const crysknife = canvas.getByRole('img', { name: 'Crysknife' }).getBoundingClientRect();
+    /* Let go 18 px below the row, past its 16 px of slack: every move before the last is still within it, nearest Crysknife. */
+    await drag(canvas.getByRole('img', { name: 'Snooper' }), { x: crysknife.left + 8, y: row.bottom + 18 }, undefined, {
+      quick: true,
+    });
+    await expect(canvas.getByLabelText('Let go outside')).toHaveTextContent('Snooper');
+    await expect(order(canvas)).toEqual(['Crysknife', 'Shield', 'Snooper', 'Chaumas', 'Cheap Hero']);
   },
 });
