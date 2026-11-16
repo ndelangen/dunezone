@@ -108,11 +108,10 @@ async function attachParent(ctx: Reader, args: AttachArgs, variantId: Id<'factio
   }
   const parent = await ctx.db.get('factions', args.parent_id);
   refuseUnless(isLiveVariantOf(parent, args.family_id), 'The parent must be a live variant of the faction it joins.');
-  refuseUnless(!(await inBranchOf(
-    ctx,
-    args.parent_id,
-    variantId
-  )), 'A variant cannot sit under itself or one of its own variants.');
+  refuseUnless(
+    !(await inBranchOf(ctx, args.parent_id, variantId)),
+    'A variant cannot sit under itself or one of its own variants.'
+  );
   return parent;
 }
 
@@ -378,26 +377,7 @@ export const attach = mutation({
       throw new ConvexError(`The faction already has a variant called “${clash.name}”.`);
     }
     const before = parseStoredFactionForRead(plan.variant.data);
-    const link = { parent_id: plan.parent?._id, inherited: plan.parent ? plan.fields : undefined };
-    if (plan.moves) {
-      await ctx.db.patch('factions', plan.variant._id, { variant_name: plan.name, variant_slug: slugify(plan.name) });
-      await moveToFamily(ctx, (await ctx.db.get('factions', plan.variant._id))!, plan.target, link);
-    } else {
-      await ctx.db.patch('factions', plan.variant._id, link);
-      if (plan.name !== plan.variant.variant_name) {
-        await renameVariant(ctx, plan.variant, plan.target, plan.name);
-      }
-    }
-    const placed = (await ctx.db.get('factions', plan.variant._id))!;
-    const data = parseStoredFactionForRead(placed.data);
-    const stored = await storeVariantData(
-      ctx,
-      placed,
-      plan.parent ? resolveVariantData(parseStoredFactionForRead(plan.parent.data), data, plan.fields) : data
-    );
-    if (plan.moves) {
-      await moveChildrenLater(ctx, placed._id);
-    }
+    const stored = await placeVariant(ctx, plan);
     if (plan.retiresSource && plan.source) {
       await ctx.db.patch('faction_families', plan.source._id, { is_deleted: true, merged_into: plan.target._id });
     }
@@ -406,18 +386,54 @@ export const attach = mutation({
       plan.branch.map(({ row }) => row),
       idPairsByField(parseStoredFactionForRead(stored.data), before, ID_FIELDS)
     );
-    const retiredFamilyId = plan.retiresSource ? plan.source?._id : undefined;
-    if (maps.size || retiredFamilyId) {
-      await ctx.scheduler.runAfter(0, internal.factionMerge.rewriteReferences, {
-        maps: [...maps].map(([factionId, map]) => ({ factionId, ...map })),
-        retiredFamilyId,
-        phase: maps.size ? 'drafts' : 'nexus',
-        cursor: null,
-      });
-    }
+    await rewriteLater(ctx, maps, plan.retiresSource ? plan.source?._id : undefined);
     return { slug: stored.slug };
   },
 });
+
+type AttachPlan = Awaited<ReturnType<typeof planAttach>>;
+
+/** Puts the variant where the plan says, under its new name, following the parent's matching fields; its branch follows later. */
+async function placeVariant(ctx: MutationCtx, plan: AttachPlan) {
+  const link = { parent_id: plan.parent?._id, inherited: plan.parent ? plan.fields : undefined };
+  if (plan.moves) {
+    await ctx.db.patch('factions', plan.variant._id, { variant_name: plan.name, variant_slug: slugify(plan.name) });
+    await moveToFamily(ctx, (await ctx.db.get('factions', plan.variant._id))!, plan.target, link);
+  } else {
+    await ctx.db.patch('factions', plan.variant._id, link);
+    if (plan.name !== plan.variant.variant_name) {
+      await renameVariant(ctx, plan.variant, plan.target, plan.name);
+    }
+  }
+  const placed = (await ctx.db.get('factions', plan.variant._id))!;
+  const data = parseStoredFactionForRead(placed.data);
+  const stored = await storeVariantData(
+    ctx,
+    placed,
+    plan.parent ? resolveVariantData(parseStoredFactionForRead(plan.parent.data), data, plan.fields) : data
+  );
+  if (plan.moves) {
+    await moveChildrenLater(ctx, placed._id);
+  }
+  return stored;
+}
+
+/** Starts the rewrite of references to the ids in `maps`, and of the Nexus cards of a retired Faction. */
+async function rewriteLater(
+  ctx: MutationCtx,
+  maps: ReadonlyMap<Id<'factions'>, ComponentIdMap>,
+  retiredFamilyId: Id<'faction_families'> | undefined
+) {
+  if (!maps.size && !retiredFamilyId) {
+    return;
+  }
+  await ctx.scheduler.runAfter(0, internal.factionMerge.rewriteReferences, {
+    maps: [...maps].map(([factionId, map]) => ({ factionId, ...map })),
+    retiredFamilyId,
+    phase: maps.size ? 'drafts' : 'nexus',
+    cursor: null,
+  });
+}
 
 /** The authored hash of rewritten Contents, under the settings saved beside them; none where those do not parse. */
 function authoredHash(settings: unknown, contentsHash: string | undefined) {
