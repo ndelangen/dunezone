@@ -2,8 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import { first, importAll, packageFor, second } from './contentImports.test.fixture';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { importAll, importedFaction, packageFor, second } from './contentImports.test.fixture';
 
 const spiceHeavy = { ...assetPublishingFaction, rules: { ...assetPublishingFaction.rules, spiceCount: 7 } };
 
@@ -20,17 +19,6 @@ afterEach(() => {
 
 /** A new variant may follow a parent variant, taking each inheritable field its copy leaves out (#2931). */
 describe('a package item giving a parent', () => {
-  async function importedFaction() {
-    const fixture = await rulebookFixture();
-    await importAll(
-      fixture.owner,
-      packageFor('base', [{ key: 'atreides', kind: 'faction', data: assetPublishingFaction, link: true }]),
-      first
-    );
-    const family = (await fixture.t.run((ctx) => ctx.db.query('faction_families').first()))!;
-    return { ...fixture, family };
-  }
-
   test('follows an earlier item of the package in the fields it leaves out', async () => {
     const { t, owner, family } = await importedFaction();
     const bundle = packageFor('expansion', [

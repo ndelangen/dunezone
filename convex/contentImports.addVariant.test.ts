@@ -2,8 +2,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import { first, importAll, packageFor, second } from './contentImports.test.fixture';
-import { rulebookFixture } from './rulebooks.test.fixture';
+import { importAll, importedFaction, packageFor, second } from './contentImports.test.fixture';
 
 const changed = {
   ...assetPublishingFaction,
@@ -13,17 +12,6 @@ const changed = {
 
 /** A package item naming an existing Faction becomes a new variant of it rather than a new Faction (#2931). */
 describe('a package item naming an existing faction', () => {
-  async function importedFaction() {
-    const fixture = await rulebookFixture();
-    await importAll(
-      fixture.owner,
-      packageFor('base', [{ key: 'atreides', kind: 'faction', data: assetPublishingFaction, link: true }]),
-      first
-    );
-    const family = (await fixture.t.run((ctx) => ctx.db.query('faction_families').first()))!;
-    return { ...fixture, family };
-  }
-
   test('adds a variant named after the Ruleset, keeping the Faction’s shared fields', async () => {
     const { t, owner, ids, family } = await importedFaction();
     const bundle = packageFor('expansion', [
