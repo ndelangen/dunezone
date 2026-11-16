@@ -218,6 +218,8 @@ export const create = mutation({
     group_id: v.optional(v.union(v.id('groups'), v.null())),
     /** The new variant's own copy, as an import gives it; without one it copies its parent, or else the variant it was added from. */
     data: v.optional(v.any()),
+    /** With `data` and a parent: the fields the variant follows its parent in, each taken from the parent's data. */
+    inherited: v.optional(v.array(v.string())),
   },
   returns: v.object({ id: v.id('factions'), slug: v.string() }),
   handler: async (ctx, args) => {
@@ -237,6 +239,7 @@ export const create = mutation({
       groupId,
       address: await allocateFactionAddress(ctx, `${family.slug}-${variantSlug}`),
       data,
+      inherited: args.inherited,
     });
     return { id: row._id, slug: row.slug };
   },

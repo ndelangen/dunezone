@@ -1,6 +1,7 @@
 import { contentImportPackageSchema } from '../src/shared/contentImports/package';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import type { rulebookFixture } from './rulebooks.test.fixture';
+import { rulebookFixture } from './rulebooks.test.fixture';
 
 /** The two Rulesets the rulebook fixture gives, as import targets. */
 export const first = { rulesetSlug: 'rulebook-test-rules', groupSlug: 'rulebook-authors' };
@@ -27,4 +28,16 @@ export async function importAll(user: User, bundle: ReturnType<typeof packageFor
     );
   }
   return results;
+}
+
+/** The rulebook fixture, with one Faction imported into the first Ruleset. */
+export async function importedFaction() {
+  const fixture = await rulebookFixture();
+  await importAll(
+    fixture.owner,
+    packageFor('base', [{ key: 'atreides', kind: 'faction', data: assetPublishingFaction, link: true }]),
+    first
+  );
+  const family = (await fixture.t.run((ctx) => ctx.db.query('faction_families').first()))!;
+  return { ...fixture, family };
 }
