@@ -8,6 +8,7 @@ import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
 /* Compile the query's server dependencies during collection, outside the database behavior timeout. */
 import './biddingTool';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 const stamp = '2026-11-10T00:00:00.000Z';
 
@@ -18,7 +19,7 @@ async function seed(ctx: MutationCtx) {
     ctx.db.insert('rulesets', { ...base, name: slug, slug, about: '', image_cover: null, is_deleted });
   const id = await ruleset('gf9');
   const faction = async (slug: string, position: number, is_deleted = false, malformed = false) => {
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       ...base,
       slug,
       is_deleted,
@@ -113,7 +114,7 @@ test('custom choices return known reminders by slug and never return deleted fac
   const custom = await t.run(async (ctx) => {
     const original = await ctx.db.get('factions', ids.atreides);
     const { _id: _originalId, _creationTime: _created, ...fields } = original!;
-    return await ctx.db.insert('factions', { ...fields, slug: 'custom-atreides' });
+    return await insertFactionRow(ctx, { ...fields, slug: 'custom-atreides' });
   });
   expect(await t.query(api.biddingTool.faction, { factionId: custom })).toMatchObject({
     peeks: false,

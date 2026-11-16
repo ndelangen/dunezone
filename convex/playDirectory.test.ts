@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import type { PlayDirectorySummary } from '../src/shared/play/directory';
 import { api } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';
 
 async function world() {
@@ -154,7 +155,7 @@ describe('the directory keeps the newest published summary and lists it to every
         revision: 1,
         updated_at: 1,
       });
-      return await ctx.db.insert('factions', {
+      return await insertFactionRow(ctx, {
         owner_id: ids.admin,
         slug: 'atreides',
         data: {
@@ -179,7 +180,7 @@ describe('the directory keeps the newest published summary and lists it to every
   test('a seated faction carries its catalogue token, and a faction the catalogue no longer holds carries none', async () => {
     const { t, admin, ids, publish, summary } = await world();
     const factionId = await t.run(async (ctx) =>
-      ctx.db.insert('factions', {
+      insertFactionRow(ctx, {
         owner_id: ids.admin,
         slug: 'atreides',
         data: {

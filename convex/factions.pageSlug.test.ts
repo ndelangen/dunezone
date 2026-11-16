@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { variantsFixture } from './factionVariants.test.fixture';
 
 test('a Play seat finds a live faction page by the id it carries, and nothing for a deleted or unknown faction', async () => {
@@ -23,12 +24,12 @@ test('a Play seat finds a live faction page by the id it carries, and nothing fo
       group_id: null,
     });
     return {
-      live: await ctx.db.insert('factions', row('atreides', false)),
-      deleted: await ctx.db.insert('factions', row('old-atreides', true)),
+      live: await insertFactionRow(ctx, row('atreides', false)),
+      deleted: await insertFactionRow(ctx, row('old-atreides', true)),
     };
   });
 
-  await expect(t.query(api.factions.pageSlug, { id: live })).resolves.toBe('atreides');
+  await expect(t.query(api.factions.pageSlug, { id: live })).resolves.toBe('atreides-original');
   await expect(t.query(api.factions.pageSlug, { id: deleted })).resolves.toBeNull();
   /* The local fixtures seat factions under plain names, which are no faction id at all. */
   await expect(t.query(api.factions.pageSlug, { id: 'harkonnen' })).resolves.toBeNull();

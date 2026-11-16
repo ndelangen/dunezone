@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { RULESET_FACTION_LIMIT } from './lib/rulesetDetailPage';
 
@@ -22,7 +23,7 @@ async function orderFixture(names = ['Atreides', 'Bene Gesserit', 'Choam', 'Dunc
     const factionIds: Id<'factions'>[] = [];
     for (const name of names) {
       factionIds.push(
-        await ctx.db.insert('factions', {
+        await insertFactionRow(ctx, {
           owner_id: ownerId,
           data: { ...assetPublishingFaction, name },
           slug: name.toLowerCase().replace(/\s+/g, '-'),

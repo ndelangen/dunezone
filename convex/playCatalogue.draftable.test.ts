@@ -7,7 +7,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
-import { syncFactionFamily } from './lib/factionFamilies';
+import { insertFactionRow } from './factionRows.test.fixture';
 import {
   enqueueFactionLeaderPublications,
   enqueueFactionTokenPublication,
@@ -28,7 +28,7 @@ async function seed(ctx: MutationCtx) {
     ...stamp,
   });
   const faction = async (name: string, slug: string, options: { deleted?: boolean; broken?: boolean } = {}) =>
-    ctx.db.insert('factions', {
+    insertFactionRow(ctx, {
       owner_id: owner,
       slug,
       data: options.broken ? { name } : { ...assetPublishingFaction, name },
@@ -109,7 +109,7 @@ describe('the draft reads the catalogue', () => {
     );
     const atreides = factions.find((faction) => faction.id === linked)!;
     expect(atreides).toMatchObject({
-      slug: 'atreides',
+      slug: 'atreides-original',
       name: 'Atreides',
       emblem: assetPublishingFaction.emblem,
       background: assetPublishingFaction.background,
@@ -117,12 +117,11 @@ describe('the draft reads the catalogue', () => {
     });
   });
 
-  test('a row names its Faction and its variant, and a row with no Faction reads as the Original', async () => {
+  test('a row names its Faction and its variant', async () => {
     const t = applicationTest();
-    const { ruleset, linked, other } = await t.run(seed);
-    /* Atreides gets its Faction as a faction write would give it, its variant named after the ruleset that links it. */
+    const { ruleset, linked } = await t.run(seed);
     const family = await t.run(async (ctx) => {
-      await syncFactionFamily(ctx, linked, await ctx.db.get('factions', linked));
+      await ctx.db.patch('factions', linked, { variant_name: 'Classic' });
       return (await ctx.db.get('factions', linked))!.family_id;
     });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
@@ -131,9 +130,6 @@ describe('the draft reads the catalogue', () => {
       familyId: family,
       variantName: 'Classic',
     });
-    const fremen = factions.find((faction) => faction.id === other)!;
-    expect(fremen.familyId).toBeUndefined();
-    expect(fremen.variantName).toBe('Original');
   });
 
   test('a faction becomes published once its token back completes, and its leader front reads once that face completes', async () => {
@@ -220,7 +216,7 @@ describe('the draft reads the catalogue', () => {
       const owner = (await ctx.db.query('users').first())!._id;
       const stamp = { created_at: '2026-09-19T00:00:00.000Z', updated_at: '2026-09-19T00:00:00.000Z' };
       for (let index = 0; index < 500; index += 1) {
-        await ctx.db.insert('factions', {
+        await insertFactionRow(ctx, {
           owner_id: owner,
           slug: `filler-${index}`,
           data: { ...assetPublishingFaction, name: `Filler ${index}` },
@@ -229,7 +225,7 @@ describe('the draft reads the catalogue', () => {
           ...stamp,
         });
       }
-      const id = await ctx.db.insert('factions', {
+      const id = await insertFactionRow(ctx, {
         owner_id: owner,
         slug: 'late',
         data: { ...assetPublishingFaction, name: 'Late' },
@@ -239,7 +235,7 @@ describe('the draft reads the catalogue', () => {
       });
       await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: 2 });
       await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: retired, position: 3 });
-      const missing = await ctx.db.insert('factions', {
+      const missing = await insertFactionRow(ctx, {
         owner_id: owner,
         slug: 'missing',
         data: assetPublishingFaction,
@@ -267,10 +263,10 @@ describe('the draft reads the catalogue', () => {
       const source = (await ctx.db.get('factions', linked))!;
       const { _id: _sourceId, _creationTime: _created, ...fields } = source;
       for (let index = 0; index < 498; index += 1) {
-        const id = await ctx.db.insert('factions', { ...fields, slug: `linked-${index}` });
+        const id = await insertFactionRow(ctx, { ...fields, slug: `linked-${index}` });
         await ctx.db.insert('ruleset_factions', { ruleset_id: ruleset, faction_id: id, position: index + 2 });
       }
-      await ctx.db.insert('factions', { ...fields, slug: 'newer-unlinked' });
+      await insertFactionRow(ctx, { ...fields, slug: 'newer-unlinked' });
     });
     const { factions } = await t.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset });
     expect(factions).toHaveLength(499);

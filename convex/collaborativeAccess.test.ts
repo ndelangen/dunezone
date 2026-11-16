@@ -5,22 +5,11 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
-import { applicationTriggers } from './lib/applicationTriggers';
-import { syncFactionFamily } from './lib/factionFamilies';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionPageAs, groupPageAs, rulesetDetailPageAs } from './viewerAccess.test.fixture';
 
 const now = '2026-08-05T00:00:00.000Z';
-
-/* The fixture inserts its rows raw, past the triggers, so a test that needs a Faction gives the variant one as the backfill would. */
-async function giveFamilies(t: ReturnType<typeof applicationTest>, factionId: Id<'factions'>) {
-  await t.run(async (ctx) => {
-    const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
-    await syncFactionFamily(wrapped, factionId, await ctx.db.get(factionId));
-  });
-}
 
 async function groupAccessFixture() {
   const t = applicationTest();
@@ -88,7 +77,7 @@ async function groupAccessFixture() {
         approved_by: null,
       }),
     };
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: assetOwnerId,
       data: { ...structuredClone(assetPublishingFaction), name: 'Collaborative Faction' },
       slug: 'collaborative-faction',
@@ -754,7 +743,6 @@ describe('collaborative access moderation commands', () => {
 
   test('a collaborator edits a faction and, through its Faction Group, renames it, but cannot reassign or delete it', async () => {
     const { t, ids } = await groupAccessFixture();
-    await giveFamilies(t, ids.factionId);
     const member = t.withIdentity({ subject: ids.activeId });
     const stored = structuredClone(assetPublishingFaction);
 
@@ -763,7 +751,7 @@ describe('collaborative access moderation commands', () => {
       id: ids.factionId,
       data: { ...stored, name: 'Member Renamed Faction', themeColor: '#123456' },
     });
-    expect(renamed).toMatchObject({ slug: 'member-renamed-faction-collaborative-ruleset' });
+    expect(renamed).toMatchObject({ slug: 'member-renamed-faction-original' });
 
     await expect(member.mutation(api.factions.setGroup, { id: ids.factionId, group_id: null })).rejects.toThrow(
       'Not authorized'
@@ -773,7 +761,6 @@ describe('collaborative access moderation commands', () => {
 
   test('a variant’s Group edits the variant but not the shared fields, which stay with the Faction’s Group', async () => {
     const { t, ids } = await groupAccessFixture();
-    await giveFamilies(t, ids.factionId);
     const { variantGroupMemberId } = await t.run(async (ctx) => {
       const variantGroupMemberId = await ctx.db.insert('users', { name: 'Variant group member' });
       const variantGroupId = await ctx.db.insert('groups', {

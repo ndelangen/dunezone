@@ -6,6 +6,7 @@ import { expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { variantsFixture } from './factionVariants.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { searchIndexText } from './lib/catalogueOrder';
@@ -22,7 +23,7 @@ test('catalogue choices page within a type, search every page, and omit deleted 
       created_at: '2026-10-22T00:00:00.000Z',
       updated_at: '2026-10-22T00:00:00.000Z',
     };
-    await ctx.db.insert('factions', { ...base, slug: 'atreides', data: assetPublishingFaction });
+    await insertFactionRow(ctx, { ...base, slug: 'atreides', data: assetPublishingFaction });
     for (const [type, name, deleted] of [
       ['card-treachery', 'Lasgun', false],
       ['card-treachery', 'Shield', false],

@@ -3,6 +3,7 @@
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import type { Id } from './_generated/dataModel';
+import { insertFactionRow } from './factionRows.test.fixture';
 import type { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
@@ -66,7 +67,7 @@ export async function seedCatalogue(
     }
     const factionIds: Id<'factions'>[] = [];
     for (const [index, faction] of factions.entries()) {
-      const factionId = await ctx.db.insert('factions', {
+      const factionId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: catalogueFactionData(faction),
         slug: `${faction.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}-${index}`,

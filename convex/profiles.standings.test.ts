@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { GROUP_STANDINGS_STEP, LEADERBOARD_SIZE, rankByCount } from './lib/standings';
 
@@ -40,7 +41,7 @@ async function factions(t: World, ownerId: Id<'users'>, count: number, groupId: 
     for (let index = 0; index < count; index += 1) {
       const slug = `${ownerId}-${groupId ?? 'own'}-${index}`;
       ids.push(
-        await ctx.db.insert('factions', {
+        await insertFactionRow(ctx, {
           owner_id: ownerId,
           data: { ...assetPublishingFaction, name: slug },
           slug,

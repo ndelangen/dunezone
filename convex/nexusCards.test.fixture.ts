@@ -4,6 +4,7 @@ import type { z } from 'zod';
 import type { NexusCardAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import type { Id } from './_generated/dataModel';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncFactionFamily } from './lib/factionFamilies';
 
 /** A Nexus card linked to a Faction drawn as the card draws it, as the writer stores a link (#2921): the Faction's own id and address. */
@@ -13,7 +14,7 @@ export async function linkedNexusCard(
   card: z.infer<typeof NexusCardAsset>
 ) {
   const factionLink = await t.run(async (ctx) => {
-    const id = await ctx.db.insert('factions', {
+    const id = await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: {
         ...assetPublishingFaction,

@@ -18,6 +18,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
@@ -213,7 +214,7 @@ describe('real games are created and entered by any signed-in player, Administra
       const owner = (await ctx.db.query('users').first())!._id;
       const stamp = new Date().toISOString();
       const faction = (slug: string, name: string) =>
-        ctx.db.insert('factions', {
+        insertFactionRow(ctx, {
           owner_id: owner,
           data: { name },
           slug,

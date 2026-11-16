@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 function rebuiltDeployment() {
   const t = applicationTest();
@@ -17,7 +18,7 @@ const timestamps = { created_at: '2026-07-01T10:00:00.000Z', updated_at: '2026-0
 
 async function insertFaction(t: Deployment, ownerId: Id<'users'>) {
   await t.run(async (ctx) => {
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: { name: 'House Cloned' },
       slug: 'house-cloned',
