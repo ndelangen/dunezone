@@ -129,7 +129,7 @@ describe('a package item giving a parent', () => {
 
   test('follows an existing variant named by its address', async () => {
     const { t, owner, family } = await importedFaction();
-    const base = (await t.run((ctx) => ctx.db.get(family.default_variant_id)))!;
+    const base = (await t.run((ctx) => ctx.db.get(family.default_variant_id!)))!;
     const bundle = packageFor('expansion', [
       { key: 'child', kind: 'faction', faction: family.slug, parent: base.slug, data: withoutTroopsOrSpice() },
     ]);

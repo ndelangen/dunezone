@@ -11,7 +11,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress } from './lib/factionAddresses';
 import { listFactionRulesetCovers } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { liveVariantsInOrder, variantName, variantsOf } from './lib/factionFamilies';
+import { defaultVariantOf, liveVariantsInOrder, variantName, variantsOf } from './lib/factionFamilies';
 import { factionInputForWrite, parseStoredFactionForRead } from './lib/factionInput';
 import {
   followParent,
@@ -154,7 +154,7 @@ export const switcher = publicQuery({
       familyId: family._id,
       familySlug: family.slug,
       isOpen: family.is_open,
-      defaultVariantId: family.default_variant_id,
+      defaultVariantId: defaultVariantOf(family),
       variants: await Promise.all(
         variants.map(async (row) => ({
           _id: row._id,
@@ -321,7 +321,7 @@ export const evict = mutation({
     if (!(await loadFactionFamilyAccess(ctx, family)).capabilities.edit) {
       throw new Error('Not authorized');
     }
-    if (await inBranchOf(ctx, family.default_variant_id, variant._id)) {
+    if (await inBranchOf(ctx, defaultVariantOf(family), variant._id)) {
       throw new ConvexError(
         'The default variant would leave with this branch. Make another variant the default first.'
       );

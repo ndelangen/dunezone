@@ -11,6 +11,7 @@ import type { Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { mutation, publicQuery } from './functions';
 import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
+import { insertFaction } from './lib/factionFamilies';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { nowIso, slugify } from './lib/utils';
@@ -302,7 +303,7 @@ export const seedBiddingTable = mutation({
     });
     const names = ['Atreides', 'Harkonnen', 'Emperor', 'Spacing Guild', 'Fremen', 'Bene Gesserit'];
     for (const [position, name] of names.entries()) {
-      const factionId = await ctx.db.insert('factions', {
+      const { _id: factionId } = await insertFaction(ctx, {
         slug: `${args.slug}-${slugify(name)}`,
         data: { ...assetPublishingFaction, name },
         created_at: now,
