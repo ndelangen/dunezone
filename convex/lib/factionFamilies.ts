@@ -110,7 +110,7 @@ type NewFaction = Omit<WithoutSystemFields<Doc<'factions'>>, 'family_id' | 'vari
 /**
  * Creates a Faction at the address `slug` with its first variant, the Original, under it (#2933).
  * The Faction comes first, without a default, so the variant is written with its Faction from the start;
- * the variant then becomes the default, which the Faction mirrors.
+ * the variant then becomes the default, whose shared fields the Faction already holds.
  */
 export async function insertFaction(ctx: MutationCtx, { slug, ...fields }: NewFaction) {
   const familyId = await ctx.db.insert('faction_families', {
@@ -130,7 +130,7 @@ export async function insertFaction(ctx: MutationCtx, { slug, ...fields }: NewFa
     variant_slug: ORIGINAL_VARIANT_SLUG,
   });
   const row = (await ctx.db.get(id))!;
-  await ctx.db.patch(familyId, { default_variant_id: id, ...mirroredFields(row) });
+  await ctx.db.patch(familyId, { default_variant_id: id });
   return row;
 }
 
