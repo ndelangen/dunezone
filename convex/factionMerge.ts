@@ -94,27 +94,37 @@ function branchMaps(branch: readonly Doc<'factions'>[], rootPairs: IdPairsByFiel
   return maps;
 }
 
+/** Refuses with `message` unless `holds`. */
+function refuseUnless(holds: unknown, message: string): asserts holds {
+  if (!holds) {
+    throw new ConvexError(message);
+  }
+}
+
+/** The parent an attach names, or null for none; refused unless it is a live variant of the target outside the moving branch. */
+async function attachParent(ctx: Reader, args: AttachArgs, variantId: Id<'factions'>) {
+  if (!args.parent_id) {
+    return null;
+  }
+  const parent = await ctx.db.get('factions', args.parent_id);
+  refuseUnless(isLiveVariantOf(parent, args.family_id), 'The parent must be a live variant of the faction it joins.');
+  refuseUnless(!(await inBranchOf(
+    ctx,
+    args.parent_id,
+    variantId
+  )), 'A variant cannot sit under itself or one of its own variants.');
+  return parent;
+}
+
 /** The rows an attach names, refused where the attach may not happen. */
 async function attachRows(ctx: Reader, args: AttachArgs) {
   const variant = await ctx.db.get('factions', args.faction_id);
-  if (!variant) {
-    throw new ConvexError('That variant no longer exists.');
-  }
+  refuseUnless(variant, 'That variant no longer exists.');
   const target = await ctx.db.get('faction_families', args.family_id);
-  if (!target || target.is_deleted) {
-    throw new ConvexError('That faction no longer exists.');
-  }
-  const parent = args.parent_id ? await ctx.db.get('factions', args.parent_id) : null;
-  if (args.parent_id && !isLiveVariantOf(parent, target._id)) {
-    throw new ConvexError('The parent must be a live variant of the faction it joins.');
-  }
-  if (parent && (await inBranchOf(ctx, parent._id, variant._id))) {
-    throw new ConvexError('A variant cannot sit under itself or one of its own variants.');
-  }
+  refuseUnless(target && !target.is_deleted, 'That faction no longer exists.');
+  const parent = await attachParent(ctx, args, variant._id);
   const name = args.name?.trim() ?? variant.variant_name;
-  if (!slugify(name)) {
-    throw new ConvexError('Give the variant a name.');
-  }
+  refuseUnless(slugify(name), 'Give the variant a name.');
   return { variant, target, parent, name };
 }
 
@@ -430,32 +440,48 @@ export const rewriteReferences = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const next = (fields: Pick<typeof args, 'phase' | 'cursor'>) =>
-      ctx.scheduler.runAfter(0, internal.factionMerge.rewriteReferences, { ...args, ...fields });
-    if (args.phase === 'nexus') {
-      const cursor = args.retiredFamilyId ? await relinkNexusCards(ctx, args.retiredFamilyId, args.cursor) : null;
-      if (cursor) {
-        await next({ phase: 'nexus', cursor });
-      }
-      return null;
-    }
-    const maps = new Map(args.maps.map(({ factionId, ...map }) => [factionId as string, map]));
-    const page = await documentPage(ctx, args.phase, maps, { cursor: args.cursor, numItems: 1 });
-    for (const { row, value, rewritten } of page.page) {
-      if (rewritten) {
-        await saveRewritten(ctx, row, value);
-      }
-    }
-    if (!page.isDone) {
-      await next({ phase: args.phase, cursor: page.continueCursor });
-    } else if (args.phase === 'drafts') {
-      await next({ phase: 'editions', cursor: null });
-    } else if (args.retiredFamilyId) {
-      await next({ phase: 'nexus', cursor: null });
+    const next =
+      args.phase === 'nexus' ? await nexusStep(ctx, args) : await documentsStep(ctx, { ...args, phase: args.phase });
+    if (next) {
+      await ctx.scheduler.runAfter(0, internal.factionMerge.rewriteReferences, { ...args, ...next });
     }
     return null;
   },
 });
+
+type RewriteStep = { phase: 'drafts' | 'editions' | 'nexus'; cursor: string | null };
+type RewriteArgs = {
+  maps: Array<{ factionId: string } & ComponentIdMap>;
+  retiredFamilyId?: Id<'faction_families'>;
+  cursor: string | null;
+};
+
+/** Rewrites one draft or Edition; the step after it. */
+async function documentsStep(
+  ctx: MutationCtx,
+  args: RewriteArgs & { phase: 'drafts' | 'editions' }
+): Promise<RewriteStep | null> {
+  const maps = new Map(args.maps.map(({ factionId, ...map }) => [factionId, map]));
+  const page = await documentPage(ctx, args.phase, maps, { cursor: args.cursor, numItems: 1 });
+  for (const { row, value, rewritten } of page.page) {
+    if (rewritten) {
+      await saveRewritten(ctx, row, value);
+    }
+  }
+  if (!page.isDone) {
+    return { phase: args.phase, cursor: page.continueCursor };
+  }
+  if (args.phase === 'drafts') {
+    return { phase: 'editions', cursor: null };
+  }
+  return args.retiredFamilyId ? { phase: 'nexus', cursor: null } : null;
+}
+
+/** Relinks a page of the retired Faction's Nexus cards; the step after it. */
+async function nexusStep(ctx: MutationCtx, args: RewriteArgs): Promise<RewriteStep | null> {
+  const cursor = args.retiredFamilyId ? await relinkNexusCards(ctx, args.retiredFamilyId, args.cursor) : null;
+  return cursor ? { phase: 'nexus', cursor } : null;
+}
 
 /** Saves rewritten Contents: a draft's revision moves on; an Edition's hashes follow its Contents. */
 async function saveRewritten(
