@@ -9,6 +9,7 @@ import {
   validateImportData,
 } from '../src/shared/contentImports/package';
 import type { ContentImportItem } from '../src/shared/contentImports/package';
+import { withStoredComponentIds } from '../src/shared/factions/componentIdentity';
 import { splitSharedFields } from '../src/shared/factions/sharedFields';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
@@ -28,8 +29,10 @@ import {
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
 import { liveDefaultVariant } from './lib/factionAddresses';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { rulebookContentsHash } from './lib/rulebookEditionContents';
+import { slugify } from './lib/utils';
 import type { MutationCtx } from './types';
 
 const targetValidator = v.object({ rulesetSlug: v.string(), groupSlug: v.string() });
@@ -341,6 +344,16 @@ function withSharedFieldsOf(item: ContentImportItem, data: unknown, shared: obje
   return item.kind === 'faction' && item.faction && shared ? { ...(data as object), ...shared } : data;
 }
 
+/** A faction copy imported onto a stored variant keeps the identities of the members and troops it names (#2931). */
+function withIdentitiesOf(item: ContentImportItem, data: unknown, subject: Subject | null) {
+  return item.kind === 'faction' && subject
+    ? withStoredComponentIds(
+        data as Parameters<typeof withStoredComponentIds>[0],
+        parseStoredFactionForRead(subject.data)
+      )
+    : data;
+}
+
 /**
  * Refuses an import the importer may not make.
  * For an item that links a variant it refuses nothing, and answers whether the import also writes the package's copy, links an unchanged variant, or links one the importer may not edit although the copy differs.
@@ -422,8 +435,12 @@ export const preview = mutation({
     const maximumEnd = Math.min(cursor + 50, bundle.items.length);
     let end = cursor;
     const entries = [];
-    /* Two items of one package may not add the same variant, which the second apply would refuse. */
-    const adding = new Set<string>();
+    /* Two items of one package may not add the same variant, which the second apply would refuse; earlier pages count too. */
+    const claimOf = (item: ContentImportItem) =>
+      item.kind === 'faction' && item.faction
+        ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
+        : null;
+    const adding = new Set(bundle.items.slice(0, cursor).map(claimOf));
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
         const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
@@ -432,13 +449,17 @@ export const preview = mutation({
         const subject = await findSubject(ctx, target, item, receipt);
         const added = subject ? null : await newVariantTarget(ctx, target, item);
         if (added) {
-          const claim = `${added.family._id}/${added.variantSlug}`;
+          const claim = claimOf(item);
           if (adding.has(claim)) {
             throw new ConvexError(`Another item of this package already adds the variant “${added.name}”.`);
           }
           adding.add(claim);
         }
-        const data = withSharedFieldsOf(item, bound, subject ? sharedFieldsOf(subject.data) : added?.family.data);
+        const data = withIdentitiesOf(
+          item,
+          withSharedFieldsOf(item, bound, subject ? sharedFieldsOf(subject.data) : added?.family.data),
+          subject
+        );
         const mode = subject ? await authorizeSubject(ctx, target, item, subject, data) : undefined;
         const linkOnly = mode === 'link' || mode === 'link-blocked';
         const hash = subject ? subjectHash(subject) : null;
@@ -568,7 +589,11 @@ export const applyItem = mutation({
       })
     );
     const added = previous ? null : await newVariantTarget(ctx, target, item);
-    const data = withSharedFieldsOf(item, bound, previous ? sharedFieldsOf(previous.data) : null);
+    const data = withIdentitiesOf(
+      item,
+      withSharedFieldsOf(item, bound, previous ? sharedFieldsOf(previous.data) : null),
+      previous
+    );
     const mode = previous ? await authorizeSubject(ctx, target, item, previous, data) : undefined;
     const linkOnly = mode === 'link' || mode === 'link-blocked';
     if (!linkOnly && receipt && receipt.state_hash !== hash && !reviewedReconciliation) {

@@ -85,6 +85,21 @@ describe('a package item naming an existing faction', () => {
     const added = (await t.run((ctx) => ctx.db.query('factions').order('desc').first()))!;
     expect(added.data.rules.spiceCount).toBe(7);
     expect(added.data.troops.every((troop: { troopId?: string }) => troop.troopId)).toBe(true);
+    expect(await importAll(owner, bundle, second)).toMatchObject([{ status: 'unchanged' }]);
+    const changedBundle = packageFor('expansion', [
+      {
+        key: 'atreides',
+        kind: 'faction',
+        faction: family.slug,
+        data: { ...data, rules: { ...data.rules, spiceCount: 9 } },
+      },
+    ]);
+    expect(await importAll(owner, changedBundle, second)).toMatchObject([{ status: 'updated' }]);
+    const updated = (await t.run((ctx) => ctx.db.get(added._id)))!;
+    expect(updated.data.troops.map((troop: { troopId?: string }) => troop.troopId)).toEqual(
+      added.data.troops.map((troop: { troopId?: string }) => troop.troopId)
+    );
+    expect(updated.data.factionLeader.memberId).toBe(added.data.factionLeader.memberId);
   });
 
   test('refuses a second item of the package adding the same variant', async () => {
@@ -96,6 +111,8 @@ describe('a package item naming an existing faction', () => {
     const { entries } = await owner.mutation(api.contentImports.preview, { package: bundle, target: second });
     expect(entries.map((entry) => entry.status)).toEqual(['create', 'conflict']);
     expect(entries[1]!.message).toMatch(/already adds the variant/);
+    const nextPage = await owner.mutation(api.contentImports.preview, { package: bundle, target: second, cursor: 1 });
+    expect(nextPage.entries[0]).toMatchObject({ status: 'conflict', message: expect.stringMatching(/already adds/) });
   });
 
   test('refuses a closed faction the importer does not maintain', async () => {
