@@ -127,4 +127,22 @@ describe('a package item naming an existing variant', () => {
       ])
     ).toThrow(/variant or existing/);
   });
+
+  test('applyItem refuses an item naming it with both, outside a package', async () => {
+    const { owner, faction } = await importedVariant();
+    await expect(
+      owner.mutation(api.contentImports.applyItem, {
+        packageKey: 'expansion',
+        item: {
+          key: 'atreides',
+          kind: 'faction',
+          variant: faction.slug,
+          existing: { slug: faction.slug },
+          data: assetPublishingFaction,
+        },
+        target: second,
+        expectedHash: null,
+      })
+    ).rejects.toThrow(/variant or existing/);
+  });
 });
