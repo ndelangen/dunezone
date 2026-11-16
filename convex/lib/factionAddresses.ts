@@ -26,7 +26,10 @@ export async function familyAt(ctx: Reader, slug: string) {
 
 /** The variant a faction's own address leads to: its default one, while both are live. */
 export async function liveDefaultVariant(ctx: Reader, family: Doc<'faction_families'> | null) {
-  const variant = family && !family.is_deleted ? await ctx.db.get('factions', family.default_variant_id) : null;
+  const variant =
+    family && !family.is_deleted && family.default_variant_id
+      ? await ctx.db.get('factions', family.default_variant_id)
+      : null;
   return variant && !variant.is_deleted ? variant : null;
 }
 

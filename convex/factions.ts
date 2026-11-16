@@ -31,7 +31,7 @@ import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference'
 import { allocateFactionAddress, familyAt, liveDefaultVariant, variantAddressAfterSave } from './lib/factionAddresses';
 import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import { factionDataChange, firstLiveVariant, variantName } from './lib/factionFamilies';
+import { factionDataChange, firstLiveVariant, insertFaction, variantName } from './lib/factionFamilies';
 import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
 import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
@@ -432,7 +432,7 @@ export const create = mutation({
     const slug = await allocateFactionAddress(ctx, slugify(data.name));
 
     const now = nowIso();
-    const _id = await ctx.db.insert('factions', {
+    const row = await insertFaction(ctx, {
       owner_id: userId,
       data,
       slug,
@@ -441,10 +441,6 @@ export const create = mutation({
       updated_at: now,
       is_deleted: false,
     });
-    const row = await ctx.db.get(_id);
-    if (!row) {
-      throw new Error('Failed to create faction');
-    }
     await enqueueFactionSheetPublication(ctx, row);
     await enqueueFactionTokenPublication(ctx, row);
     await enqueueFactionLeaderPublications(ctx, row);

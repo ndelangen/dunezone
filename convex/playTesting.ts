@@ -14,6 +14,7 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { newestUnusedRefresh } from './lib/authSessionLifecycle';
+import { insertFaction } from './lib/factionFamilies';
 import { isSyntheticFixtureKey, playCredential, syntheticFixtureKey } from './lib/playAuthorization';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { limitLiveGames, requireSyntheticBackend } from './lib/playSynthetic';
@@ -312,7 +313,7 @@ export const seedRealGameCatalogue = internalMutation({
     });
     publications.push(await publish(ctx, 'token-disc', extraId, 'front'));
     for (const faction of SYNTHETIC_FACTIONS) {
-      const factionId = await ctx.db.insert('factions', {
+      const { _id: factionId } = await insertFaction(ctx, {
         ...row,
         slug: `${faction.slug}-${suffix}`,
         data: ensureFactionTroopIds({

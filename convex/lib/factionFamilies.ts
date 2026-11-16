@@ -1,4 +1,5 @@
 import type { Triggers } from 'convex-helpers/server/triggers';
+import type { WithoutSystemFields } from 'convex/server';
 
 import { splitSharedFields } from '../../src/shared/factions/sharedFields';
 import { slugify } from '../../src/shared/slugify';
@@ -6,7 +7,7 @@ import type { DataModel, Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
 import { ALL_PARTITION } from './catalogueOrder';
-import { allocateVariantAddress } from './factionAddresses';
+import { allocateFactionAddress, allocateVariantAddress } from './factionAddresses';
 import type { parseStoredFactionForRead } from './factionInput';
 import { parseStoredDataOrNull, takeSharedFields } from './factionVariants';
 
@@ -83,7 +84,7 @@ export function factionDataChange(stored: FactionData, proposed: FactionData) {
  * Its Group starts as its first variant's too.
  * Nor is the address mirrored: the Faction keeps the one its variant had, and the variant moves to one of its own under it (#2909).
  */
-function mirroredFields(faction: Doc<'factions'>) {
+function mirroredFields(faction: Pick<Doc<'factions'>, 'data' | 'updated_at'>) {
   const data = parseStoredDataOrNull(faction.data);
   return {
     data: data ? splitSharedFields(data).shared : null,
@@ -102,6 +103,35 @@ async function firstVariantName(ctx: Pick<QueryCtx, 'db'>, factionId: Id<'factio
     }
   }
   return ORIGINAL_VARIANT_NAME;
+}
+
+type NewFaction = Omit<WithoutSystemFields<Doc<'factions'>>, 'family_id' | 'variant_name' | 'variant_slug'>;
+
+/**
+ * Creates a Faction at the address `slug` with its first variant, the Original, under it (#2933).
+ * The Faction comes first, without a default, so the variant is written with its Faction from the start;
+ * the variant then becomes the default, which the Faction mirrors.
+ */
+export async function insertFaction(ctx: MutationCtx, { slug, ...fields }: NewFaction) {
+  const familyId = await ctx.db.insert('faction_families', {
+    ...mirroredFields(fields),
+    owner_id: fields.owner_id,
+    is_deleted: fields.is_deleted,
+    created_at: fields.created_at,
+    slug,
+    group_id: fields.group_id,
+    is_open: false,
+  });
+  const id = await ctx.db.insert('factions', {
+    ...fields,
+    slug: await allocateFactionAddress(ctx, `${slug}-${ORIGINAL_VARIANT_SLUG}`),
+    family_id: familyId,
+    variant_name: ORIGINAL_VARIANT_NAME,
+    variant_slug: ORIGINAL_VARIANT_SLUG,
+  });
+  const row = (await ctx.db.get(id))!;
+  await ctx.db.patch(familyId, { default_variant_id: id, ...mirroredFields(row) });
+  return row;
 }
 
 async function createFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
@@ -186,6 +216,19 @@ function assertMirrorsDefaultVariant(family: Doc<'faction_families'>, faction: D
   }
 }
 
+/** The Faction's default variant, which every Faction has once `insertFaction` returns. */
+export function defaultVariantOf(family: Doc<'faction_families'>) {
+  if (!family.default_variant_id) {
+    throw new Error(`Faction ${family._id} has no default variant`);
+  }
+  return family.default_variant_id;
+}
+
+/** The variants a listing of the Faction reads first: its default, then the order its maintainers gave. */
+export function listedFirst(family: Doc<'faction_families'>) {
+  return [...(family.default_variant_id ? [family.default_variant_id] : []), ...(family.variant_order ?? [])];
+}
+
 /** Every variant of the Faction, the soft-deleted ones too, oldest first. */
 export function variantsOf(ctx: Pick<QueryCtx, 'db'>, familyId: Id<'faction_families'>) {
   return ctx.db.query('factions').withIndex('by_family', (q) => q.eq('family_id', familyId));
@@ -201,7 +244,7 @@ export const VARIANT_LISTING_LIMIT = 200;
  */
 async function* variantsInOrder(ctx: Pick<QueryCtx, 'db'>, family: Doc<'faction_families'>) {
   const seen = new Set<Id<'factions'>>();
-  for (const id of [family.default_variant_id, ...(family.variant_order ?? [])]) {
+  for (const id of listedFirst(family)) {
     const row = seen.has(id) ? null : await ctx.db.get('factions', id);
     seen.add(id);
     if (row?.family_id === family._id) {
@@ -283,7 +326,7 @@ export async function makeDefaultVariant(ctx: MutationCtx, family: Doc<'faction_
 
 /** Whether the Faction's default is a live variant of it. */
 async function hasLiveDefault(ctx: MutationCtx, family: Doc<'faction_families'>) {
-  const current = await ctx.db.get(family.default_variant_id);
+  const current = family.default_variant_id ? await ctx.db.get(family.default_variant_id) : null;
   return !!current && !current.is_deleted && current.family_id === family._id;
 }
 

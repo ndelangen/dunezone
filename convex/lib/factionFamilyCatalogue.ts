@@ -5,7 +5,7 @@ import { catalogueTimestamp } from './catalogueEntryShape';
 import type { CatalogueKind } from './catalogueEntryShape';
 import { ALL_PARTITION } from './catalogueOrder';
 import { factionOwnerPartition } from './factionCatalogue';
-import { VARIANT_LISTING_LIMIT } from './factionFamilies';
+import { listedFirst, VARIANT_LISTING_LIMIT } from './factionFamilies';
 
 type VariantEntry = Doc<'catalogue_entries'>;
 
@@ -21,7 +21,7 @@ function isOwnerFacet(facet: string) {
 function variantEntriesInOrder(family: Doc<'faction_families'>, entries: readonly VariantEntry[]) {
   const bySource = new Map(entries.map((entry) => [entry.source_id, entry]));
   const ordered: VariantEntry[] = [];
-  for (const id of [family.default_variant_id, ...(family.variant_order ?? [])]) {
+  for (const id of listedFirst(family)) {
     const entry = bySource.get(id);
     if (entry) {
       ordered.push(entry);
@@ -41,7 +41,7 @@ function variantEntriesInOrder(family: Doc<'faction_families'>, entries: readonl
  */
 async function liveVariantEntries(ctx: QueryCtx, family: Doc<'faction_families'>) {
   const entries = new Map<string, VariantEntry>();
-  for (const id of [family.default_variant_id, ...(family.variant_order ?? [])]) {
+  for (const id of listedFirst(family)) {
     if (entries.size === VARIANT_LISTING_LIMIT || entries.has(id)) {
       continue;
     }

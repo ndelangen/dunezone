@@ -365,7 +365,8 @@ export default defineSchema({
     data: v.union(factionSharedValidator, v.null()),
     owner_id: v.id('users'),
     group_id: v.union(v.id('groups'), v.null()),
-    default_variant_id: v.id('factions'),
+    /** Unset only while `insertFaction` creates the Faction and its first variant together. */
+    default_variant_id: v.optional(v.id('factions')),
     /** Whether people other than the faction's maintainers may add variants. Every family starts closed. */
     is_open: v.boolean(),
     /**
