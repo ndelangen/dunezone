@@ -13,6 +13,7 @@ import { TableSession } from '@db/tabletop/TableSession';
 
 import type { BoardSkin } from './boardSkins';
 import { curvedBoard } from './curvedBoard.fixture';
+import { setHandNames } from './handNamesPreference';
 import { PointerSession } from './PointerSession';
 import { PointerSessionContext } from './PointerSessionContext';
 import { TableKeyboard } from './TableKeyboard';
@@ -27,11 +28,13 @@ function PreparedTable({
   board = arrakisBoardCapture,
   skin,
   planet = false,
+  pointers = [],
 }: {
   presentation: 'play' | 'preview';
   board?: BoardCapture;
   skin?: BoardSkin;
   planet?: boolean;
+  pointers?: RoomView['pointers'];
 }) {
   const [session] = useState(() => {
     const view: RoomView = {
@@ -41,7 +44,7 @@ function PreparedTable({
       viewer: { connectionId: 'story', userId: 'story', viewerSeat: SPECTATOR_SEAT, displayName: '', color: '#d7b65c' },
       snapshot: { ...homepageSnapshot(location.origin), board },
       carries: [],
-      pointers: [],
+      pointers,
     };
     return new TableSession(
       'story',
@@ -186,4 +189,44 @@ export const SkinTreachery = meta.story({
 export const SkinTreacheryPlanet = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
   args: { presentation: 'play', board: arrakisBoardCapture, skin: 'treachery', planet: true },
+});
+
+/* Another seated player's hand over the middle of the table, as the room relays it. */
+/* The hands arrive with the lazy presence chunk after the table's first draw, measured at 11 s on a cold page. */
+const HAND_TIMEOUT = { timeout: 30_000 };
+const otherHand: RoomView['pointers'] = [
+  {
+    connectionId: 'alia',
+    viewerSeat: 'seat-1',
+    displayName: 'Alia',
+    color: '#5b3a8c',
+    position: [0, 0.38, 0],
+    updatedAt: Date.now(),
+  },
+];
+
+/** Another player's hand carries their name, as every viewer sees it unless they turn names off. */
+export const HandWithName = meta.story({
+  args: { presentation: 'play', pointers: otherHand },
+  beforeEach: () => {
+    setHandNames(true);
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Alia', {}, HAND_TIMEOUT)).resolves.toBeInTheDocument();
+  },
+});
+
+/** With "Names on pointers" off in the game menu, the hand stays and its name goes. */
+export const HandWithoutName = meta.story({
+  args: { presentation: 'play', pointers: otherHand },
+  beforeEach: () => {
+    setHandNames(false);
+    return () => setHandNames(true);
+  },
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.ownerDocument.body;
+    await waitFor(() => expect(body.querySelector('[data-table-hand="remote"]')).not.toBeNull(), HAND_TIMEOUT);
+    await expect(within(body).queryByText('Alia')).toBeNull();
+  },
 });

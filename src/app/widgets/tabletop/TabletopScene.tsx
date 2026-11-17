@@ -71,6 +71,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { tableCardFaceKey } from './cardFaceTexture';
 import { TABLE_FOCUS_ATTRIBUTE } from './focusTable';
+import { useHandNames } from './handNamesPreference';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekMarkerList } from './peekMarkers';
@@ -1171,6 +1172,7 @@ function SceneContents({
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
   useCanvasName();
+  const handNames = useHandNames();
 
   return (
     <>
@@ -1183,7 +1185,7 @@ function SceneContents({
       {presentation !== 'preview' && (
         <>
           <Suspense fallback={null}>
-            <ScenePresence showNames trackerSlots={trackerSlots} />
+            <ScenePresence showNames={handNames} trackerSlots={trackerSlots} />
             <ScenePings />
           </Suspense>
           <SceneCardDraws />
