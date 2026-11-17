@@ -7,7 +7,8 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
  * Who is allied with whom (#1007): public, as the rules make alliances public.
  * A faction offers an alliance to another;
  * once that faction accepts, the two are allied.
- * A faction is in one alliance at a time: it breaks the alliance before it offers or accepts another.
+ * A faction is in one alliance at a time. It may offer, and be offered, an alliance while in one (Norbert, 2026-11-17, #2978);
+ * accepting leaves both factions' current alliances and forms the new one.
  * The table checks only that the factions agreed, never when a Nexus is open, so players apply their ruleset as they do at a physical table.
  */
 export const allianceStateSchema = z.object({
@@ -74,23 +75,27 @@ function freeMark(state: AllianceState): number {
 /* The two factions an offer, an answer, a withdrawal or a break is about. */
 type Pair = Readonly<{ from: string; to: string }>;
 
-/** Allies the two factions, dropping every offer to or from either: neither may offer or accept another while allied. */
-function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
-  const members = [a, b];
+/** Takes a faction out of its alliance, if it has one; an alliance left with one faction is over. */
+function leave(state: AllianceState, factionId: string): AllianceState {
   return {
-    groups: [...state.groups, { members, mark: freeMark(state) }],
-    offers: state.offers.filter((offer) => !members.includes(offer.from) && !members.includes(offer.to)),
+    ...state,
+    groups: state.groups
+      .map((group) => ({ ...group, members: group.members.filter((member) => member !== factionId) }))
+      .filter((group) => group.members.length > 1),
   };
 }
 
-/* Refuses an offer or an accept while either faction is already in an alliance. */
-function requireUnallied(state: AllianceState, { from, to }: Pair) {
-  if (alliesOf(state, from).length) {
-    refuse('Break your alliance before you join another.');
-  }
-  if (alliesOf(state, to).length) {
-    refuse('That faction is already in an alliance.');
-  }
+/**
+ * Allies the two factions, each leaving the alliance it was in, and drops the offers between them.
+ * Other offers to or from either stay: an allied faction may still be offered, and may still offer, another alliance.
+ */
+function join(state: AllianceState, { from: a, to: b }: Pair): AllianceState {
+  const members = [a, b];
+  const left = leave(leave(state, a), b);
+  return {
+    groups: [...left.groups, { members, mark: freeMark(left) }],
+    offers: left.offers.filter((offer) => !(members.includes(offer.from) && members.includes(offer.to))),
+  };
 }
 
 function without(state: AllianceState, { from, to }: Pair): AllianceState {
@@ -120,7 +125,9 @@ function offer(
   if (to === factionId || !factions.includes(to)) {
     return refuse('Choose another faction at the table.');
   }
-  requireUnallied(state, { from: factionId, to });
+  if (alliesOf(state, factionId).includes(to)) {
+    return refuse('You are already allied with that faction.');
+  }
   /*
    * Only an explicit accept, which names the offer its player saw, answers an offer.
    * An offer back never does, so a late offer can't re-form an alliance broken since.
@@ -140,7 +147,6 @@ function accept(state: AllianceState, { factionId: from, offer }: Accept, { fact
   if (waitingOffer(state, pair)?.id !== offer) {
     return refuse('That alliance offer was withdrawn.');
   }
-  requireUnallied(state, { from: factionId, to: from });
   return join(state, pair);
 }
 
@@ -149,12 +155,7 @@ function breakAway(state: AllianceState, { from, to }: Pair): AllianceState {
   if (!alliesOf(state, from).includes(to)) {
     return refuse('That alliance has already changed.');
   }
-  return {
-    ...state,
-    groups: state.groups
-      .map((group) => ({ ...group, members: group.members.filter((member) => member !== from) }))
-      .filter((group) => group.members.length > 1),
-  };
+  return leave(state, from);
 }
 
 /** The alliances after one command; the Worker supplies who acts and which factions sit at the table. */

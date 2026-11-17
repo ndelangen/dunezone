@@ -59,7 +59,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
     <IconAction
       size={TILE[size]}
       label="Accept alliance"
-      tooltip="Accept their alliance offer."
+      tooltip="Accept their alliance offer. Any alliance either of you is in ends."
       icon={<MessageCircleQuestion size={QUESTION[size]} strokeWidth={2.5} />}
       intent="positive"
       emphasis="standard"
@@ -68,7 +68,6 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
     />
   ),
   outgoing: Offering,
-  taken: () => null,
   none: ({ blocked, send, size }) => (
     <IconAction
       size={TILE[size]}

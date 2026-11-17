@@ -1,11 +1,8 @@
 import { alliesOf } from '@shared/play/alliances';
 import type { AllianceAction, AllianceState } from '@shared/play/alliances';
 
-/**
- * How the viewer's faction stands with one faction at the table.
- * `taken` is a faction the viewer can't offer an alliance to, because one of the two is already allied.
- */
-export type Relation = 'ally' | 'incoming' | 'outgoing' | 'none' | 'taken';
+/** How the viewer's faction stands with one faction at the table; an alliance either side is in never stops an offer (#2978). */
+export type Relation = 'ally' | 'incoming' | 'outgoing' | 'none';
 
 export type AllianceCommandKind = 'alliance-offer' | 'alliance-withdraw' | 'alliance-accept' | 'alliance-break';
 
@@ -27,10 +24,6 @@ export function relationTo(alliances: AllianceState | undefined, own: string, fa
   }
   if (allies.includes(factionId)) {
     return 'ally';
-  }
-  /* A faction is in one alliance at a time, so while either side is allied there is nothing to offer or accept. */
-  if (allies.length || alliesOf(alliances, factionId).length) {
-    return 'taken';
   }
   if (hasOffer(alliances, factionId, own)) {
     return 'incoming';
