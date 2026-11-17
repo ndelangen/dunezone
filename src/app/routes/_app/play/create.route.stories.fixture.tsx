@@ -105,22 +105,20 @@ export const creatable = { ...signedIn, database: db(creatableDatabase) };
 
 /** The chosen ruleset offers one extra spice deck the creator may tick, as GF9's expansion spice cards will be (#2986). */
 export function withExtraSpiceDeck(baseline: StorybookDatabase) {
-  const card = baseline.assets.find((row) => row.type === 'card-spice')!;
+  /* A copy of the slotted deck under a new name, so its members and back are already ones the table takes. */
+  const slotted = baseline.ruleset_asset_slots.find((slot) => slot.slot === 'spice')!;
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const source = baseline.assets.find((row) => same(ref(row.$key!), slotted.asset_id))!;
   const extra = asset({
     type: 'deck',
-    data: {
-      name: 'Expansion spice cards',
-      about: 'Spice cards from the expansions.',
-      cardback: { mode: 'preset', key: 'spice' },
-    },
+    data: { ...(source.data as object), name: 'Expansion spice cards', about: 'Spice cards from the expansions.' },
   });
   baseline.assets.push(extra);
-  baseline.asset_relations.push({
-    from_asset_id: ref(extra.$key!),
-    to_asset_id: ref(card.$key!),
-    kind: 'deck-card',
-    count: 2,
-  });
+  baseline.asset_relations.push(
+    ...baseline.asset_relations
+      .filter((relation) => same(relation.from_asset_id, slotted.asset_id))
+      .map((relation) => ({ ...relation, from_asset_id: ref(extra.$key!) }))
+  );
   baseline.ruleset_asset_slots.push({
     ruleset_id: ref(baseline.rulesets[0]!.$key!),
     asset_id: ref(extra.$key!),
