@@ -24,14 +24,15 @@ const BAN = 'Ixians';
 
 /*
  * A button in the drafting list's row for a faction, by the button's own word. The row's name must be the faction's whole name,
- * so a search that also lists "Ixians (In Progress)" still finds the Ixians.
+ * before any " · Variant" after it, so a search that also lists "Ixians (In Progress)" still finds the Ixians.
  */
+const rowName = (name: Element) => name.textContent?.split(' ·')[0]?.trim();
 const draftButton =
   (faction: string, word: 'Draft' | 'Ban', linked = true) =>
   () => {
     const row = [...document.querySelectorAll('[data-drafting-panel] li')].find(
       (item) =>
-        [...item.querySelectorAll('p')].some((name) => name.textContent?.trim() === faction) &&
+        [...item.querySelectorAll('p')].some((name) => rowName(name) === faction) &&
         (!linked ||
           [...item.querySelectorAll('p')].some((note) => note.textContent?.trim() === 'suitable for this ruleset'))
     );
@@ -133,7 +134,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'suitability',
       task: 'Find a suitable faction',
       detail:
-        'Search starts with factions from your ruleset. The "suitable for this ruleset" label identifies those versions.\n\nA faction can appear more than once because people have made different versions. You can mix and match them, but drafting the same faction more than once gets confusing for players.\n\nWant something less conventional? Turn on Show all factions.',
+        'Search starts with factions from your ruleset, labelled "suitable for this ruleset".\n\nMany factions come in several variants, shown after the name. A game takes one variant of each faction, so once one is drafted, its other variants show "Drafted as …".\n\nWant something less conventional? Turn on Show all factions.',
       anchor: {
         kind: 'page',
         element: () => allFactionsSwitch()?.labels?.[0]?.querySelector('.mantine-Switch-track') ?? null,
@@ -164,7 +165,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'ban',
       task: `Ban the ${BAN}`,
-      detail: `Not keen on playing against the ${BAN}? Search for Ixians, then press Ban beside the version marked "suitable for this ruleset".\n\nA banned faction can't be dealt, even if another player drafts it.`,
+      detail: `Not keen on playing against the ${BAN}? Search for Ixians, then press Ban.\n\nA ban covers every variant of a faction, and a banned faction can't be dealt, even if another player drafts it.`,
       anchor: { kind: 'page', element: () => draftButton(BAN, 'Ban')() ?? search() },
       begin: () => undefined,
       done: () => {
@@ -223,6 +224,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 const learned = [
   'Search for a faction and check whether it suits the ruleset',
   'A full table drafts the factions it wants and bans the ones it doesn’t',
+  'A game takes one variant of each faction, and a ban covers all of them',
   'Once everyone is ready, each player is dealt a drafted faction and a seat at random',
   'For four minutes after the deal, two players can trade if both agree',
   'Trading ends once everyone is ready, and the setup begins',
