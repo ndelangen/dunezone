@@ -30,6 +30,7 @@ import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
 import type * as factionFamilies from "../factionFamilies.js";
 import type * as factionMerge from "../factionMerge.js";
+import type * as factionMergeMigrations from "../factionMergeMigrations.js";
 import type * as factionVariants from "../factionVariants.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
@@ -240,6 +241,7 @@ const fullApi: ApiFromModules<{
   e2e: typeof e2e;
   factionFamilies: typeof factionFamilies;
   factionMerge: typeof factionMerge;
+  factionMergeMigrations: typeof factionMergeMigrations;
   factionVariants: typeof factionVariants;
   factions: typeof factions;
   faq: typeof faq;
