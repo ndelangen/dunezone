@@ -97,7 +97,8 @@ function suppliedSnapshot(
   }
   table.pieces.push(
     ...slotPieces(ruleset.decks.treachery, 'shared', cardBaySlotPositions('left')[0]!),
-    ...slotPieces(ruleset.decks.spice, 'shared', cardBaySlotPositions('right')[0]!),
+    /* The creator's chosen extra spice decks shuffle into the one spice deck (#2986). */
+    ...slotPieces([ruleset.decks.spice, ...ruleset.decks.spiceExtras], 'shared', cardBaySlotPositions('right')[0]!),
     ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
       slotPieces(slot, 'shared')
     )
@@ -151,8 +152,14 @@ function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face
 }
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */
-function slotPieces(slot: SlotCapture | null, owner: string, position?: Vector3Tuple): StoredPiece[] {
-  const pieces = slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? [];
+function slotPieces(
+  slots: SlotCapture | null | readonly (SlotCapture | null)[],
+  owner: string,
+  position?: Vector3Tuple
+): StoredPiece[] {
+  const pieces = [slots]
+    .flat()
+    .flatMap((slot) => slot?.contents?.pieces.map((source) => copyPiece(source, owner)) ?? []);
   if (!position || !pieces.length) {
     return pieces;
   }

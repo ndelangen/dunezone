@@ -59,6 +59,8 @@ export type CreateGameDraft = {
   custom: boolean;
   customName: string;
   rulesetId: string;
+  /** The chosen ruleset's extra spice decks the creator ticked; a new ruleset starts with none (#2986). */
+  spiceExtras: readonly string[];
   minimumPlayers: number;
   lastTurn: number;
   discordVoice: boolean;
@@ -77,6 +79,7 @@ export const initialCreateGameDraft = (): CreateGameDraft => ({
   custom: false,
   customName: '',
   rulesetId: '',
+  spiceExtras: [],
   minimumPlayers: DEFAULT_TABLE_SEAT_COUNT,
   lastTurn: DEFAULT_LAST_TURN,
   discordVoice: false,
@@ -191,6 +194,7 @@ export function CreateGamePass({
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
+    ...(draft.spiceExtras.length ? { spiceExtras: draft.spiceExtras } : {}),
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
     discordVoice: discordVoiceAvailable && draft.discordVoice,
@@ -256,11 +260,19 @@ export function CreateGamePass({
                   check={rulesetCheck}
                   onRecheck={onRecheck}
                   value={draft.rulesetId}
-                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
+                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId, spiceExtras: [] } })}
                   disabled={pending}
                 />
                 {chosen && preview ? (
                   <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
+                ) : null}
+                {chosen && preview?.spiceExtras.length ? (
+                  <SpiceExtrasField
+                    decks={preview.spiceExtras}
+                    value={draft.spiceExtras}
+                    onChange={(spiceExtras) => dispatch({ kind: 'patch', update: { spiceExtras } })}
+                    disabled={pending}
+                  />
                 ) : null}
                 <Box mt="auto">
                   <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
@@ -318,6 +330,42 @@ export function CreateGamePass({
       </form>
       {departing ? <DepartureCover /> : null}
     </>
+  );
+}
+
+/* The ruleset's optional spice decks, one switch each; a ticked deck is shuffled into the spice deck at table setup (#2986). */
+function SpiceExtrasField({
+  decks,
+  value,
+  onChange,
+  disabled,
+}: Readonly<{
+  decks: readonly { id: string; name: string }[];
+  value: readonly string[];
+  onChange: (next: string[]) => void;
+  disabled: boolean;
+}>) {
+  return (
+    <Stack gap="xs">
+      <Eyebrow>Extra spice decks</Eyebrow>
+      {decks.map((deck) => (
+        <ControlBlock
+          key={deck.id}
+          title={deck.name}
+          description="Shuffled into the spice deck when the table is set up."
+          input={(field) => (
+            <Switch
+              {...field}
+              checked={value.includes(deck.id)}
+              onChange={(event) =>
+                onChange(event.currentTarget.checked ? [...value, deck.id] : value.filter((entry) => entry !== deck.id))
+              }
+              disabled={disabled}
+            />
+          )}
+        />
+      ))}
+    </Stack>
   );
 }
 

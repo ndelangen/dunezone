@@ -2,7 +2,7 @@ import { isPublicationAssetType } from '@shared/asset-publishing/publicationTarg
 import type { within } from 'storybook/test';
 import { expect, userEvent, waitFor } from 'storybook/test';
 
-import { db, ref, refText, ruleset, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
+import { asset, db, ref, refText, ruleset, SEED_REF_TOKEN, storybookViewer } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { factions, productDatabase } from './product.stories.fixture';
@@ -102,6 +102,32 @@ export function creatableDatabase(baseline: StorybookDatabase) {
 }
 
 export const creatable = { ...signedIn, database: db(creatableDatabase) };
+
+/** The chosen ruleset offers one extra spice deck the creator may tick, as GF9's expansion spice cards will be (#2986). */
+export function withExtraSpiceDeck(baseline: StorybookDatabase) {
+  const card = baseline.assets.find((row) => row.type === 'card-spice')!;
+  const extra = asset({
+    type: 'deck',
+    data: {
+      name: 'Expansion spice cards',
+      about: 'Spice cards from the expansions.',
+      cardback: { mode: 'preset', key: 'spice' },
+    },
+  });
+  baseline.assets.push(extra);
+  baseline.asset_relations.push({
+    from_asset_id: ref(extra.$key!),
+    to_asset_id: ref(card.$key!),
+    kind: 'deck-card',
+    count: 2,
+  });
+  baseline.ruleset_asset_slots.push({
+    ruleset_id: ref(baseline.rulesets[0]!.$key!),
+    asset_id: ref(extra.$key!),
+    slot: 'spiceExtras',
+  });
+  publishEverything(baseline);
+}
 
 export async function chooseRuleset(page: ReturnType<typeof within>) {
   await userEvent.click(await page.findByRole('combobox', { name: 'Ruleset' }, { timeout: 30_000 }));

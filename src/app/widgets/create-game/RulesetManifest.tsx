@@ -17,6 +17,7 @@ const SLOT_LABELS: Record<RulesetAssetSlot, string> = {
   board: 'Board',
   treachery: 'Treachery deck',
   spice: 'Spice deck',
+  spiceExtras: 'Extra spice deck',
   techToken: 'Tech tokens',
   custom: 'Custom deck',
   customTokens: 'Custom tokens',

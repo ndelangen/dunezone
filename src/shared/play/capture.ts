@@ -158,6 +158,8 @@ export const rulesetCaptureSchema = z.object({
   decks: z.object({
     treachery: slotCaptureSchema.nullable(),
     spice: slotCaptureSchema.nullable(),
+    /* The extra spice decks the game's creator chose, shuffled into the spice deck at setup; absent from games retained before them (#2986). */
+    spiceExtras: z.array(slotCaptureSchema).default([]),
     custom: z.array(slotCaptureSchema),
   }),
   bundles: z.object({

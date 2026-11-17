@@ -578,6 +578,7 @@ const assetSlotValidator = v.union(
   v.literal('board'),
   v.literal('treachery'),
   v.literal('spice'),
+  v.literal('spiceExtras'),
   v.literal('custom'),
   v.literal('techToken'),
   v.literal('customTokens')

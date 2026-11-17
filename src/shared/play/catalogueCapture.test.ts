@@ -122,6 +122,30 @@ describe('playReadiness', () => {
     ]);
   });
 
+  it('retains only the extra spice decks the creator ticked, while readiness judges every one (#2986)', async () => {
+    const extra = (name: string) => ({ slot: 'spiceExtras', asset: { id: name, slug: name, name, type: 'deck' } });
+    const reads = catalogue({
+      rulesets: {
+        gf9: {
+          ruleset: { id: 'gf9', slug: 'gf9', name: 'GF9' },
+          board: arrakisBoardCapture,
+          slots: [extra('Expansion'), extra('Homebrew')],
+        },
+      },
+    });
+    const ticked = await reads.captureRuleset('gf9', { spiceExtras: ['Expansion'] });
+    expect(ticked.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['Expansion']);
+    const none = await reads.captureRuleset('gf9');
+    expect(none.decks.spiceExtras).toEqual([]);
+    const [ruleset] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, []);
+    expect(ruleset?.problems.map((problem) => problem.subject)).toEqual([
+      'Treachery deck',
+      'Spice deck',
+      'Extra spice decks: Expansion',
+      'Extra spice decks: Homebrew',
+    ]);
+  });
+
   it('turns a refused ruleset or faction into its one problem, so the rest is still judged', async () => {
     const report = await playReadiness(
       catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } }),

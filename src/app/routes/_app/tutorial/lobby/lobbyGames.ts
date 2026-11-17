@@ -76,6 +76,7 @@ export const initialLobbyDraft = (): CreateGameDraft => ({
   custom: false,
   customName: '',
   rulesetId: '',
+  spiceExtras: [],
   minimumPlayers: DEFAULT_TABLE_SEAT_COUNT,
   lastTurn: DEFAULT_LAST_TURN,
   discordVoice: false,

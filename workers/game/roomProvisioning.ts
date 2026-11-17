@@ -36,7 +36,10 @@ export type ProvisioningHost = {
   readonly env: Parameters<typeof isLocalIsolatedRuntime>[0];
   convex(): ReturnType<typeof gameHttpClient>;
   catalogue(): GameCatalogue;
-  retainRulesetCapture(rulesetId: string, options: { provisional?: boolean }): Promise<unknown>;
+  retainRulesetCapture(
+    rulesetId: string,
+    options: { provisional?: boolean; spiceExtras?: readonly string[] }
+  ): Promise<unknown>;
   advanceDeadlines(): void;
   /** The opening summary waited for confirmation: only a confirmed game is listed. */
   directoryChanged(): void;
@@ -195,6 +198,7 @@ export class RoomProvisioning {
     try {
       await this.room.retainRulesetCapture(validation.game.rulesetId, {
         provisional: validation.provisional === true,
+        spiceExtras: validation.game.spiceExtras ?? [],
       });
       return true;
     } catch (error) {
