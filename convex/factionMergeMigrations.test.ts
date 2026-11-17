@@ -27,8 +27,8 @@ async function duplicatesFixture() {
 
 describe('merging production’s duplicate factions (#2915)', () => {
   test('lists each moving variant under a GF9 variant that does not move itself', () => {
-    const moving = new Set(Object.keys(DUPLICATE_MERGES));
-    expect(Object.values(DUPLICATE_MERGES).filter((parent) => moving.has(parent))).toEqual([]);
+    const moving = new Set(DUPLICATE_MERGES.keys());
+    expect([...DUPLICATE_MERGES.values()].filter((parent) => moving.has(parent))).toEqual([]);
     expect(moving.size).toBe(22);
   });
 
@@ -46,5 +46,6 @@ describe('merging production’s duplicate factions (#2915)', () => {
     await f.t.mutation(internal.factionMergeMigrations.faction_duplicates_merge_v1, { reset: true });
     await f.t.finishAllScheduledFunctions(() => {});
     expect(await f.row(f.duplicate._id)).toEqual(moved);
+    expect(await f.t.run(async (ctx) => await ctx.db.get('faction_families', f.duplicateFamilyId))).toEqual(retired);
   });
 });

@@ -20,30 +20,30 @@ const migrations = new Migrations(components.migrations, {
 });
 
 /** Each moving variant's address, and the address of the GF9 variant it joins under; it keeps its name, which is its ruleset. */
-export const DUPLICATE_MERGES: Readonly<Record<string, string>> = {
-  'atreides-1-gf9-2-0': 'atreides-gf9',
-  'house-atreides-dreamrules': 'atreides-gf9',
-  'house-atreides-kiss-kiss': 'atreides-gf9',
-  'harkonnen-1-gf9-2-0': 'harkonnen-gf9',
-  'house-harkonnen-dreamrules': 'harkonnen-gf9',
-  'house-harkonnen-kiss-kiss': 'harkonnen-gf9',
-  'emperor-3-gf9-2-0': 'emperor-2-gf9',
-  'emperor-dreamrules': 'emperor-2-gf9',
-  'emperor-1-kiss': 'emperor-2-gf9',
-  'fremen-3-gf9-2-0': 'fremen-2-gf9',
-  'fremen-dreamrules': 'fremen-2-gf9',
-  'fremen-1-kiss': 'fremen-2-gf9',
-  'spacing-guild-3-gf9-2-0': 'spacing-guild-2-gf9',
-  'spacing-guild-dreamrules': 'spacing-guild-2-gf9',
-  'spacing-guild-1-kiss': 'spacing-guild-2-gf9',
-  'bene-gesserit-2-gf9-2-0': 'bene-gesserit-1-gf9',
-  'bene-gesserit-dreamrules': 'bene-gesserit-1-gf9',
-  'bene-tleilax-dreamrules': 'tleilaxu-gf9',
-  'bene-tleilax-kiss-kiss': 'tleilaxu-gf9',
-  'ixians-dreamrules': 'ixians-1-gf9',
-  'ecaz-ecaz-moritani-dreamrules': 'ecaz-gf9',
-  'moritani-ecaz-moritani-dreamrules': 'moritani-gf9',
-};
+export const DUPLICATE_MERGES: ReadonlyMap<string, string> = new Map([
+  ['atreides-1-gf9-2-0', 'atreides-gf9'],
+  ['house-atreides-dreamrules', 'atreides-gf9'],
+  ['house-atreides-kiss-kiss', 'atreides-gf9'],
+  ['harkonnen-1-gf9-2-0', 'harkonnen-gf9'],
+  ['house-harkonnen-dreamrules', 'harkonnen-gf9'],
+  ['house-harkonnen-kiss-kiss', 'harkonnen-gf9'],
+  ['emperor-3-gf9-2-0', 'emperor-2-gf9'],
+  ['emperor-dreamrules', 'emperor-2-gf9'],
+  ['emperor-1-kiss', 'emperor-2-gf9'],
+  ['fremen-3-gf9-2-0', 'fremen-2-gf9'],
+  ['fremen-dreamrules', 'fremen-2-gf9'],
+  ['fremen-1-kiss', 'fremen-2-gf9'],
+  ['spacing-guild-3-gf9-2-0', 'spacing-guild-2-gf9'],
+  ['spacing-guild-dreamrules', 'spacing-guild-2-gf9'],
+  ['spacing-guild-1-kiss', 'spacing-guild-2-gf9'],
+  ['bene-gesserit-2-gf9-2-0', 'bene-gesserit-1-gf9'],
+  ['bene-gesserit-dreamrules', 'bene-gesserit-1-gf9'],
+  ['bene-tleilax-dreamrules', 'tleilaxu-gf9'],
+  ['bene-tleilax-kiss-kiss', 'tleilaxu-gf9'],
+  ['ixians-dreamrules', 'ixians-1-gf9'],
+  ['ecaz-ecaz-moritani-dreamrules', 'ecaz-gf9'],
+  ['moritani-ecaz-moritani-dreamrules', 'moritani-gf9'],
+]);
 
 async function liveVariantAt(ctx: Pick<QueryCtx, 'db'>, slug: string) {
   const rows = await ctx.db
@@ -65,7 +65,7 @@ export const faction_duplicates_merge_v1 = migrations.define({
   /* One merge per transaction: each stores the variant and schedules its branch and reference rewrites. */
   batchSize: 1,
   migrateOne: async (ctx, row) => {
-    const parentSlug = DUPLICATE_MERGES[row.slug];
+    const parentSlug = DUPLICATE_MERGES.get(row.slug);
     if (!parentSlug || row.is_deleted) {
       return;
     }
