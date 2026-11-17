@@ -138,10 +138,12 @@ function HandLabel({
       <HandAvatar color={color} avatarUrl={avatarUrl} />
       {displayName && (
         <span
+          /* The name reads in the glass's own text colour whatever the faction colour (#2993); the colour stays in the edge. */
           style={{
-            color,
+            color: 'var(--color-text)',
             background: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
             border: `1px solid ${color}`,
+            borderLeftWidth: 4,
             borderRadius: 4,
             padding: '2px 5px',
             fontFamily: 'system-ui, sans-serif',
