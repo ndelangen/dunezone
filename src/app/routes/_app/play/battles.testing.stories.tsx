@@ -762,3 +762,15 @@ export const BuildUpAndClaims = meta.story({
     ),
   ],
 });
+
+/* The hint opens the Battle plan, and goes once it is open (#2984). */
+export const PlannerHintOpensPlan = meta.story({
+  beforeEach: install(() => productTransport('seat-2', battleStory('preparing'))),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Hand');
+    const hand = within(windowNamed(page, 'Hand')!);
+    await userEvent.click(await hand.findByRole('button', { name: 'Open battle plan' }, WAIT));
+    await waitFor(() => expect(windowNamed(page, 'Battle plan')).toBeVisible(), WAIT);
+    await waitFor(() => expect(page.queryAllByRole('button', { name: 'Open battle plan' })).toHaveLength(0));
+  },
+});

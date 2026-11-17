@@ -5,6 +5,7 @@ import { expect, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
+import { openPanel, windowNamed } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { settled } from './playing.stories.fixture';
 
@@ -114,5 +115,19 @@ export const MarkerOutlinesItsTerritory = meta.story({
         hold: true,
       }
     );
+  },
+});
+
+/**
+ * With the Battle plan closed, a player on a side finds it again from the Hand and from the battle on the table (#2984).
+ * Opening the Hand puts the planner away, as the centre holds one window.
+ */
+export const PlannerClosedHints = meta.story({
+  beforeEach: battleSetup('preparing'),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Hand');
+    const hand = within(windowNamed(page, 'Hand')!);
+    await settled(() => expect(hand.getByRole('button', { name: 'Open battle plan' })).toBeVisible());
+    await expect(page.getAllByRole('button', { name: 'Open battle plan' })).toHaveLength(2);
   },
 });

@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
@@ -42,6 +42,8 @@ export type CompassControlsProps = Readonly<{
   onView: (view: TableView) => void;
   /** The window an event asks for (a battle, the end of the game, a phase with a panel of its own), once per token. */
   focus?: Readonly<{ key: string; token: string; placement?: 'centre' }> | null;
+  /** Hears which windows are open, as their keys, whenever that changes: the table hints at a closed window it needs. */
+  onOpenWindows?: (keys: readonly string[]) => void;
 }>;
 
 /*
@@ -124,12 +126,26 @@ function useFocusedWindow(
   }
 }
 
+/* Tells the table which windows are open, once per change, so a hint elsewhere can offer a closed one. */
+function useOpenWindowsReport(
+  windows: readonly TableWindow[],
+  isOpen: (key: string) => boolean,
+  report: ((keys: readonly string[]) => void) | undefined
+) {
+  const keys = windows.filter((entry) => isOpen(entry.key)).map((entry) => entry.key);
+  const joined = keys.join('\n');
+  useEffect(() => {
+    report?.(joined ? joined.split('\n') : []);
+  }, [joined, report]);
+}
+
 function Controls({
   rootRef,
   inert,
   panels,
   onView,
   focus,
+  onOpenWindows,
 }: Omit<CompassControlsProps, 'scene' | 'overlay' | 'header' | 'camera'> &
   Readonly<{ rootRef: RefObject<HTMLDivElement | null> }>) {
   const table = useContext(CompassTableContext);
@@ -148,6 +164,7 @@ function Controls({
   /* A centre focus opens a closed window in the centre and brings one already open forward, never closing it. */
   const centre = (key: string) => (opened.isOpen(key) ? opened.reveal(key) : opened.show(key));
   useFocusedWindow(focus, windows, focus?.placement === 'centre' ? centre : opened.reveal, active);
+  useOpenWindowsReport(windows, opened.isOpen, active ? onOpenWindows : undefined);
   /* The cheat sheet goes away as it came, by ? or the bar's button, from the centre or a slot alike. */
   const sheetSide = SIDES.find((side) => opened.slots[side]?.key === KEYBOARD_SHORTCUTS);
   const toggleSheet = windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)

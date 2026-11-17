@@ -105,6 +105,8 @@ type GameTableProps = {
   panels?: readonly TablePanel[];
   /** A window to open once per token, as a battle opens on the viewer's side; the player can close it and it stays closed. */
   focus?: Readonly<{ key: string; token: string }> | null;
+  /** Hears which windows are open, by key, as that changes. */
+  onOpenWindows?: (keys: readonly string[]) => void;
   /** Sections the host adds to the Table panel, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** What the Table panel's (?) says about it: play's Phase panel explains the phase. */
@@ -758,6 +760,7 @@ export function GameTable({
   readOnly = false,
   panels,
   focus,
+  onOpenWindows,
   tableControls,
   tableGuidance,
   gameMenu,
@@ -898,6 +901,7 @@ export function GameTable({
                 })}
                 onView={selectView}
                 focus={focus}
+                onOpenWindows={onOpenWindows}
               />
             </div>
           </DarkSchemeIsland>

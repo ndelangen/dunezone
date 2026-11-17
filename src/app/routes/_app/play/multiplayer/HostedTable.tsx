@@ -73,6 +73,7 @@ import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
+import { BattlePlanHint, BattlePlanOpenerContext } from './BattlePlanHint';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { useChatSounds } from './chatSounds';
@@ -355,7 +356,15 @@ function handPanels({ client, table }: TableControlProps) {
     return [];
   }
   return [
-    { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
+    {
+      ...PANEL_WINDOWS.hand,
+      content: (
+        <Stack gap="xs">
+          <BattlePlanHint />
+          <ConnectedHandPanel client={client} table={table} hand={hand} />
+        </Stack>
+      ),
+    },
     {
       ...PANEL_WINDOWS.sideTable,
       content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
@@ -406,6 +415,17 @@ function yoursGroup({
         : []),
     ],
   };
+}
+
+/* The Battle plan panel is there to open: in play, during a battle or the battle phase, for a player who acts. */
+function battlePlanCanOpen(table: TableProjection) {
+  const { battle, stage } = table.snapshot;
+  return (
+    offersActions(table) &&
+    !isSpectator(table) &&
+    stageInPlay(stage) &&
+    Boolean(battle || gameProgress(table.snapshot).activePhaseId === 'battle')
+  );
 }
 
 /** GameTable supplies the stage and phase controls beside these game actions. */
@@ -748,6 +768,9 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
+  const [openWindows, setOpenWindows] = useState<readonly string[]>([]);
+  const battlePlanOpener =
+    battlePlanCanOpen(table) && !openWindows.includes('battle') ? () => openWindow('battle') : null;
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -763,81 +786,86 @@ function ConnectedTable({
   );
   return (
     <PredictionEmblemsContext value={predictionEmblems}>
-      <TabletopSessionProvider session={client}>
-        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
-        <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-          <CompassTableContext value={compassTable}>
-            <GameTable
-              readOnly={readOnly}
-              onSceneReady={onReady}
-              waitControls={exitControl}
-              seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-              tableProgress={progress}
-              stage={stage}
-              mapVisible={setupMapVisible(table.snapshot.setup)}
-              connectionStatus={<ConnectionStatus table={table} />}
-              alliances={<AllianceStrip table={table} />}
-              techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({
-                client,
-                table,
-                error,
-                bidderFaded,
-                onBidderFadedChange: setBidderFaded,
-                onOpenRecall: () => openWindow('review'),
-                onOpenAlliances: () => openWindow('alliances'),
-              })}
-              /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-              requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
-              highlightTerritory={markerTerritory}
-              sceneContent={
-                <>
-                  {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
-                  {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-                </>
-              }
-              gameMenu={
-                <HostedGameMenu
-                  voice={voice}
-                  client={client}
-                  table={table}
-                  identity={identity}
-                  error={error}
-                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                />
-              }
-              stageStatus={stageStatus({ client, table, identity })}
-              phaseTurns={<PhaseTurns client={client} table={table} />}
-              stageOverlay={
-                stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
-              }
-              panelContent={
-                stage === 'drafting' && !isSpectator(table) ? (
-                  <DraftingPanel client={client} table={table} error={error} />
-                ) : undefined
-              }
-              focus={focus}
-              panels={controlPanels({
-                client,
-                table: normal,
-                error,
-                declare,
-                tracker,
-                report: { enabled: reportsEnabled, content: bugReport },
-              })}
-              tableGuidance={phaseGuidance(table)}
-              tableControls={phaseTabControls({ client, table, error, progress })}
-            />
-          </CompassTableContext>
-          {tracker ? (
-            <Suspense fallback={null}>
-              <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
-            </Suspense>
-          ) : null}
-        </div>
-      </TabletopSessionProvider>
+      <BattlePlanOpenerContext value={battlePlanOpener}>
+        <TabletopSessionProvider session={client}>
+          {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
+          <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
+            {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
+            <CompassTableContext value={compassTable}>
+              <GameTable
+                readOnly={readOnly}
+                onSceneReady={onReady}
+                waitControls={exitControl}
+                seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+                tableProgress={progress}
+                stage={stage}
+                mapVisible={setupMapVisible(table.snapshot.setup)}
+                connectionStatus={<ConnectionStatus table={table} />}
+                alliances={<AllianceStrip table={table} />}
+                techTokens={<TechTokenStrip table={table} />}
+                toolbarControl={stageToolbar({
+                  client,
+                  table,
+                  error,
+                  bidderFaded,
+                  onBidderFadedChange: setBidderFaded,
+                  onOpenRecall: () => openWindow('review'),
+                  onOpenAlliances: () => openWindow('alliances'),
+                })}
+                /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
+                requestedView={
+                  table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined
+                }
+                showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+                highlightTerritory={markerTerritory}
+                sceneContent={
+                  <>
+                    {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
+                    {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                  </>
+                }
+                gameMenu={
+                  <HostedGameMenu
+                    voice={voice}
+                    client={client}
+                    table={table}
+                    identity={identity}
+                    error={error}
+                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                  />
+                }
+                stageStatus={stageStatus({ client, table, identity })}
+                phaseTurns={<PhaseTurns client={client} table={table} />}
+                stageOverlay={
+                  stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+                }
+                panelContent={
+                  stage === 'drafting' && !isSpectator(table) ? (
+                    <DraftingPanel client={client} table={table} error={error} />
+                  ) : undefined
+                }
+                focus={focus}
+                onOpenWindows={setOpenWindows}
+                panels={controlPanels({
+                  client,
+                  table: normal,
+                  error,
+                  declare,
+                  tracker,
+                  report: { enabled: reportsEnabled, content: bugReport },
+                })}
+                tableGuidance={phaseGuidance(table)}
+                tableControls={phaseTabControls({ client, table, error, progress })}
+              />
+            </CompassTableContext>
+            {tracker ? (
+              <Suspense fallback={null}>
+                <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+              </Suspense>
+            ) : null}
+          </div>
+        </TabletopSessionProvider>
+      </BattlePlanOpenerContext>
     </PredictionEmblemsContext>
   );
 }
