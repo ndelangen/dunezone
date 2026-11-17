@@ -167,7 +167,16 @@ describe('the public log', () => {
       message: command({ kind: 'alliance-break', factionId: 'fremen' }),
       viewer: viewer as never,
     });
+    /* Accepting a new alliance ends the one either faction was in, and the log says so (#2978). */
+    log.recordCommit({
+      holders: [],
+      before: at(4, [['house', 'fremen']]),
+      next: at(5, [['guild', 'fremen']]),
+      message: command({ kind: 'alliance-accept', factionId: 'guild', offer: 4 }),
+      viewer: viewer as never,
+    });
     expect(log.page('game', Number.MAX_SAFE_INTEGER).entries.map((entry) => entry.text)).toEqual([
+      'Guild and Fremen are now allied. The alliance of House and Fremen ended.',
       'House broke its alliance with Fremen.',
       'House and Fremen are now allied.',
     ]);

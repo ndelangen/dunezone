@@ -1,0 +1,108 @@
+import { viewerChoice } from './viewerPreference';
+
+/*
+ * The table's sounds, made in the browser so they need no file, all through one volume this viewer sets in the game menu
+ * (Norbert, 2026-11-17, #2982). A page that has had no click or key yet may not play sound, as browsers allow; it stays silent.
+ */
+
+export const TABLE_VOLUME_MAX = 1;
+const volume = viewerChoice<number>('dunezone-table-volume', {
+  parse: (stored) => {
+    const number = stored === null ? Number.NaN : Number(stored);
+    return Number.isFinite(number) ? Math.min(TABLE_VOLUME_MAX, Math.max(0, number)) : 0.7;
+  },
+  serialize: String,
+  fallback: 0.7,
+});
+
+let audio: { context: AudioContext; output: GainNode } | null = null;
+
+/** Sets this viewer's volume; a sound already playing follows it at once, down to silence. */
+export function setTableVolume(next: number) {
+  const level = Math.min(TABLE_VOLUME_MAX, Math.max(0, next));
+  volume.set(level);
+  if (audio) {
+    audio.output.gain.value = level;
+  }
+}
+/** This viewer's sound volume, from 0 (muted) to TABLE_VOLUME_MAX. */
+export const useTableVolume = volume.use;
+
+/** The running audio context and its output at this viewer's volume, or null while sound can't play or is muted. */
+export function tableAudio(): { context: AudioContext; output: AudioNode } | null {
+  try {
+    const level = volume.read();
+    if (level <= 0) {
+      return null;
+    }
+    if (!audio) {
+      const context = new AudioContext();
+      const output = context.createGain();
+      output.connect(context.destination);
+      audio = { context, output };
+    }
+    if (audio.context.state !== 'running') {
+      /* A suspended context keeps its clock still, so tones scheduled now would all sound at once when it starts: this one stays silent. */
+      void audio.context.resume().catch(() => undefined);
+      return null;
+    }
+    /* One output for every sound, at the volume as it is now. */
+    audio.output.gain.value = level;
+    return audio;
+  } catch {
+    /* A browser without Web Audio stays silent. */
+    return null;
+  }
+}
+
+type Note = Readonly<{ frequency: number; at: number; peak: number; decay: number }>;
+
+/* Soft sine notes with a gentle attack, so none of them startles. */
+function playNotes(notes: readonly Note[]) {
+  const sound = tableAudio();
+  if (!sound) {
+    return;
+  }
+  const { context, output } = sound;
+  const start = context.currentTime + 0.01;
+  for (const { frequency, at, peak, decay } of notes) {
+    const time = start + at;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, time);
+    gain.gain.setValueAtTime(0.0001, time);
+    gain.gain.exponentialRampToValueAtTime(peak, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+    oscillator.connect(gain).connect(output);
+    oscillator.start(time);
+    oscillator.stop(time + decay + 0.05);
+  }
+}
+
+/** The sounds the table makes besides pings: a reminder to ready up, and new chat messages by where they were written. */
+export type TableSound = 'ready' | 'chat-table' | 'chat-ally' | 'chat-other';
+
+const SOUNDS: Readonly<Record<TableSound, readonly Note[]>> = {
+  /* Two rising notes: the table waits on you. */
+  ready: [
+    { frequency: 660, at: 0, peak: 0.12, decay: 0.35 },
+    { frequency: 990, at: 0.16, peak: 0.12, decay: 0.5 },
+  ],
+  /* One low, short blip for the table's chat. */
+  'chat-table': [{ frequency: 740, at: 0, peak: 0.07, decay: 0.22 }],
+  /* Two quick falling notes for your ally. */
+  'chat-ally': [
+    { frequency: 1046, at: 0, peak: 0.08, decay: 0.2 },
+    { frequency: 784, at: 0.09, peak: 0.08, decay: 0.28 },
+  ],
+  /* Two quick rising notes for a one-to-one chat with any other faction. */
+  'chat-other': [
+    { frequency: 587, at: 0, peak: 0.08, decay: 0.2 },
+    { frequency: 880, at: 0.09, peak: 0.08, decay: 0.28 },
+  ],
+};
+
+export function playTableSound(sound: TableSound) {
+  playNotes(SOUNDS[sound]);
+}

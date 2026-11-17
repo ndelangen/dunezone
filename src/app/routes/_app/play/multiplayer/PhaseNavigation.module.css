@@ -20,3 +20,20 @@
     translate: 0 6px;
   }
 }
+
+/* The table waits on this viewer (#2980): the Ready button glows three times, or holds a ring when motion is off. */
+.flash {
+  animation: ready-flash 900ms ease-in-out 3;
+}
+
+.waiting {
+  outline: 2px solid var(--mantine-color-cta-filled);
+  outline-offset: 2px;
+}
+
+@keyframes ready-flash {
+  50% {
+    box-shadow: 0 0 0 6px rgb(from var(--mantine-color-cta-filled) r g b / 0.45);
+    filter: brightness(1.25);
+  }
+}

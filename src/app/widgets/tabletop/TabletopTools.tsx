@@ -23,6 +23,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
   const deleteControls = useTabletopSelector((table) => (pieceMenu ? table.deleteControls : undefined));
   const handControls = useTabletopSelector((table) => (pieceMenu ? table.handControls : undefined));
+  const allianceControls = useTabletopSelector((table) => (pieceMenu ? table.allianceControls : undefined));
   const menuPieceReserved = useTabletopSelector((table) =>
     pieceMenu ? table.reservedPieceIds.has(pieceMenu.pieceId) : false
   );
@@ -36,7 +37,15 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const hub = spice ? 'Spice' : deck ? `${count} card${count === 1 ? '' : 's'}` : 'Token';
   const actions = pieceMenuActions(
     menuPiece,
-    { deckControls, spiceReserveControls, spiceBlowControls, peekControls, deleteControls, handControls },
+    {
+      deckControls,
+      spiceReserveControls,
+      spiceBlowControls,
+      peekControls,
+      deleteControls,
+      handControls,
+      allianceControls,
+    },
     { reserved: menuPieceReserved, onClose }
   );
   /* A leader or a tech token may offer only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
@@ -116,9 +125,9 @@ export function TabletopTools({
           className={keyboardActionsClassName}
           icon={<Ellipsis size={16} />}
           onClick={(event) => {
-            const { state } = readTable();
+            const { state, allianceControls: alliances } = readTable();
             const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-            if (!piece || !pieceHasMenu(piece)) {
+            if (!piece || !pieceHasMenu(piece, alliances)) {
               return;
             }
             const bounds = event.currentTarget.getBoundingClientRect();

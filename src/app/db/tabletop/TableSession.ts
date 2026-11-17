@@ -1,9 +1,12 @@
 import { tableHandlingOpen } from '@shared/play/admission';
+import { allianceAction, relationTo } from '@shared/play/alliances';
+import type { AllianceCommandKind } from '@shared/play/alliances';
 import type { BattlePlanInput } from '@shared/play/battle';
 import { factionOfToken, factionTokenPieceUnder, factionTokenSeenOver } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
+import { isFactionToken } from '@shared/play/factionToken';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
@@ -25,7 +28,7 @@ import type {
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
-import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
+import { CARRY_FLIPS_LIMIT, rosterSeat, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
@@ -614,6 +617,7 @@ export class TableSession {
       spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
+      allianceControls: undefined,
       deleteControls: undefined,
       peek: null,
       peekControls: undefined,
@@ -737,6 +741,7 @@ export class TableSession {
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
       handControls: this.handControls(canHandleTable),
+      allianceControls: this.allianceControls(canInteract, displayed),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -866,6 +871,31 @@ export class TableSession {
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete') ? this.removal : undefined;
+  }
+  private allying: Cached<NonNullable<TableProjection['allianceControls']>> | undefined;
+  /* The alliance action on a faction token, for a seated faction at the live table in play (#2978). */
+  private allianceControls(canInteract: boolean, displayed: GameSnapshot): TableProjection['allianceControls'] {
+    const own = rosterSeat(displayed.roster, this.viewer!.viewerSeat)?.faction?.id;
+    if (!canInteract || this.history || displayed.stage !== 'play' || !own) {
+      return undefined;
+    }
+    const alliances = displayed.alliances;
+    const factionOf = (pieceId: string) =>
+      factionOfToken(this.snapshot.table.pieces.find((piece) => piece.id === pieceId && isFactionToken(piece)));
+    this.allying = cachedBy(this.allying, [alliances, own], () => ({
+      relation: (pieceId) => {
+        const factionId = factionOf(pieceId);
+        return factionId ? relationTo(alliances, own, factionId) : null;
+      },
+      act: (pieceId, kind: AllianceCommandKind) => {
+        const factionId = factionOf(pieceId);
+        const action = factionId && allianceAction(alliances, kind, own, factionId);
+        if (action) {
+          this.command(action);
+        }
+      },
+    }));
+    return this.allying.value;
   }
   private handControls(canHandleTable: boolean): TableProjection['handControls'] {
     return canHandleTable && this.subscription.supportsCommand('hand-take') ? this.taking : undefined;

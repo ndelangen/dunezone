@@ -37,6 +37,7 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { setTableVolume, TABLE_VOLUME_MAX, useTableVolume } from '../../../../widgets/tabletop/tableSounds';
 import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
@@ -305,6 +306,30 @@ function TableLightingSlider() {
   );
 }
 
+/* How loud the table's sounds play for this viewer, pings, chat and the Ready reminder alike; 0 mutes them (#2982). */
+function TableVolumeSlider() {
+  const volume = useTableVolume();
+  const labelId = useId();
+  const percent = (value: number) => (value === 0 ? 'Muted' : `${Math.round(value * 100)}%`);
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Sound volume
+      </Text>
+      <Slider
+        thumbLabel="Sound volume"
+        thumbValueText={percent}
+        min={0}
+        max={TABLE_VOLUME_MAX}
+        step={0.05}
+        value={volume}
+        onChange={setTableVolume}
+        label={percent}
+      />
+    </Stack>
+  );
+}
+
 /*
  * How fast this viewer's pan keys slide the view; it stays in this browser and never reaches the game.
  * The slider runs on a log scale, so halving and doubling the speed are the same distance either side of the table's own.
@@ -452,6 +477,7 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <TableVolumeSlider />
         <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
