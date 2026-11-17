@@ -99,3 +99,25 @@ test('a face-up spice card offers its spice first, and on a pile keeps the pile�
   expect(lone[0]).toBe('Place 8 spice on Broken Land');
   expect(lone).not.toContainEqual(expect.stringMatching(/^Peek/));
 });
+
+test('another faction’s token opens a ring led by the viewer’s alliance action, which sends it (#2978)', () => {
+  const token: TablePiece = {
+    ...pieces.find((piece) => piece.kind === 'force')!,
+    id: 'fremen-token',
+    stackKey: 'faction-token:fremen',
+  };
+  expect(pieceHasMenu(token)).toBe(true);
+  const act = vi.fn();
+  const relations = { 'fremen-token': 'none' } as const;
+  const menu: MenuControls = {
+    ...controls(() => false),
+    allianceControls: { relation: (pieceId) => relations[pieceId as keyof typeof relations] ?? null, act },
+  };
+  const [first] = pieceMenuActions(token, menu, { reserved: false, onClose: () => {} });
+  expect(first?.label).toBe('Offer alliance');
+  first?.onSelect?.();
+  expect(act).toHaveBeenCalledWith('fremen-token', 'alliance-offer');
+  /* The viewer's own token has no relation, so no alliance action. */
+  const own = { ...token, id: 'own-token' };
+  expect(labels(own, menu)).not.toContain('Offer alliance');
+});

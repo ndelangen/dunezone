@@ -784,6 +784,7 @@ function ConnectedTable({
                 bidderFaded,
                 onBidderFadedChange: setBidderFaded,
                 onOpenRecall: () => openWindow('review'),
+                onOpenAlliances: () => openWindow('alliances'),
               })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}

@@ -7,7 +7,8 @@ import { tableCountSchema as count, tableIdSchema as id } from './schema';
  * Who is allied with whom (#1007): public, as the rules make alliances public.
  * A faction offers an alliance to another;
  * once that faction accepts, the two are allied.
- * A faction is in one alliance at a time. It may offer, and be offered, an alliance while in one (Norbert, 2026-11-17, #2978);
+ * A faction is in one alliance at a time.
+ * It may offer, and be offered, an alliance while in one (Norbert, 2026-11-17, #2978);
  * accepting leaves both factions' current alliances and forms the new one.
  * The table checks only that the factions agreed, never when a Nexus is open, so players apply their ruleset as they do at a physical table.
  */
@@ -170,4 +171,50 @@ export function applyAlliance(state: AllianceState, action: AllianceAction, cont
     case 'alliance-break':
       return breakAway(state, { from: context.factionId, to: action.factionId });
   }
+}
+
+/** How the viewer's faction stands with one faction at the table; an alliance either side is in never stops an offer (#2978). */
+export type Relation = 'ally' | 'incoming' | 'outgoing' | 'none';
+
+export type AllianceCommandKind = 'alliance-offer' | 'alliance-withdraw' | 'alliance-accept' | 'alliance-break';
+
+/** Whether `from` has an offer out to `to`. */
+export function hasOffer(alliances: AllianceState | undefined, from: string | undefined, to: string | undefined) {
+  return alliances?.offers.some((offer) => offer.from === from && offer.to === to) ?? false;
+}
+
+/** How the viewer stands with another faction; the viewer's own faction has no relation, as nothing is done about it. */
+export function relationTo(alliances: AllianceState | undefined, own: string, factionId: string): Relation | null {
+  const allies = alliesOf(alliances, own);
+  if (factionId === own) {
+    return null;
+  }
+  if (allies.includes(factionId)) {
+    return 'ally';
+  }
+  if (hasOffer(alliances, factionId, own)) {
+    return 'incoming';
+  }
+  return hasOffer(alliances, own, factionId) ? 'outgoing' : 'none';
+}
+
+/*
+ * The command for one of the viewer's alliance actions about `factionId`.
+ * Breaking names an ally the viewer saw, so a late click never leaves an alliance formed since; a withdrawal or an accept names the offer the viewer saw.
+ */
+export function allianceAction(
+  alliances: AllianceState | undefined,
+  kind: AllianceCommandKind,
+  own: string,
+  factionId: string
+): AllianceAction | null {
+  if (kind === 'alliance-offer') {
+    return { kind, factionId };
+  }
+  if (kind === 'alliance-break') {
+    return { kind, factionId };
+  }
+  const [from, to] = kind === 'alliance-withdraw' ? [own, factionId] : [factionId, own];
+  const offer = alliances?.offers.find((entry) => entry.from === from && entry.to === to);
+  return offer ? { kind, factionId, offer: offer.id } : null;
 }

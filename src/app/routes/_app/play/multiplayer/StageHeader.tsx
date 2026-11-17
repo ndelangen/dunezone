@@ -12,6 +12,7 @@ import { useMemo } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { InviteLink } from '../GameLink';
+import { AllianceOfferNotice } from './Alliances';
 import { BidderToolbar } from './BidderToolbar';
 import { DraftingHeader, DraftingReady } from './Drafting';
 import { ContinuePlaying, resultTitle } from './GameResult';
@@ -37,6 +38,7 @@ export function stageToolbar({
   bidderFaded,
   onBidderFadedChange,
   onOpenRecall,
+  onOpenAlliances,
 }: Readonly<{
   client: TableSession;
   table: TableProjection;
@@ -45,6 +47,8 @@ export function stageToolbar({
   onBidderFadedChange: (faded: boolean) => void;
   /** Opens the Mentat recall window, as the header's open recall vote links to it. */
   onOpenRecall?: () => void;
+  /** Opens the Alliances panel, as the header's alliance offer notice links to it. */
+  onOpenAlliances?: () => void;
 }>) {
   const stage = table.snapshot.stage;
   const inPlay = stageInPlay(stage);
@@ -67,6 +71,7 @@ export function stageToolbar({
     return (
       <>
         <TableReviewBar client={client} table={table} onOpenRecall={onOpenRecall} />
+        <AllianceOfferNotice table={table} onOpenAlliances={onOpenAlliances} />
         {inPlay && (
           <BidderToolbar client={client} table={table} faded={bidderFaded} onFadedChange={onBidderFadedChange} />
         )}

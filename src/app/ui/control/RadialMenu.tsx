@@ -22,6 +22,9 @@ type RadialIcon =
   | 'bribe'
   | 'hand'
   | 'delete'
+  | 'alliance'
+  | 'alliance-pending'
+  | 'alliance-break'
   | 'back';
 
 export type RadialAction = Readonly<{
@@ -113,6 +116,18 @@ const ICONS: Record<RadialIcon, ReactNode> = {
     </>
   ),
   delete: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
+  /* Two hands meeting, as the Alliances panel's offer and accept show it. */
+  alliance: (
+    <path d="m11 17 2 2a1 1 0 1 0 3-3M14 14l2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4M21 3l1 11h-2M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3M3 4h8" />
+  ),
+  /* An offer waiting on its answer. */
+  'alliance-pending': (
+    <path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />
+  ),
+  /* A broken link. */
+  'alliance-break': (
+    <path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 19v3M19 16h3" />
+  ),
   back: <path d="M15 6l-6 6 6 6" />,
 };
 

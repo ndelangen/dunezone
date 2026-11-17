@@ -14,7 +14,13 @@ import type { TabletopContextValue } from './TabletopContext';
 
 export type MenuControls = Pick<
   TabletopContextValue,
-  'deckControls' | 'spiceReserveControls' | 'spiceBlowControls' | 'peekControls' | 'deleteControls' | 'handControls'
+  | 'deckControls'
+  | 'spiceReserveControls'
+  | 'spiceBlowControls'
+  | 'peekControls'
+  | 'deleteControls'
+  | 'handControls'
+  | 'allianceControls'
 >;
 
 type MenuOptions = Readonly<{
@@ -158,6 +164,35 @@ function handAction(
   };
 }
 
+/* What the viewer may do about another faction from its token (#2978): offer, accept, withdraw an offer, or break the alliance. */
+const ALLIANCE_ITEMS = {
+  none: { kind: 'alliance-offer', label: 'Offer alliance', icon: 'alliance' },
+  incoming: { kind: 'alliance-accept', label: 'Accept alliance', icon: 'alliance' },
+  outgoing: { kind: 'alliance-withdraw', label: 'Withdraw alliance offer', icon: 'alliance-pending' },
+  ally: { kind: 'alliance-break', label: 'Break alliance', icon: 'alliance-break' },
+} as const;
+
+function allianceActionFor(
+  piece: TablePiece,
+  allianceControls: MenuControls['allianceControls'],
+  onClose: () => void
+): RadialAction | null {
+  const relation = allianceControls?.relation(piece.id);
+  if (!allianceControls || !relation) {
+    return null;
+  }
+  const item = ALLIANCE_ITEMS[relation];
+  return {
+    key: 'alliance',
+    label: item.label,
+    icon: item.icon,
+    onSelect: () => {
+      allianceControls.act(piece.id, item.kind);
+      onClose();
+    },
+  };
+}
+
 /* Deleting a piece for good, held so a slip cannot do it; a reserved or locked piece stays. */
 function deleteAction(
   piece: TablePiece,
@@ -200,6 +235,10 @@ function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => vo
  */
 export function pieceMenuActions(piece: TablePiece, controls: MenuControls, options: MenuOptions): RadialAction[] {
   const actions = ownActions(piece, controls, options.onClose);
+  const alliance = allianceActionFor(piece, controls.allianceControls, options.onClose);
+  if (alliance) {
+    actions.unshift(alliance);
+  }
   if (controls.handControls?.canTake(piece.id)) {
     actions.push(handAction(piece, controls.handControls, options.onClose));
   }

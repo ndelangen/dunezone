@@ -1,10 +1,12 @@
-import { Group, Tooltip } from '@mantine/core';
+import { Anchor, Group, Text, Tooltip } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
+import { Handshake } from 'lucide-react';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { factionList } from '../panels/alliances/alliances';
 import { factionToken, FactionTokenFace } from './FactionTokenFace';
+import { actingFaction } from './tableFactions';
 
 /** Alliances show while the game is in play and, read-only, once it is finished, so everyone still sees who was allied at the end. */
 export function showsAlliances(stage: string | undefined) {
@@ -55,5 +57,40 @@ export function AllianceStrip({ table }: Readonly<{ table: TableProjection }>) {
         );
       })}
     </Group>
+  );
+}
+
+/**
+ * The factions waiting on the viewer's answer to an alliance offer, as the header's notice names them (#2978).
+ * It links to the Alliances panel, where the offer is answered;
+ * it shows only to the faction offered to, at the live table in play.
+ */
+export function AllianceOfferNotice({
+  table,
+  onOpenAlliances,
+}: Readonly<{ table: TableProjection; onOpenAlliances?: () => void }>) {
+  const own = actingFaction(table);
+  const offers = (table.snapshot.alliances?.offers ?? []).filter((offer) => offer.to === own);
+  if (!own || table.snapshot.stage !== 'play' || !offers.length) {
+    return null;
+  }
+  const names = snapshotFactionLabels(table.snapshot);
+  const from = factionList(
+    names,
+    offers.map((offer) => offer.from)
+  );
+  const verb = offers.length === 1 ? 'offers' : 'offer';
+  const link = onOpenAlliances ? (
+    <Anchor component="button" type="button" inherit onClick={onOpenAlliances}>
+      Alliances
+    </Anchor>
+  ) : (
+    'Alliances'
+  );
+  return (
+    <Text size="sm" role="status" aria-label="Alliance offer">
+      <Handshake size={14} aria-hidden style={{ verticalAlign: '-2px', marginRight: 4 }} />
+      {from} {verb} you an alliance. Answer in {link}.
+    </Text>
   );
 }

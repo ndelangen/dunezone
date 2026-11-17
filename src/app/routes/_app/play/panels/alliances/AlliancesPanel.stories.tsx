@@ -45,22 +45,23 @@ export const Offering = meta.story({
   },
 });
 
-/** Seats 4 and 5 are allied with each other, so neither can be offered an alliance; each names its ally by token. */
+/** Seats 4 and 5 are allied with each other; each names its ally by token, and either can still be offered an alliance (#2978). */
 export const OthersAllied = meta.story({
   args: alliancesProps(othersAlliedSnapshot()),
   play: async ({ canvas }) => {
     const allied = canvas.getByText('Allied with Fremen').parentElement!;
     await expect(allied.querySelector('[role="img"][aria-label="Fremen"]')).not.toBeNull();
-    await expect(canvas.getAllByRole('button', { name: 'Offer alliance' })).toHaveLength(3);
+    await expect(canvas.getAllByRole('button', { name: 'Offer alliance' })).toHaveLength(5);
   },
 });
 
-/** The viewer is allied with seat 4: the ally's row breaks it, and no faction can be offered one until it is broken. */
+/** The viewer is allied with seat 4: the ally's row breaks it, and every other faction can still be offered one, which ends this alliance once accepted (#2978). */
 export const Allied = meta.story({
   args: alliancesProps(alliedSnapshot()),
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Your ally')).toBeVisible();
-    await expect(canvas.getAllByRole('button', { name: ACTION })).toHaveLength(1);
+    await expect(canvas.getAllByRole('button', { name: 'Break alliance' })).toHaveLength(1);
+    await expect(canvas.getAllByRole('button', { name: 'Offer alliance' })).toHaveLength(4);
   },
 });
 

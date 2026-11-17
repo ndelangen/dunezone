@@ -1,3 +1,4 @@
+import type { AllianceCommandKind, Relation } from '@shared/play/alliances';
 import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { LogTab } from '@shared/play/log';
@@ -66,6 +67,12 @@ export type TableProjection = {
   deleteControls?: {
     remove(pieceId: string): void;
     restore(deletionId: string): void;
+  };
+  /* The alliance action on another faction's token (#2978); present only while this viewer acts for a faction in play. */
+  allianceControls?: {
+    /** How the viewer's faction stands with the faction this token belongs to, or null for its own token or a non-faction piece. */
+    relation(pieceId: string): Relation | null;
+    act(pieceId: string, kind: AllianceCommandKind): void;
   };
   /* Taking a loose card or a battle leader off the table into this viewer's hand; present only while this viewer can act. */
   handControls?: {
