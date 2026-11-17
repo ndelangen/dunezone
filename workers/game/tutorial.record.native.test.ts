@@ -99,15 +99,31 @@ async function factionSheets(journey: JourneyRecorder) {
   return sheets;
 }
 
-describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { timeout: 600_000 }, () => {
-  it('records the recipe game at every checkpoint', async () => {
+/*
+ * The spice card the learner turns over first in "What goes where": the top of the spice deck, which must be a territory, not Shai-Hulud.
+ * Read from the stored table, since a face-down card keeps its name from every player's view.
+ */
+function firstSpiceCardBlows(journey: JourneyRecorder) {
+  const deck = required(journey.steps.at(-1)?.stored).table.pieces.find(
+    (piece) => piece.items.length > 1 && piece.items[0]?.artwork?.type === 'card-spice'
+  );
+  const top = deck?.items.at(-1)?.artwork?.name;
+  return top !== undefined && top !== 'Shai-Hulud';
+}
+
+/*
+ * The deal and the shuffles are random, but the chapters teach a fixed table: the learner plays the recipe's first faction
+ * (Setup opens on the Bene Gesserit's prediction) and the first spice card names a territory. So the game is played again until it does.
+ */
+async function teachableGame() {
+  for (let attempt = 0; attempt < 30; attempt++) {
     const journey = await tutorialRuntime();
     const checkpoints: Partial<Record<TutorialCheckpoint, number>> = {};
     const mark = (name: TutorialCheckpoint) => {
       checkpoints[name] = journey.steps.length - 1;
     };
-    try {
-      await drafting(journey);
+    await drafting(journey);
+    if (journey.factionAt(0)?.id === journey.cast.factions[0]?.id) {
       /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
       checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
       await trading(journey);
@@ -118,6 +134,19 @@ describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { ti
       await startingTroops(journey);
       await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
       mark('turn-1-storm');
+      if (firstSpiceCardBlows(journey)) {
+        return { journey, checkpoints };
+      }
+    }
+    await journey.close();
+  }
+  throw new Error('No game in 30 dealt the learner the first faction and a territory on top of the spice deck.');
+}
+
+describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { timeout: 600_000 }, () => {
+  it('records the recipe game at every checkpoint', async () => {
+    const { journey, checkpoints } = await teachableGame();
+    try {
       expect(Object.keys(checkpoints)).toEqual([...TUTORIAL_CHECKPOINTS]);
       const log = { game: await journey.fullLog('game'), audit: await journey.fullLog('audit') };
       const setup = {
