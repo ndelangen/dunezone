@@ -92,7 +92,7 @@ const RemoteHand = memo(function RemoteHand({
   return null;
 });
 
-function HandLabel({
+export function HandLabel({
   color,
   displayName,
   avatarUrl,
