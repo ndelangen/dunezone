@@ -35,6 +35,7 @@ describe('anonymous application dispatch', () => {
     '/blog/why-dune',
     '/create',
     '/create/faction',
+    '/create/variant',
     '/tutorial',
     '/tutorial/welcome',
     '/tutorial/missing',

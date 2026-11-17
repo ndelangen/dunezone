@@ -38,6 +38,7 @@ import { Route as AppContributingIndexRouteImport } from './routes/_app/contribu
 import { Route as AppContributingIntroRouteRouteImport } from './routes/_app/contributing/$intro.route'
 import { Route as AppCreateIndexRouteImport } from './routes/_app/create/index'
 import { Route as AppCreateFactionRouteRouteImport } from './routes/_app/create/faction.route'
+import { Route as AppCreateVariantRouteRouteImport } from './routes/_app/create/variant.route'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
@@ -240,6 +241,11 @@ const AppCreateIndexRoute = AppCreateIndexRouteImport.update({
 const AppCreateFactionRouteRoute = AppCreateFactionRouteRouteImport.update({
   id: '/create/faction',
   path: '/create/faction',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCreateVariantRouteRoute = AppCreateVariantRouteRouteImport.update({
+  id: '/create/variant',
+  path: '/create/variant',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
@@ -582,6 +588,7 @@ export interface FileRoutesByFullPath {
   '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
+  '/create/variant': typeof AppCreateVariantRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -664,6 +671,7 @@ export interface FileRoutesByTo {
   '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
+  '/create/variant': typeof AppCreateVariantRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -753,6 +761,7 @@ export interface FileRoutesById {
   '/_app/auth/steam': typeof AppAuthSteamRouteRoute
   '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/_app/create/faction': typeof AppCreateFactionRouteRoute
+  '/_app/create/variant': typeof AppCreateVariantRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
@@ -841,6 +850,7 @@ export interface FileRouteTypes {
     | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
+    | '/create/variant'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -923,6 +933,7 @@ export interface FileRouteTypes {
     | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
+    | '/create/variant'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
@@ -1011,6 +1022,7 @@ export interface FileRouteTypes {
     | '/_app/auth/steam'
     | '/_app/contributing/$intro'
     | '/_app/create/faction'
+    | '/_app/create/variant'
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/media/$source'
@@ -1286,6 +1298,13 @@ declare module '@tanstack/react-router' {
       path: '/create/faction'
       fullPath: '/create/faction'
       preLoaderRoute: typeof AppCreateFactionRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/create/variant': {
+      id: '/_app/create/variant'
+      path: '/create/variant'
+      fullPath: '/create/variant'
+      preLoaderRoute: typeof AppCreateVariantRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/': {
@@ -1798,6 +1817,7 @@ interface AppRouteRouteChildren {
   AppAuthSteamRouteRoute: typeof AppAuthSteamRouteRoute
   AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
   AppCreateFactionRouteRoute: typeof AppCreateFactionRouteRoute
+  AppCreateVariantRouteRoute: typeof AppCreateVariantRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
@@ -1860,6 +1880,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAuthSteamRouteRoute: AppAuthSteamRouteRoute,
   AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
   AppCreateFactionRouteRoute: AppCreateFactionRouteRoute,
+  AppCreateVariantRouteRoute: AppCreateVariantRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,

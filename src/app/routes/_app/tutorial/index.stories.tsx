@@ -36,7 +36,7 @@ export const Landing = meta.story({
   },
 });
 
-/** The Creating content catalogue at /create: the creator tutorials as tiles, the faction tutorial built and the rest coming soon. */
+/** The Creating content catalogue at /create: the creator tutorials as tiles, the two faction tutorials built and the rest coming soon. */
 export const Creating = meta.story({
   args: { path: '/create' },
   play: async ({ canvasElement }) => {
@@ -53,6 +53,10 @@ export const Creating = meta.story({
     await expect(page.getByRole('link', { name: 'Chapter 1: Create a faction' })).toHaveAttribute(
       'href',
       '/create/faction'
+    );
+    await expect(page.getByRole('link', { name: 'Chapter 2: Make your own variant' })).toHaveAttribute(
+      'href',
+      '/create/variant'
     );
     /* The page toolbar moves between the two catalogues. */
     await expect(page.getByRole('link', { name: 'Playing Dune' })).toHaveAttribute('href', '/tutorial');
