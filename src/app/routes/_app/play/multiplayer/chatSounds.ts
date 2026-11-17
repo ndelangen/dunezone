@@ -43,14 +43,18 @@ export function newMessageSound(
   return sound;
 }
 
-/** Plays a soft sound when a chat message arrives, one per conversation kind (Norbert, 2026-11-17, #2982). */
-export function useChatSounds(client: TableSession, table: TableProjection) {
-  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  /* A message arrives now, so it is sorted by the alliances now, not those of a past turn the viewer is looking at. */
+/* A message arrives now, so it is sorted by the alliances now, not those of a past turn the viewer is looking at. */
+function liveAllies(client: TableSession, table: TableProjection) {
   const live = table.playback || table.historyPending ? (client.getLastLiveTable() ?? table) : table;
   const seat = live.viewer.viewerSeat;
   const own = seat ? rosterSeat(live.snapshot.roster, seat)?.faction?.id : undefined;
-  const allies = own ? alliesOf(live.snapshot.alliances, own) : [];
+  return own ? alliesOf(live.snapshot.alliances, own) : [];
+}
+
+/** Plays a soft sound when a chat message arrives, one per conversation kind (Norbert, 2026-11-17, #2982). */
+export function useChatSounds(client: TableSession, table: TableProjection) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const allies = liveAllies(client, table);
   const previous = useRef<readonly ConversationSummary[] | null>(null);
   const summaries = conversations.summaries;
   const alliesKey = allies.join(',');

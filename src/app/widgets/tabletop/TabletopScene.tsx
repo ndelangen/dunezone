@@ -77,7 +77,7 @@ import { peekMarkerList } from './peekMarkers';
 import { PeekMarkers } from './PeekMarkerTokens';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
-import { pieceHasMenu } from './pieceMenu';
+import { offersPieceMenus, pieceHasMenu } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
@@ -1251,15 +1251,7 @@ export function TabletopScene({
   const { takeAdditionalFromTarget } = useTabletopCommands();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
-  const menuAvailable = useTabletopSelector((table) =>
-    [
-      table.deckControls,
-      table.spiceReserveControls,
-      table.peekControls,
-      table.deleteControls,
-      table.allianceControls,
-    ].some(Boolean)
-  );
+  const menuAvailable = useTabletopSelector(offersPieceMenus);
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
   const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);

@@ -27,3 +27,20 @@ export function pieceHasMenu(piece: TablePiece, alliances?: AllianceRelations) {
     deletablePiece(piece)
   );
 }
+
+type MenuSources = Readonly<
+  Partial<
+    Record<'deckControls' | 'spiceReserveControls' | 'peekControls' | 'deleteControls' | 'allianceControls', unknown>
+  >
+>;
+
+/** Whether the table offers any piece menu at all: one of the controls a menu acts through is there. */
+export function offersPieceMenus(table: MenuSources) {
+  return [
+    table.deckControls,
+    table.spiceReserveControls,
+    table.peekControls,
+    table.deleteControls,
+    table.allianceControls,
+  ].some(Boolean);
+}
