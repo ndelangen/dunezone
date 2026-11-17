@@ -52,13 +52,17 @@ export function isLeaderPiece(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey
   return piece.kind === 'force' && (piece.stackKey?.startsWith('leader:') ?? false);
 }
 
-/** How much wider than a troop token a 'force'-kind piece (a troop, a leader disc, a tech token or a faction token) is drawn and occupies the table. */
+/**
+ * How much wider than a troop token a 'force'-kind piece (a troop, a leader disc, a tech token or a faction token) is drawn and occupies the table.
+ * A token whose author set a physical size (such as a Discovery token) is that share of its standard size, as on the private side-table (#2994).
+ */
 export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
   if (isFactionToken(piece)) {
     return FACTION_TOKEN_SCALE;
   }
   /* A printed tech token is about as wide as a leader disc. */
-  return isLeaderPiece(piece) || isTechToken(piece) ? LEADER_SCALE : 1;
+  const standard = isLeaderPiece(piece) || isTechToken(piece) ? LEADER_SCALE : 1;
+  return standard * (piece.items?.[0]?.artwork?.size ?? 1);
 }
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
