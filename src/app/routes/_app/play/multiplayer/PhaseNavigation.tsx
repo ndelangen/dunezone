@@ -70,8 +70,13 @@ export function PhaseReadiness({ table }: Readonly<{ table: TableProjection }>) 
   }
   const { count, of } = readyCount(controls);
   return (
-    <Tooltip withinPortal multiline label={<ReadinessLines table={table} />}>
-      <Text size="xs" fw={700} c="dimmed" role="status">
+    <Tooltip
+      withinPortal
+      multiline
+      events={{ hover: true, focus: true, touch: false }}
+      label={<ReadinessLines table={table} />}
+    >
+      <Text size="xs" fw={700} c="dimmed" role="status" tabIndex={0}>
         {count} of {of} ready
       </Text>
     </Tooltip>
@@ -81,7 +86,7 @@ export function PhaseReadiness({ table }: Readonly<{ table: TableProjection }>) 
 /* The gate the table is at: a new phase, setup step or stage asks for readiness afresh. */
 function gateKey(table: TableProjection) {
   const { stage, phase, setup } = table.snapshot;
-  return `${stage}:${phase}:${setup?.index ?? ''}`;
+  return `${stage}:${phase}:${setup?.index ?? ''}:${setup?.visit ?? ''}`;
 }
 
 type Reminders = Readonly<{ gate: string; fired: readonly string[]; count: number }>;

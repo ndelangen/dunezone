@@ -26,7 +26,9 @@ export function useViewingConversation(peerId: string, end: RefObject<HTMLElemen
     }
     /* A viewport-root observer accounts for both a scrolled-back history and the panel itself being off screen. */
     const observer = new IntersectionObserver(
-      ([entry]) => {
+      (entries) => {
+        /* Several crossings can queue up for this one marker; the last is where it is now. */
+        const entry = entries.at(-1);
         if (entry?.isIntersecting && entry.intersectionRatio > 0) {
           visibleEnds.set(peerId, (visibleEnds.get(peerId) ?? new Set()).add(target));
         } else {
