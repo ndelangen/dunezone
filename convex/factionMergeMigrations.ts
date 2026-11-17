@@ -57,7 +57,8 @@ async function liveVariantAt(ctx: Pick<QueryCtx, 'db'>, slug: string) {
  * Merges each listed variant into the Faction of its GF9 variant, under that variant, as the admin merge tool does.
  * A merged variant leaves its address, so a replay, and any deployment without these rows, writes nothing.
  * A listed variant whose GF9 variant is missing, or whose merge is refused, stays where it is, logged.
- * No verify follows, so a refusal cannot hold up later deploys; the merged variants are checked on the live site instead.
+ * No verify follows, so a refusal cannot hold up later deploys;
+ * the merged variants are checked on the live site instead.
  */
 export const faction_duplicates_merge_v1 = migrations.define({
   table: 'factions',
