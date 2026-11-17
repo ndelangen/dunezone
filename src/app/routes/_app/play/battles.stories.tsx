@@ -5,7 +5,7 @@ import { expect, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
-import { openPanel, windowNamed } from './controls.stories.fixture';
+import { openPanel, unpinWindow, windowNamed } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { settled } from './playing.stories.fixture';
 
@@ -125,6 +125,8 @@ export const MarkerOutlinesItsTerritory = meta.story({
 export const PlannerClosedHints = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
+    /* The battle opens the planner for a side's player; closing it is what the hints answer. */
+    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
     const page = await openPanel(canvasElement, 'Hand');
     const hand = within(windowNamed(page, 'Hand')!);
     await settled(() => expect(hand.getByRole('button', { name: 'Open battle plan' })).toBeVisible());

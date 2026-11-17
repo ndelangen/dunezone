@@ -767,6 +767,8 @@ export const BuildUpAndClaims = meta.story({
 export const PlannerHintOpensPlan = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('preparing'))),
   play: async ({ canvasElement }) => {
+    /* The battle opens the planner for a side's player; closing it is what the hints answer. */
+    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
     const page = await openPanel(canvasElement, 'Hand');
     const hand = within(windowNamed(page, 'Hand')!);
     await userEvent.click(await hand.findByRole('button', { name: 'Open battle plan' }, WAIT));
