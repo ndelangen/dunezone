@@ -49,7 +49,6 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
-import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
@@ -63,7 +62,6 @@ import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
-import { ConnectedKeyboardShortcutsPanel } from '../panels/shortcuts/useKeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
@@ -107,6 +105,18 @@ const TreacheryTrackerFollower = lazy(() =>
   import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
     default: module.TreacheryTrackerFollower,
   }))
+);
+
+/* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
+const ConnectedKeyboardShortcutsPanel = lazy(() =>
+  import('../panels/shortcuts/useKeyboardShortcutsPanel').then((module) => ({
+    default: module.ConnectedKeyboardShortcutsPanel,
+  }))
+);
+
+/* The planner loads when a battle first needs it, which keeps the table's own bundle within its budget. */
+const ConnectedBattlePlanPanel = lazy(() =>
+  import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
 );
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
@@ -453,7 +463,12 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
             {
               ...PANEL_WINDOWS.battlePlan,
               help: battleHelp(table),
-              content: withTableError(error, <ConnectedBattlePlanPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedBattlePlanPanel client={client} table={table} />
+                </Suspense>
+              ),
               /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
@@ -591,7 +606,14 @@ function controlPanels(
         ]
       : []),
     /* Every viewer, seated or watching, can look up the keys. */
-    { ...PANEL_WINDOWS.shortcuts, content: <ConnectedKeyboardShortcutsPanel /> },
+    {
+      ...PANEL_WINDOWS.shortcuts,
+      content: (
+        <Suspense fallback={<Loader size="sm" />}>
+          <ConnectedKeyboardShortcutsPanel />
+        </Suspense>
+      ),
+    },
   ];
 }
 
