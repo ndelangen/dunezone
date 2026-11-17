@@ -98,6 +98,20 @@ test('creating counts on the page of a variant that was not there before, whatev
   expect(parent.done(watch, view)).toBe(true);
 });
 
+test('a variant made before the name step saw its name counts for the name and the parent', () => {
+  const { page, find } = chapter(`${FACTION}-tournament`);
+  showVariants('tournament');
+  const name = find('name');
+  const watch = name.begin(view);
+  expect(name.done(watch, view)).toBe(false);
+  /* Create variant closed the form and opened the new variant, whose row is now in the Variants card too. */
+  page.pathname = `${FACTION}-homebrew`;
+  showVariants('homebrew', ['original', 'tournament', 'two-players', 'homebrew']);
+  expect(name.done(watch, view)).toBe(true);
+  const parent = find('parent');
+  expect(parent.done(parent.begin(view), view)).toBe(true);
+});
+
 test("the editor counts on the new variant's edit page", () => {
   const { page, find } = chapter(`${FACTION}-homebrew`);
   const edit = find('edit');

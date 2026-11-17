@@ -53,7 +53,10 @@ export default function VariantChapter({
       title={title}
       tasks={tasks}
       learned={VARIANT_TUTORIAL_LEARNED}
-      onReset={() => setRun((current) => current + 1)}
+      onReset={() => {
+        copy.reset();
+        setRun((current) => current + 1);
+      }}
       chaptersLink={chaptersLink}
     >
       <SandboxApp

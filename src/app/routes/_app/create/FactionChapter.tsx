@@ -54,7 +54,10 @@ export default function FactionChapter({
       tasks={tasks}
       firstTask={firstTask}
       learned={FACTION_TUTORIAL_LEARNED}
-      onReset={() => setRun((current) => current + 1)}
+      onReset={() => {
+        copy.reset();
+        setRun((current) => current + 1);
+      }}
       chaptersLink={chaptersLink}
       nextLink={nextLink}
     >

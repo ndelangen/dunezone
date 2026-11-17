@@ -18,6 +18,10 @@ export function practiceCopy() {
     ready: (next: SandboxControls) => {
       controls = next;
     },
+    /* Forgets the copy a Reset throws away, so no task reads its last page while the new one opens. */
+    reset: () => {
+      controls = null;
+    },
     router: () => controls?.router,
     page: { pathname: () => controls?.router.state.resolvedLocation?.pathname ?? '' } satisfies PracticePage,
   };
