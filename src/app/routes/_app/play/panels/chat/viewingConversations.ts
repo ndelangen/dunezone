@@ -1,24 +1,44 @@
 import { useEffect } from 'react';
+import type { RefObject } from 'react';
 
-/* The conversations a chat panel shows right now, each counted by its open panels. */
-const viewing = new Map<string, number>();
+/* Each conversation's newest-message markers that are on screen now, one per open chat panel showing it. */
+const visibleEnds = new Map<string, Set<Element>>();
 
-/** Whether a chat panel shows this conversation now: a message arriving there is already in view, so it makes no sound (#2982). */
+/** Whether the viewer can see this conversation's newest messages now: scrolled to the end in an open panel, page not hidden. Such a message makes no sound (#2982). */
 export function isViewingConversation(peerId: string) {
-  return (viewing.get(peerId) ?? 0) > 0;
+  return document.visibilityState === 'visible' && (visibleEnds.get(peerId)?.size ?? 0) > 0;
 }
 
-/** Marks the conversation as in view while the calling panel is mounted. */
-export function useViewingConversation(peerId: string) {
+function forget(peerId: string, target: Element) {
+  const ends = visibleEnds.get(peerId);
+  ends?.delete(target);
+  if (ends?.size === 0) {
+    visibleEnds.delete(peerId);
+  }
+}
+
+/** Counts the conversation as in view while the marker after its newest message is on screen. */
+export function useViewingConversation(peerId: string, end: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    viewing.set(peerId, (viewing.get(peerId) ?? 0) + 1);
+    const target = end.current;
+    if (!target || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+    /* A viewport-root observer accounts for both a scrolled-back history and the panel itself being off screen. */
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && entry.intersectionRatio > 0) {
+          visibleEnds.set(peerId, (visibleEnds.get(peerId) ?? new Set()).add(target));
+        } else {
+          forget(peerId, target);
+        }
+      },
+      { threshold: 0 }
+    );
+    observer.observe(target);
     return () => {
-      const left = (viewing.get(peerId) ?? 1) - 1;
-      if (left > 0) {
-        viewing.set(peerId, left);
-      } else {
-        viewing.delete(peerId);
-      }
+      observer.disconnect();
+      forget(peerId, target);
     };
-  }, [peerId]);
+  }, [peerId, end]);
 }
