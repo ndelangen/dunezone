@@ -86,6 +86,9 @@ function gateKey(table: TableProjection) {
 
 type Reminders = Readonly<{ gate: string; fired: readonly string[]; count: number }>;
 
+/* The reminders fired at the latest gate, kept beyond the controls: a Mentat recall swaps them out of the header, and closing it must not remind again. */
+let firedAtGate: Readonly<{ gate: string; fired: readonly string[] }> | null = null;
+
 /**
  * Reminds the viewer to ready up (#2980): when a gate starts waiting on them, and again once everyone else is ready, the Ready button flashes and a soft chime plays, each once per gate.
  * Withdrawing readiness, a reconnect, or another player withdrawing and readying again never reminds twice.
@@ -94,7 +97,11 @@ type Reminders = Readonly<{ gate: string; fired: readonly string[]; count: numbe
 function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boolean) {
   const gate = gateKey(table);
   const stage = waiting ? (lastOne ? 'last' : 'waiting') : null;
-  const [reminders, setReminders] = useState<Reminders>({ gate, fired: [], count: 0 });
+  const [reminders, setReminders] = useState<Reminders>(() => ({
+    gate,
+    fired: firedAtGate?.gate === gate ? firedAtGate.fired : [],
+    count: 0,
+  }));
   /* A new gate asks afresh; the reminders already fired at this one are not fired again. */
   const current = reminders.gate === gate ? reminders : { gate, fired: [], count: reminders.count };
   if (stage && !current.fired.includes(stage)) {
@@ -102,6 +109,9 @@ function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boo
   } else if (current !== reminders) {
     setReminders(current);
   }
+  useEffect(() => {
+    firedAtGate = { gate: reminders.gate, fired: reminders.fired };
+  }, [reminders.gate, reminders.fired]);
   useEffect(() => {
     if (reminders.count > 0) {
       playTableSound('ready');
