@@ -203,6 +203,22 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
+  it('clears the confetti for the whole table once a player clears it, and logs who did (#2992)', async () => {
+    const { owner, other, observer } = await inPlay();
+    await toMentat(owner);
+    expect(await rejected(owner, { kind: 'result-confetti-clear' })).toBe(true);
+    await accepted(owner, { kind: 'result-open' });
+    const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
+    expect(finished.snapshot.result?.confettiClearedAt).toBeUndefined();
+    expect(await rejected(observer, { kind: 'result-confetti-clear' })).toBe(true);
+
+    const cleared = await accepted(other, { kind: 'result-confetti-clear' });
+    expect(cleared.snapshot.result?.confettiClearedAt).toEqual(expect.any(Number));
+    expect((await syncView(owner)).snapshot.result?.confettiClearedAt).toBe(cleared.snapshot.result?.confettiClearedAt);
+    const game = await page(observer);
+    expect(game[0]?.text).toBe(`${cleared.viewer.displayName} cleared the confetti.`);
+  });
+
   it('replays only the public table, and only while the game is finished', async () => {
     const { owner, other, observer, stepId } = await inPlay();
     const playback = async (connection: NativeConnection, step: number) => {

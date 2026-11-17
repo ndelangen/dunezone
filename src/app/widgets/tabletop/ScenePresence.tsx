@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 import { Matrix4, Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
+import { usePointerNames } from './pointerNames';
 import styles from './ScenePresence.module.css';
 import { TableHandOverlays } from './tableHandOverlays';
 import type { TableHandOverlay } from './tableHandOverlays';
@@ -92,7 +93,7 @@ const RemoteHand = memo(function RemoteHand({
   return null;
 });
 
-function HandLabel({
+export function HandLabel({
   color,
   displayName,
   avatarUrl,
@@ -100,11 +101,13 @@ function HandLabel({
   demo,
 }: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean; demo: boolean }) {
   const kind = local ? 'local' : 'remote';
+  /* The homepage demo always names its hand; a player may turn names off for the table (#2993). */
+  const named = usePointerNames() || demo;
   return (
     <div
       data-table-hand={demo ? 'demo' : kind}
       className={demo ? styles.demoHand : undefined}
-      aria-hidden={displayName ? undefined : true}
+      aria-hidden={displayName && named ? undefined : true}
       style={{
         position: 'relative',
         display: 'flex',
@@ -136,12 +139,14 @@ function HandLabel({
         />
       </svg>
       <HandAvatar color={color} avatarUrl={avatarUrl} />
-      {displayName && (
+      {displayName && named && (
         <span
+          /* The name reads in the glass's own text colour whatever the faction colour (#2993); the colour stays in the edge. */
           style={{
-            color,
+            color: 'var(--color-text)',
             background: 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))',
             border: `1px solid ${color}`,
+            borderLeftWidth: 4,
             borderRadius: 4,
             padding: '2px 5px',
             fontFamily: 'system-ui, sans-serif',

@@ -469,6 +469,8 @@ function resultEntries(
         return '{0} continued the game.';
       case 'result-end':
         return '{0} ended the game as the last player at the table.';
+      case 'result-confetti-clear':
+        return '{0} cleared the confetti.';
     }
   })();
   if (!template || before.revision === next.revision) {

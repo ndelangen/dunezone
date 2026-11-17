@@ -26,6 +26,8 @@ export const gameResultSchema = z.object({
   factionIds: factionIdsSchema,
   by: actorSchema,
   declaredAt: tableCountSchema,
+  /** When a player cleared the result's confetti for the whole table (#2992); absent while it is still on the table. */
+  confettiClearedAt: tableCountSchema.optional(),
 });
 
 export const resultActionSchema = z.discriminatedUnion('kind', [
@@ -35,6 +37,8 @@ export const resultActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('result-continue') }),
   /* The only seated player ends the game in any phase of play: it finishes with no winner, keeping its replay. */
   z.strictObject({ kind: z.literal('result-end') }),
+  /* Any seated player clears the finished game's confetti for everyone at the table (#2992). */
+  z.strictObject({ kind: z.literal('result-confetti-clear') }),
 ]);
 export type ResultAction = z.infer<typeof resultActionSchema>;
 export const isResultAction = actionKindGuard(resultActionSchema);
