@@ -38,7 +38,8 @@ export const resultActionSchema = z.discriminatedUnion('kind', [
   /* The only seated player ends the game in any phase of play: it finishes with no winner, keeping its replay. */
   z.strictObject({ kind: z.literal('result-end') }),
   /* Any seated player clears the finished game's confetti for everyone at the table (#2992). */
-  z.strictObject({ kind: z.literal('result-confetti-clear') }),
+  /* It names the result its player saw by when it was declared, so a late clear never reaches a result declared since. */
+  z.strictObject({ kind: z.literal('result-confetti-clear'), declaredAt: tableCountSchema }),
 ]);
 export type ResultAction = z.infer<typeof resultActionSchema>;
 export const isResultAction = actionKindGuard(resultActionSchema);

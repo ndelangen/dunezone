@@ -206,13 +206,17 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
   it('clears the confetti for the whole table once a player clears it, and logs who did (#2992)', async () => {
     const { owner, other, observer } = await inPlay();
     await toMentat(owner);
-    expect(await rejected(owner, { kind: 'result-confetti-clear' })).toBe(true);
+    expect(await rejected(owner, { kind: 'result-confetti-clear', declaredAt: 0 })).toBe(true);
     await accepted(owner, { kind: 'result-open' });
     const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
     expect(finished.snapshot.result?.confettiClearedAt).toBeUndefined();
-    expect(await rejected(observer, { kind: 'result-confetti-clear' })).toBe(true);
+    const declaredAt = finished.snapshot.result!.declaredAt;
+    expect(await rejected(observer, { kind: 'result-confetti-clear', declaredAt })).toBe(true);
+    /* A clear naming another result changes nothing. */
+    const stale = await accepted(other, { kind: 'result-confetti-clear', declaredAt: declaredAt - 1 });
+    expect(stale.snapshot.result?.confettiClearedAt).toBeUndefined();
 
-    const cleared = await accepted(other, { kind: 'result-confetti-clear' });
+    const cleared = await accepted(other, { kind: 'result-confetti-clear', declaredAt });
     expect(cleared.snapshot.result?.confettiClearedAt).toEqual(expect.any(Number));
     expect((await syncView(owner)).snapshot.result?.confettiClearedAt).toBe(cleared.snapshot.result?.confettiClearedAt);
     const game = await page(observer);

@@ -63,13 +63,15 @@ export function useResultCelebration(client: TableSession, table: TableProjectio
     setSeen({ ...seen, cleared: seen.fired, onTable: false });
   }
   /* Only a seated player at the live, finished table clears it for everyone; anyone else clears their own view. */
-  const shared = offersActions(table) && table.snapshot.stage === 'finished';
+  const declaredAt =
+    offersActions(table) && table.snapshot.stage === 'finished' ? table.snapshot.result?.declaredAt : undefined;
   const clear = useCallback(() => {
-    setSeen((current) => ({ ...current, cleared: current.fired, onTable: false }));
-    if (shared) {
-      client.command({ kind: 'result-confetti-clear' });
+    /* A shared clear the session could not send leaves the confetti, so the action stays to try again. */
+    if (declaredAt !== undefined && client.command({ kind: 'result-confetti-clear', declaredAt }) === undefined) {
+      return;
     }
-  }, [client, shared]);
+    setSeen((current) => ({ ...current, cleared: current.fired, onTable: false }));
+  }, [client, declaredAt]);
   return {
     launch,
     /* The confetti stays mounted while a stream runs or foil lies on the table; unmounting it is the clear. */

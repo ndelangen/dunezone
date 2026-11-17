@@ -39,7 +39,7 @@ export function applyResult(
     case 'result-end':
       return end(snapshot, by, seats(), now);
     case 'result-confetti-clear':
-      return clearConfetti(snapshot, now);
+      return clearConfetti(snapshot, action.declaredAt, now);
   }
 }
 
@@ -86,11 +86,12 @@ function end(snapshot: StoredSnapshot, by: Actor, seats: readonly string[], now:
 }
 
 /* The confetti is cleared once, for the whole table; a second clear finds nothing left to clear. */
-function clearConfetti(snapshot: StoredSnapshot, now: number) {
+function clearConfetti(snapshot: StoredSnapshot, declaredAt: number, now: number) {
   if (snapshot.stage !== 'finished' || !snapshot.result) {
     throw new GameRejection('Only a finished game has confetti to clear.');
   }
-  if (snapshot.result.confettiClearedAt !== undefined) {
+  /* A clear for an earlier result, arriving after the game went on and ended again, leaves the new result's confetti. */
+  if (snapshot.result.confettiClearedAt !== undefined || snapshot.result.declaredAt !== declaredAt) {
     return snapshot;
   }
   return revised({ ...snapshot, result: { ...snapshot.result, confettiClearedAt: now } });

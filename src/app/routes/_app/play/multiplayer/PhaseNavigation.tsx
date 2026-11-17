@@ -32,7 +32,7 @@ export function canStepPhase(table: TableProjection) {
 }
 
 /** Each seated player and whether they are ready, by name and faction, in seat order (Norbert, 2026-11-17, #2980). */
-export function readinessList(table: TableProjection) {
+function readinessList(table: TableProjection) {
   const controls = publicControlsOf(table);
   const names = snapshotFactionLabels(table.snapshot);
   return controls.seats.map((seat) => {
