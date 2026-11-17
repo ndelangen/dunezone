@@ -55,19 +55,16 @@ async function tutorialRuntime() {
     peer.catalogue.set(key, assetSupplySchema.parse(answer));
   }
   peer.draftable = draftable.factions;
-  for (const answer of Object.values(catalogue.factionDefinitions)) {
-    const definition = factionDefinitionSchema.parse(answer);
+  /* The pull keeps each faction's definition under the recording's name for it, so the cast comes straight from them. */
+  const factions = TUTORIAL_RECIPE.factions.map(({ slug }) => {
+    const definition = factionDefinitionSchema.parse(catalogue.factionDefinitions[slug]);
     peer.factions.set(definition.faction.id, definition);
-  }
+    return { id: definition.faction.id, slug, name: definition.faction.name };
+  });
   const runtime = await createRuntime(peer, 'game');
   if ((await provision(runtime)).status !== 200) {
     throw new Error('The tutorial game did not provision.');
   }
-  const factions = TUTORIAL_RECIPE.factions.map(({ slug }) => {
-    const { faction } = factionDefinitionSchema.parse(catalogue.factionDefinitions[slug]);
-    const entry = required(draftable.factions.find((row) => row.id === faction.id));
-    return { id: entry.id, slug, name: entry.name };
-  });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));
   return new JourneyRecorder(
     peer,

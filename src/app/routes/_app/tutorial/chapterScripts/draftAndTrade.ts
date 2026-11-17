@@ -24,9 +24,9 @@ const BAN = 'Ixians';
 
 /*
  * A button in the drafting list's row for a faction, by the button's own word. The row's name must be the faction's whole name,
- * before any " · Variant" after it, so a search that also lists "Ixians (In Progress)" still finds the Ixians.
+ * its first text, before the " · Variant" span after it, so a search that also lists "Ixians (In Progress)" still finds the Ixians.
  */
-const rowName = (name: Element) => name.textContent?.split(' ·')[0]?.trim();
+const rowName = (name: Element) => name.firstChild?.textContent?.trim();
 const draftButton =
   (faction: string, word: 'Draft' | 'Ban', linked = true) =>
   () => {
