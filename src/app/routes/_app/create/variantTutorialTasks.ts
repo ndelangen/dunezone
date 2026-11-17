@@ -72,8 +72,8 @@ const creatingTasks = (page: PracticePage): GuideTask[] => {
   const name = typed(NAME);
   /*
    * The variants there were before the form opened, so opening one of those does not count as making one.
-   * Taken when naming starts and kept for the parent step: Create variant can close the form before the name step sees its name,
-   * and by then the new variant is in the Variants card too.
+   * Taken before the form opens and kept for the name and parent steps: Create variant can close the form before the name step
+   * sees its name, and by then the new variant is in the Variants card too.
    */
   let before: (string | null)[] = [];
   const made = () => before.length > 0 && VARIANT_PAGE.test(page.pathname()) && !before.includes(page.pathname());
@@ -83,7 +83,9 @@ const creatingTasks = (page: PracticePage): GuideTask[] => {
       task: 'Press Create variant',
       detail: 'Want this faction to play your way? Give it a variant of your own.\n\nPress Create variant.',
       anchor: { kind: 'page', element: createButton },
-      begin: () => undefined,
+      begin: () => {
+        before = variantRows().map(address);
+      },
       done: () => document.querySelector(CREATE_FORM) !== null,
     }),
     task({
@@ -93,10 +95,6 @@ const creatingTasks = (page: PracticePage): GuideTask[] => {
         "Say what sets it apart. It is always shown beside the faction's name, so leave that out.\n\nType a name, such as Homebrew.",
       ...name,
       anchor: { kind: 'page', element: () => find(NAME) ?? createButton() },
-      begin: () => {
-        before = variantRows().map(address);
-        return name.begin();
-      },
       /* A form closed with a name in it has lost the name, so only a name in an open form counts, or the variant it made. */
       done: (watch: ReturnType<typeof name.begin>) => (name.done(watch) && find(NAME) !== null) || made(),
     }),
