@@ -1,40 +1,32 @@
 import { INITIAL_BACKGROUND_PRESETS } from '@shared/backgrounds/defaults';
 import type { FactionInput } from '@shared/factions/schema';
 import { INHERITABLE_FIELDS } from '@shared/factions/variantFields';
-import type { InheritableField } from '@shared/factions/variantFields';
 import { slugify } from '@shared/slugify';
 
 import { db, ref, ruleset, storybookViewer } from '@db/storybook/database';
 import type { StorybookDatabase } from '@db/storybook/database';
 import type { WorkerIdentity } from '@db/storybook/protocol';
 
-/** One variant of House Atreides beside its Original: what it changes, and the ruleset that plays it. */
+/** One variant of House Atreides beside its Original, and the ruleset that plays it. */
 type PracticeVariant = Readonly<{
   name: string;
-  /** The fields it keeps as its own; it follows the Original, its parent, in every other one. */
-  custom: readonly InheritableField[];
-  change: (rules: FactionInput['rules']) => Partial<FactionInput['rules']>;
+  /** The rules it keeps as its own; it follows the Original, its parent, in every other field. */
+  rules: Partial<FactionInput['rules']>;
   ruleset?: string;
 }>;
 
 /* Each is named for what sets it apart, as the Create variant form asks of a learner's own. */
 const VARIANTS: readonly PracticeVariant[] = [
-  {
-    name: 'Tournament',
-    custom: ['rules.spiceCount'],
-    change: () => ({ spiceCount: 12 }),
-    ruleset: 'Spring Cup',
-  },
+  { name: 'Tournament', rules: { spiceCount: 12 }, ruleset: 'Spring Cup' },
   {
     name: 'Two players',
-    custom: ['rules.startText', 'rules.revivalText'],
-    change: () => ({
+    rules: {
       startText: '10 troops in Arrakeen, 5 in Carthag and 5 in reserve *(off planet)*.',
       revivalText: '3 troops free.',
-    }),
+    },
     ruleset: 'Desert Duel',
   },
-  { name: 'Beginner', custom: ['rules.revivalText'], change: () => ({ revivalText: '4 troops free.' }) },
+  { name: 'Beginner', rules: { revivalText: '4 troops free.' } },
 ];
 
 /*
@@ -54,7 +46,8 @@ function seedVariants(baseline: StorybookDatabase) {
     const variantSlug = slugify(variant.name);
     const key = `faction:house-atreides-${variantSlug}`;
     const data: FactionInput = structuredClone(original.data);
-    data.rules = { ...data.rules, ...variant.change(data.rules) };
+    data.rules = { ...data.rules, ...variant.rules };
+    const custom = Object.keys(variant.rules).map((rule) => `rules.${rule}`);
     baseline.factions.push({
       ...original,
       $key: key,
@@ -64,7 +57,7 @@ function seedVariants(baseline: StorybookDatabase) {
       variant_name: variant.name,
       variant_slug: variantSlug,
       parent_id: ref('faction:house-atreides'),
-      inherited: INHERITABLE_FIELDS.filter((field) => !variant.custom.includes(field)),
+      inherited: INHERITABLE_FIELDS.filter((field) => !custom.includes(field)),
       revision: 0,
     });
     if (variant.ruleset) {

@@ -16,9 +16,9 @@ export const VARIANT_TUTORIAL_START = '/factions';
 /* The practice copy's faction with several variants (practiceDatabase.ts). */
 const FACTION = '/factions/house-atreides';
 const PAGES = '[data-tutorial-pages]';
-const FACTION_PAGE = /^\/factions\/house-atreides(-[^/]+)?\/?$/;
+const FACTION_PAGE = /^\/factions\/house-atreides(-[^/]+)?$/;
 const VARIANT_PAGE = /^\/factions\/house-atreides-[^/]+$/;
-const EDIT_PAGE = /^\/factions\/house-atreides-[^/]+\/edit\/?$/;
+const EDIT_PAGE = /^\/factions\/house-atreides-[^/]+\/edit$/;
 
 const address = (link: Element | undefined) => link?.getAttribute('href') ?? null;
 
@@ -97,10 +97,8 @@ const creatingTasks = (page: PracticePage): GuideTask[] => {
       anchor: { kind: 'page', element: () => find(PARENT) ?? createButton() },
       /* The variants there were, so opening one of those does not count as making one. */
       begin: () => ({ known: variantRows().map(address) }),
-      done: (watch: { known: (string | null)[] }) => {
-        const pathname = page.pathname().replace(/\/$/, '');
-        return watch.known.length > 0 && VARIANT_PAGE.test(pathname) && !watch.known.includes(pathname);
-      },
+      done: (watch: { known: (string | null)[] }) =>
+        watch.known.length > 0 && VARIANT_PAGE.test(page.pathname()) && !watch.known.includes(page.pathname()),
     }),
   ];
 };

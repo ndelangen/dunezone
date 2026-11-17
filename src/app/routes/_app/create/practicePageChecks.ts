@@ -3,8 +3,25 @@
  * The faction editor is the same on the creator and on a variant's edit page, so its fields and tabs are found the same way on both.
  */
 
+import type { SandboxControls } from '../../../db/sandbox/SandboxApp';
+
 /** Where the practice copy of the site is, for the tasks that move between its pages. */
 export type PracticePage = Readonly<{ pathname: () => string }>;
+
+/*
+ * A chapter's hold on whichever practice copy is running now; a Reset starts another.
+ * `page` is the one the copy has finished opening, so the rail moves on only once the learner sees that page.
+ */
+export function practiceCopy() {
+  let controls: SandboxControls | null = null;
+  return {
+    ready: (next: SandboxControls) => {
+      controls = next;
+    },
+    router: () => controls?.router,
+    page: { pathname: () => controls?.router.state.resolvedLocation?.pathname ?? '' } satisfies PracticePage,
+  };
+}
 
 const TABS = '[role="tablist"][aria-label="Faction editor sections"]';
 
