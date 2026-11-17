@@ -23,7 +23,7 @@ export const Chapter = meta.story({
   play: playChapter('Chapter 21: Moderation and disputes', 'Check what happened'),
 });
 
-const HARKONNEN = 'House Harkonnen';
+const HARKONNEN = 'Harkonnen';
 
 /* The step at hand, by its title in the rail. */
 const currentStep = (canvasElement: HTMLElement) =>

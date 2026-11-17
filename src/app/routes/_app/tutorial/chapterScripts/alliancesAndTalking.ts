@@ -11,11 +11,11 @@ import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, wind
 /*
  * "Talking & Alliances": a word with one player, a look at their faction, and an alliance from offer to break.
  * The chat bar under the table holds a token for every player; a token opens that player's chat, and the token in the chat's
- * title opens their faction information, where the alliance offer sits. House Atreides answers the chat and accepts the offer
+ * title opens their faction information, where the alliance offer sits. Atreides answers the chat and accepts the offer
  * by itself, as a player at the table would, and the ally then sits twice right on the compass.
  */
 
-const PARTNER = 'House Atreides';
+const PARTNER = 'Atreides';
 /* How long Atreides thinks over the offer before it accepts. */
 const ACCEPT_AFTER_MS = 1500;
 type Seat = NonNullable<GameSnapshot['roster']>['seats'][number];
@@ -55,7 +55,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   return [
     task({
       id: 'chat',
-      task: 'Say hello to House Atreides',
+      task: 'Say hello to Atreides',
       detail:
         "Let's have a private chat. Click the Atreides token below the table, type a message and press {Enter}.\n\nOnly the two of you can read it.",
       anchor: {

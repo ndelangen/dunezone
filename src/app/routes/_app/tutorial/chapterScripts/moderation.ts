@@ -10,12 +10,12 @@ import { element, pressEnter, task } from './guideChecks';
 /* The public log, an absent player's removal vote and the audit record. */
 
 /* The player who has gone quiet. */
-const QUIET = 'House Harkonnen';
+const QUIET = 'Harkonnen';
 /* How the others vote, in order, by faction: enough Remove for the majority, with one Keep on the way. */
 const BALLOTS = [
   { faction: 'Fremen', choice: 'remove' },
   { faction: 'Emperor', choice: 'keep' },
-  { faction: 'House Atreides', choice: 'remove' },
+  { faction: 'Atreides', choice: 'remove' },
   { faction: 'Spacing Guild', choice: 'remove' },
 ] as const;
 /* How long each player takes to vote, so the learner sees each ballot land. */

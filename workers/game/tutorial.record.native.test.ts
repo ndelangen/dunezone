@@ -55,18 +55,16 @@ async function tutorialRuntime() {
     peer.catalogue.set(key, assetSupplySchema.parse(answer));
   }
   peer.draftable = draftable.factions;
-  for (const answer of Object.values(catalogue.factionDefinitions)) {
-    const definition = factionDefinitionSchema.parse(answer);
+  /* The pull keeps each faction's definition under the recording's name for it, so the cast comes straight from them. */
+  const factions = TUTORIAL_RECIPE.factions.map(({ slug }) => {
+    const definition = factionDefinitionSchema.parse(catalogue.factionDefinitions[slug]);
     peer.factions.set(definition.faction.id, definition);
-  }
+    return { id: definition.faction.id, slug, name: definition.faction.name };
+  });
   const runtime = await createRuntime(peer, 'game');
   if ((await provision(runtime)).status !== 200) {
     throw new Error('The tutorial game did not provision.');
   }
-  const factions = TUTORIAL_RECIPE.factions.map((slug) => {
-    const entry = required(draftable.factions.find((faction) => faction.slug === slug));
-    return { id: entry.id, slug, name: entry.name };
-  });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));
   return new JourneyRecorder(
     peer,
@@ -98,25 +96,60 @@ async function factionSheets(journey: JourneyRecorder) {
   return sheets;
 }
 
+/*
+ * The spice card the learner turns over first in "What goes where": the top of the spice deck, which must be a territory, not Shai-Hulud.
+ * Read from the stored table, since a face-down card keeps its name from every player's view.
+ */
+function firstSpiceCardBlows(journey: JourneyRecorder) {
+  const deck = required(journey.steps.at(-1)?.stored).table.pieces.find(
+    (piece) => piece.items.length > 1 && piece.items[0]?.artwork?.type === 'card-spice'
+  );
+  const top = deck?.items.at(-1)?.artwork?.name;
+  return top !== undefined && top !== 'Shai-Hulud';
+}
+
+/*
+ * The deal and the shuffles are random, but the chapters teach a fixed table: the learner plays the recipe's first faction
+ * (Setup opens on the Bene Gesserit's prediction) and the first spice card names a territory. So the game is played again until it does.
+ */
+async function teachableGame() {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const journey = await tutorialRuntime();
+    /* An attempt that throws closes its game too; only the game returned is left for the caller to close. */
+    try {
+      const checkpoints: Partial<Record<TutorialCheckpoint, number>> = {};
+      const mark = (name: TutorialCheckpoint) => {
+        checkpoints[name] = journey.steps.length - 1;
+      };
+      await drafting(journey);
+      if (journey.factionAt(0)?.id === journey.cast.factions[0]?.id) {
+        /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
+        checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
+        await trading(journey);
+        mark('setup');
+        await predict(journey);
+        await dealTraitors(journey);
+        await keepTraitors(journey);
+        await startingTroops(journey);
+        await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
+        mark('turn-1-storm');
+        if (firstSpiceCardBlows(journey)) {
+          return { journey, checkpoints };
+        }
+      }
+    } catch (error) {
+      await journey.close();
+      throw error;
+    }
+    await journey.close();
+  }
+  throw new Error('No game in 30 dealt the learner the first faction and a territory on top of the spice deck.');
+}
+
 describe.runIf(process.env.RECORD_TUTORIAL)('The tutorial setup recording', { timeout: 600_000 }, () => {
   it('records the recipe game at every checkpoint', async () => {
-    const journey = await tutorialRuntime();
-    const checkpoints: Partial<Record<TutorialCheckpoint, number>> = {};
-    const mark = (name: TutorialCheckpoint) => {
-      checkpoints[name] = journey.steps.length - 1;
-    };
+    const { journey, checkpoints } = await teachableGame();
     try {
-      await drafting(journey);
-      /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
-      checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
-      await trading(journey);
-      mark('setup');
-      await predict(journey);
-      await dealTraitors(journey);
-      await keepTraitors(journey);
-      await startingTroops(journey);
-      await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
-      mark('turn-1-storm');
       expect(Object.keys(checkpoints)).toEqual([...TUTORIAL_CHECKPOINTS]);
       const log = { game: await journey.fullLog('game'), audit: await journey.fullLog('audit') };
       const setup = {

@@ -88,9 +88,7 @@ test('scrubbing changes the recorded hand, reserve, private tracker and public b
   try {
     const checkpoints = game.view().reviewCheckpoints!;
     const secondStorm = checkpoints.find((checkpoint) => checkpoint.turn === 2 && checkpoint.label === 'Storm')!;
-    const movement = checkpoints.find(
-      (checkpoint) => checkpoint.turn === 1 && checkpoint.faction === 'House Atreides'
-    )!;
+    const movement = checkpoints.find((checkpoint) => checkpoint.turn === 1 && checkpoint.faction === 'Atreides')!;
     startRecall(game);
     const first = game.table.history(0).snapshot;
     const middle = seek(game, secondStorm.step);

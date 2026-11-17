@@ -10,7 +10,7 @@ import { at, element, onBoard, task } from './guideChecks';
 /*
  * "Battle": one battle from the battle marker to an agreed result.
  * The learner plays the Fremen, and the others moved the game on to the Battle phase before the chapter opens.
- * The Fremen ship into Arrakeen, where House Atreides waits, drag the battle marker there and take the aggressor's side.
+ * The Fremen ship into Arrakeen, where Atreides waits, drag the battle marker there and take the aggressor's side.
  * The Fremen fight because their troops carry battle values in the shared setup, and two troop types show what the dial is for.
  * The first battle teaches the leader, card, dial, Ready and agreed result. A second practice plan teaches early disclosure.
  * Atreides answers on its own: it takes the other side, commits a leader and locks its plan, the plans reveal together,
@@ -21,14 +21,14 @@ import { at, element, onBoard, task } from './guideChecks';
 const PHASES_TO_BATTLE = 6;
 /* How long the other side thinks before each of its moves. */
 const THINK_MS = 1200;
-const OPPONENT = 'House Atreides';
+const OPPONENT = 'Atreides';
 
 /* The seat that plays a faction, among the other players. */
 const seatOf = (players: TablePlayers, factionId: string) =>
   players.others().find((seat) => players.viewOf(seat).bank?.factionId === factionId);
 
 /*
- * House Atreides' side of the battle while the task runs: it takes the right side once the learner took the left,
+ * Atreides' side of the battle while the task runs: it takes the right side once the learner took the left,
  * commits a leader and locks its plan once the learner locked theirs, and agrees to the result the learner chose.
  */
 function atreidesFights(snapshot: () => GameSnapshot, players: TablePlayers) {
