@@ -89,6 +89,8 @@ export const ACTION_POLICY = {
   'result-declare': { revision: 'strict' },
   'result-continue': { revision: 'strict' },
   'result-end': { revision: 'strict' },
+  /* Clearing the confetti names nothing that another seat's move could change. */
+  'result-confetti-clear': { revision: 'tolerant', finished: true },
   /* A draft choice names the sender's own pick. */
   'draft-pick': { revision: 'tolerant' },
   'draft-unpick': { revision: 'tolerant' },

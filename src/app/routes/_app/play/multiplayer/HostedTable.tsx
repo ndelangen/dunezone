@@ -745,7 +745,7 @@ function ConnectedTable({
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
-  const celebration = useResultCelebration(table);
+  const celebration = useResultCelebration(client, table);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */

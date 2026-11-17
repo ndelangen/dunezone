@@ -411,7 +411,7 @@ function TableLabelItems() {
  * The settings menu behind the gear at the right end of the header, in every stage, after the phase controls.
  * It gives up the viewer's seat with a five-second hold, never a modal or a bar;
  * a spectator has no seat to give up.
- * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
+ * While a result's confetti is on the table it also stops and clears it, for the whole table when a player clears it.
  */
 export function GameMenu({
   client,
