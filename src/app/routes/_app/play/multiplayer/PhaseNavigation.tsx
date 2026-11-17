@@ -113,7 +113,9 @@ function useReadyReminder(client: TableSession, table: TableProjection, waiting:
   /* A new gate asks afresh; the reminders already fired at this one are not fired again. */
   const current = reminders.gate === gate ? reminders : { gate, fired: [], count: reminders.count };
   if (stage && !current.fired.includes(stage)) {
-    setReminders({ gate, fired: [...current.fired, stage], count: current.count + 1 });
+    /* The last-one reminder also stands for the first: a seat withdrawing afterwards does not remind again. */
+    const fired = stage === 'last' ? [...current.fired, 'waiting', 'last'] : [...current.fired, stage];
+    setReminders({ gate, fired, count: current.count + 1 });
   } else if (current !== reminders) {
     setReminders(current);
   }
@@ -207,6 +209,7 @@ export function ReadyToggle({
       <Tooltip
         withinPortal
         multiline
+        events={{ hover: true, focus: true, touch: false }}
         label={
           <Stack gap={4}>
             <Text size="xs">{ready ? 'Withdraw readiness' : 'Tell the table you are ready'}</Text>
