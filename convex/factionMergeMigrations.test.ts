@@ -22,11 +22,7 @@ async function duplicatesFixture() {
   });
   const duplicateFamilyId = (await f.row(duplicate._id)).family_id;
   const migrate = () => f.t.mutation(internal.factionMergeMigrations.faction_duplicates_merge_v1, {});
-  const verify = async () => {
-    await f.t.mutation(internal.factionMergeMigrations.faction_duplicates_merge_verify_v1, { reset: true });
-    return await f.t.query(internal.migrations.verifyMigration, { id: 'faction_duplicates_merge_verify_v1' });
-  };
-  return { ...f, duplicate, duplicateFamilyId, migrate, verify };
+  return { ...f, duplicate, duplicateFamilyId, migrate };
 }
 
 describe('merging production’s duplicate factions (#2915)', () => {
@@ -38,8 +34,6 @@ describe('merging production’s duplicate factions (#2915)', () => {
 
   test('moves the listed variant under its GF9 variant and retires its Faction; a replay changes nothing', async () => {
     const f = await duplicatesFixture();
-    expect((await f.verify().catch(() => ({ complete: false }))).complete).toBe(false);
-
     await f.migrate();
     await f.t.finishAllScheduledFunctions(() => {});
 
@@ -48,7 +42,6 @@ describe('merging production’s duplicate factions (#2915)', () => {
     expect(moved.slug).not.toBe('house-atreides-dreamrules');
     const retired = await f.t.run(async (ctx) => await ctx.db.get('faction_families', f.duplicateFamilyId));
     expect(retired).toMatchObject({ is_deleted: true, merged_into: f.familyId });
-    expect((await f.verify()).complete).toBe(true);
 
     await f.t.mutation(internal.factionMergeMigrations.faction_duplicates_merge_v1, { reset: true });
     await f.t.finishAllScheduledFunctions(() => {});

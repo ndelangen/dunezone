@@ -1,5 +1,6 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
 import { components, internal } from './_generated/api';
 import { attachVariant } from './factionMerge';
@@ -55,11 +56,13 @@ async function liveVariantAt(ctx: Pick<QueryCtx, 'db'>, slug: string) {
 /**
  * Merges each listed variant into the Faction of its GF9 variant, under that variant, as the admin merge tool does.
  * A merged variant leaves its address, so a replay, and any deployment without these rows, writes nothing.
- * A listed variant whose GF9 variant is missing stays where it is, logged.
+ * A listed variant whose GF9 variant is missing, or whose merge is refused, stays where it is, logged.
+ * No verify follows, so a refusal cannot hold up later deploys; the merged variants are checked on the live site instead.
  */
 export const faction_duplicates_merge_v1 = migrations.define({
   table: 'factions',
-  batchSize: 4,
+  /* One merge per transaction: each stores the variant and schedules its branch and reference rewrites. */
+  batchSize: 1,
   migrateOne: async (ctx, row) => {
     const parentSlug = DUPLICATE_MERGES[row.slug];
     if (!parentSlug || row.is_deleted) {
@@ -70,27 +73,22 @@ export const faction_duplicates_merge_v1 = migrations.define({
       console.warn(`Faction ${row.slug} was not merged: no live ${parentSlug} in another faction.`);
       return;
     }
-    const { slug } = await attachVariant(ctx, {
-      faction_id: row._id,
-      family_id: parent.family_id,
-      parent_id: parent._id,
-    });
-    console.log(`Merged faction ${row.slug} into ${parentSlug}'s faction at ${slug}.`);
-  },
-});
-
-/** Proves no listed variant still sits at its old address beside a live GF9 variant it should have joined. */
-export const faction_duplicates_merge_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 25,
-  migrateOne: async (ctx, row) => {
-    const parentSlug = DUPLICATE_MERGES[row.slug];
-    if (!parentSlug || row.is_deleted) {
-      return;
-    }
-    const parent = await liveVariantAt(ctx, parentSlug);
-    if (parent && parent.family_id !== row.family_id) {
-      throw new Error(`Faction ${row.slug} still stands apart from ${parentSlug}.`);
+    /*
+     * A refusal (a name clash, a gone parent) is a ConvexError thrown before the merge writes, so it is logged rather than failing the deploy.
+     * Anything else fails the transaction, which writes nothing.
+     */
+    try {
+      const { slug } = await attachVariant(ctx, {
+        faction_id: row._id,
+        family_id: parent.family_id,
+        parent_id: parent._id,
+      });
+      console.log(`Merged faction ${row.slug} into ${parentSlug}'s faction at ${slug}.`);
+    } catch (error) {
+      if (!(error instanceof ConvexError)) {
+        throw error;
+      }
+      console.warn(`Faction ${row.slug} was not merged: ${String(error.data)}`);
     }
   },
 });
@@ -98,5 +96,4 @@ export const faction_duplicates_merge_verify_v1 = migrations.define({
 /** Typed by hand, as `CATALOGUE_MIGRATION_IDS` is, so the generated api does not reference itself. */
 export const FACTION_MERGE_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 'internal'>> = {
   faction_duplicates_merge_v1: internal.factionMergeMigrations.faction_duplicates_merge_v1,
-  faction_duplicates_merge_verify_v1: internal.factionMergeMigrations.faction_duplicates_merge_verify_v1,
 };
