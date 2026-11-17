@@ -86,20 +86,23 @@ function gateKey(table: TableProjection) {
 
 type Reminders = Readonly<{ gate: string; fired: readonly string[]; count: number }>;
 
-/* The reminders fired at the latest gate, kept beyond the controls: a Mentat recall swaps them out of the header, and closing it must not remind again. */
-let firedAtGate: Readonly<{ gate: string; fired: readonly string[] }> | null = null;
+/*
+ * The reminders fired at each table's latest gate, kept beyond the controls: a Mentat recall swaps them out of the header, and closing it must not remind again.
+ * Kept per table session, so another game starts afresh.
+ */
+const firedAtGate = new WeakMap<TableSession, Readonly<{ gate: string; fired: readonly string[] }>>();
 
 /**
  * Reminds the viewer to ready up (#2980): when a gate starts waiting on them, and again once everyone else is ready, the Ready button flashes and a soft chime plays, each once per gate.
  * Withdrawing readiness, a reconnect, or another player withdrawing and readying again never reminds twice.
  * Returns how many reminders have fired, for the button to flash on each new one.
  */
-function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boolean) {
+function useReadyReminder(client: TableSession, table: TableProjection, waiting: boolean, lastOne: boolean) {
   const gate = gateKey(table);
   const stage = waiting ? (lastOne ? 'last' : 'waiting') : null;
   const [reminders, setReminders] = useState<Reminders>(() => ({
     gate,
-    fired: firedAtGate?.gate === gate ? firedAtGate.fired : [],
+    fired: firedAtGate.get(client)?.gate === gate ? firedAtGate.get(client)!.fired : [],
     count: 0,
   }));
   /* A new gate asks afresh; the reminders already fired at this one are not fired again. */
@@ -110,8 +113,8 @@ function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boo
     setReminders(current);
   }
   useEffect(() => {
-    firedAtGate = { gate: reminders.gate, fired: reminders.fired };
-  }, [reminders.gate, reminders.fired]);
+    firedAtGate.set(client, { gate: reminders.gate, fired: reminders.fired });
+  }, [client, reminders.gate, reminders.fired]);
   useEffect(() => {
     if (reminders.count > 0) {
       playTableSound('ready');
@@ -127,7 +130,7 @@ export function PhaseNavigation({ client, table }: Readonly<{ client: TableSessi
   const ready = controls.ready.includes(table.viewer.viewerSeat);
   const { count, of } = readyCount(controls);
   const waiting = needsReady && !ready && table.canInteract;
-  const reminder = useReadyReminder(table, waiting, waiting && count === of - 1);
+  const reminder = useReadyReminder(client, table, waiting, waiting && count === of - 1);
   /* Readiness is a phase control, so it sits beside Next phase in the header rather than on a tab. */
   return (
     <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">

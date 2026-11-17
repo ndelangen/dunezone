@@ -30,4 +30,10 @@ describe('newMessageSound (#2982)', () => {
     ).toBe('chat-ally');
     expect(newMessageSound(before, [summary('harkonnen', 0)], [])).toBeNull();
   });
+
+  it('stays silent for the conversation a chat panel shows', () => {
+    const before = [summary(TABLE_CONVERSATION, 0), summary('fremen', 0)];
+    const next = [summary(TABLE_CONVERSATION, 1), summary('fremen', 0)];
+    expect(newMessageSound(before, next, [], (peerId) => peerId === TABLE_CONVERSATION)).toBeNull();
+  });
 });

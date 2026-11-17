@@ -8,6 +8,7 @@ import { playTableSound } from '@app/widgets/tabletop/tableSounds';
 import type { TableSound } from '@app/widgets/tabletop/tableSounds';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { isViewingConversation } from '../panels/chat/viewingConversations';
 
 /* Which sound a new message in one conversation makes: the table's chat (and a recall's), your ally, or another faction. */
 function chatSound(peerId: string, allies: readonly string[]): TableSound {
@@ -23,11 +24,13 @@ const RANK: Readonly<Partial<Record<TableSound, number>>> = { 'chat-table': 0, '
 /**
  * The sound for the conversations whose unread count rose since the last summaries, or null.
  * A conversation not seen before counts only when earlier summaries were there, so the counts a (re)connection brings stay silent.
+ * A conversation a chat panel shows makes none, as its message is already in view.
  */
 export function newMessageSound(
   previous: readonly ConversationSummary[] | null,
   next: readonly ConversationSummary[],
-  allies: readonly string[]
+  allies: readonly string[],
+  inView: (peerId: string) => boolean = () => false
 ): TableSound | null {
   if (!previous || previous.length === 0) {
     return null;
@@ -35,7 +38,7 @@ export function newMessageSound(
   const before = new Map(previous.map((entry) => [entry.peerId, entry.unread]));
   let sound: TableSound | null = null;
   for (const { peerId, unread } of next) {
-    if (unread > (before.get(peerId) ?? 0)) {
+    if (unread > (before.get(peerId) ?? 0) && !inView(peerId)) {
       const candidate = chatSound(peerId, allies);
       sound = sound && (RANK[sound] ?? 0) >= (RANK[candidate] ?? 0) ? sound : candidate;
     }
@@ -59,7 +62,12 @@ export function useChatSounds(client: TableSession, table: TableProjection) {
   const summaries = conversations.summaries;
   const alliesKey = allies.join(',');
   useEffect(() => {
-    const sound = newMessageSound(previous.current, summaries, alliesKey ? alliesKey.split(',') : []);
+    const sound = newMessageSound(
+      previous.current,
+      summaries,
+      alliesKey ? alliesKey.split(',') : [],
+      isViewingConversation
+    );
     previous.current = summaries;
     if (sound) {
       playTableSound(sound);

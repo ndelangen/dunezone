@@ -12,6 +12,7 @@ import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
 import type { Mention } from './mentions';
+import { useViewingConversation } from './viewingConversations';
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
 function senderNames(context: ConversationView['context']): Record<string, string> {
@@ -86,6 +87,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
     [senders, table, view.context]
   );
   const windows = useContext(CompassWindowsContext);
+  useViewingConversation(peerId);
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
