@@ -1,16 +1,17 @@
 import type { PingSound } from '@shared/play/protocol';
 
-/*
- * The ping's sounds, made in the browser so they need no file.
- * A page that has had no click or key yet may not play sound, as browsers allow; its pings still show, silently.
- */
-let audio: AudioContext | null = null;
+import { tableAudio } from './tableSounds';
 
+/*
+ * The ping's sounds, made in the browser so they need no file, at this viewer's table volume.
+ * A page that has had no click or key yet may not play sound, as browsers allow; its pings still show, silently.
+ * The tone is gentler than it was (Norbert, 2026-11-17, #2982): softer, with a slower attack and less of its bright overtone.
+ */
 const TONES = [
-  { frequency: 1480, peak: 0.16 },
-  { frequency: 2960, peak: 0.04 },
+  { frequency: 1480, peak: 0.1 },
+  { frequency: 2960, peak: 0.015 },
 ] as const;
-const ATTACK_S = 0.008;
+const ATTACK_S = 0.025;
 const DECAY_S = 0.55;
 
 /* The rumble: a buzzing sawtooth falling through these pitches, fluttering, muffled as if from under the sand, fading out over its back part. */
@@ -28,24 +29,18 @@ const RUMBLE_FADE_FROM = 0.35;
 
 /** Plays a ping's sound: the usual bright tone, or the sound the ping asked for. */
 export function playPingSound(sound?: PingSound) {
-  try {
-    audio ??= new AudioContext();
-    if (audio.state !== 'running') {
-      /* A suspended context keeps its clock still, so tones scheduled now would all sound at once when it starts: this ping stays silent. */
-      void audio.resume().catch(() => undefined);
-      return;
-    }
-    if (sound === 'fart') {
-      playRumble(audio);
-    } else {
-      playTone(audio);
-    }
-  } catch {
-    /* A browser without Web Audio shows the ping silently. */
+  const audio = tableAudio();
+  if (!audio) {
+    return;
+  }
+  if (sound === 'fart') {
+    playRumble(audio.context, audio.output);
+  } else {
+    playTone(audio.context, audio.output);
   }
 }
 
-function playTone(context: AudioContext) {
+function playTone(context: AudioContext, output: AudioNode) {
   const now = context.currentTime;
   for (const { frequency, peak } of TONES) {
     const oscillator = context.createOscillator();
@@ -56,13 +51,13 @@ function playTone(context: AudioContext) {
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(peak, now + ATTACK_S);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + DECAY_S);
-    oscillator.connect(gain).connect(context.destination);
+    oscillator.connect(gain).connect(output);
     oscillator.start(now);
     oscillator.stop(now + DECAY_S + 0.05);
   }
 }
 
-function playRumble(context: AudioContext) {
+function playRumble(context: AudioContext, output: AudioNode) {
   const start = context.currentTime + 0.02;
   const end = start + RUMBLE_S;
 
@@ -70,7 +65,7 @@ function playRumble(context: AudioContext) {
   filter.type = 'lowpass';
   filter.frequency.value = RUMBLE_CUTOFF_HZ;
   filter.Q.value = 4;
-  filter.connect(context.destination);
+  filter.connect(output);
 
   const envelope = context.createGain();
   envelope.gain.setValueAtTime(0.0001, start);

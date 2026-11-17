@@ -1,9 +1,15 @@
-import { Group, Menu, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Menu, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 /* oxlint-disable-next-line no-restricted-imports -- Ready and Next phase are a split button with a live count, a shape no kit action has. */
 import { Button } from '@mantine/core';
+import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { rosterSeat } from '@shared/play/schema';
 import { phaseGate } from '@shared/play/setup';
-import { Check, ChevronDown } from 'lucide-react';
-import { useId } from 'react';
+import { Check, ChevronDown, Hourglass } from 'lucide-react';
+import { useEffect, useId } from 'react';
+import type { ReactNode } from 'react';
+
+import { useMotionAllowed } from '@app/styles/motion';
+import { playTableSound } from '@app/widgets/tabletop/tableSounds';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './PhaseNavigation.module.css';
@@ -25,6 +31,37 @@ export function canStepPhase(table: TableProjection) {
   return table.canInteract && !table.phaseCooling && gateOf(table).refusal === null;
 }
 
+/** Each seated player and whether they are ready, by name and faction, in seat order (Norbert, 2026-11-17, #2980). */
+export function readinessList(table: TableProjection) {
+  const controls = publicControlsOf(table);
+  const names = snapshotFactionLabels(table.snapshot);
+  return controls.seats.map((seat) => {
+    const player = controls.players.find((entry) => entry.seat === seat)?.name ?? seat;
+    const faction = rosterSeat(table.snapshot.roster, seat)?.faction?.id;
+    return {
+      seat,
+      label: faction ? `${player} (${names[faction] ?? faction})` : player,
+      ready: controls.ready.includes(seat),
+    };
+  });
+}
+
+/* Who is ready and who the table still waits on, as the Ready tooltips list them. */
+function ReadinessLines({ table }: Readonly<{ table: TableProjection }>) {
+  return (
+    <Stack gap={2} aria-label="Who is ready">
+      {readinessList(table).map(({ seat, label, ready }) => (
+        <Group key={seat} gap={6} wrap="nowrap">
+          {ready ? <Check size={14} aria-label="Ready" /> : <Hourglass size={14} aria-label="Not ready yet" />}
+          <Text size="xs" span>
+            {label}
+          </Text>
+        </Group>
+      ))}
+    </Stack>
+  );
+}
+
 /** What an observer sees of the phase controls: how many are ready when the phase asks for it, as words rather than a button. */
 export function PhaseReadiness({ table }: Readonly<{ table: TableProjection }>) {
   const { controls, needsReady } = gateOf(table);
@@ -33,10 +70,33 @@ export function PhaseReadiness({ table }: Readonly<{ table: TableProjection }>) 
   }
   const { count, of } = readyCount(controls);
   return (
-    <Text size="xs" fw={700} c="dimmed" role="status">
-      {count} of {of} ready
-    </Text>
+    <Tooltip withinPortal multiline label={<ReadinessLines table={table} />}>
+      <Text size="xs" fw={700} c="dimmed" role="status">
+        {count} of {of} ready
+      </Text>
+    </Tooltip>
   );
+}
+
+/* The gate the table is at: a new phase, setup step or stage asks for readiness afresh. */
+function gateKey(table: TableProjection) {
+  const { stage, phase, setup } = table.snapshot;
+  return `${stage}:${phase}:${setup?.index ?? ''}`;
+}
+
+/**
+ * Reminds the viewer to ready up (#2980): when a gate starts waiting on them, and again once everyone else is ready, the Ready button flashes and a soft chime plays, each once per gate.
+ */
+function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boolean) {
+  const gate = gateKey(table);
+  const stage = waiting ? (lastOne ? 'last' : 'waiting') : 'idle';
+  const reminder = waiting ? `${gate}:${stage}` : null;
+  useEffect(() => {
+    if (reminder) {
+      playTableSound('ready');
+    }
+  }, [reminder]);
+  return reminder;
 }
 
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
@@ -44,13 +104,19 @@ export function PhaseNavigation({ client, table }: Readonly<{ client: TableSessi
   const cooling = table.phaseCooling;
   const { controls, needsReady, refusal } = gateOf(table);
   const ready = controls.ready.includes(table.viewer.viewerSeat);
+  const { count, of } = readyCount(controls);
+  const waiting = needsReady && !ready && table.canInteract;
+  const reminder = useReadyReminder(table, waiting, waiting && count === of - 1);
   /* Readiness is a phase control, so it sits beside Next phase in the header rather than on a tab. */
   return (
     <Group gap="xs" justify="flex-end" wrap="wrap" role="group" aria-label="Phase navigation">
       {needsReady && (
         <ReadyToggle
           ready={ready}
-          {...readyCount(controls)}
+          count={count}
+          of={of}
+          flash={reminder}
+          readiness={<ReadinessLines table={table} />}
           disabled={!table.canInteract}
           onToggle={() => client.command({ kind: 'ready', ready: !ready })}
         />
@@ -80,13 +146,37 @@ export function ReadyToggle({
   count,
   of,
   disabled,
+  flash = null,
+  readiness,
   onToggle,
-}: Readonly<{ ready: boolean; count: number; of: number; disabled: boolean; onToggle: () => void }>) {
+}: Readonly<{
+  ready: boolean;
+  count: number;
+  of: number;
+  disabled: boolean;
+  /** A new value flashes the button once, to remind the viewer the table waits on them. */
+  flash?: string | null;
+  /** Who is ready and who is not, under the tooltip's hint. */
+  readiness?: ReactNode;
+  onToggle: () => void;
+}>) {
   const countId = useId();
+  const motion = useMotionAllowed();
   return (
     <>
-      <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
+      <Tooltip
+        withinPortal
+        multiline
+        label={
+          <Stack gap={4}>
+            <Text size="xs">{ready ? 'Withdraw readiness' : 'Tell the table you are ready'}</Text>
+            {readiness}
+          </Stack>
+        }
+      >
         <Button
+          key={flash ?? 'still'}
+          className={flash && !ready ? (motion ? styles.flash : styles.waiting) : undefined}
           disabled={disabled}
           color={ready ? 'confirm' : 'cta'}
           variant="filled"
