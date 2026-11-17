@@ -94,8 +94,17 @@
   }
 }
 
+/*
+ * Stepping through checkpoints keeps the last one drawn until the next arrives (#2991).
+ * Only a checkpoint that is slow to load dims the board, after a pause and with a fade,
+ * so quick steps no longer blink the whole table to a fifth of its brightness and back.
+ */
+:global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene) {
+  transition: opacity 150ms ease;
+}
 :global(.dune-play-shell)[data-mentat-recall-loading="true"] :global(.scene) {
   opacity: 0.2;
+  transition: opacity 300ms ease 600ms;
 }
 
 /* Pointer hands stay above the recall tint with their recorded player colours. */
