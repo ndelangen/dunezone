@@ -268,7 +268,8 @@ export const DetailCreateVariant = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
     const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
     await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
-    await expect(form.getByText('/factions/house-atreides-tournament')).toBeVisible();
+    /* The address follows the name as it is typed, so the story waits for it to settle on the whole name. */
+    await waitFor(() => expect(form.getByText('/factions/house-atreides-tournament')).toBeVisible());
     const parents = within(form.getByRole('group', { name: 'Parent variant' }));
     await expect(parents.getAllByRole('radio').map((radio) => radio.parentElement?.parentElement?.textContent)).toEqual(
       ['No parent', 'Original', 'Dreamrules']
