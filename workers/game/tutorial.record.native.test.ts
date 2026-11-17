@@ -63,8 +63,9 @@ async function tutorialRuntime() {
   if ((await provision(runtime)).status !== 200) {
     throw new Error('The tutorial game did not provision.');
   }
-  const factions = TUTORIAL_RECIPE.factions.map((slug) => {
-    const entry = required(draftable.factions.find((faction) => faction.slug === slug));
+  const factions = TUTORIAL_RECIPE.factions.map(({ slug }) => {
+    const { faction } = factionDefinitionSchema.parse(catalogue.factionDefinitions[slug]);
+    const entry = required(draftable.factions.find((row) => row.id === faction.id));
     return { id: entry.id, slug, name: entry.name };
   });
   const ban = required(draftable.factions.find((faction) => !factions.some((chosen) => chosen.id === faction.id)));

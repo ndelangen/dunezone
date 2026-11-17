@@ -60,10 +60,11 @@ for (const faction of [...draftable.factions].sort((a, b) => Number(b.linked) - 
   }
 }
 const factions: Record<string, unknown> = {};
-for (const slug of TUTORIAL_RECIPE.factions) {
-  const entry = byFaction.get(slug);
+/* Kept by the recording's name for each, so the recording finds its draft row through the definition's id. */
+for (const { slug, address } of TUTORIAL_RECIPE.factions) {
+  const entry = byFaction.get(address);
   if (!entry?.published) {
-    throw new Error(`The faction ${slug} is not in the draft, or its token is not published.`);
+    throw new Error(`The faction ${address} is not in the draft, or its token is not published.`);
   }
   factions[slug] = checked(
     factionDefinitionSchema,

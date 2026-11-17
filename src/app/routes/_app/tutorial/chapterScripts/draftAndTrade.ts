@@ -52,7 +52,7 @@ const factionId = (snapshot: () => GameSnapshot, name: string, linked = true) =>
 /* The others draft the factions the recording dealt them and declare themselves ready, as players at a real table would. */
 function othersDraft(snapshot: () => GameSnapshot, players: TablePlayers, selected: string) {
   const seats = snapshot().roster?.seats ?? [];
-  const official = ['Bene Gesserit', 'Fremen', 'House Atreides', 'House Harkonnen', 'Emperor', 'Spacing Guild'].filter(
+  const official = ['Bene Gesserit', 'Fremen', 'Atreides', 'Harkonnen', 'Emperor', 'Spacing Guild'].filter(
     (name) => name !== selected
   );
   players.others().forEach((seat, index) => {
@@ -111,7 +111,7 @@ const tradingOver = (snapshot: () => GameSnapshot) =>
  */
 const dealt = (snapshot: () => GameSnapshot) =>
   snapshot().roster?.seats.find((entry) => entry.id === LEARNER)?.faction?.name ?? 'your faction';
-const PARTNER = 'House Atreides';
+const PARTNER = 'Atreides';
 const partner = (snapshot: () => GameSnapshot) => {
   const others = (snapshot().roster?.seats ?? [])
     .filter((entry) => entry.id !== LEARNER)

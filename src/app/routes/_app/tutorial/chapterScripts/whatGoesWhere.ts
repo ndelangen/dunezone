@@ -77,7 +77,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     );
   };
   const harkonnen = () =>
-    snapshot().roster?.seats.find((seat) => seat.faction?.name === 'House Harkonnen')?.faction?.id;
+    snapshot().roster?.seats.find((seat) => seat.faction?.name === 'Harkonnen')?.faction?.id;
   const harkonnenTroops = () => pieces().filter((piece) => piece.stackKey?.startsWith(`troops:${harkonnen()}:`));
   /* A stack pushed aside onto the shelf round the pad still went to the Tanks. */
   const inTanks = (piece: Piece) =>
