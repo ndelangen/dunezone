@@ -337,15 +337,15 @@ function CancelBattleButton({
   className,
   fullWidth,
   'data-half': half,
-  short = false,
+  shortLabel,
 }: ActiveProps &
-  Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right'; short?: boolean }) {
+  Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right'; shortLabel?: string }) {
   const label = battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle';
   return (
     <Button
       data-half={half}
-      /* Beside Battle plan the whole label does not fit, so the verb stands alone and the name keeps the rest (Norbert, 2026-11-17). */
-      aria-label={short ? label : undefined}
+      /* Beside Battle plan the whole label does not fit, so a shorter one shows and the name keeps the whole (Norbert, 2026-11-17). */
+      aria-label={shortLabel ? label : undefined}
       size={size}
       variant={variant}
       className={className}
@@ -353,7 +353,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      {short ? label.split(' ')[0] : label}
+      {shortLabel ?? label}
     </Button>
   );
 }
@@ -382,7 +382,7 @@ function BattleActions(props: ActiveProps) {
             className={styles.cancel}
             variant="default"
             data-half="right"
-            short
+            shortLabel="Cancel"
           />
         </>
       );

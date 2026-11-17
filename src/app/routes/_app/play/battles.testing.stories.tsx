@@ -776,3 +776,30 @@ export const PlannerHintOpensPlan = meta.story({
     await waitFor(() => expect(page.queryAllByRole('button', { name: 'Open battle plan' })).toHaveLength(0));
   },
 });
+
+/** A seated player watching a battle between others gets no Battle plan hint (Norbert, 2026-11-17). */
+export const PlannerHintNeedsASide = meta.story({
+  beforeEach: install(() => {
+    const snapshot = battleStory('preparing');
+    const [harkonnen, atreides] = snapshot.battle!.sides;
+    snapshot.battle!.sides = [{ ...harkonnen!, factionId: 'fremen' }, atreides!];
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Hand');
+    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await expect(page.queryByRole('button', { name: 'Battle plan' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
+  },
+});
+
+/** Once both plans are locked in, there is nothing left to pick, so the Hand points nowhere. */
+export const PlannerHintEndsWithPlanning = meta.story({
+  beforeEach: install(() => productTransport('seat-2', battleStory('countdown'))),
+  play: async ({ canvasElement }) => {
+    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    const page = await openPanel(canvasElement, 'Hand');
+    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
+  },
+});

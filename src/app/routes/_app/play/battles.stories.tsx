@@ -133,16 +133,3 @@ export const PlannerClosedHints = meta.story({
     await expect(page.getAllByRole('button', { name: 'Open battle plan' })).toHaveLength(2);
   },
 });
-
-/** A player who has taken no side in the battle gets no Battle plan hint in the Hand (Norbert, 2026-11-17). */
-export const PlannerHintNeedsASide = meta.story({
-  /* The battle phase, with no battle on the table that names the viewer's faction yet. */
-  beforeEach: battleSetup('preparing', 'seat-2', (snapshot) => {
-    snapshot.battle = null;
-  }),
-  play: async ({ canvasElement }) => {
-    const page = await openPanel(canvasElement, 'Hand');
-    await settled(() => expect(windowNamed(page, 'Hand')).toBeTruthy());
-    await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
-  },
-});

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
@@ -134,8 +134,10 @@ function useOpenWindowsReport(
 ) {
   const keys = windows.filter((entry) => isOpen(entry.key)).map((entry) => entry.key);
   const joined = keys.join('\n');
-  useEffect(() => {
+  /* Before paint, so a hint at a closed window never shows for a frame after the window opened; a report that stops leaves nothing open behind it. */
+  useLayoutEffect(() => {
     report?.(joined ? joined.split('\n') : []);
+    return () => report?.([]);
   }, [joined, report]);
 }
 

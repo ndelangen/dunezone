@@ -19,6 +19,7 @@ import { Dices } from 'lucide-react';
 import {
   Suspense,
   lazy,
+  useCallback,
   useContext,
   useDeferredValue,
   useEffect,
@@ -242,7 +243,10 @@ function useAskedWindow(focus: WindowFocus) {
     setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
-  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  const open = useCallback(
+    (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' }),
+    []
+  );
   return [asked ?? focus, open] as const;
 }
 
@@ -417,15 +421,12 @@ function yoursGroup({
   };
 }
 
-/* The hints point to the Battle plan panel only for a player who has taken a side in the battle on the table (Norbert, 2026-11-17). */
+/*
+ * The hints point to the Battle plan panel only for a player who has taken a side in the battle on the table (Norbert, 2026-11-17),
+ * and only while plans are still being made.
+ */
 function battlePlanCanOpen(table: TableProjection) {
-  const { battle, stage, bank } = table.snapshot;
-  return (
-    offersActions(table) &&
-    !isSpectator(table) &&
-    stageInPlay(stage) &&
-    Boolean(bank?.factionId && battle?.sides.some((side) => side?.factionId === bank.factionId))
-  );
+  return offersActions(table) && battleFocus(table) !== null && table.snapshot.battle?.stage === 'preparing';
 }
 
 /** GameTable supplies the stage and phase controls beside these game actions. */
@@ -768,9 +769,11 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
-  const [openWindows, setOpenWindows] = useState<readonly string[]>([]);
-  const battlePlanOpener =
-    battlePlanCanOpen(table) && !openWindows.includes('battle') ? () => openWindow('battle') : null;
+  /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
+  const [battleOpen, setBattleOpen] = useState(false);
+  const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
+  const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
+  const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -845,7 +848,7 @@ function ConnectedTable({
                   ) : undefined
                 }
                 focus={focus}
-                onOpenWindows={setOpenWindows}
+                onOpenWindows={hearOpenWindows}
                 panels={controlPanels({
                   client,
                   table: normal,
