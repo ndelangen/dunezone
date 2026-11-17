@@ -876,7 +876,7 @@ export function GameTable({
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
               data-mentat-recall={Boolean(recall)}
-              data-mentat-recall-loading={Boolean(recall?.loading)}
+              data-mentat-recall-loading={recall?.loading ? (recall.stepping ? 'step' : 'true') : 'false'}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >

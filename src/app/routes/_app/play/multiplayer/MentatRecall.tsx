@@ -38,10 +38,23 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
   const loading = table.historyPending || table.playback?.step !== current.step;
   const failed = loading && !table.historyPending;
   const failure = client.getSnapshot().error ?? 'The selected checkpoint is not loaded.';
-  /* While the next checkpoint loads, the inventories keep the last one recalled rather than blinking to a spinner (#2991). */
+  /*
+   * While the next checkpoint loads, the inventories keep the last one recalled, faded, rather than blinking to a spinner (#2991).
+   * Before any checkpoint arrived, or when this one failed, there is nothing right to show, so the spinner stays.
+   */
+  const stepping = loading && !failed && table.playback !== null;
   const inventory = (side: boolean) =>
-    loading && !table.playback ? (
+    loading && !stepping ? (
       <Loader size="sm" aria-label="Loading recalled inventory" />
+    ) : stepping && table.snapshot.hand !== undefined ? (
+      <div className={styles.stale} aria-busy="true">
+        <FrozenInventory
+          hand={table.snapshot.hand}
+          order={table.snapshot.handOrder ?? []}
+          side={side}
+          balance={table.snapshot.bank?.balance}
+        />
+      </div>
     ) : table.snapshot.hand === undefined ? (
       <Text size="sm">Private contents are unavailable for this checkpoint and seat.</Text>
     ) : (
@@ -56,6 +69,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
     id: current.id,
     context: current.context,
     loading,
+    stepping,
     seated: Boolean(review.seat),
     chat: review.seat
       ? {

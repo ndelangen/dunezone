@@ -7,7 +7,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { CONFETTI_STREAM_SECONDS } from '../confettiSimulation';
 import type { ConfettiLaunch } from '../FoilConfetti';
-import { isSpectator } from './tableFactions';
+import { offersActions } from './tableFactions';
 
 /* The result a finished game declared, with the seating to aim it by. */
 function declared(snapshot: GameSnapshot) {
@@ -57,20 +57,24 @@ export function useResultCelebration(client: TableSession, table: TableProjectio
   if (launch && launch.id !== seen.fired) {
     setSeen({ ...seen, fired: launch.id, onTable: true });
   }
-  const spectator = isSpectator(table);
+  /* Another player's clear reaches this viewer as the declared result marked cleared, and clears it here for good. */
+  const clearedByTable = !table.playback && table.snapshot.result?.confettiClearedAt !== undefined;
+  if (clearedByTable && seen.onTable) {
+    setSeen({ ...seen, cleared: seen.fired, onTable: false });
+  }
+  /* Only a seated player at the live, finished table clears it for everyone; anyone else clears their own view. */
+  const shared = offersActions(table) && table.snapshot.stage === 'finished';
   const clear = useCallback(() => {
     setSeen((current) => ({ ...current, cleared: current.fired, onTable: false }));
-    if (!spectator) {
+    if (shared) {
       client.command({ kind: 'result-confetti-clear' });
     }
-  }, [client, spectator]);
-  /* Another player's clear reaches this viewer as the declared result marked cleared. */
-  const onTable = seen.onTable && table.snapshot.result?.confettiClearedAt === undefined;
+  }, [client, shared]);
   return {
     launch,
     /* The confetti stays mounted while a stream runs or foil lies on the table; unmounting it is the clear. */
-    mounted: launch !== null || onTable,
-    hasConfetti: onTable,
+    mounted: launch !== null || seen.onTable,
+    hasConfetti: seen.onTable,
     clear,
   };
 }

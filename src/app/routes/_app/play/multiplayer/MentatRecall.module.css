@@ -104,10 +104,18 @@
 }
 :global(.dune-play-shell)[data-mentat-recall-loading="true"] :global(.scene) {
   opacity: 0.2;
+}
+:global(.dune-play-shell)[data-mentat-recall-loading="step"] :global(.scene) {
+  opacity: 0.2;
   transition: opacity 300ms ease 600ms;
 }
 
 /* Pointer hands stay above the recall tint with their recorded player colours. */
 :global(.dune-play-shell)[data-mentat-recall="true"] :global(.scene--immersive) {
   z-index: auto;
+}
+
+/* The last recalled inventory, kept while the next checkpoint loads. */
+.stale {
+  opacity: 0.55;
 }
