@@ -417,14 +417,14 @@ function yoursGroup({
   };
 }
 
-/* The Battle plan panel is there to open: in play, during a battle or the battle phase, for a player who acts. */
+/* The hints point to the Battle plan panel only for a player who has taken a side in the battle on the table (Norbert, 2026-11-17). */
 function battlePlanCanOpen(table: TableProjection) {
-  const { battle, stage } = table.snapshot;
+  const { battle, stage, bank } = table.snapshot;
   return (
     offersActions(table) &&
     !isSpectator(table) &&
     stageInPlay(stage) &&
-    Boolean(battle || gameProgress(table.snapshot).activePhaseId === 'battle')
+    Boolean(bank?.factionId && battle?.sides.some((side) => side?.factionId === bank.factionId))
   );
 }
 

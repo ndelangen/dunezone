@@ -34,7 +34,7 @@ export function BattlePlanHint() {
         </LabeledAction>
       }
     >
-      Pick your leader and cards for a battle in the Battle plan.
+      Pick your leader and cards for this battle in the Battle plan.
     </Notice>
   );
 }

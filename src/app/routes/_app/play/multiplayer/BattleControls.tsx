@@ -337,10 +337,15 @@ function CancelBattleButton({
   className,
   fullWidth,
   'data-half': half,
-}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right' }) {
+  short = false,
+}: ActiveProps &
+  Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right'; short?: boolean }) {
+  const label = battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle';
   return (
     <Button
       data-half={half}
+      /* Beside Battle plan the whole label does not fit, so the verb stands alone and the name keeps the rest (Norbert, 2026-11-17). */
+      aria-label={short ? label : undefined}
       size={size}
       variant={variant}
       className={className}
@@ -348,7 +353,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      {battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle'}
+      {short ? label.split(' ')[0] : label}
     </Button>
   );
 }
@@ -371,7 +376,14 @@ function BattleActions(props: ActiveProps) {
           >
             Battle plan
           </Button>
-          <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" data-half="right" />
+          <CancelBattleButton
+            {...props}
+            size="xs"
+            className={styles.cancel}
+            variant="default"
+            data-half="right"
+            short
+          />
         </>
       );
     }
