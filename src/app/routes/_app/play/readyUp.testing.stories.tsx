@@ -1,10 +1,11 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { ClientMessage } from '@shared/play/protocol';
 
 import { gameMeta, install } from './game.stories.fixture';
 import { productTransport, playingSnapshot, SIX } from './product.stories.fixture';
 
-const meta = preview.meta({
+/* A timed story, so it stays out of the visual captures, which would catch a different moment on each run. */
+const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Ready Up',
   loaders: [
@@ -47,6 +48,12 @@ function liveTransport() {
     revision += 1;
     transport.deliver(transport.view(snapshot()));
   }, 4000);
+  /* Leaving the story stops the other players readying up. */
+  const dispose = transport.dispose.bind(transport);
+  transport.dispose = () => {
+    clearInterval(timer);
+    dispose();
+  };
   return transport;
 }
 

@@ -19,7 +19,7 @@ export const setTableVolume = (next: number) => volume.set(Math.min(TABLE_VOLUME
 /** This viewer's sound volume, from 0 (muted) to TABLE_VOLUME_MAX. */
 export const useTableVolume = volume.use;
 
-let audio: AudioContext | null = null;
+let audio: { context: AudioContext; output: GainNode } | null = null;
 
 /** The running audio context and its output at this viewer's volume, or null while sound can't play or is muted. */
 export function tableAudio(): { context: AudioContext; output: AudioNode } | null {
@@ -28,16 +28,20 @@ export function tableAudio(): { context: AudioContext; output: AudioNode } | nul
     if (level <= 0) {
       return null;
     }
-    audio ??= new AudioContext();
-    if (audio.state !== 'running') {
+    if (!audio) {
+      const context = new AudioContext();
+      const output = context.createGain();
+      output.connect(context.destination);
+      audio = { context, output };
+    }
+    if (audio.context.state !== 'running') {
       /* A suspended context keeps its clock still, so tones scheduled now would all sound at once when it starts: this one stays silent. */
-      void audio.resume().catch(() => undefined);
+      void audio.context.resume().catch(() => undefined);
       return null;
     }
-    const output = audio.createGain();
-    output.gain.value = level;
-    output.connect(audio.destination);
-    return { context: audio, output };
+    /* One output for every sound, at the volume as it is now. */
+    audio.output.gain.value = level;
+    return audio;
   } catch {
     /* A browser without Web Audio stays silent. */
     return null;
@@ -70,7 +74,7 @@ function playNotes(notes: readonly Note[]) {
 }
 
 /** The sounds the table makes besides pings: a reminder to ready up, and new chat messages by where they were written. */
-export type TableSound = 'ready' | 'chat-table' | 'chat-ally' | 'chat-other' | 'mention';
+export type TableSound = 'ready' | 'chat-table' | 'chat-ally' | 'chat-other';
 
 const SOUNDS: Readonly<Record<TableSound, readonly Note[]>> = {
   /* Two rising notes: the table waits on you. */
@@ -89,12 +93,6 @@ const SOUNDS: Readonly<Record<TableSound, readonly Note[]>> = {
   'chat-other': [
     { frequency: 587, at: 0, peak: 0.08, decay: 0.2 },
     { frequency: 880, at: 0.09, peak: 0.08, decay: 0.28 },
-  ],
-  /* Three bright notes when someone names your faction. */
-  mention: [
-    { frequency: 880, at: 0, peak: 0.09, decay: 0.2 },
-    { frequency: 1108, at: 0.08, peak: 0.09, decay: 0.2 },
-    { frequency: 1318, at: 0.16, peak: 0.09, decay: 0.35 },
   ],
 };
 

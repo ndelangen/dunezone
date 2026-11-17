@@ -106,13 +106,16 @@ test('another faction’s token opens a ring led by the viewer’s alliance acti
     id: 'fremen-token',
     stackKey: 'faction-token:fremen',
   };
-  expect(pieceHasMenu(token)).toBe(true);
   const act = vi.fn();
   const relations = { 'fremen-token': 'none' } as const;
   const menu: MenuControls = {
     ...controls(() => false),
     allianceControls: { relation: (pieceId) => relations[pieceId as keyof typeof relations] ?? null, act },
   };
+  expect(pieceHasMenu(token, menu.allianceControls)).toBe(true);
+  /* Without an alliance action (a spectator, the viewer's own token, outside play), a token has no menu to open. */
+  expect(pieceHasMenu(token)).toBe(false);
+  expect(pieceHasMenu({ ...token, id: 'own-token' }, menu.allianceControls)).toBe(false);
   const [first] = pieceMenuActions(token, menu, { reserved: false, onClose: () => {} });
   expect(first?.label).toBe('Offer alliance');
   first?.onSelect?.();

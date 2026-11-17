@@ -2,6 +2,7 @@ import type { TableState } from '@shared/play/model';
 import { use } from 'react';
 
 import { pieceHasMenu } from '../../../../../widgets/tabletop/pieceMenu';
+import type { AllianceRelations } from '../../../../../widgets/tabletop/pieceMenu';
 import { pieceKeysNow } from '../../../../../widgets/tabletop/TableKeyboard';
 import type { PieceKey } from '../../../../../widgets/tabletop/TableKeyboard';
 import { useTabletopSelector } from '../../../../../widgets/tabletop/TabletopContext';
@@ -14,9 +15,9 @@ import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 const COMMANDS: readonly Command[] = ['raise', 'lower', 'pass', 'faceUp'];
 
 /* Right-click opens a menu on the hovered piece only when nothing is carried and the piece has one, as the scene decides. */
-function hoveredPieceHasMenu(state: TableState, hoveredPieceId: string | null) {
+function hoveredPieceHasMenu(state: TableState, hoveredPieceId: string | null, alliances?: AllianceRelations) {
   const piece = state.draftMove ? undefined : state.pieces.find((candidate) => candidate.id === hoveredPieceId);
-  return piece != null && pieceHasMenu(piece);
+  return piece != null && pieceHasMenu(piece, alliances);
 }
 
 /**
@@ -25,7 +26,9 @@ function hoveredPieceHasMenu(state: TableState, hoveredPieceId: string | null) {
 function useShortcutMoment(): readonly Now[] {
   /* Joined into a string so the selector returns the same value while nothing changes. */
   const pieceKeys = useTabletopSelector((table) => [...pieceKeysNow(table)].join(' '));
-  const menu = useTabletopSelector((table) => hoveredPieceHasMenu(table.state, table.hoveredPieceId));
+  const menu = useTabletopSelector((table) =>
+    hoveredPieceHasMenu(table.state, table.hoveredPieceId, table.allianceControls)
+  );
   const commands = commandsOf(use(CompassTableContext));
   return [
     ...(pieceKeys ? (pieceKeys.split(' ') as PieceKey[]) : []),

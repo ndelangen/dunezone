@@ -1,5 +1,5 @@
 import { TABLE_CONVERSATION, recallConversation } from '@shared/play/conversations';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { newMessageSound } from './chatSounds';
 

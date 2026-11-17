@@ -5,7 +5,7 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { rosterSeat } from '@shared/play/schema';
 import { phaseGate } from '@shared/play/setup';
 import { Check, ChevronDown, Hourglass } from 'lucide-react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -84,19 +84,30 @@ function gateKey(table: TableProjection) {
   return `${stage}:${phase}:${setup?.index ?? ''}`;
 }
 
+type Reminders = Readonly<{ gate: string; fired: readonly string[]; count: number }>;
+
 /**
  * Reminds the viewer to ready up (#2980): when a gate starts waiting on them, and again once everyone else is ready, the Ready button flashes and a soft chime plays, each once per gate.
+ * Withdrawing readiness, a reconnect, or another player withdrawing and readying again never reminds twice.
+ * Returns how many reminders have fired, for the button to flash on each new one.
  */
 function useReadyReminder(table: TableProjection, waiting: boolean, lastOne: boolean) {
   const gate = gateKey(table);
-  const stage = waiting ? (lastOne ? 'last' : 'waiting') : 'idle';
-  const reminder = waiting ? `${gate}:${stage}` : null;
+  const stage = waiting ? (lastOne ? 'last' : 'waiting') : null;
+  const [reminders, setReminders] = useState<Reminders>({ gate, fired: [], count: 0 });
+  /* A new gate asks afresh; the reminders already fired at this one are not fired again. */
+  const current = reminders.gate === gate ? reminders : { gate, fired: [], count: reminders.count };
+  if (stage && !current.fired.includes(stage)) {
+    setReminders({ gate, fired: [...current.fired, stage], count: current.count + 1 });
+  } else if (current !== reminders) {
+    setReminders(current);
+  }
   useEffect(() => {
-    if (reminder) {
+    if (reminders.count > 0) {
       playTableSound('ready');
     }
-  }, [reminder]);
-  return reminder;
+  }, [reminders.count]);
+  return reminders.count;
 }
 
 /* The header's phase controls: the Ready toggle when the phase asks for readiness, then the Next phase split button. */
@@ -146,7 +157,7 @@ export function ReadyToggle({
   count,
   of,
   disabled,
-  flash = null,
+  flash = 0,
   readiness,
   onToggle,
 }: Readonly<{
@@ -154,14 +165,25 @@ export function ReadyToggle({
   count: number;
   of: number;
   disabled: boolean;
-  /** A new value flashes the button once, to remind the viewer the table waits on them. */
-  flash?: string | null;
+  /** How many reminders have fired: each rise flashes the button, to remind the viewer the table waits on them. */
+  flash?: number;
   /** Who is ready and who is not, under the tooltip's hint. */
   readiness?: ReactNode;
   onToggle: () => void;
 }>) {
   const countId = useId();
   const motion = useMotionAllowed();
+  const button = useRef<HTMLButtonElement>(null);
+  /* Restarts the flash in place: a new button would take the focus and the open tooltip with it. */
+  useEffect(() => {
+    const element = button.current;
+    if (!flash || !element || !motion) {
+      return;
+    }
+    element.classList.remove(styles.flash!);
+    void element.offsetWidth;
+    element.classList.add(styles.flash!);
+  }, [flash, motion]);
   return (
     <>
       <Tooltip
@@ -175,8 +197,8 @@ export function ReadyToggle({
         }
       >
         <Button
-          key={flash ?? 'still'}
-          className={flash && !ready ? (motion ? styles.flash : styles.waiting) : undefined}
+          ref={button}
+          className={flash && !ready && !motion ? styles.waiting : undefined}
           disabled={disabled}
           color={ready ? 'confirm' : 'cta'}
           variant="filled"

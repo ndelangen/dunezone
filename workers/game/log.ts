@@ -548,15 +548,18 @@ function allianceEntries(
         ? `${faction(leaver, people)} broke its alliance with ${names(allies)}.`
         : undefined;
     }
-    const formed = next.alliances?.groups
-      .map((group) => group.members)
-      .find(
-        (group) =>
-          !before.alliances?.groups.some(
-            ({ members: known }) => known.length === group.length && known.every((id) => group.includes(id))
-          )
-      );
-    return formed ? `${names(formed)} are now allied.` : undefined;
+    const same = (a: readonly string[], b: readonly string[]) =>
+      a.length === b.length && a.every((id) => b.includes(id));
+    const groups = (state: StoredSnapshot) => state.alliances?.groups.map((group) => group.members) ?? [];
+    const formed = groups(next).find((group) => !groups(before).some((known) => same(known, group)));
+    if (!formed) {
+      return undefined;
+    }
+    /* Accepting takes both factions out of the alliances they were in (#2978), which every player should read. */
+    const ended = groups(before).filter((group) => !groups(next).some((kept) => same(kept, group)));
+    return [`${names(formed)} are now allied.`, ...ended.map((group) => `The alliance of ${names(group)} ended.`)].join(
+      ' '
+    );
   })();
   return template ? [{ key: `alliance:${next.revision}`, class: 'alliance', template, people, context }] : [];
 }

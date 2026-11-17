@@ -125,9 +125,9 @@ export function TabletopTools({
           className={keyboardActionsClassName}
           icon={<Ellipsis size={16} />}
           onClick={(event) => {
-            const { state } = readTable();
+            const { state, allianceControls: alliances } = readTable();
             const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-            if (!piece || !pieceHasMenu(piece)) {
+            if (!piece || !pieceHasMenu(piece, alliances)) {
               return;
             }
             const bounds = event.currentTarget.getBoundingClientRect();
