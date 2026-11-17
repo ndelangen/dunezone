@@ -24,6 +24,7 @@ import {
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
 import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
+import { setPointerNames, usePointerNames } from '../../../../widgets/tabletop/pointerNames';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -370,6 +371,11 @@ function CameraFollowsPhaseItem() {
   return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
 }
 
+/* Shows other players' names beside their pointer hands; on unless turned off (#2993). */
+function PointerNamesItem() {
+  return <ViewerToggleItem label="Pointer names" on={usePointerNames()} set={setPointerNames} />;
+}
+
 /* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
 function ShortcutsButtonItem() {
   return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
@@ -449,6 +455,7 @@ export function GameMenu({
         <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
+        <PointerNamesItem />
         <TableLabelItems />
         <ShortcutsButtonItem />
         {!isSpectator(table) && (

@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 import { Matrix4, Raycaster, Vector2, Vector3 } from 'three';
 
 import { unsettledArtworkLoads } from './artworkLoads';
+import { usePointerNames } from './pointerNames';
 import styles from './ScenePresence.module.css';
 import { TableHandOverlays } from './tableHandOverlays';
 import type { TableHandOverlay } from './tableHandOverlays';
@@ -100,11 +101,13 @@ export function HandLabel({
   demo,
 }: Pick<PublicPointer, 'color' | 'displayName' | 'avatarUrl'> & { local: boolean; demo: boolean }) {
   const kind = local ? 'local' : 'remote';
+  /* The homepage demo always names its hand; a player may turn names off for the table (#2993). */
+  const named = usePointerNames() || demo;
   return (
     <div
       data-table-hand={demo ? 'demo' : kind}
       className={demo ? styles.demoHand : undefined}
-      aria-hidden={displayName ? undefined : true}
+      aria-hidden={displayName && named ? undefined : true}
       style={{
         position: 'relative',
         display: 'flex',
@@ -136,7 +139,7 @@ export function HandLabel({
         />
       </svg>
       <HandAvatar color={color} avatarUrl={avatarUrl} />
-      {displayName && (
+      {displayName && named && (
         <span
           /* The name reads in the glass's own text colour whatever the faction colour (#2993); the colour stays in the edge. */
           style={{
