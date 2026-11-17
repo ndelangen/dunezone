@@ -70,7 +70,7 @@ function playNotes(notes: readonly Note[]) {
 }
 
 /** The sounds the table makes besides pings: a reminder to ready up, and new chat messages by where they were written. */
-export type TableSound = 'ready' | 'chat-table' | 'chat-ally' | 'mention';
+export type TableSound = 'ready' | 'chat-table' | 'chat-ally' | 'chat-other' | 'mention';
 
 const SOUNDS: Readonly<Record<TableSound, readonly Note[]>> = {
   /* Two rising notes: the table waits on you. */
@@ -80,10 +80,15 @@ const SOUNDS: Readonly<Record<TableSound, readonly Note[]>> = {
   ],
   /* One low, short blip for the table's chat. */
   'chat-table': [{ frequency: 740, at: 0, peak: 0.07, decay: 0.22 }],
-  /* Two quick falling notes for your ally, or any one-to-one chat. */
+  /* Two quick falling notes for your ally. */
   'chat-ally': [
     { frequency: 1046, at: 0, peak: 0.08, decay: 0.2 },
     { frequency: 784, at: 0.09, peak: 0.08, decay: 0.28 },
+  ],
+  /* Two quick rising notes for a one-to-one chat with any other faction. */
+  'chat-other': [
+    { frequency: 587, at: 0, peak: 0.08, decay: 0.2 },
+    { frequency: 880, at: 0.09, peak: 0.08, decay: 0.28 },
   ],
   /* Three bright notes when someone names your faction. */
   mention: [

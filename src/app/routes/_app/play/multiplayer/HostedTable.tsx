@@ -75,6 +75,7 @@ import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
+import { useChatSounds } from './chatSounds';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
@@ -746,6 +747,7 @@ function ConnectedTable({
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
+  useChatSounds(client, table);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
