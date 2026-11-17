@@ -345,7 +345,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 export const mentatRecall: ChapterScript = {
   slug: 'mentat-recall',
   checkpoint: 'turn-1-storm',
-  playAs: 'House Atreides',
+  playAs: 'Atreides',
   hand: recallHand,
   opening: openRecallHistory,
   tasks,

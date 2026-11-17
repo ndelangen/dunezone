@@ -118,7 +118,7 @@ test('only an accepted random storm placement completes the storm task', () => {
 
 test('requires all twenty Harkonnen troops, including reserves, in the Tanks', () => {
   const task = check('fill-tanks');
-  const harkonnen = snapshot().roster!.seats.find((seat) => seat.faction?.name === 'House Harkonnen')!.faction!.id;
+  const harkonnen = snapshot().roster!.seats.find((seat) => seat.faction?.name === 'Harkonnen')!.faction!.id;
   const troops = () => snapshot().table.pieces.filter((piece) => piece.stackKey?.startsWith(`troops:${harkonnen}:`));
   expect(troops().flatMap((piece) => piece.items)).toHaveLength(20);
   drop(troops()[0]!, [-1, 0.132, 7]);
@@ -132,7 +132,7 @@ test('requires all twenty Harkonnen troops, including reserves, in the Tanks', (
 
 test('deleting the last Harkonnen stack does not stand in for moving it to the Tanks', () => {
   const task = check('fill-tanks');
-  const troops = snapshot().table.pieces.filter((piece) => piece.label === 'House Harkonnen troops');
+  const troops = snapshot().table.pieces.filter((piece) => piece.label === 'Harkonnen troops');
   drop(troops[0]!, [-1, 0.132, 7]);
   act({ kind: 'delete', pieceId: troops[1]!.id });
   expect(task.done()).toBe(false);

@@ -1,7 +1,8 @@
 {
   "pulledFrom": "exuberant-finch-263.eu-west-1.convex.cloud",
-  "pulledAt": "2026-10-25T18:48:28.311Z",
+  "pulledAt": "2026-11-17T10:50:36.715Z",
   "rulesetSupply": {
+    "battleDialing": null,
     "board": {
       "asset": {
         "id": "ns72fst9vtajbcc6066ejz92ph8fweez",
@@ -11891,7 +11892,7 @@
                 },
                 "bottomFirst": "fremen do not trigger ",
                 "bottomSecond": "when a leader is killed",
-                "image": "/vector/decal/knives.svg",
+                "image": "/vector/decal/knifes.svg",
                 "ring": false,
                 "symbolScale": 1,
                 "top": "Water stealer"
@@ -12255,7 +12256,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns71r4jh0veyz2w9d372deayp98fbjtt/card.jpg?v=87fe6740-cb52-495c-aedc-af15be6ef8b7"
+          "front": "/published/spice-cards/ns71r4jh0veyz2w9d372deayp98fbjtt/card.jpg?v=c67b2bf4-ae7e-42d1-9033-f642e7eff82f"
         },
         {
           "asset": {
@@ -12302,7 +12303,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns790dz7jrazct3kk2tzmpxj858fa002/card.jpg?v=c9a05af4-2999-47ed-ab55-031f08efd281"
+          "front": "/published/spice-cards/ns790dz7jrazct3kk2tzmpxj858fa002/card.jpg?v=f4c6556d-37f7-43dd-a01b-0c47135a05ba"
         },
         {
           "asset": {
@@ -12349,7 +12350,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns78f4q6wse2ctvdx8qehzn4ds8fb406/card.jpg?v=91293c8f-4338-411b-a023-6feb68eee611"
+          "front": "/published/spice-cards/ns78f4q6wse2ctvdx8qehzn4ds8fb406/card.jpg?v=608df0f0-f1dd-4e6a-8463-5e9e76254b11"
         },
         {
           "asset": {
@@ -12396,7 +12397,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns736jntt093pb232vkv23rj0d8fbnkr/card.jpg?v=c33fe2e9-f509-4bb9-8529-9568350129b6"
+          "front": "/published/spice-cards/ns736jntt093pb232vkv23rj0d8fbnkr/card.jpg?v=a3a230b1-fbbd-42ac-b5fb-fe6a0495d44a"
         },
         {
           "asset": {
@@ -12443,7 +12444,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7318ca1xzwn28q5fyawk8ghn8famt0/card.jpg?v=8d52de75-4561-4e00-b385-2389bda75537"
+          "front": "/published/spice-cards/ns7318ca1xzwn28q5fyawk8ghn8famt0/card.jpg?v=8f5208b8-ee6f-4175-baa8-28d13c11be23"
         },
         {
           "asset": {
@@ -12490,7 +12491,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns70mpsrq6wy3mw4hwbaaj6pgx8faxz7/card.jpg?v=c042df16-bfa1-475c-8ca6-bb3192a7303d"
+          "front": "/published/spice-cards/ns70mpsrq6wy3mw4hwbaaj6pgx8faxz7/card.jpg?v=7feca576-502a-49b9-b025-7df2e2de1cf0"
         },
         {
           "asset": {
@@ -12537,7 +12538,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns79e4nh50t6198t3jntxawt5s8fbzg9/card.jpg?v=69a843ad-6fa7-434a-b8da-ff88bdcf4495"
+          "front": "/published/spice-cards/ns79e4nh50t6198t3jntxawt5s8fbzg9/card.jpg?v=7ac89705-796d-492e-a643-dd5d9c403300"
         },
         {
           "asset": {
@@ -12584,7 +12585,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns704j1zbmnb8p09s6ejaaskjx8fbspg/card.jpg?v=806427ef-12a5-4094-adfd-4e0281b3a316"
+          "front": "/published/spice-cards/ns704j1zbmnb8p09s6ejaaskjx8fbspg/card.jpg?v=5cb0eaec-f116-4316-acb3-35240c322338"
         },
         {
           "asset": {
@@ -12631,7 +12632,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7e7xhjmsf14nsrr13yr09wrn8fbsgc/card.jpg?v=c113a432-0e00-48be-ba5e-3b75a49129ad"
+          "front": "/published/spice-cards/ns7e7xhjmsf14nsrr13yr09wrn8fbsgc/card.jpg?v=ff559a2f-1764-4cf9-9e18-10e9161f19a7"
         },
         {
           "asset": {
@@ -12678,7 +12679,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7fmwbc1svzhsht500enggjxs8fb2dp/card.jpg?v=5c361ad1-e2dd-4c4b-8048-4ab14b0f2700"
+          "front": "/published/spice-cards/ns7fmwbc1svzhsht500enggjxs8fb2dp/card.jpg?v=7d216db1-cff4-41dc-bebc-37ff44ce09de"
         },
         {
           "asset": {
@@ -12725,7 +12726,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns73r37csetrvprqpqw4fn07558fav37/card.jpg?v=c525e310-34ee-419d-b49a-1a2ed12652f1"
+          "front": "/published/spice-cards/ns73r37csetrvprqpqw4fn07558fav37/card.jpg?v=f9adc683-8bea-463a-ac5a-1e9788e2d77a"
         },
         {
           "asset": {
@@ -12772,7 +12773,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7278anbad90qczvfwcte095d8fbsn2/card.jpg?v=013ce05c-94c0-428f-ab35-852537b9c63e"
+          "front": "/published/spice-cards/ns7278anbad90qczvfwcte095d8fbsn2/card.jpg?v=4c11ad03-0833-40fb-ad96-d6117913a45c"
         },
         {
           "asset": {
@@ -12819,7 +12820,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7b1kdynasphfb7trnc5msfp18fbp9j/card.jpg?v=a6d63f91-82cc-4dd9-9872-42f4d7162519"
+          "front": "/published/spice-cards/ns7b1kdynasphfb7trnc5msfp18fbp9j/card.jpg?v=f9118145-f477-466c-b947-4374f59a9000"
         },
         {
           "asset": {
@@ -12866,7 +12867,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7fjzp4kzkqh45zv602dxh1ys8fanbf/card.jpg?v=3d2a8084-ba61-4832-8311-5bdf5b51e37f"
+          "front": "/published/spice-cards/ns7fjzp4kzkqh45zv602dxh1ys8fanbf/card.jpg?v=2b9f2ec3-33b1-48a6-83b7-90e801fd743c"
         },
         {
           "asset": {
@@ -12913,7 +12914,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns75bxpaktkmcbskbnfxew4ben8fahm8/card.jpg?v=c73a814a-9a96-4d83-b142-520374bea123"
+          "front": "/published/spice-cards/ns75bxpaktkmcbskbnfxew4ben8fahm8/card.jpg?v=ed432603-cbb7-49f8-a603-f363f3549bf1"
         },
         {
           "asset": {
@@ -13039,7 +13040,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7bwpps78qcc50x0brmn2n5198gr7tc/card.jpg?v=de00bf67-def2-4198-b451-a5f67c53d950"
+          "front": "/published/spice-cards/ns7bwpps78qcc50x0brmn2n5198gr7tc/card.jpg?v=bf5d0fdf-ee87-445f-a961-d04e45a24fd5"
         },
         {
           "asset": {
@@ -13087,7 +13088,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns71qnp0s60g9q4c0b2933myn98gsveh/card.jpg?v=009ff759-ab59-460d-a6e7-43c1c20490a7"
+          "front": "/published/spice-cards/ns71qnp0s60g9q4c0b2933myn98gsveh/card.jpg?v=6584ff7b-adfe-4b64-a0c5-1c331f22c3fd"
         },
         {
           "asset": {
@@ -13135,7 +13136,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7aqrydhhm0whq2464fpdeks98grn74/card.jpg?v=f9d7c54d-b75b-4694-a015-ab8d27d36283"
+          "front": "/published/spice-cards/ns7aqrydhhm0whq2464fpdeks98grn74/card.jpg?v=3ca8e8f0-16a8-4d0b-84a3-aeaca3a05fa1"
         },
         {
           "asset": {
@@ -13183,7 +13184,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7dmhkm00gs54zgc9jxzj0bt58grvdy/card.jpg?v=ad31e371-0904-40ca-935d-38ec6ce5a276"
+          "front": "/published/spice-cards/ns7dmhkm00gs54zgc9jxzj0bt58grvdy/card.jpg?v=496ff035-75c3-47aa-b3df-7105e8711196"
         },
         {
           "asset": {
@@ -13231,7 +13232,7 @@
           "backMode": null,
           "backToken": null,
           "count": 1,
-          "front": "/published/spice-cards/ns7f3ye20hrymr19evxf3nrjqh8gswzn/card.jpg?v=ee29e546-90c5-4d32-aaf0-578049e901f4"
+          "front": "/published/spice-cards/ns7f3ye20hrymr19evxf3nrjqh8gswzn/card.jpg?v=cde72554-8767-4bf1-95c7-a0d4306f1e43"
         }
       ],
       "membersTruncated": false
@@ -13248,12 +13249,14 @@
           "invert": true
         },
         "color": "#313b3a",
+        "emblem": "/vector/emblem/oath-chain.svg",
+        "familyId": "v57eh2m99f38v4986430j6mvg58j2rer",
         "id": "k171dpxhhgjn9x3qmnhtywn33s848xq7",
         "linked": false,
-        "emblem": "/vector/emblem/oath-chain.svg",
         "name": "Test Faction",
         "published": true,
-        "slug": "test-faction"
+        "slug": "test-faction-test",
+        "variantName": "Test"
       },
       {
         "background": {
@@ -13264,12 +13267,14 @@
           "invert": true
         },
         "color": "#757575",
+        "emblem": "/vector/emblem/richese.svg",
+        "familyId": "v57esp204x70bm1mrvkymn6wr98j3920",
         "id": "k178k1ymctpthqhjr0nkn18pd5856rc7",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
         "name": "Richese (Herring Edition) (Unfinished)",
         "published": true,
-        "slug": "richese-herring-edition-unfinished"
+        "slug": "richese-herring-edition-unfinished-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13280,12 +13285,14 @@
           "invert": true
         },
         "color": "#7a2827",
+        "emblem": "/vector/emblem/emperor.svg",
+        "familyId": "v57c1r84thagtmhz4m4cv51ev18j36d6",
         "id": "k171ewc58zq9jfyqhwqmgy1nb585b21b",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
         "name": "Emperor (CHOAM)",
         "published": true,
-        "slug": "emperor-choam"
+        "slug": "emperor-choam-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13296,12 +13303,14 @@
           "invert": true
         },
         "color": "#52a32b",
+        "emblem": "/vector/generic/axes.svg",
+        "familyId": "v57agf8vydaz471kjmfdsvsvdh8j2hys",
         "id": "k17948j9ty95csxfnn92nrf58985d3zk",
         "linked": false,
-        "emblem": "/vector/generic/axes.svg",
         "name": "Space Orks",
         "published": true,
-        "slug": "space-orks"
+        "slug": "space-orks-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13312,12 +13321,14 @@
           "invert": true
         },
         "color": "#444444",
+        "emblem": "/vector/emblem/ixian.svg",
+        "familyId": "v57f4m77hr2erzyxmbheftt9zn8j2e24",
         "id": "k171189n75fm50tx64a61b9spn85cv3k",
         "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
         "name": "Ixians (In Progress)",
         "published": true,
-        "slug": "ixians-in-progress"
+        "slug": "ixians-in-progress-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13328,12 +13339,14 @@
           "invert": true
         },
         "color": "#000000",
+        "emblem": "/vector/emblem/closed-helm.svg",
+        "familyId": "v57cay3n2ffs68761fqy2khjyx8j2a2x",
         "id": "k176fcr7w22q4zxa6h6778gred863p79",
         "linked": false,
-        "emblem": "/vector/emblem/closed-helm.svg",
         "name": "Mindwardens",
         "published": true,
-        "slug": "mindwardens"
+        "slug": "mindwardens-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13353,12 +13366,14 @@
           "invert": true
         },
         "color": "#816b3b",
+        "emblem": "/vector/generic/8472.svg",
+        "familyId": "v579778fee6yjq63pcg18nchfh8j2ad2",
         "id": "k173h7mgxxrqr1jjqttrqe2nm1865qam",
         "linked": false,
-        "emblem": "/vector/generic/species-8472.svg",
         "name": "Hivers",
         "published": true,
-        "slug": "hivers"
+        "slug": "hivers-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13369,12 +13384,14 @@
           "invert": true
         },
         "color": "#32a9c7",
+        "emblem": "/vector/generic/alliance.svg",
+        "familyId": "v5779x7sv8shgsvgze950ag3rh8j3h5h",
         "id": "k1771vkwhewqt3tff69rywmk1187ak79",
         "linked": false,
-        "emblem": "/vector/generic/alliance.svg",
         "name": "OCM",
         "published": true,
-        "slug": "ocm"
+        "slug": "ocm-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13385,28 +13402,32 @@
           "invert": true
         },
         "color": "#f4641d",
+        "emblem": "/vector/generic/smugglers.svg",
+        "familyId": "v57bef2h056dwxezgq7nvyxnj58j2kmj",
         "id": "k170kfytj1te2bk2j9ej5t79x989bbht",
         "linked": false,
-        "emblem": "/vector/generic/smugglers.svg",
         "name": "Smugglers",
         "published": true,
-        "slug": "smugglers"
+        "slug": "smugglers-original",
+        "variantName": "Original"
       },
       {
         "background": {
-          "colors": ["#3c0a78", "#741890"],
-          "definition": 0.61,
-          "image": "/image/texture/073.jpg",
-          "influence": 1,
-          "invert": true
+          "colors": ["#6A1B8E", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
         },
-        "color": "#410c7a",
+        "color": "#6A1B8E",
+        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "familyId": "v57dgyzvptbgrsq8bwm3mhhat18j33vy",
         "id": "k172q46gsjea7xkftjvpg9w8ah8a1hxy",
         "linked": true,
-        "emblem": "/vector/emblem/bene-tleilaxu.svg",
-        "name": "Bene Tleilax",
+        "name": "Tleilaxu",
         "published": true,
-        "slug": "bene-tleilax"
+        "slug": "tleilaxu-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13417,28 +13438,32 @@
           "invert": false
         },
         "color": "#e4942e",
+        "emblem": "/vector/emblem/fremen.svg",
+        "familyId": "v578d36nt66a92k7rjmm1m6kjd8j2nfx",
         "id": "k176nq542xz747341fc42341e18a0t45",
         "linked": true,
-        "emblem": "/vector/emblem/fremen.svg",
         "name": "Fremen",
         "published": true,
-        "slug": "fremen"
+        "slug": "fremen-2-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
-          "colors": ["#b29b54", "#d1be82"],
-          "definition": 0.25,
-          "image": "/image/texture/022.jpg",
-          "influence": 0.9008,
-          "invert": true
+          "colors": ["#A8A172", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
         },
-        "color": "#c1ab69",
+        "color": "#A8A172",
+        "emblem": "/vector/emblem/ixian.svg",
+        "familyId": "v57eh3qp3z09kbd8cvdg6kc7q58j38tg",
         "id": "k175em553h4wfwgqhhmey5774x8a0q1k",
         "linked": true,
-        "emblem": "/vector/emblem/ixian.svg",
         "name": "Ixians",
         "published": true,
-        "slug": "ixians"
+        "slug": "ixians-1-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13449,12 +13474,14 @@
           "invert": false
         },
         "color": "#dc5317",
+        "emblem": "/vector/emblem/guild.svg",
+        "familyId": "v579hem96fxr80h2fqczaw0dsx8j3rea",
         "id": "k175bxsjh069ksf64a189360f58a0eck",
         "linked": true,
-        "emblem": "/vector/emblem/guild.svg",
         "name": "Spacing Guild",
         "published": true,
-        "slug": "spacing-guild"
+        "slug": "spacing-guild-2-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13465,12 +13492,14 @@
           "invert": true
         },
         "color": "#4a4c08",
+        "emblem": "/vector/emblem/atreides.svg",
+        "familyId": "v574w4nawfcwsbqpg51byh35vx8j3p9b",
         "id": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
         "linked": true,
-        "emblem": "/vector/emblem/atreides.svg",
-        "name": "House Atreides",
+        "name": "Atreides",
         "published": true,
-        "slug": "house-atreides"
+        "slug": "atreides-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13481,12 +13510,14 @@
           "invert": false
         },
         "color": "#151315",
+        "emblem": "/vector/emblem/harkonnen.svg",
+        "familyId": "v5796t0hnjcrcz82s1wc1xdp758j3mtv",
         "id": "k174k8mvjqapvgccxtbp9qwh5h8a01b4",
         "linked": true,
-        "emblem": "/vector/emblem/harkonnen.svg",
-        "name": "House Harkonnen",
+        "name": "Harkonnen",
         "published": true,
-        "slug": "house-harkonnen"
+        "slug": "harkonnen-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13497,12 +13528,14 @@
           "invert": false
         },
         "color": "#be1010",
+        "emblem": "/vector/emblem/emperor.svg",
+        "familyId": "v57b6eppe53cxw7n0a45psart18j2e0c",
         "id": "k17dhptwywynwmpvx18965b97h8a0abp",
         "linked": true,
-        "emblem": "/vector/emblem/emperor.svg",
         "name": "Emperor",
         "published": true,
-        "slug": "emperor"
+        "slug": "emperor-2-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13513,12 +13546,14 @@
           "invert": false
         },
         "color": "#253b82",
+        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "familyId": "v570w6bpn5mc93ay3f45343atn8j3yew",
         "id": "k17fybprvb614pr3r0bpy410q58a086q",
         "linked": true,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "published": true,
-        "slug": "bene-gesserit"
+        "slug": "bene-gesserit-1-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13529,12 +13564,14 @@
           "invert": true
         },
         "color": "#949494",
+        "emblem": "/vector/emblem/richese.svg",
+        "familyId": "v572xats7cdq3ej76def3h9bws8j3teg",
         "id": "k172k7x1ha1fkc3bkdj6kspf8h8a1g6d",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
         "name": "House Richese",
         "published": true,
-        "slug": "house-richese"
+        "slug": "house-richese-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13545,12 +13582,14 @@
           "invert": true
         },
         "color": "#5f0000",
+        "emblem": "/vector/generic/guildeyes.svg",
+        "familyId": "v57dwjzs2rb87b3jmmdsz97fe58j3tvs",
         "id": "k171h2c7zgyhfxwqe6e282jd8n8a5avw",
         "linked": false,
-        "emblem": "/vector/generic/guild-eyes.svg",
         "name": "CHOAM",
         "published": true,
-        "slug": "choam"
+        "slug": "choam-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13561,65 +13600,50 @@
           "invert": false
         },
         "color": "#663b01",
+        "emblem": "/vector/emblem/iduali.svg",
+        "familyId": "v57fp9hd8hn2eamr932qq01txx8j3bv2",
         "id": "k1772qbd8ywsz7sa6temc48r2s8a7n7w",
         "linked": true,
-        "emblem": "/vector/emblem/iduali.svg",
         "name": "Iduali",
         "published": true,
-        "slug": "iduali"
+        "slug": "iduali-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
-          "colors": [
-            "#cd49c0",
-            {
-              "stops": [
-                ["#b818a8", 0],
-                ["#b818a8", 0.4],
-                ["#ff4885", 0.6],
-                ["#ff4885", 1]
-              ],
-              "type": "radial"
-            }
-          ],
-          "definition": 1,
-          "image": "/image/texture/021.jpg",
-          "influence": 1,
+          "colors": ["#8B3C8C", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
           "invert": false
         },
-        "color": "#cd49c0",
+        "color": "#8B3C8C",
+        "emblem": "/vector/emblem/ecaz.svg",
+        "familyId": "v573cf7t9fc3909gy96t5z896h8j2a6g",
         "id": "k170fwyhn83s285hj6ycwnmc7d8a7vzn",
         "linked": true,
-        "emblem": "/vector/emblem/ecaz.svg",
-        "name": "Ecaz (Ecaz/Moritani)",
+        "name": "Ecaz",
         "published": true,
-        "slug": "ecaz-ecaz-moritani"
+        "slug": "ecaz-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
-          "colors": [
-            "#56cee3",
-            {
-              "angle": 270,
-              "stops": [
-                ["#3e9aab", 0],
-                ["#5cdff7", 1]
-              ],
-              "type": "linear"
-            }
-          ],
-          "definition": 1,
-          "image": "/image/texture/030.jpg",
-          "influence": 1,
+          "colors": ["#3C8798", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
           "invert": false
         },
-        "color": "#56cee3",
+        "color": "#3C8798",
+        "emblem": "/vector/emblem/moritani.svg",
+        "familyId": "v57704m7xhhk390bnndv3msrrd8j2p3w",
         "id": "k170k7stxyswe4c2n4jy6maxw58a7xy7",
         "linked": true,
-        "emblem": "/vector/emblem/moritani.svg",
-        "name": "Moritani (Ecaz/Moritani)",
+        "name": "Moritani",
         "published": true,
-        "slug": "moritani-ecaz-moritani"
+        "slug": "moritani-dreamrules",
+        "variantName": "Dreamrules"
       },
       {
         "background": {
@@ -13630,12 +13654,14 @@
           "invert": true
         },
         "color": "#808080",
+        "emblem": "/vector/generic/detector.svg",
+        "familyId": "v57etvj6301tnt81e2fnmfpp2h8j2ypn",
         "id": "k17cm0y721xyd3dn220pxs2ry98aakvc",
         "linked": false,
-        "emblem": "/vector/generic/detector.svg",
         "name": "Thinking Machines",
         "published": true,
-        "slug": "thinking-machines"
+        "slug": "thinking-machines-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13646,12 +13672,14 @@
           "invert": true
         },
         "color": "#ff08b2",
+        "emblem": "/vector/generic/flauqre.svg",
+        "familyId": "v57ea1z9wqfnfr6s10kkwhrtpd8j3gw6",
         "id": "k17ehv7kfznyw5f26xxjx6etfn8b1k26",
         "linked": false,
-        "emblem": "/vector/generic/great-house-emblem.svg",
         "name": "Corrino",
         "published": true,
-        "slug": "corrino"
+        "slug": "corrino-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13672,12 +13700,14 @@
           "invert": true
         },
         "color": "#443333",
+        "emblem": "/vector/generic/orbsword.svg",
+        "familyId": "v57ah24dxtmbmqx4r0tff4rqch8j38kc",
         "id": "k17ceq3srs9m2zz0qzkw6w84qd8b1n44",
         "linked": false,
-        "emblem": "/vector/generic/sword-and-atom.svg",
         "name": "Nobirds",
         "published": true,
-        "slug": "nobirds"
+        "slug": "nobirds-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13688,12 +13718,14 @@
           "invert": true
         },
         "color": "#004020",
+        "emblem": "/vector/generic/tech.svg",
+        "familyId": "v5721hc46nv3e5g5ehq5sg2vg18j3p0b",
         "id": "k17csn8c7tfkj7d0f7ev02ckns8b5e2r",
         "linked": false,
-        "emblem": "/vector/generic/tech.svg",
         "name": "Ordos",
         "published": true,
-        "slug": "ordos"
+        "slug": "ordos-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13713,12 +13745,14 @@
           "invert": true
         },
         "color": "#913414",
+        "emblem": "/vector/generic/matres.svg",
+        "familyId": "v578yhd6majtmvvsarbgwmnxj98j2206",
         "id": "k17cna0gvp9pz0txwqzwec1a258bwjvf",
         "linked": false,
-        "emblem": "/vector/generic/honored-matres.svg",
         "name": "Honored Matres",
         "published": true,
-        "slug": "honored-matres"
+        "slug": "honored-matres-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13729,12 +13763,14 @@
           "invert": true
         },
         "color": "#6e6464",
+        "emblem": "/vector/generic/council.svg",
+        "familyId": "v5784qknpq35e96q4xz2pvwgss8j2p79",
         "id": "k17a4s2jf2qz1sn2gvsc3g6gas8c63ts",
         "linked": false,
-        "emblem": "/vector/generic/council.svg",
         "name": "Landsraad Council",
         "published": true,
-        "slug": "landsraad-council"
+        "slug": "landsraad-council-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13745,12 +13781,14 @@
           "invert": true
         },
         "color": "#965209",
+        "emblem": "/vector/emblem/ginaz.svg",
+        "familyId": "v574m6mve1v69n59p2asqvg7dx8j38ym",
         "id": "k17cs7b2k2fskahh737h40m1cs8c6we1",
         "linked": false,
-        "emblem": "/vector/emblem/ginaz.svg",
         "name": "Ginaz Swordmasters",
         "published": true,
-        "slug": "ginaz-swordmasters"
+        "slug": "ginaz-swordmasters-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13761,12 +13799,14 @@
           "invert": true
         },
         "color": "#37c71a",
+        "emblem": "/vector/generic/bluks.svg",
+        "familyId": "v571wjykrjfqzmk79w0the6tcd8j3qaa",
         "id": "k179hp5p0e9h5c9yg3xpmkgavh8c7kz1",
         "linked": false,
-        "emblem": "/vector/generic/united-earth-federation.svg",
         "name": "Suk Medics",
         "published": true,
-        "slug": "suk-medics"
+        "slug": "suk-medics-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13777,12 +13817,14 @@
           "invert": true
         },
         "color": "#cccc56",
+        "emblem": "/vector/generic/smugglers.svg",
+        "familyId": "v574fp8nahd5qcesyeffx9b3px8j3bsr",
         "id": "k178y5n9dpqr1na1xzv9cpt7vx8c7xe7",
         "linked": false,
-        "emblem": "/vector/generic/smugglers.svg",
         "name": "Spice Smugglers",
         "published": true,
-        "slug": "spice-smugglers"
+        "slug": "spice-smugglers-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13793,12 +13835,14 @@
           "invert": true
         },
         "color": "#c5ff17",
+        "emblem": "/vector/generic/mortal.svg",
+        "familyId": "v57cbp8pjzcy52k9n2d03rfe998j3vm7",
         "id": "k1734y2cmkk46g02z22b90v4zs8cp6yn",
         "linked": false,
-        "emblem": "/vector/generic/draconis-combine.svg",
         "name": "Shrek",
         "published": true,
-        "slug": "shrek"
+        "slug": "shrek-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13809,12 +13853,14 @@
           "invert": true
         },
         "color": "#5f0000",
+        "emblem": "/vector/generic/guildeyes.svg",
+        "familyId": "v5779ctbk39v08e4wqa3dpby5s8j2ztv",
         "id": "k177dt6jakwtfgq6t7yb6wywg18cw7tm",
         "linked": false,
-        "emblem": "/vector/generic/guild-eyes.svg",
         "name": "Combine Honnete Ober Advancer Mercantiles (Unfinished)",
         "published": true,
-        "slug": "combine-honnete-ober-advancer-mercantiles-unfinished"
+        "slug": "combine-honnete-ober-advancer-mercantiles-unfinished-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13825,12 +13871,14 @@
           "invert": true
         },
         "color": "#009080",
+        "emblem": "/vector/emblem/ginaz.svg",
+        "familyId": "v5733a599n60n2yt5h41av01c98j2yvm",
         "id": "k171eymmyn70d4wga8jex1eh758e576z",
         "linked": false,
-        "emblem": "/vector/emblem/ginaz.svg",
         "name": "Ginaz",
         "published": true,
-        "slug": "ginaz"
+        "slug": "ginaz-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13851,12 +13899,14 @@
           "invert": false
         },
         "color": "#56cee3",
+        "emblem": "/vector/emblem/moritani.svg",
+        "familyId": "v578t3w6p7nc90ft2w9sxsdxrs8j3h8x",
         "id": "k174g527412y593m8egc8y64ad8eamvg",
         "linked": false,
-        "emblem": "/vector/emblem/moritani.svg",
         "name": "Moritani (Herring Edition)",
         "published": true,
-        "slug": "moritani-herring-edition"
+        "slug": "moritani-herring-edition-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13867,12 +13917,14 @@
           "invert": true
         },
         "color": "#444444",
+        "emblem": "/vector/emblem/ixian.svg",
+        "familyId": "v572ybpt3rzem348ct5y4036098j3sb4",
         "id": "k173gw8s2nv5eas8d0az39g5658eeqnc",
         "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
         "name": "Thaydean-Ixians",
         "published": true,
-        "slug": "thaydean-ixians"
+        "slug": "thaydean-ixians-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13883,12 +13935,14 @@
           "invert": false
         },
         "color": "#21b19b",
+        "emblem": "/vector/generic/ice.svg",
+        "familyId": "v576yenhezcsg1b0tce7xrz9x58j2rn6",
         "id": "k172ctk6mrn1737apwefk4dyvd8fewhr",
         "linked": false,
-        "emblem": "/vector/generic/ice.svg",
         "name": "Cryo-Sleepers",
         "published": true,
-        "slug": "cryo-sleepers"
+        "slug": "cryo-sleepers-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13899,12 +13953,14 @@
           "invert": true
         },
         "color": "#050101",
+        "emblem": "/vector/emblem/foldspace-knot.svg",
+        "familyId": "v570r6e9qrada9t747f6zk9ae18j2weq",
         "id": "k179h86dn39bh2m1jh82x1smjh8fhmem",
         "linked": false,
-        "emblem": "/vector/emblem/foldspace-knot.svg",
         "name": "Discord Legends",
         "published": true,
-        "slug": "discord-legends"
+        "slug": "discord-legends-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13915,12 +13971,14 @@
           "invert": true
         },
         "color": "#4723a1",
+        "emblem": "/vector/generic/pyramid.svg",
+        "familyId": "v578ky2vvgs6fpwfrtcd17aggx8j3xq9",
         "id": "k17dwc0dpbf4qm4aytbk9fz6v18fvgba",
         "linked": false,
-        "emblem": "/vector/generic/pyramid.svg",
         "name": "NeRV",
         "published": true,
-        "slug": "nerv"
+        "slug": "nerv-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -13931,108 +13989,14 @@
           "invert": true
         },
         "color": "#0e548d",
+        "emblem": "/vector/generic/asterisk.svg",
+        "familyId": "v57e86177pqqcvf8jwac4v7ja98j343g",
         "id": "k17fm70tvzmwy9gkpwqvcb8rs18g9s2x",
         "linked": false,
-        "emblem": "/vector/generic/asterisk.svg",
         "name": "Clone Legions",
         "published": true,
-        "slug": "clone-legions"
-      },
-      {
-        "background": {
-          "colors": ["#444444", "#49630f"],
-          "definition": 0.7,
-          "image": "/image/texture/021.jpg",
-          "influence": 0.9216,
-          "invert": true
-        },
-        "color": "#4b5e12",
-        "id": "k17b2bkrmqc8je5c89exjfj9218gd3dk",
-        "linked": false,
-        "emblem": "/vector/emblem/atreides.svg",
-        "name": "House Atreides (KISS)",
-        "published": true,
-        "slug": "house-atreides-kiss"
-      },
-      {
-        "background": {
-          "colors": ["#444444", "#030202"],
-          "definition": 0.5,
-          "image": "/image/texture/021.jpg",
-          "influence": 1,
-          "invert": true
-        },
-        "color": "#1c1b1b",
-        "id": "k179g3k4pmbnprb3dz3hzwc01x8gc1t8",
-        "linked": false,
-        "emblem": "/vector/emblem/harkonnen.svg",
-        "name": "House Harkonnen (KISS)",
-        "published": true,
-        "slug": "house-harkonnen-kiss"
-      },
-      {
-        "background": {
-          "colors": ["#8d32c9", "#222222"],
-          "definition": 0.5,
-          "image": "/image/texture/021.jpg",
-          "influence": 1,
-          "invert": true
-        },
-        "color": "#57356e",
-        "id": "k17bye19hgc7jrpneptqmaqfq58gc9zc",
-        "linked": false,
-        "emblem": "/vector/emblem/bene-tleilaxu.svg",
-        "name": "Bene Tleilax (KISS)",
-        "published": true,
-        "slug": "bene-tleilax-kiss"
-      },
-      {
-        "background": {
-          "colors": ["#ffc400", "#222222"],
-          "definition": 0.53,
-          "image": "/image/texture/044.jpg",
-          "influence": 0.3111,
-          "invert": true
-        },
-        "color": "#f7bf00",
-        "id": "k17em1xf2fvrc298wfyxdn7bnx8gdggm",
-        "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
-        "name": "Fremen",
-        "published": true,
-        "slug": "fremen-1"
-      },
-      {
-        "background": {
-          "colors": ["#b50000", "#222222"],
-          "definition": 0.8,
-          "image": "/image/texture/021.jpg",
-          "influence": 0.75,
-          "invert": true
-        },
-        "color": "#b50000",
-        "id": "k170x31qvcjyy2qge877ezns0x8gcb5v",
-        "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
-        "name": "Emperor",
-        "published": true,
-        "slug": "emperor-1"
-      },
-      {
-        "background": {
-          "colors": ["#ff910a", "#c96404"],
-          "definition": 0.59,
-          "image": "/image/texture/042.jpg",
-          "influence": 1,
-          "invert": true
-        },
-        "color": "#db6816",
-        "id": "k17a9ejn69zp0g2hzbxx51dpzs8gf4te",
-        "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
-        "name": "Spacing Guild",
-        "published": true,
-        "slug": "spacing-guild-1"
+        "slug": "clone-legions-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -14043,12 +14007,14 @@
           "invert": true
         },
         "color": "#4a4c08",
-        "id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
-        "linked": false,
         "emblem": "/vector/emblem/atreides.svg",
+        "familyId": "v574w4nawfcwsbqpg51byh35vx8j3p9b",
+        "id": "k17b2bkrmqc8je5c89exjfj9218gd3dk",
+        "linked": false,
         "name": "Atreides",
         "published": true,
-        "slug": "atreides"
+        "slug": "atreides-kiss",
+        "variantName": "KISS"
       },
       {
         "background": {
@@ -14059,92 +14025,14 @@
           "invert": false
         },
         "color": "#151315",
-        "id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
-        "linked": false,
         "emblem": "/vector/emblem/harkonnen.svg",
+        "familyId": "v5796t0hnjcrcz82s1wc1xdp758j3mtv",
+        "id": "k179g3k4pmbnprb3dz3hzwc01x8gc1t8",
+        "linked": false,
         "name": "Harkonnen",
         "published": true,
-        "slug": "harkonnen"
-      },
-      {
-        "background": {
-          "colors": ["#8C0402", "#db1918"],
-          "definition": 0.31,
-          "image": "/image/texture/055.jpg",
-          "influence": 1,
-          "invert": false
-        },
-        "color": "#be1010",
-        "id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
-        "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
-        "name": "Emperor",
-        "published": true,
-        "slug": "emperor-2"
-      },
-      {
-        "background": {
-          "colors": ["#bd3108", "#e05719"],
-          "definition": 0.2,
-          "image": "/image/texture/006.jpg",
-          "influence": 1,
-          "invert": false
-        },
-        "color": "#dc5317",
-        "id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
-        "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
-        "name": "Spacing Guild",
-        "published": true,
-        "slug": "spacing-guild-2"
-      },
-      {
-        "background": {
-          "colors": ["#fcb843", "#d2781d"],
-          "definition": 0.3,
-          "image": "/image/texture/019.jpg",
-          "influence": 0.634,
-          "invert": false
-        },
-        "color": "#e4942e",
-        "id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
-        "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
-        "name": "Fremen",
-        "published": true,
-        "slug": "fremen-2"
-      },
-      {
-        "background": {
-          "colors": ["#132b74", "#34478b"],
-          "definition": 0.09,
-          "image": "/image/texture/019.jpg",
-          "influence": 0.8878,
-          "invert": false
-        },
-        "color": "#253b82",
-        "id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
-        "linked": false,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
-        "name": "Bene Gesserit",
-        "published": true,
-        "slug": "bene-gesserit-1"
-      },
-      {
-        "background": {
-          "colors": ["#A8A172", "#252527"],
-          "definition": 0.5,
-          "image": "/image/texture/082.jpg",
-          "influence": 0.65,
-          "invert": false
-        },
-        "color": "#A8A172",
-        "id": "k178rj7eevbaab0dnnb9474t3h8gn526",
-        "linked": false,
-        "emblem": "/vector/emblem/ixian.svg",
-        "name": "Ixians",
-        "published": true,
-        "slug": "ixians-1"
+        "slug": "harkonnen-kiss",
+        "variantName": "KISS"
       },
       {
         "background": {
@@ -14155,12 +14043,212 @@
           "invert": false
         },
         "color": "#6A1B8E",
-        "id": "k171j14cgdjbev5xyghs0ejc918gm9he",
-        "linked": false,
         "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "familyId": "v57dgyzvptbgrsq8bwm3mhhat18j33vy",
+        "id": "k17bye19hgc7jrpneptqmaqfq58gc9zc",
+        "linked": false,
         "name": "Tleilaxu",
         "published": true,
-        "slug": "tleilaxu"
+        "slug": "tleilaxu-kiss",
+        "variantName": "KISS"
+      },
+      {
+        "background": {
+          "colors": ["#fcb843", "#d2781d"],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        },
+        "color": "#e4942e",
+        "emblem": "/vector/emblem/fremen.svg",
+        "familyId": "v578d36nt66a92k7rjmm1m6kjd8j2nfx",
+        "id": "k17em1xf2fvrc298wfyxdn7bnx8gdggm",
+        "linked": false,
+        "name": "Fremen",
+        "published": true,
+        "slug": "fremen-2-kiss",
+        "variantName": "KISS"
+      },
+      {
+        "background": {
+          "colors": ["#8C0402", "#db1918"],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#be1010",
+        "emblem": "/vector/emblem/emperor.svg",
+        "familyId": "v57b6eppe53cxw7n0a45psart18j2e0c",
+        "id": "k170x31qvcjyy2qge877ezns0x8gcb5v",
+        "linked": false,
+        "name": "Emperor",
+        "published": true,
+        "slug": "emperor-2-kiss",
+        "variantName": "KISS"
+      },
+      {
+        "background": {
+          "colors": ["#bd3108", "#e05719"],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#dc5317",
+        "emblem": "/vector/emblem/guild.svg",
+        "familyId": "v579hem96fxr80h2fqczaw0dsx8j3rea",
+        "id": "k17a9ejn69zp0g2hzbxx51dpzs8gf4te",
+        "linked": false,
+        "name": "Spacing Guild",
+        "published": true,
+        "slug": "spacing-guild-2-kiss",
+        "variantName": "KISS"
+      },
+      {
+        "background": {
+          "colors": ["#393d05", "#5c5d10"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "color": "#4a4c08",
+        "emblem": "/vector/emblem/atreides.svg",
+        "familyId": "v574w4nawfcwsbqpg51byh35vx8j3p9b",
+        "id": "k177h1yvxp36dxsxjfmgqx4jw58gm5jk",
+        "linked": false,
+        "name": "Atreides",
+        "published": true,
+        "slug": "atreides-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#0a080b", "#363636"],
+          "definition": 0.1,
+          "image": "/image/texture/026.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#151315",
+        "emblem": "/vector/emblem/harkonnen.svg",
+        "familyId": "v5796t0hnjcrcz82s1wc1xdp758j3mtv",
+        "id": "k1758sk6c1qky3yknx56hstk8x8gmcxm",
+        "linked": false,
+        "name": "Harkonnen",
+        "published": true,
+        "slug": "harkonnen-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#8C0402", "#db1918"],
+          "definition": 0.31,
+          "image": "/image/texture/055.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#be1010",
+        "emblem": "/vector/emblem/emperor.svg",
+        "familyId": "v57b6eppe53cxw7n0a45psart18j2e0c",
+        "id": "k174q1wrg9y646pdvbdr9r1sxx8gmct2",
+        "linked": false,
+        "name": "Emperor",
+        "published": true,
+        "slug": "emperor-2-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#bd3108", "#e05719"],
+          "definition": 0.2,
+          "image": "/image/texture/006.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#dc5317",
+        "emblem": "/vector/emblem/guild.svg",
+        "familyId": "v579hem96fxr80h2fqczaw0dsx8j3rea",
+        "id": "k1782pjyezpza51gk5fj8rr47s8gnp0w",
+        "linked": false,
+        "name": "Spacing Guild",
+        "published": true,
+        "slug": "spacing-guild-2-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#fcb843", "#d2781d"],
+          "definition": 0.3,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.634,
+          "invert": false
+        },
+        "color": "#e4942e",
+        "emblem": "/vector/emblem/fremen.svg",
+        "familyId": "v578d36nt66a92k7rjmm1m6kjd8j2nfx",
+        "id": "k170rt7fn11fxdtbe3vx2bg0xx8gnrx1",
+        "linked": false,
+        "name": "Fremen",
+        "published": true,
+        "slug": "fremen-2-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#132b74", "#34478b"],
+          "definition": 0.09,
+          "image": "/image/texture/019.jpg",
+          "influence": 0.8878,
+          "invert": false
+        },
+        "color": "#253b82",
+        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "familyId": "v570w6bpn5mc93ay3f45343atn8j3yew",
+        "id": "k172tkm3r2r4sc96q7wnb3axvx8gn8g1",
+        "linked": false,
+        "name": "Bene Gesserit",
+        "published": true,
+        "slug": "bene-gesserit-1-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#A8A172", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "color": "#A8A172",
+        "emblem": "/vector/emblem/ixian.svg",
+        "familyId": "v57eh3qp3z09kbd8cvdg6kc7q58j38tg",
+        "id": "k178rj7eevbaab0dnnb9474t3h8gn526",
+        "linked": false,
+        "name": "Ixians",
+        "published": true,
+        "slug": "ixians-1-gf9",
+        "variantName": "GF9"
+      },
+      {
+        "background": {
+          "colors": ["#6A1B8E", "#252527"],
+          "definition": 0.5,
+          "image": "/image/texture/082.jpg",
+          "influence": 0.65,
+          "invert": false
+        },
+        "color": "#6A1B8E",
+        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "familyId": "v57dgyzvptbgrsq8bwm3mhhat18j33vy",
+        "id": "k171j14cgdjbev5xyghs0ejc918gm9he",
+        "linked": false,
+        "name": "Tleilaxu",
+        "published": true,
+        "slug": "tleilaxu-gf9",
+        "variantName": "GF9"
       },
       {
         "background": {
@@ -14171,12 +14259,14 @@
           "invert": false
         },
         "color": "#B7B6A9",
+        "emblem": "/vector/emblem/richese.svg",
+        "familyId": "v57bbn7kxnkwkcpeem9fjxr0ah8j3z9p",
         "id": "k172w8tgrgjy7hehp17p9hr9xs8gms95",
         "linked": false,
-        "emblem": "/vector/emblem/richese.svg",
         "name": "Richese",
         "published": true,
-        "slug": "richese"
+        "slug": "richese-gf9",
+        "variantName": "GF9"
       },
       {
         "background": {
@@ -14204,12 +14294,14 @@
           "invert": false
         },
         "color": "#B11B20",
+        "emblem": "/vector/emblem/choam.svg",
+        "familyId": "v572kyvrbgxkd576z750qfv82h8j31ef",
         "id": "k171sa4cvaa4qnn1n1x6rsedf58gnyp0",
         "linked": false,
-        "emblem": "/vector/emblem/choam.svg",
         "name": "CHOAM",
         "published": true,
-        "slug": "choam-1"
+        "slug": "choam-1-gf9",
+        "variantName": "GF9"
       },
       {
         "background": {
@@ -14220,12 +14312,14 @@
           "invert": false
         },
         "color": "#8B3C8C",
+        "emblem": "/vector/emblem/ecaz.svg",
+        "familyId": "v573cf7t9fc3909gy96t5z896h8j2a6g",
         "id": "k172hdb8cgry21wrdwxvavqc0h8gmp1k",
         "linked": false,
-        "emblem": "/vector/emblem/ecaz.svg",
         "name": "Ecaz",
         "published": true,
-        "slug": "ecaz"
+        "slug": "ecaz-gf9",
+        "variantName": "GF9"
       },
       {
         "background": {
@@ -14236,12 +14330,14 @@
           "invert": false
         },
         "color": "#3C8798",
+        "emblem": "/vector/emblem/moritani.svg",
+        "familyId": "v57704m7xhhk390bnndv3msrrd8j2p3w",
         "id": "k179ta04t9nz6hjjrgtcq1pmx58gnp4y",
         "linked": false,
-        "emblem": "/vector/emblem/moritani.svg",
         "name": "Moritani",
         "published": true,
-        "slug": "moritani"
+        "slug": "moritani-gf9",
+        "variantName": "GF9"
       },
       {
         "background": {
@@ -14252,12 +14348,14 @@
           "invert": true
         },
         "color": "#444444",
+        "emblem": "/vector/emblem/antler-tower.svg",
+        "familyId": "v578gnb1fspwdn6y5v5m6hfvsn8j30th",
         "id": "k17evzrze296vrzmv048qzr16n8gpcvz",
         "linked": false,
-        "emblem": "/vector/emblem/antler-tower.svg",
         "name": "Village Hidden in the Leaf",
         "published": true,
-        "slug": "village-hidden-in-the-leaf"
+        "slug": "village-hidden-in-the-leaf-original",
+        "variantName": "Original"
       },
       {
         "background": {
@@ -14268,12 +14366,14 @@
           "invert": true
         },
         "color": "#4a4c08",
+        "emblem": "/vector/emblem/atreides.svg",
+        "familyId": "v574w4nawfcwsbqpg51byh35vx8j3p9b",
         "id": "k178pt05y4abwvwxeg247snr758gv794",
         "linked": false,
-        "emblem": "/vector/emblem/atreides.svg",
         "name": "Atreides",
         "published": true,
-        "slug": "atreides-1"
+        "slug": "atreides-gf9-2-0",
+        "variantName": "GF9 2.0"
       },
       {
         "background": {
@@ -14284,12 +14384,14 @@
           "invert": false
         },
         "color": "#253b82",
+        "emblem": "/vector/emblem/bene-gesserit.svg",
+        "familyId": "v570w6bpn5mc93ay3f45343atn8j3yew",
         "id": "k1755fjba9y9b2hkfph4ztdy3s8gvwm8",
         "linked": false,
-        "emblem": "/vector/emblem/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "published": true,
-        "slug": "bene-gesserit-2"
+        "slug": "bene-gesserit-1-gf9-2-0",
+        "variantName": "GF9 2.0"
       },
       {
         "background": {
@@ -14300,12 +14402,14 @@
           "invert": false
         },
         "color": "#be1010",
+        "emblem": "/vector/emblem/emperor.svg",
+        "familyId": "v57b6eppe53cxw7n0a45psart18j2e0c",
         "id": "k17awq8h6dd3ge61y8peg14z2h8gvpzy",
         "linked": false,
-        "emblem": "/vector/emblem/emperor.svg",
         "name": "Emperor",
         "published": true,
-        "slug": "emperor-3"
+        "slug": "emperor-2-gf9-2-0",
+        "variantName": "GF9 2.0"
       },
       {
         "background": {
@@ -14316,12 +14420,14 @@
           "invert": false
         },
         "color": "#e4942e",
+        "emblem": "/vector/emblem/fremen.svg",
+        "familyId": "v578d36nt66a92k7rjmm1m6kjd8j2nfx",
         "id": "k170ex3wwnd6ygv289qw1ypvdd8gtfv7",
         "linked": false,
-        "emblem": "/vector/emblem/fremen.svg",
         "name": "Fremen",
         "published": true,
-        "slug": "fremen-3"
+        "slug": "fremen-2-gf9-2-0",
+        "variantName": "GF9 2.0"
       },
       {
         "background": {
@@ -14332,12 +14438,14 @@
           "invert": false
         },
         "color": "#151315",
+        "emblem": "/vector/emblem/harkonnen.svg",
+        "familyId": "v5796t0hnjcrcz82s1wc1xdp758j3mtv",
         "id": "k17fvtpc5h6hfxvcwdgayvqfz58gtch1",
         "linked": false,
-        "emblem": "/vector/emblem/harkonnen.svg",
         "name": "Harkonnen",
         "published": true,
-        "slug": "harkonnen-1"
+        "slug": "harkonnen-gf9-2-0",
+        "variantName": "GF9 2.0"
       },
       {
         "background": {
@@ -14348,18 +14456,182 @@
           "invert": false
         },
         "color": "#dc5317",
+        "emblem": "/vector/emblem/guild.svg",
+        "familyId": "v579hem96fxr80h2fqczaw0dsx8j3rea",
         "id": "k1716zfezm7w1ppfzp8gwzk63d8gvmhy",
         "linked": false,
-        "emblem": "/vector/emblem/guild.svg",
         "name": "Spacing Guild",
         "published": true,
-        "slug": "spacing-guild-3"
+        "slug": "spacing-guild-2-gf9-2-0",
+        "variantName": "GF9 2.0"
+      },
+      {
+        "background": {
+          "colors": ["#98a0a6", "#2a7982"],
+          "definition": 1,
+          "image": "/image/texture/002.jpg",
+          "influence": 0.8976,
+          "invert": true
+        },
+        "color": "#8bc5d9",
+        "emblem": "/vector/generic/peddlers.svg",
+        "familyId": "v579yc8t5pv8n7z1xsr7t7cfjn8j3326",
+        "id": "k172t5a4c6chxfc1g0drdhrjsh8h7v0m",
+        "linked": false,
+        "name": "Water Peddlers Union",
+        "published": true,
+        "slug": "water-peddlers-union-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#368796", "#368786"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "color": "#368796",
+        "emblem": "/vector/emblem/cog-sun.svg",
+        "familyId": "v57fffjd9fhcfab7j0b838tgpn8j2vpp",
+        "id": "k175e4m9n4mrhxjxp0b6hnzcq18h74jy",
+        "linked": false,
+        "name": "House Mechanicus",
+        "published": true,
+        "slug": "house-mechanicus-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#862727", "#863727"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "color": "#863727",
+        "emblem": "/vector/emblem/dune-crab.svg",
+        "familyId": "v570vntg53et7bg8z74kxnc3w98j2s8b",
+        "id": "k179dd89jxz7s6q5vxh4t6bz1h8hhs8t",
+        "linked": false,
+        "name": "Kaiju Lord",
+        "published": true,
+        "slug": "kaiju-lord-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#0e2e13", "#406030"],
+          "definition": 0.95,
+          "image": "/image/texture/006.jpg",
+          "influence": 0.82,
+          "invert": false
+        },
+        "color": "#406030",
+        "emblem": "/vector/emblem/whisper-hand.svg",
+        "familyId": "v5722ggt06jmpr7nwhj5knp9x18j3178",
+        "id": "k179nfrp0b27s4pt4eh0bnjr4x8hv425",
+        "linked": false,
+        "name": "Neo-BUTLERIAN",
+        "published": true,
+        "slug": "neo-butlerian-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#6f51b5", "#6f51b5"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": true
+        },
+        "color": "#6f51b5",
+        "emblem": "/vector/generic/laurel-star.svg",
+        "familyId": "v5706kkva97z6tsw5wymevc6fh8j3gp2",
+        "id": "k1725n86n16me19retqbfz1fpx8hz2bj",
+        "linked": false,
+        "name": "Virtuality",
+        "published": true,
+        "slug": "virtuality-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#a020f0", "#222222"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#a020f0",
+        "emblem": "/vector/emblem/bene-tleilaxu.svg",
+        "familyId": "v5718kz55ys60p7at30fz6k9yd8jbvaw",
+        "id": "k172xqazm9p23922dshdbd9j4h8jb2zj",
+        "linked": false,
+        "name": "Bene Tleilaxu",
+        "published": true,
+        "slug": "bene-tleilaxu-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#ffffff", "#222222"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#ffffff",
+        "emblem": "/vector/emblem/richese.svg",
+        "familyId": "v572gv5hbdq9d7g1et0ktvb5p18jb5mh",
+        "id": "k17b34tshy31xdz717acswppa98jb39e",
+        "linked": false,
+        "name": "New faction",
+        "published": true,
+        "slug": "new-faction-1-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#000000", "#222222"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 1,
+          "invert": false
+        },
+        "color": "#000000",
+        "emblem": "/vector/emblem/harkonnen.svg",
+        "familyId": "v574znhy6sqzj8a4n2tjxh8w258jd09c",
+        "id": "k17cecd9smysanm3tjwdxeznh18jc665",
+        "linked": false,
+        "name": "Harkonnen",
+        "published": true,
+        "slug": "harkonnen-2-original",
+        "variantName": "Original"
+      },
+      {
+        "background": {
+          "colors": ["#ffd772", "#222222"],
+          "definition": 0.5,
+          "image": "/image/texture/021.jpg",
+          "influence": 0.503,
+          "invert": false
+        },
+        "color": "#ffd772",
+        "emblem": "/vector/emblem/ixian.svg",
+        "familyId": "v573qd2nw7frrxf2jgrymta65x8jc4n8",
+        "id": "k17b12r8gtxwv8cp79tkt21qph8jdh5x",
+        "linked": false,
+        "name": "Ixians",
+        "published": true,
+        "slug": "ixians-2-original",
+        "variantName": "Original"
       }
     ]
   },
   "factionDefinitions": {
     "bene-gesserit": {
-      "alliance": "/published/alliance-cards/k17fybprvb614pr3r0bpy410q58a086q/card.jpg?v=c64b39ee-4801-4c5a-8d11-f6bd2843edeb",
+      "alliance": "/published/alliance-cards/k17fybprvb614pr3r0bpy410q58a086q/card.jpg?v=8112ce75-5bfb-401a-a982-ece9f69c9291",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -14378,6 +14650,7 @@
           "calculated": 0.6419354838709678
         },
         "decals": [],
+        "emblem": "/vector/emblem/bene-gesserit.svg",
         "extraPhases": [
           {
             "allPlayersMustBeReady": false,
@@ -14392,7 +14665,7 @@
         ],
         "hero": {
           "image": "/image/leader/official/mohiam.jpg",
-          "memberId": "65fe405d-a2ff-44b7-a950-457c30248cfd",
+          "memberId": "ba20d29d-6cd7-4d85-a603-3bc794fbb13d",
           "name": "Gaius Helen Mohiam"
         },
         "leaders": [
@@ -14427,7 +14700,6 @@
             "strength": 5
           }
         ],
-        "emblem": "/vector/emblem/bene-gesserit.svg",
         "name": "Bene Gesserit",
         "planet": [],
         "rules": {
@@ -14465,6 +14737,7 @@
             "text": "Shared Voice: You may use The Voice in your ally's battles."
           },
           "fate": {
+            "label": "fate",
             "text": "Political Marriages: Play your fate during battle (step 2.1) to use The Voice on one side in any/all battles where you have advisors this turn. This Voice cannot stopped with a karama.",
             "title": ""
           },
@@ -14503,7 +14776,7 @@
       "faction": {
         "id": "k17fybprvb614pr3r0bpy410q58a086q",
         "name": "Bene Gesserit",
-        "slug": "bene-gesserit"
+        "slug": "bene-gesserit-1-dreamrules"
       },
       "leaders": [
         {
@@ -14532,23 +14805,23 @@
       "tokenBack": "/published/faction-tokens/k17fybprvb614pr3r0bpy410q58a086q.back/token.jpg?v=72f3ea57-606a-4a3e-a919-db1866fa2c81",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094/card.jpg?v=9ed5e013-9bb2-40ce-8e11-d1c2c107478d",
+          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094/card.jpg?v=323d36fb-85a3-4895-a20b-76143f0cd813",
           "memberId": "fcd6c3b3-2f8e-42f8-8d1b-9eb24fdad094"
         },
         {
-          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.c5e76313-8b28-480b-afe5-442a47a8bb42/card.jpg?v=13ed4fce-3e24-44ec-8941-5f7eba464dbd",
+          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.c5e76313-8b28-480b-afe5-442a47a8bb42/card.jpg?v=0a64c0f6-16f4-4420-98ce-dac085906cfe",
           "memberId": "c5e76313-8b28-480b-afe5-442a47a8bb42"
         },
         {
-          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.bcbf7253-ac76-4d05-a94c-56c17b9ca1c5/card.jpg?v=1f47de3b-3fd9-4daf-9859-ee45c02b302d",
+          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.bcbf7253-ac76-4d05-a94c-56c17b9ca1c5/card.jpg?v=c4dfe8a8-38d7-4a23-8bbf-bd0dde530eb2",
           "memberId": "bcbf7253-ac76-4d05-a94c-56c17b9ca1c5"
         },
         {
-          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.cbee9874-6ab4-42e0-9db2-d015213a9a84/card.jpg?v=72bdc515-4d55-42ef-9b70-3b53b402cd60",
+          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.cbee9874-6ab4-42e0-9db2-d015213a9a84/card.jpg?v=4adcaac8-1b31-4ce9-8d8d-5ee5bfefb60c",
           "memberId": "cbee9874-6ab4-42e0-9db2-d015213a9a84"
         },
         {
-          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.92a4d717-bc56-4dd5-b4f0-95df1ae742b2/card.jpg?v=4807c96e-746a-45a9-a120-b280362549e7",
+          "front": "/published/traitor-cards/k17fybprvb614pr3r0bpy410q58a086q.92a4d717-bc56-4dd5-b4f0-95df1ae742b2/card.jpg?v=0e46ed72-b5e3-461f-9482-3bab4c7ca1cb",
           "memberId": "92a4d717-bc56-4dd5-b4f0-95df1ae742b2"
         }
       ],
@@ -14561,7 +14834,7 @@
       ]
     },
     "house-atreides": {
-      "alliance": "/published/alliance-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x/card.jpg?v=6f3ac861-c5c9-4d1b-8c93-d3354e7fdab0",
+      "alliance": "/published/alliance-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x/card.jpg?v=9a7f8843-44ab-4599-b20a-09683488bae6",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -14580,45 +14853,55 @@
           "calculated": 0.43870967741935485
         },
         "decals": [],
+        "emblem": "/vector/emblem/atreides.svg",
+        "extras": [
+          {
+            "slug": "atreides-battle-loss-counter",
+            "type": "token-disc"
+          },
+          {
+            "slug": "kwisatz-haderach",
+            "type": "deck"
+          }
+        ],
         "hero": {
           "image": "/image/leader/official/paul.jpg",
-          "memberId": "08bbac42-960c-476c-a46c-2b904edf2fe4",
+          "memberId": "b6b51658-3ab4-46c9-8dd0-10dda4014987",
           "name": "Paul Atreides"
         },
         "leaders": [
           {
             "image": "/image/leader/official/jessica.png",
-            "memberId": "c537e132-7b96-4d9a-8140-61854961a70f",
+            "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f",
             "name": "Lady Jessica",
             "strength": 5
           },
           {
             "image": "/image/leader/official/thufir.png",
-            "memberId": "efd456e6-2374-4a9c-a033-e700d3896c47",
+            "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0",
             "name": "Thufir Hawat",
             "strength": 5
           },
           {
             "image": "/image/leader/official/gurney.png",
-            "memberId": "01f1cf94-2df1-4b96-9fbf-dd757afef27b",
+            "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378",
             "name": "Gurney Halleck",
             "strength": 4
           },
           {
             "image": "/image/leader/official/duncan.png",
-            "memberId": "f81ee425-dc09-4a89-a256-6946a97fe4de",
+            "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347",
             "name": "Duncan Idaho",
             "strength": 2
           },
           {
             "image": "/image/leader/official/dryeuh.png",
-            "memberId": "a3711dc6-b2b9-4826-b7f9-1feb95c0629c",
+            "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220",
             "name": "Doctor Yueh",
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/atreides.svg",
-        "name": "House Atreides",
+        "name": "Atreides",
         "planet": [],
         "rules": {
           "advantages": [
@@ -14655,6 +14938,7 @@
             "text": "Shared Prescience: Your ally may allow you to use Battle Prescience in their battles."
           },
           "fate": {
+            "label": "fate",
             "text": "Arrakis Fiefdom: Play your fate card at any time before Shipment and Movement Phase to obtain the Carryall Tech Token, which you cannot lose. The token triggers when a spice mine sends troops to reserves. You may also spawn a 3 spice mine on any sand territory that doesn't have a Spice Blow marker.",
             "title": ""
           },
@@ -14665,7 +14949,11 @@
         "themeColor": "#4a4c08",
         "troops": [
           {
-            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
             "count": 20,
             "description": "0.5 strength when undialed, 1 strength when dialed",
             "image": "/vector/troop/atreides.svg",
@@ -14676,29 +14964,29 @@
       },
       "faction": {
         "id": "k17ag3gr1h60n7mmh88kj56avs8a1j7x",
-        "name": "House Atreides",
-        "slug": "house-atreides"
+        "name": "Atreides",
+        "slug": "atreides-dreamrules"
       },
       "leaders": [
         {
-          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.c537e132-7b96-4d9a-8140-61854961a70f/leader.jpg?v=2c01df80-d66a-4335-9b3e-5a0c1152bcc5",
-          "memberId": "c537e132-7b96-4d9a-8140-61854961a70f"
+          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.92a82f05-9387-4358-b5eb-b25cc775cb5f/leader.jpg?v=31b77992-a698-4e7c-9ab0-2b81bf7795a4",
+          "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f"
         },
         {
-          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.efd456e6-2374-4a9c-a033-e700d3896c47/leader.jpg?v=2e3c1a8a-6960-46c4-8c8c-df4c433c5c08",
-          "memberId": "efd456e6-2374-4a9c-a033-e700d3896c47"
+          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.1cbb3205-43b5-46db-8265-2d5e407a14a0/leader.jpg?v=b81b15c9-9021-4273-a2ab-80cb233d893e",
+          "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0"
         },
         {
-          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/leader.jpg?v=fca62d74-7a13-4d83-9725-3f248085ea22",
-          "memberId": "01f1cf94-2df1-4b96-9fbf-dd757afef27b"
+          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.f6de205e-0bfa-4720-83a7-788cdb5db378/leader.jpg?v=35ca33ad-0db7-4e6e-b0ea-2c56832fe590",
+          "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378"
         },
         {
-          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.f81ee425-dc09-4a89-a256-6946a97fe4de/leader.jpg?v=01434f4a-8656-4e79-846e-d80970a70aba",
-          "memberId": "f81ee425-dc09-4a89-a256-6946a97fe4de"
+          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.918acfed-e08e-46bc-8e11-ef6e789fa347/leader.jpg?v=41c42001-5e55-4f54-a8a4-a368b7836fc7",
+          "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
         },
         {
-          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.a3711dc6-b2b9-4826-b7f9-1feb95c0629c/leader.jpg?v=4550c0c6-dac2-4468-8eb5-46dffbcbdbf5",
-          "memberId": "a3711dc6-b2b9-4826-b7f9-1feb95c0629c"
+          "front": "/published/leaders/k17ag3gr1h60n7mmh88kj56avs8a1j7x.066d6195-2255-4c9e-aec8-06fa9c636220/leader.jpg?v=da2f8ef0-9edb-4d2a-8e74-1981189a4d87",
+          "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220"
         }
       ],
       "prediction": "/published/cards/ns77ytqzmbrtqn3h32ga7rksxd8fgm1v/card.jpg?v=2c0b500a-4c83-4676-a60e-30b056ff192e",
@@ -14706,24 +14994,24 @@
       "tokenBack": "/published/faction-tokens/k17ag3gr1h60n7mmh88kj56avs8a1j7x.back/token.jpg?v=cca3d0a4-01ad-4e06-9cad-f8df61b19d16",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.c537e132-7b96-4d9a-8140-61854961a70f/card.jpg?v=702cc037-c8ad-48ba-a76a-52f7263016c1",
-          "memberId": "c537e132-7b96-4d9a-8140-61854961a70f"
+          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.92a82f05-9387-4358-b5eb-b25cc775cb5f/card.jpg?v=eb113a64-0dd3-487f-a7ca-1897428b4217",
+          "memberId": "92a82f05-9387-4358-b5eb-b25cc775cb5f"
         },
         {
-          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.efd456e6-2374-4a9c-a033-e700d3896c47/card.jpg?v=e780b04f-95c0-46d0-8fcc-cf55d6de7ea6",
-          "memberId": "efd456e6-2374-4a9c-a033-e700d3896c47"
+          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.1cbb3205-43b5-46db-8265-2d5e407a14a0/card.jpg?v=9b5334e9-6b28-4f7d-8e68-05f770f19bb9",
+          "memberId": "1cbb3205-43b5-46db-8265-2d5e407a14a0"
         },
         {
-          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.01f1cf94-2df1-4b96-9fbf-dd757afef27b/card.jpg?v=be5a5f18-b988-4c9c-be0d-4e5dd590cc57",
-          "memberId": "01f1cf94-2df1-4b96-9fbf-dd757afef27b"
+          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.f6de205e-0bfa-4720-83a7-788cdb5db378/card.jpg?v=9c11ba8d-fd2e-41ed-a627-ef9abf38bfb7",
+          "memberId": "f6de205e-0bfa-4720-83a7-788cdb5db378"
         },
         {
-          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.f81ee425-dc09-4a89-a256-6946a97fe4de/card.jpg?v=9f9796fa-a0fa-4c31-8acc-7e01c22095e9",
-          "memberId": "f81ee425-dc09-4a89-a256-6946a97fe4de"
+          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.918acfed-e08e-46bc-8e11-ef6e789fa347/card.jpg?v=1e246d95-9de8-493d-b534-b0640d8b090c",
+          "memberId": "918acfed-e08e-46bc-8e11-ef6e789fa347"
         },
         {
-          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.a3711dc6-b2b9-4826-b7f9-1feb95c0629c/card.jpg?v=d78d62e3-66b4-48b9-991e-6578e6faeefd",
-          "memberId": "a3711dc6-b2b9-4826-b7f9-1feb95c0629c"
+          "front": "/published/traitor-cards/k17ag3gr1h60n7mmh88kj56avs8a1j7x.066d6195-2255-4c9e-aec8-06fa9c636220/card.jpg?v=973c1627-770a-40dd-ba09-4491153e5739",
+          "memberId": "066d6195-2255-4c9e-aec8-06fa9c636220"
         }
       ],
       "troops": [
@@ -14735,7 +15023,7 @@
       ]
     },
     "house-harkonnen": {
-      "alliance": "/published/alliance-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4/card.jpg?v=d868c017-1768-491e-a15d-8d5e9f2bc713",
+      "alliance": "/published/alliance-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4/card.jpg?v=2d5c9666-bd2f-4d2b-bb8e-cd4ee907d128",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -14755,9 +15043,10 @@
           "manual": 0.4
         },
         "decals": [],
+        "emblem": "/vector/emblem/harkonnen.svg",
         "hero": {
           "image": "/image/leader/official/baron.jpg",
-          "memberId": "9f2287c1-cc2f-417b-a4fa-e1a9d088fabf",
+          "memberId": "e6b3a54e-f351-4b55-8b8f-f2a0414b77e3",
           "name": "Baron Vladimir Harkonnen"
         },
         "leaders": [
@@ -14792,8 +15081,7 @@
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/harkonnen.svg",
-        "name": "House Harkonnen",
+        "name": "Harkonnen",
         "planet": [],
         "rules": {
           "advantages": [
@@ -14825,6 +15113,7 @@
             "text": "We Have a Traitor in Their Midst: You may call traitor and use your fate in your ally's battles."
           },
           "fate": {
+            "label": "fate",
             "text": "Play your fate card during battle (step 2.3) to force you or your ally's opponent to reveal their entire battle plan early.",
             "title": "Blackmail"
           },
@@ -14835,7 +15124,11 @@
         "themeColor": "#151315",
         "troops": [
           {
-            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
             "count": 20,
             "description": "0.5 strength, 1 strength when spice dialed",
             "image": "/vector/troop/harkonnen.svg",
@@ -14846,8 +15139,8 @@
       },
       "faction": {
         "id": "k174k8mvjqapvgccxtbp9qwh5h8a01b4",
-        "name": "House Harkonnen",
-        "slug": "house-harkonnen"
+        "name": "Harkonnen",
+        "slug": "harkonnen-dreamrules"
       },
       "leaders": [
         {
@@ -14876,23 +15169,23 @@
       "tokenBack": "/published/faction-tokens/k174k8mvjqapvgccxtbp9qwh5h8a01b4.back/token.jpg?v=0a865680-a051-4d54-8e21-fed5dbf20fff",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/card.jpg?v=15528f2b-bd6e-4078-8db8-c383c10871a8",
+          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.773ba210-69e1-4bcb-9ea8-2b5419ecd35e/card.jpg?v=5bb75b1c-76be-4af0-8c5a-7053cc55b441",
           "memberId": "773ba210-69e1-4bcb-9ea8-2b5419ecd35e"
         },
         {
-          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.ec5de698-b13b-438b-95ff-8bf0ce6670c8/card.jpg?v=f07873ba-2e94-434d-be5a-65742b8c7834",
+          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.ec5de698-b13b-438b-95ff-8bf0ce6670c8/card.jpg?v=28b113f2-39b4-4c3a-846f-ead3f3eaa6a3",
           "memberId": "ec5de698-b13b-438b-95ff-8bf0ce6670c8"
         },
         {
-          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.34669bf1-af9b-40a6-95eb-78ef4c4ca949/card.jpg?v=9cfffcd5-964f-490e-bf7d-30cd7903ee85",
+          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.34669bf1-af9b-40a6-95eb-78ef4c4ca949/card.jpg?v=77ddccc6-8b2b-493a-88f8-f625235681a3",
           "memberId": "34669bf1-af9b-40a6-95eb-78ef4c4ca949"
         },
         {
-          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.1423d459-65bd-4f38-8859-52f69a5b3e2b/card.jpg?v=5ef61ca7-3d4f-40fa-9a60-6350be016496",
+          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.1423d459-65bd-4f38-8859-52f69a5b3e2b/card.jpg?v=e83aacfa-5ba5-448d-a4a5-ab9e628d8953",
           "memberId": "1423d459-65bd-4f38-8859-52f69a5b3e2b"
         },
         {
-          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.c93c96d8-a6f8-434b-98b3-e924e532d6cf/card.jpg?v=eb67ecbe-6939-44fb-9c79-215d52321ea8",
+          "front": "/published/traitor-cards/k174k8mvjqapvgccxtbp9qwh5h8a01b4.c93c96d8-a6f8-434b-98b3-e924e532d6cf/card.jpg?v=4fd4f677-cc68-4956-a8fd-a8d442ae633d",
           "memberId": "c93c96d8-a6f8-434b-98b3-e924e532d6cf"
         }
       ],
@@ -14905,7 +15198,7 @@
       ]
     },
     "emperor": {
-      "alliance": "/published/alliance-cards/k17dhptwywynwmpvx18965b97h8a0abp/card.jpg?v=71dea98d-24ce-44eb-b7ef-0c998368e65e",
+      "alliance": "/published/alliance-cards/k17dhptwywynwmpvx18965b97h8a0abp/card.jpg?v=b94bb18a-5501-4939-93d4-9807e800c0e0",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -14924,44 +15217,44 @@
           "calculated": 0.34838709677419355
         },
         "decals": [],
+        "emblem": "/vector/emblem/emperor.svg",
         "hero": {
           "image": "/image/leader/official/shadam.jpg",
-          "memberId": "7a734535-fd3d-4791-bfb8-45d7dc34ae01",
+          "memberId": "2bdb6a44-9079-4ebb-b4f6-02acca2f445d",
           "name": "Shaddam Corrino IV"
         },
         "leaders": [
           {
             "image": "/image/leader/official/hasimir.png",
-            "memberId": "e445cf95-3067-4260-a962-fe5d29f63f53",
+            "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe",
             "name": "Hasimir Fenring",
             "strength": 6
           },
           {
             "image": "/image/leader/official/aramsham.png",
-            "memberId": "5231cb41-ceea-4405-95d1-1822541a63e3",
+            "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647",
             "name": "Cpt. Aramsham",
             "strength": 5
           },
           {
             "image": "/image/leader/official/caid.png",
-            "memberId": "3fbddb6f-f500-40aa-91c6-fb7a1d154c34",
+            "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1",
             "name": "Caid",
             "strength": 3
           },
           {
             "image": "/image/leader/official/burseg.png",
-            "memberId": "4c5f3e11-0636-4b59-885f-a1a55296f3b1",
+            "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63",
             "name": "Burseg",
             "strength": 3
           },
           {
             "image": "/image/leader/official/bashar.png",
-            "memberId": "826f5779-ac89-4cd8-9da7-b345537b5e73",
+            "memberId": "822709e6-e300-4db0-90d4-cab409278cde",
             "name": "Bashar",
             "strength": 2
           }
         ],
-        "emblem": "/vector/emblem/emperor.svg",
         "name": "Emperor",
         "planet": [],
         "rules": {
@@ -14976,7 +15269,7 @@
             },
             {
               "karama": "(Bidding Phase) Discard all spice paid for subsidy this phase. May be played after the last card has been sold, before the phase ends.",
-              "text": "When another faction buys a Treachery Card you may place any amount of spice in front of your Player Shield to discount the bidding payment by that amount. You collect all spice placed in front of your Player Shield this way at the end of the Bidding phase. Factions may bid more than their spice reserves if you agree you are using this ability to cover the amount the faction is lacking.",
+              "text": "When another faction buys a Treachery Card you may place any amount of spice in front of your Faction shield to discount the bidding payment by that amount. You collect all spice placed in front of your Faction shield this way at the end of the Bidding phase. Factions may bid more than their spice reserves if you agree you are using this ability to cover the amount the faction is lacking.",
               "title": "Shaddam's Favor (AKA Subsidy)"
             },
             {
@@ -14989,6 +15282,7 @@
             "text": "Golden Lion Throne: You may instantly give spice to your ally at any time. (You can effectively pay for revivals and spice dialing, which normal allies can't.)"
           },
           "fate": {
+            "label": "fate",
             "text": "Prison Planet: Play your fate card at any time to revive up to 5 of any troops and any leader for their normal cost (including for other players). There are no limits for starred troops or leaders. (Cannot be played during battle step 3) (BT does not collect spice for this revival)",
             "title": ""
           },
@@ -14999,7 +15293,11 @@
         "themeColor": "#be1010",
         "troops": [
           {
-            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
             "count": 15,
             "description": "0.5 strength when undialed, 1 strength dialed",
             "image": "/vector/troop/emperor.svg",
@@ -15007,7 +15305,11 @@
             "troopId": "19daf387-c125-4125-b9c2-80bff59fad07"
           },
           {
-            "combat": { "strength": 1, "supportCost": 1, "supportedStrength": 2 },
+            "combat": {
+              "strength": 1,
+              "supportCost": 1,
+              "supportedStrength": 2
+            },
             "count": 5,
             "description": "1 strength when undialed, 2 strength when dialed",
             "hue": "#e6de12",
@@ -15021,28 +15323,28 @@
       "faction": {
         "id": "k17dhptwywynwmpvx18965b97h8a0abp",
         "name": "Emperor",
-        "slug": "emperor"
+        "slug": "emperor-2-dreamrules"
       },
       "leaders": [
         {
-          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.e445cf95-3067-4260-a962-fe5d29f63f53/leader.jpg?v=3cd7d0d0-b4d8-44a2-afac-96908eb58022",
-          "memberId": "e445cf95-3067-4260-a962-fe5d29f63f53"
+          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.4cf337f6-8487-4f98-bdc8-e6948cf6ecfe/leader.jpg?v=872aa8a1-9126-4c72-8cd9-d796adf7cbdd",
+          "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe"
         },
         {
-          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.5231cb41-ceea-4405-95d1-1822541a63e3/leader.jpg?v=b2e736ab-d570-494a-88b4-1633980300dd",
-          "memberId": "5231cb41-ceea-4405-95d1-1822541a63e3"
+          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.2d83065e-f4ca-4ff6-8d0a-d24cffaec647/leader.jpg?v=46e6b55d-9688-4602-b0ed-11f12137edd5",
+          "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647"
         },
         {
-          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.3fbddb6f-f500-40aa-91c6-fb7a1d154c34/leader.jpg?v=95f050fe-f145-4f72-9054-d5d17b8c71eb",
-          "memberId": "3fbddb6f-f500-40aa-91c6-fb7a1d154c34"
+          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.37c58b9a-c36c-411f-9097-8876eda02ed1/leader.jpg?v=1b43e7d8-da71-465a-a478-ed0788f6232d",
+          "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1"
         },
         {
-          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.4c5f3e11-0636-4b59-885f-a1a55296f3b1/leader.jpg?v=027a2501-baab-4296-ba85-b70a91f0a0a0",
-          "memberId": "4c5f3e11-0636-4b59-885f-a1a55296f3b1"
+          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.94fd7927-9e00-421b-b32e-73322bc54d63/leader.jpg?v=07432ba1-4506-4c5b-8325-0fb2d88e2b3c",
+          "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63"
         },
         {
-          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.826f5779-ac89-4cd8-9da7-b345537b5e73/leader.jpg?v=cef08e51-cffb-4af8-88a7-82933009fe06",
-          "memberId": "826f5779-ac89-4cd8-9da7-b345537b5e73"
+          "front": "/published/leaders/k17dhptwywynwmpvx18965b97h8a0abp.822709e6-e300-4db0-90d4-cab409278cde/leader.jpg?v=89862933-d57e-48ca-8bf0-c13e313465fc",
+          "memberId": "822709e6-e300-4db0-90d4-cab409278cde"
         }
       ],
       "prediction": "/published/cards/ns77ytqzmbrtqn3h32ga7rksxd8fgm1v/card.jpg?v=2c0b500a-4c83-4676-a60e-30b056ff192e",
@@ -15050,24 +15352,24 @@
       "tokenBack": "/published/faction-tokens/k17dhptwywynwmpvx18965b97h8a0abp.back/token.jpg?v=68907543-970e-49a6-a0ee-5c1b9c00afc1",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.e445cf95-3067-4260-a962-fe5d29f63f53/card.jpg?v=bf78405f-daee-4d7d-ae85-3949c690bec5",
-          "memberId": "e445cf95-3067-4260-a962-fe5d29f63f53"
+          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.4cf337f6-8487-4f98-bdc8-e6948cf6ecfe/card.jpg?v=a17f42e2-04fe-4959-8b5f-8588a568d865",
+          "memberId": "4cf337f6-8487-4f98-bdc8-e6948cf6ecfe"
         },
         {
-          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.5231cb41-ceea-4405-95d1-1822541a63e3/card.jpg?v=2f04a136-4b44-4501-afd4-637412661630",
-          "memberId": "5231cb41-ceea-4405-95d1-1822541a63e3"
+          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.2d83065e-f4ca-4ff6-8d0a-d24cffaec647/card.jpg?v=cd4c8f64-e1d1-4d35-a1de-fd322b6005a3",
+          "memberId": "2d83065e-f4ca-4ff6-8d0a-d24cffaec647"
         },
         {
-          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.3fbddb6f-f500-40aa-91c6-fb7a1d154c34/card.jpg?v=f359de47-3047-4c13-8041-5b7b392cd963",
-          "memberId": "3fbddb6f-f500-40aa-91c6-fb7a1d154c34"
+          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.37c58b9a-c36c-411f-9097-8876eda02ed1/card.jpg?v=9b3750ed-f0f4-4c00-9031-5765d3b527b6",
+          "memberId": "37c58b9a-c36c-411f-9097-8876eda02ed1"
         },
         {
-          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.4c5f3e11-0636-4b59-885f-a1a55296f3b1/card.jpg?v=d180c533-b65b-498a-9266-8686d5456bcf",
-          "memberId": "4c5f3e11-0636-4b59-885f-a1a55296f3b1"
+          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.94fd7927-9e00-421b-b32e-73322bc54d63/card.jpg?v=5c3bae83-f410-4448-b41d-d44440ecc398",
+          "memberId": "94fd7927-9e00-421b-b32e-73322bc54d63"
         },
         {
-          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.826f5779-ac89-4cd8-9da7-b345537b5e73/card.jpg?v=752d58b6-daff-44f1-bda6-18ce0c4d9433",
-          "memberId": "826f5779-ac89-4cd8-9da7-b345537b5e73"
+          "front": "/published/traitor-cards/k17dhptwywynwmpvx18965b97h8a0abp.822709e6-e300-4db0-90d4-cab409278cde/card.jpg?v=5ce341da-78ff-4c61-bb8c-69f25557c8f5",
+          "memberId": "822709e6-e300-4db0-90d4-cab409278cde"
         }
       ],
       "troops": [
@@ -15084,7 +15386,7 @@
       ]
     },
     "spacing-guild": {
-      "alliance": "/published/alliance-cards/k175bxsjh069ksf64a189360f58a0eck/card.jpg?v=699d87cd-e01b-41f4-8bba-79e7d54645b4",
+      "alliance": "/published/alliance-cards/k175bxsjh069ksf64a189360f58a0eck/card.jpg?v=b98ce1e7-4396-4b93-ab6a-5214a56b7298",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -15119,9 +15421,10 @@
             "scale": 0.41
           }
         ],
+        "emblem": "/vector/emblem/guild.svg",
         "hero": {
           "image": "/image/leader/official/edric.jpg",
-          "memberId": "77de5a63-ddbd-48a5-a794-dcf597ee29e1",
+          "memberId": "10f775db-8ae8-4d54-89ba-6dfcd37224c1",
           "name": "Navigator Edric"
         },
         "leaders": [
@@ -15156,7 +15459,6 @@
             "strength": 1
           }
         ],
-        "emblem": "/vector/emblem/guild.svg",
         "name": "Spacing Guild",
         "planet": [
           {
@@ -15200,6 +15502,7 @@
             "text": "Shared Shipping Advantage: You ally may use your Discount Shipping. You may allow your ally to ship using Three Types of Shipment (including Fremen). You may also reveal spice from your hidden area to pay for an ally's shipment (You don't lose the spice)."
           },
           "fate": {
+            "label": "fate",
             "text": "Battle Training: Play your fate card at any time before Shipment and Movement phase to permanently gain the ability to play two leaders per battle. (Including cheap heroes) Either leader can be called traitor. If you retreat the lowest leader is used for saving Treachery Cards. Leaders survive/die as one.",
             "title": ""
           },
@@ -15210,7 +15513,11 @@
         "themeColor": "#dc5317",
         "troops": [
           {
-            "combat": { "strength": 0.5, "supportCost": 1, "supportedStrength": 1 },
+            "combat": {
+              "strength": 0.5,
+              "supportCost": 1,
+              "supportedStrength": 1
+            },
             "count": 20,
             "description": "worth 0.5 strength, or 1 strength with 1 spice",
             "hue": "#ffffff",
@@ -15224,7 +15531,7 @@
       "faction": {
         "id": "k175bxsjh069ksf64a189360f58a0eck",
         "name": "Spacing Guild",
-        "slug": "spacing-guild"
+        "slug": "spacing-guild-2-dreamrules"
       },
       "leaders": [
         {
@@ -15253,23 +15560,23 @@
       "tokenBack": "/published/faction-tokens/k175bxsjh069ksf64a189360f58a0eck.back/token.jpg?v=be68b66a-83f9-4ca8-b4c9-70a031447417",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.53bd6754-b442-470c-b8da-2af998f349e0/card.jpg?v=168242db-5719-423d-afb5-6b4d1939a84a",
+          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.53bd6754-b442-470c-b8da-2af998f349e0/card.jpg?v=25fd504f-de48-47a1-aee9-f1a8686cf4de",
           "memberId": "53bd6754-b442-470c-b8da-2af998f349e0"
         },
         {
-          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.bc2c7eba-69f8-4725-a243-6976b5b5a7ff/card.jpg?v=ffabf809-c3a8-454f-973d-fc4f5a3b190e",
+          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.bc2c7eba-69f8-4725-a243-6976b5b5a7ff/card.jpg?v=d6f19c90-9bc4-456f-9b2a-2303222fcbf5",
           "memberId": "bc2c7eba-69f8-4725-a243-6976b5b5a7ff"
         },
         {
-          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.1102e32c-e145-455a-8f89-1295797bc502/card.jpg?v=d4674aba-e427-482e-9322-df9e8840cffd",
+          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.1102e32c-e145-455a-8f89-1295797bc502/card.jpg?v=10f82a96-bfd7-4129-b14b-4d4809bf8909",
           "memberId": "1102e32c-e145-455a-8f89-1295797bc502"
         },
         {
-          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.b009e068-3f74-4f0f-8227-cbb197a973b0/card.jpg?v=42b49ed8-2195-4a98-b1f1-5214a3e64d40",
+          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.b009e068-3f74-4f0f-8227-cbb197a973b0/card.jpg?v=fab6714a-2717-4ef8-b9c5-c9a28cbcdd08",
           "memberId": "b009e068-3f74-4f0f-8227-cbb197a973b0"
         },
         {
-          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.10cb0e82-70ee-45ce-aeb0-162f0f933530/card.jpg?v=ecf5d7ed-f375-4bc0-95f4-97a809d1a5fc",
+          "front": "/published/traitor-cards/k175bxsjh069ksf64a189360f58a0eck.10cb0e82-70ee-45ce-aeb0-162f0f933530/card.jpg?v=9db09ec0-12ed-4b37-b1d6-b672be68166e",
           "memberId": "10cb0e82-70ee-45ce-aeb0-162f0f933530"
         }
       ],
@@ -15282,7 +15589,7 @@
       ]
     },
     "fremen": {
-      "alliance": "/published/alliance-cards/k176nq542xz747341fc42341e18a0t45/card.jpg?v=49e93d47-bb73-43c3-a5bf-6a88de2c08c9",
+      "alliance": "/published/alliance-cards/k176nq542xz747341fc42341e18a0t45/card.jpg?v=5aa29578-ea6d-45eb-b3c9-191aedc51bde",
       "cardbacks": {
         "alliance": "/published/cardback-presets/alliance/cardback.jpg?v=34dc30d6-b315-4ffc-85f8-a967bf91af95",
         "prediction": "/published/cardback-presets/prediction/cardback.jpg?v=9b7e0ad1-09db-43bd-9f16-361e7e5b016c",
@@ -15302,6 +15609,7 @@
           "manual": 0.6
         },
         "decals": [],
+        "emblem": "/vector/emblem/fremen.svg",
         "hero": {
           "image": "/image/leader/official/liet.jpg",
           "memberId": "15b3451f-5b15-44d8-8f9b-4200de394404",
@@ -15310,36 +15618,35 @@
         "leaders": [
           {
             "image": "/image/leader/official/stilgar.png",
-            "memberId": "a6db2c21-0832-4093-a531-3d84a7bf8595",
+            "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac",
             "name": "Stilgar",
             "strength": 7
           },
           {
             "image": "/image/leader/official/chani.png",
-            "memberId": "4423c0f7-b4f5-4402-aab2-3f893227c73f",
+            "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58",
             "name": "Chani",
             "strength": 6
           },
           {
             "image": "/image/leader/official/otheym.png",
-            "memberId": "8a455597-cc9c-4341-a4c5-5567e5cdc8a7",
+            "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94",
             "name": "Otheym",
             "strength": 5
           },
           {
             "image": "/image/leader/official/mapes.png",
-            "memberId": "150920d2-e2a0-4389-8851-876cdabfdfcf",
+            "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03",
             "name": "Shaddout Mapes",
             "strength": 3
           },
           {
             "image": "/image/leader/official/jamis.png",
-            "memberId": "14bd2aa8-e1fc-4a42-a789-84c2dc64ed98",
+            "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381",
             "name": "Jamis",
             "strength": 2
           }
         ],
-        "emblem": "/vector/emblem/fremen.svg",
         "name": "Fremen",
         "planet": [],
         "rules": {
@@ -15412,6 +15719,7 @@
             "text": "Desert Power: Whenever your ally spice dials they may place the spice into their Bribes instead of the Spice Bank. Your ally's troops are not devoured by Shai-Hulud. (Troops are always devoured after alliances are made/broken)"
           },
           "fate": {
+            "label": "fate",
             "text": "Planetology: Play your fate card during Storm Phase to add or subtract 1 from the revealed Storm Card. You may repeat this every turn for the rest of the game.",
             "title": ""
           },
@@ -15452,28 +15760,28 @@
       "faction": {
         "id": "k176nq542xz747341fc42341e18a0t45",
         "name": "Fremen",
-        "slug": "fremen"
+        "slug": "fremen-2-dreamrules"
       },
       "leaders": [
         {
-          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.a6db2c21-0832-4093-a531-3d84a7bf8595/leader.jpg?v=632856ae-33a8-4c6e-b3e1-67652f45a064",
-          "memberId": "a6db2c21-0832-4093-a531-3d84a7bf8595"
+          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.4f1b9a93-0064-49aa-82ef-819cf168b1ac/leader.jpg?v=29e434ed-4cda-417a-96fe-e9735d49b28f",
+          "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac"
         },
         {
-          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.4423c0f7-b4f5-4402-aab2-3f893227c73f/leader.jpg?v=fb607920-38d7-47f4-8d54-c1c088e59654",
-          "memberId": "4423c0f7-b4f5-4402-aab2-3f893227c73f"
+          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.8cce5f0e-2c66-4761-9464-991aea172c58/leader.jpg?v=0e10ce99-67d7-40b8-8490-d91fecfbd1dd",
+          "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58"
         },
         {
-          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.8a455597-cc9c-4341-a4c5-5567e5cdc8a7/leader.jpg?v=8fbf4fb0-5c33-4d85-87e9-8fd2e2fe9a6b",
-          "memberId": "8a455597-cc9c-4341-a4c5-5567e5cdc8a7"
+          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.588ef0f5-8098-4246-a16a-5f1834f72f94/leader.jpg?v=86743b8b-6590-4942-9953-9411f52a54bd",
+          "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94"
         },
         {
-          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.150920d2-e2a0-4389-8851-876cdabfdfcf/leader.jpg?v=09ca7012-c807-4f6f-96e1-9ffcc80a85d4",
-          "memberId": "150920d2-e2a0-4389-8851-876cdabfdfcf"
+          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.8bd9ffeb-21fe-4196-9aeb-7584e1548f03/leader.jpg?v=71936afc-516c-4142-88a5-9a6c83f5030c",
+          "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03"
         },
         {
-          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.14bd2aa8-e1fc-4a42-a789-84c2dc64ed98/leader.jpg?v=0f28d6e3-3d35-4ce5-aaf6-67bd3cfe42a1",
-          "memberId": "14bd2aa8-e1fc-4a42-a789-84c2dc64ed98"
+          "front": "/published/leaders/k176nq542xz747341fc42341e18a0t45.1ab6dd8d-51fe-4ef3-93b9-97adb20e9381/leader.jpg?v=a2c650f4-99aa-403f-a33d-1b677178340a",
+          "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381"
         }
       ],
       "prediction": "/published/cards/ns77ytqzmbrtqn3h32ga7rksxd8fgm1v/card.jpg?v=2c0b500a-4c83-4676-a60e-30b056ff192e",
@@ -15481,24 +15789,24 @@
       "tokenBack": "/published/faction-tokens/k176nq542xz747341fc42341e18a0t45.back/token.jpg?v=e56cb226-1fce-40c4-bd93-56a352590003",
       "traitors": [
         {
-          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.a6db2c21-0832-4093-a531-3d84a7bf8595/card.jpg?v=015de587-d320-4a50-9b76-1d26be25e160",
-          "memberId": "a6db2c21-0832-4093-a531-3d84a7bf8595"
+          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.4f1b9a93-0064-49aa-82ef-819cf168b1ac/card.jpg?v=70653acd-6d9f-423c-8b9a-f1ab7cb2072e",
+          "memberId": "4f1b9a93-0064-49aa-82ef-819cf168b1ac"
         },
         {
-          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.4423c0f7-b4f5-4402-aab2-3f893227c73f/card.jpg?v=a6d15403-7931-47e5-b780-c6a8b92877fa",
-          "memberId": "4423c0f7-b4f5-4402-aab2-3f893227c73f"
+          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.8cce5f0e-2c66-4761-9464-991aea172c58/card.jpg?v=8d132ec9-4e09-4941-b517-64ef788e6f54",
+          "memberId": "8cce5f0e-2c66-4761-9464-991aea172c58"
         },
         {
-          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.8a455597-cc9c-4341-a4c5-5567e5cdc8a7/card.jpg?v=0458fd63-7f49-4740-be56-b70103962cb0",
-          "memberId": "8a455597-cc9c-4341-a4c5-5567e5cdc8a7"
+          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.588ef0f5-8098-4246-a16a-5f1834f72f94/card.jpg?v=086e8079-6797-437d-afb4-ed7dd352005f",
+          "memberId": "588ef0f5-8098-4246-a16a-5f1834f72f94"
         },
         {
-          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.150920d2-e2a0-4389-8851-876cdabfdfcf/card.jpg?v=a253c49c-d41d-4bad-9f99-f26ffcd6959a",
-          "memberId": "150920d2-e2a0-4389-8851-876cdabfdfcf"
+          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.8bd9ffeb-21fe-4196-9aeb-7584e1548f03/card.jpg?v=927d5589-393d-4386-93cd-cf85804a4ddc",
+          "memberId": "8bd9ffeb-21fe-4196-9aeb-7584e1548f03"
         },
         {
-          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.14bd2aa8-e1fc-4a42-a789-84c2dc64ed98/card.jpg?v=a2fe6c59-cfcd-40f3-b03b-c07fd1ee1f16",
-          "memberId": "14bd2aa8-e1fc-4a42-a789-84c2dc64ed98"
+          "front": "/published/traitor-cards/k176nq542xz747341fc42341e18a0t45.1ab6dd8d-51fe-4ef3-93b9-97adb20e9381/card.jpg?v=030dc5d6-4745-4381-b399-70611db2539b",
+          "memberId": "1ab6dd8d-51fe-4ef3-93b9-97adb20e9381"
         }
       ],
       "troops": [
