@@ -19,6 +19,7 @@ import { Dices } from 'lucide-react';
 import {
   Suspense,
   lazy,
+  useCallback,
   useContext,
   useDeferredValue,
   useEffect,
@@ -48,7 +49,6 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
-import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
@@ -62,7 +62,6 @@ import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
-import { ConnectedKeyboardShortcutsPanel } from '../panels/shortcuts/useKeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
@@ -73,6 +72,7 @@ import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
+import { BattlePlanHint, BattlePlanOpenerContext } from './BattlePlanHint';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { useChatSounds } from './chatSounds';
@@ -105,6 +105,18 @@ const TreacheryTrackerFollower = lazy(() =>
   import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
     default: module.TreacheryTrackerFollower,
   }))
+);
+
+/* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
+const ConnectedKeyboardShortcutsPanel = lazy(() =>
+  import('../panels/shortcuts/useKeyboardShortcutsPanel').then((module) => ({
+    default: module.ConnectedKeyboardShortcutsPanel,
+  }))
+);
+
+/* The planner loads when a battle first needs it, which keeps the table's own bundle within its budget. */
+const ConnectedBattlePlanPanel = lazy(() =>
+  import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
 );
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
@@ -241,7 +253,10 @@ function useAskedWindow(focus: WindowFocus) {
     setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
-  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  const open = useCallback(
+    (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' }),
+    []
+  );
   return [asked ?? focus, open] as const;
 }
 
@@ -355,7 +370,15 @@ function handPanels({ client, table }: TableControlProps) {
     return [];
   }
   return [
-    { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
+    {
+      ...PANEL_WINDOWS.hand,
+      content: (
+        <Stack gap="xs">
+          <BattlePlanHint />
+          <ConnectedHandPanel client={client} table={table} hand={hand} />
+        </Stack>
+      ),
+    },
     {
       ...PANEL_WINDOWS.sideTable,
       content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
@@ -408,6 +431,14 @@ function yoursGroup({
   };
 }
 
+/*
+ * The hints point to the Battle plan panel only for a player who has taken a side in the battle on the table (Norbert, 2026-11-17),
+ * and only while plans are still being made.
+ */
+function battlePlanCanOpen(table: TableProjection) {
+  return offersActions(table) && battleFocus(table) !== null && table.snapshot.battle?.stage === 'preparing';
+}
+
 /** GameTable supplies the stage and phase controls beside these game actions. */
 function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay: boolean): TablePanel {
   const { setup, stage, battle } = table.snapshot;
@@ -432,7 +463,12 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
             {
               ...PANEL_WINDOWS.battlePlan,
               help: battleHelp(table),
-              content: withTableError(error, <ConnectedBattlePlanPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedBattlePlanPanel client={client} table={table} />
+                </Suspense>
+              ),
               /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
@@ -570,7 +606,14 @@ function controlPanels(
         ]
       : []),
     /* Every viewer, seated or watching, can look up the keys. */
-    { ...PANEL_WINDOWS.shortcuts, content: <ConnectedKeyboardShortcutsPanel /> },
+    {
+      ...PANEL_WINDOWS.shortcuts,
+      content: (
+        <Suspense fallback={<Loader size="sm" />}>
+          <ConnectedKeyboardShortcutsPanel />
+        </Suspense>
+      ),
+    },
   ];
 }
 
@@ -748,6 +791,11 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
+  /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
+  const [battleOpen, setBattleOpen] = useState(false);
+  const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
+  const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
+  const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -763,81 +811,86 @@ function ConnectedTable({
   );
   return (
     <PredictionEmblemsContext value={predictionEmblems}>
-      <TabletopSessionProvider session={client}>
-        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
-        <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-          <CompassTableContext value={compassTable}>
-            <GameTable
-              readOnly={readOnly}
-              onSceneReady={onReady}
-              waitControls={exitControl}
-              seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-              tableProgress={progress}
-              stage={stage}
-              mapVisible={setupMapVisible(table.snapshot.setup)}
-              connectionStatus={<ConnectionStatus table={table} />}
-              alliances={<AllianceStrip table={table} />}
-              techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({
-                client,
-                table,
-                error,
-                bidderFaded,
-                onBidderFadedChange: setBidderFaded,
-                onOpenRecall: () => openWindow('review'),
-                onOpenAlliances: () => openWindow('alliances'),
-              })}
-              /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-              requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
-              highlightTerritory={markerTerritory}
-              sceneContent={
-                <>
-                  {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
-                  {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-                </>
-              }
-              gameMenu={
-                <HostedGameMenu
-                  voice={voice}
-                  client={client}
-                  table={table}
-                  identity={identity}
-                  error={error}
-                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                />
-              }
-              stageStatus={stageStatus({ client, table, identity })}
-              phaseTurns={<PhaseTurns client={client} table={table} />}
-              stageOverlay={
-                stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
-              }
-              panelContent={
-                stage === 'drafting' && !isSpectator(table) ? (
-                  <DraftingPanel client={client} table={table} error={error} />
-                ) : undefined
-              }
-              focus={focus}
-              panels={controlPanels({
-                client,
-                table: normal,
-                error,
-                declare,
-                tracker,
-                report: { enabled: reportsEnabled, content: bugReport },
-              })}
-              tableGuidance={phaseGuidance(table)}
-              tableControls={phaseTabControls({ client, table, error, progress })}
-            />
-          </CompassTableContext>
-          {tracker ? (
-            <Suspense fallback={null}>
-              <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
-            </Suspense>
-          ) : null}
-        </div>
-      </TabletopSessionProvider>
+      <BattlePlanOpenerContext value={battlePlanOpener}>
+        <TabletopSessionProvider session={client}>
+          {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
+          <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
+            {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
+            <CompassTableContext value={compassTable}>
+              <GameTable
+                readOnly={readOnly}
+                onSceneReady={onReady}
+                waitControls={exitControl}
+                seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+                tableProgress={progress}
+                stage={stage}
+                mapVisible={setupMapVisible(table.snapshot.setup)}
+                connectionStatus={<ConnectionStatus table={table} />}
+                alliances={<AllianceStrip table={table} />}
+                techTokens={<TechTokenStrip table={table} />}
+                toolbarControl={stageToolbar({
+                  client,
+                  table,
+                  error,
+                  bidderFaded,
+                  onBidderFadedChange: setBidderFaded,
+                  onOpenRecall: () => openWindow('review'),
+                  onOpenAlliances: () => openWindow('alliances'),
+                })}
+                /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
+                requestedView={
+                  table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined
+                }
+                showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+                highlightTerritory={markerTerritory}
+                sceneContent={
+                  <>
+                    {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
+                    {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                  </>
+                }
+                gameMenu={
+                  <HostedGameMenu
+                    voice={voice}
+                    client={client}
+                    table={table}
+                    identity={identity}
+                    error={error}
+                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                  />
+                }
+                stageStatus={stageStatus({ client, table, identity })}
+                phaseTurns={<PhaseTurns client={client} table={table} />}
+                stageOverlay={
+                  stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+                }
+                panelContent={
+                  stage === 'drafting' && !isSpectator(table) ? (
+                    <DraftingPanel client={client} table={table} error={error} />
+                  ) : undefined
+                }
+                focus={focus}
+                onOpenWindows={hearOpenWindows}
+                panels={controlPanels({
+                  client,
+                  table: normal,
+                  error,
+                  declare,
+                  tracker,
+                  report: { enabled: reportsEnabled, content: bugReport },
+                })}
+                tableGuidance={phaseGuidance(table)}
+                tableControls={phaseTabControls({ client, table, error, progress })}
+              />
+            </CompassTableContext>
+            {tracker ? (
+              <Suspense fallback={null}>
+                <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+              </Suspense>
+            ) : null}
+          </div>
+        </TabletopSessionProvider>
+      </BattlePlanOpenerContext>
     </PredictionEmblemsContext>
   );
 }

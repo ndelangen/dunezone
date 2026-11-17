@@ -79,6 +79,11 @@
   border-radius: 4px 4px 18px 18px;
 }
 
+/* Beside Battle plan, Cancel battle takes the right half of the rounded foot. */
+.cancel[data-half="right"] {
+  border-radius: 4px 4px 18px 4px;
+}
+
 .outcome {
   /* A label never clips: with a larger font the button outgrows its half of the row instead. */
   min-width: max-content;

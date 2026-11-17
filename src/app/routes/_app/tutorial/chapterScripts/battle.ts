@@ -181,12 +181,14 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'practice-cancel',
       task: 'Cancel the practice battle',
-      detail: 'Press Cancel battle below the marker to end this practice battle.',
+      detail: 'Press Cancel below the marker to end this practice battle.',
       anchor: {
         kind: 'page',
         element: () =>
-          [...document.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Cancel battle') ??
-          null,
+          /* Beside Battle plan the button reads only Cancel, so its accessible name finds it either way. */
+          [...document.querySelectorAll('button')].find(
+            (button) => (button.getAttribute('aria-label') ?? button.textContent?.trim()) === 'Cancel battle'
+          ) ?? null,
       },
       begin: () => undefined,
       done: () => !battle(),

@@ -31,6 +31,7 @@ import { planLocks, supportMatters } from '../panels/battlePlan/planView';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
+import { useBattlePlanOpener } from './BattlePlanHint';
 import { PieceImage, pieceName } from './HandPiece';
 import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
 import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
@@ -308,7 +309,8 @@ function useInventoryDrop({ client, table }: Props) {
     };
   }, [camera, renderer, client, table.canHandleTable]);
 }
-type ActiveProps = Props & { battle: PublicBattle; own: number };
+/* `openPlan` opens the closed Battle plan panel for a player who has taken a side (#2984). */
+type ActiveProps = Props & { battle: PublicBattle; own: number; openPlan?: (() => void) | null };
 function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
@@ -334,9 +336,16 @@ function CancelBattleButton({
   variant,
   className,
   fullWidth,
-}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'>) {
+  'data-half': half,
+  shortLabel,
+}: ActiveProps &
+  Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right'; shortLabel?: string }) {
+  const label = battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle';
   return (
     <Button
+      data-half={half}
+      /* Beside Battle plan the whole label does not fit, so a shorter one shows and the name keeps the whole (Norbert, 2026-11-17). */
+      aria-label={shortLabel ? label : undefined}
       size={size}
       variant={variant}
       className={className}
@@ -344,7 +353,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      {battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle'}
+      {shortLabel ?? label}
     </Button>
   );
 }
@@ -355,6 +364,29 @@ function BattleActions(props: ActiveProps) {
     return null;
   }
   if (battle.stage === 'preparing') {
+    if (props.openPlan && props.own >= 0) {
+      return (
+        <>
+          <Button
+            size="xs"
+            className={styles.outcome}
+            color="cta"
+            aria-label="Open battle plan"
+            onClick={props.openPlan}
+          >
+            Battle plan
+          </Button>
+          <CancelBattleButton
+            {...props}
+            size="xs"
+            className={styles.cancel}
+            variant="default"
+            data-half="right"
+            shortLabel="Cancel"
+          />
+        </>
+      );
+    }
     return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
   if (battle.stage !== 'revealed') {
@@ -667,7 +699,8 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
-  const props = { client, table, battle, own };
+  /* The callout draws in its own root, which no context reaches, so the opener is read here and handed down. */
+  const props = { client, table, battle, own, openPlan: useBattlePlanOpener() };
   const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
