@@ -1,9 +1,11 @@
 import { TABLE_CONVERSATION, recallConversation } from '@shared/play/conversations';
+import type { ConversationSummary } from '@shared/play/conversations';
 import { describe, expect, it } from 'vite-plus/test';
 
 import { newMessageSound } from './chatSounds';
 
-const summary = (peerId: string, unread: number) => ({ peerId, unread, latest: 0, cleared: 0 }) as never;
+const summary = (peerId: string, unread: number) =>
+  ({ peerId, unread, latest: 0, cleared: 0 }) satisfies ConversationSummary;
 
 describe('newMessageSound (#2982)', () => {
   it('stays silent on the first summaries and after a reset, so a (re)connection never chimes', () => {
