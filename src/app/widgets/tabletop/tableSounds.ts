@@ -15,11 +15,18 @@ const volume = viewerChoice<number>('dunezone-table-volume', {
   fallback: 0.7,
 });
 
-export const setTableVolume = (next: number) => volume.set(Math.min(TABLE_VOLUME_MAX, Math.max(0, next)));
+let audio: { context: AudioContext; output: GainNode } | null = null;
+
+/** Sets this viewer's volume; a sound already playing follows it at once, down to silence. */
+export function setTableVolume(next: number) {
+  const level = Math.min(TABLE_VOLUME_MAX, Math.max(0, next));
+  volume.set(level);
+  if (audio) {
+    audio.output.gain.value = level;
+  }
+}
 /** This viewer's sound volume, from 0 (muted) to TABLE_VOLUME_MAX. */
 export const useTableVolume = volume.use;
-
-let audio: { context: AudioContext; output: GainNode } | null = null;
 
 /** The running audio context and its output at this viewer's volume, or null while sound can't play or is muted. */
 export function tableAudio(): { context: AudioContext; output: AudioNode } | null {
