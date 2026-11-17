@@ -115,25 +115,31 @@ function firstSpiceCardBlows(journey: JourneyRecorder) {
 async function teachableGame() {
   for (let attempt = 0; attempt < 30; attempt++) {
     const journey = await tutorialRuntime();
-    const checkpoints: Partial<Record<TutorialCheckpoint, number>> = {};
-    const mark = (name: TutorialCheckpoint) => {
-      checkpoints[name] = journey.steps.length - 1;
-    };
-    await drafting(journey);
-    if (journey.factionAt(0)?.id === journey.cast.factions[0]?.id) {
-      /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
-      checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
-      await trading(journey);
-      mark('setup');
-      await predict(journey);
-      await dealTraitors(journey);
-      await keepTraitors(journey);
-      await startingTroops(journey);
-      await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
-      mark('turn-1-storm');
-      if (firstSpiceCardBlows(journey)) {
-        return { journey, checkpoints };
+    /* An attempt that throws closes its game too; only the game returned is left for the caller to close. */
+    try {
+      const checkpoints: Partial<Record<TutorialCheckpoint, number>> = {};
+      const mark = (name: TutorialCheckpoint) => {
+        checkpoints[name] = journey.steps.length - 1;
+      };
+      await drafting(journey);
+      if (journey.factionAt(0)?.id === journey.cast.factions[0]?.id) {
+        /* The draft before anyone picks: every seat taken and a spectator watching, the same on every recording. */
+        checkpoints.drafting = journey.steps.findIndex((step) => step.title === 'Table full');
+        await trading(journey);
+        mark('setup');
+        await predict(journey);
+        await dealTraitors(journey);
+        await keepTraitors(journey);
+        await startingTroops(journey);
+        await journey.next(0, 'Turn 1: Storm', 'Setup ends and the first turn opens on the Storm phase.');
+        mark('turn-1-storm');
+        if (firstSpiceCardBlows(journey)) {
+          return { journey, checkpoints };
+        }
       }
+    } catch (error) {
+      await journey.close();
+      throw error;
     }
     await journey.close();
   }

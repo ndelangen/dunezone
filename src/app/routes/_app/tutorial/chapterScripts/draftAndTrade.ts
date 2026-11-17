@@ -1,3 +1,4 @@
+import { factionOf } from '@shared/play/drafting';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 
@@ -168,9 +169,13 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail: `Not keen on playing against the ${BAN}? Search for Ixians, then press Ban.\n\nA ban covers every variant of a faction, and a banned faction can't be dealt, even if another player drafts it.`,
       anchor: { kind: 'page', element: () => draftButton(BAN, 'Ban')() ?? search() },
       begin: () => undefined,
+      /* A ban on any variant of the Faction bans all of it, so any of them counts. */
       done: () => {
+        const draft = snapshot().draft;
         const id = factionId(snapshot, BAN);
-        return Boolean(id && snapshot().draft?.bans[LEARNER]?.includes(id));
+        return Boolean(
+          draft && id && draft.bans[LEARNER]?.some((banned) => factionOf(draft, banned) === factionOf(draft, id))
+        );
       },
     }),
     task({
