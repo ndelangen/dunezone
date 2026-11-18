@@ -4,7 +4,7 @@ import type { ChapterScript } from './chapterScript';
 import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
 
 /*
- * "Windows": Space opens a compass over the table, a window opens in the middle,
+ * "Panels": Space opens a compass over the table, a window opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
  * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
@@ -99,9 +99,9 @@ const windowTasks = (): GuideTask[] => [
   }),
   task({
     id: 'help',
-    task: 'Read a window hint',
+    task: 'Read a panel hint',
     detail:
-      "Not sure what a window does? Hover over the question mark beside its title to read its help text. Move the pointer away when you're done.",
+      "Not sure what a panel does? Hover over the question mark beside its title to read its help text. Move the pointer away when you're done.",
     anchor: { kind: 'page', element: first(HELP) },
     ...readHelp(),
   }),
@@ -109,7 +109,7 @@ const windowTasks = (): GuideTask[] => [
     id: 'pin-hand',
     task: 'Keep your hand open',
     detail:
-      'Want your hand close by? Use the left pin beside the window title to keep it open in the bottom left.\n\nUnpinned windows close when you click the table.',
+      'Want your hand close by? Use the left pin beside the panel title to keep it open in the bottom left.\n\nUnpinned panels close when you click the table.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
     done: () => windowAt('left', 'hand'),
@@ -130,7 +130,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'pin-chat',
     task: 'Pin the chat to the bottom right',
     detail:
-      'Use the right pin beside the chat title.\n\nThe bottom left and bottom right can each hold 1 window, so pinning a new one there replaces the old one.',
+      'Use the right pin beside the chat title.\n\nThe bottom left and bottom right can each hold 1 panel, so pinning a new one there replaces the old one.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom right"]') },
     begin: nothing,
     done: () => windowAt('right', 'table-chat'),
@@ -154,7 +154,7 @@ const slotTasks = (): GuideTask[] => [
   task({
     id: 'unpin',
     task: 'Unpin table chat',
-    detail: 'Press the crossed-out pin in the chat title to close the pinned window.',
+    detail: 'Press the crossed-out pin in the chat title to close the pinned panel.',
     anchor: { kind: 'page', element: first('[data-side="right"] [aria-label="Unpin"]') },
     begin: nothing,
     /* Whatever ended up pinned bottom right, the slot is empty once it is unpinned. */
@@ -178,11 +178,11 @@ const learned = [
   'Left is your hand, twice left your private side-table',
   'Right is the table chat, twice right your ally',
   'Up is your battle plan, down the search',
-  'The (?) beside a window’s name says what it is for',
-  'Pin a window to the bottom left or right to keep it open',
-  'Drag a pinned window’s top edge to resize it',
+  'The (?) beside a panel’s name says what it is for',
+  'Pin a panel to the bottom left or right to keep it open',
+  'Drag a pinned panel’s top edge to resize it',
   'Type anything on the compass to find it',
-  'One letter opens each window: {H}, {J}, {G}, {F} and {B}',
+  'One letter opens each panel: {H}, {J}, {G}, {F} and {B}',
 ];
 
 export const windows: ChapterScript = { slug: 'windows', checkpoint: 'turn-1-storm', tasks, learned };

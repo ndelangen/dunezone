@@ -60,7 +60,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'prediction',
       task: 'Make your prediction',
       detail:
-        "You're playing Bene Gesserit, so you get a secret prediction! In the Setup window, choose a Predicted winner and Predicted turn, then press Lock prediction.\n\nOnly you can see it.",
+        "You're playing Bene Gesserit, so you get a secret prediction! In the Setup panel, choose a Predicted winner and Predicted turn, then press Lock prediction.\n\nOnly you can see it.",
       /* The faction to pick first, then the button once the choice is complete. */
       anchor: {
         kind: 'page',
@@ -92,7 +92,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'gather-traitors',
       task: 'Combine the traitor cards',
       detail:
-        'Each faction brought its traitor cards. First we need one deck.\n\nIn the Setup window, press Gather tabletop traitors to combine the piles.',
+        'Each faction brought its traitor cards. First we need one deck.\n\nIn the Setup panel, press Gather tabletop traitors to combine the piles.',
       anchor: { kind: 'page', element: () => buttonIn('setup', 'Gather tabletop traitors')() ?? viaCompass('setup')() },
       begin: () => ({ seen: players.acceptedActions().length, count: tabletopTraitors() }),
       done: ({ seen, count }) => count > 0 && gatheredSince(seen) && combined()?.items.length === count,
@@ -150,7 +150,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'gather-discards',
       task: 'Gather the leftover traitors',
       detail:
-        'Back in the Setup window, press Gather tabletop traitors again. It collects the discarded and undealt cards into one pile, leaving your chosen traitor in hand.',
+        'Back in the Setup panel, press Gather tabletop traitors again. It collects the discarded and undealt cards into one pile, leaving your chosen traitor in hand.',
       anchor: { kind: 'page', element: () => buttonIn('setup', 'Gather tabletop traitors')() ?? viaCompass('setup')() },
       begin: () => ({ seen: players.acceptedActions().length, count: tabletopTraitors() }),
       done: ({ seen, count }) => count > 0 && gatheredSince(seen) && combined()?.items.length === count,
@@ -189,7 +189,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'to-troops',
       task: 'Move on to the starting troops',
-      detail: "Press Next phase. The Setup window now lists each faction's starting troops and territories.",
+      detail: "Press Next phase. The Setup panel now lists each faction's starting troops and territories.",
       anchor: { kind: 'page', element: nextPhaseButton },
       begin: () => undefined,
       done: () => setupIndex() >= 2,
@@ -208,8 +208,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'The Setup window runs setup step by step, and the header names the step',
-  'A prediction locks in the Setup window and becomes a card in your hand',
+  'The Setup panel runs setup step by step, and the header names the step',
+  'A prediction locks in the Setup panel and becomes a card in your hand',
   'Your hand holds your leaders, your alliance card and your faction’s Extras',
   'Gather and shuffle the traitor cards, then use the phase panel to deal four',
   'Keep one traitor, discard three, gather the leftovers and delete their pile',
