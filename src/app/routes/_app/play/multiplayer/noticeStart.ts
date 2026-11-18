@@ -12,19 +12,21 @@ import { actingFaction, stageInPlay } from './tableFactions';
  */
 export type NoticeStart = Readonly<{ own: string; snapshot: GameSnapshot; epoch: number }>;
 
-/** The table as last shown, the viewer's own pending drag of the movement order included. */
+/** The table last shown with the viewer's own drag of the movement order still pending, or null when none was. */
 export type ShownTable = Readonly<{ current: GameSnapshot | null }>;
 
 /**
- * Keeps the table as last shown from the first render on, outside the notices' own lazily loaded code, so a drag made before it arrives still counts as seen.
+ * Keeps the table as last shown while the viewer's own drag of the movement order waited for the room, from the first render on,
+ * outside the notices' own lazily loaded code, so a drag made before it arrives still counts as seen.
+ * Only the viewer's own pending drag is kept: a reorder another player made was never shown ahead of the room, so it stays news.
  * Updated after the notices' own effects, so while they compare a change it still holds the table shown before it.
  */
 export function useShownTable(table: TableProjection): ShownTable {
   const shown = useRef<GameSnapshot | null>(null);
-  const displayed = table.snapshot;
+  const pending = table.confirmedSnapshot ? table.snapshot : null;
   useEffect(() => {
-    shown.current = displayed;
-  }, [displayed]);
+    shown.current = pending;
+  }, [pending]);
   return shown;
 }
 
