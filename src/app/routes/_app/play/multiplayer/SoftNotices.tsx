@@ -51,7 +51,8 @@ const KEPT = 12;
 
 /*
  * Whether a raised notice is news to the viewer. Setup has no turns, so turn notices wait for play.
- * A turn the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
+ * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
+ * Only that turn: a battle or a bid already standing before is raised for what changed, such as the second side claimed.
  */
 function newsFor(
   draft: NoticeDraft,
@@ -60,7 +61,9 @@ function newsFor(
   if (!TURN_KINDS.has(draft.kind)) {
     return true;
   }
-  return context.playing && !(context.seen && noticeStillHolds(context.seen, context.own, draft));
+  return (
+    context.playing && !(draft.kind === 'ship' && context.seen && noticeStillHolds(context.seen, context.own, draft))
+  );
 }
 
 /* The notices still standing at the table, then the newly raised ones, newest last and at most KEPT of them. */

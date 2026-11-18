@@ -107,3 +107,31 @@ export const PassedTurnLeaves = meta.story({
     await waitForFrame(() => expect(log.queryByRole('button', { name: /Your turn to bid/ })).toBeNull());
   },
 });
+
+/* The viewer claims their side of a battle first; the opponent claiming the other side makes it ready, and that is their turn. */
+export const OpponentCompletesBattle = meta.story({
+  beforeEach: noticeSetup((snapshot) => {
+    snapshot.battle = {
+      id: 'notice-battle',
+      anchor: [1.32, 0.18, -2.94],
+      territory: 'Arrakeen',
+      territoryId: 'arrakeen',
+      stage: 'preparing',
+      sides: [{ factionId: ownFaction(snapshot).id, ready: false, choice: null }, null],
+      deadline: null,
+    };
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    changeTable((snapshot) => {
+      const sides = snapshot.battle!.sides;
+      snapshot.battle = {
+        ...snapshot.battle!,
+        sides: [sides[0], { factionId: otherSeat(snapshot).faction.id, ready: false, choice: null }],
+      };
+    });
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() => log.getByRole('button', { name: 'Your battle in Arrakeen is up' }));
+    await expect(finishTransitions(toast)).toBeVisible();
+  },
+});

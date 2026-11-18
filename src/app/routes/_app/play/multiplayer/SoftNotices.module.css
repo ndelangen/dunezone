@@ -1,12 +1,13 @@
 /*
  * The viewer's soft notifications (#2981): small panes under the phase header that never take the pointer away from the table.
  * The root covers the table's shell without catching the pointer; only the notices themselves do.
+ * It sits above the header (10) but under the compass panels (12 and up), so an open panel keeps its controls where it reaches the stack.
  * Each pane is the kit's interactive Surface as it is: its slot fades and arrives, so the kit's own hover keeps its transitions.
  */
 .root {
   position: absolute;
   inset: 0;
-  z-index: 40;
+  z-index: 11;
   pointer-events: none;
 }
 

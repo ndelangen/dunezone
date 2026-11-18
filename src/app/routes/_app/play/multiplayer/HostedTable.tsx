@@ -262,6 +262,19 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
  * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
+/* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
+function useNoticePanelOpener(client: TableSession, openWindow: (key: string) => void) {
+  return useCallback(
+    (key: string) => {
+      if (key === 'transfers') {
+        client.readSpiceHistory();
+      }
+      openWindow(key);
+    },
+    [client, openWindow]
+  );
+}
+
 function useAskedWindow(focus: WindowFocus) {
   /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
@@ -821,16 +834,7 @@ function ConnectedTable({
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
-  /* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
-  const openNoticePanel = useCallback(
-    (key: string) => {
-      if (key === 'transfers') {
-        client.readSpiceHistory();
-      }
-      openWindow(key);
-    },
-    [client, openWindow]
-  );
+  const openNoticePanel = useNoticePanelOpener(client, openWindow);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
