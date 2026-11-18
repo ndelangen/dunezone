@@ -101,7 +101,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'claim',
       task: 'Take the aggressor side',
       detail:
-        'Press Claim left side below the marker. Atreides will take the right side.\n\nYour battle plan opens on the left.',
+        'Press Claim left side below the marker. Atreides will take the right side.\n\nYour battle plan opens on the left. If you put it away, {B} brings it back.',
       anchor: { kind: 'page', element: element('[aria-label="Claim left side"]') },
       ...fightsUntil(() => mySide() === 0 && Boolean(battle()?.sides[1])),
     }),

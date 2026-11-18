@@ -49,7 +49,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ready',
       task: 'Ready for the next turn',
       detail:
-        'Before a new turn starts, everyone gets a chance to finish up. When the table waits on you, Ready flashes and a soft chime plays. Press Ready now.\n\nThe count shows how many players have confirmed; hover it to see who.',
+        'Before a new turn starts, everyone gets a chance to finish up. When the table waits on you, Ready flashes and a soft chime plays. Press Ready now.\n\nThe count shows how many players have confirmed; hover it to see who. Sound volume in the game menu sets how loud the chime is.',
       anchor: {
         kind: 'page',
         element: () =>
