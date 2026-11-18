@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { publishingRectangleTokenFace } from '@shared/assets/fixtures/publishingRectangleTokenFace';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { asset, db, ref } from '@db/storybook';
 
@@ -44,7 +44,10 @@ export const ExtraSpiceDecks = meta.story({
     await expect(extra).not.toBeChecked();
     await userEvent.click(extra);
     await expect(extra).toBeChecked();
-    await expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true');
+    /* The ticked deck is checked as the game will capture it before Create game opens again. */
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
   },
 });
 

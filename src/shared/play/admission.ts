@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { SPICE_EXTRAS_LIMIT } from '../rulesets/assetSlots';
 import { playDiscordMenuSchema } from './discord';
 import { lastTurnSchema } from './lastTurn';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
@@ -46,7 +47,7 @@ export const playProvisionFailureSchema = playProvisionRequestSchema.extend({
 /** The minimum player count a game is created with is also its table's seat count. */
 const playMinimumPlayersSchema = tableSeatCountSchema;
 /** The ids of the ruleset's extra spice decks a game's creator chose; a ruleset slots only a handful. */
-export const playSpiceExtrasSchema = z.array(identifierSchema).max(20);
+export const playSpiceExtrasSchema = z.array(identifierSchema).max(SPICE_EXTRAS_LIMIT);
 /*
  * What a real game is provisioned with: its fixed ruleset, its minimum count and its creator, who
  * takes the first seat. `provisional` is true only on an isolated development backend; it lets the

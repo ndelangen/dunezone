@@ -146,6 +146,41 @@ describe('playReadiness', () => {
     ]);
   });
 
+  it('judges only the ticked extra spice decks when asked, and keeps the spice deck out of its own extras (#2986)', async () => {
+    const slot = (key: string, id: string) => ({ slot: key, asset: { id, slug: id, name: id, type: 'deck' } });
+    const card = cardSupply('karama');
+    const reads = catalogue({
+      rulesets: {
+        gf9: {
+          ruleset: { id: 'gf9', slug: 'gf9', name: 'GF9' },
+          board: arrakisBoardCapture,
+          slots: [
+            slot('treachery', 'treachery'),
+            slot('spice', 'spice'),
+            slot('spiceExtras', 'spice'),
+            slot('spiceExtras', 'expansion'),
+            slot('spiceExtras', 'homebrew'),
+          ],
+        },
+      },
+      assets: {
+        treachery: deckSupply('treachery', [card]),
+        spice: deckSupply('spice', [card]),
+        expansion: deckSupply('expansion', [card]),
+        homebrew: deckSupply('homebrew', [card]),
+      },
+    });
+    const ticked = await reads.captureRuleset('gf9', { spiceExtras: ['spice', 'expansion'] });
+    expect(ticked.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['expansion']);
+    expect(ticked.readiness.problems).toEqual([]);
+    const [chosen] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, [], { spiceExtras: ['expansion'] });
+    expect(chosen?.problems).toEqual([]);
+    const [every] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, []);
+    expect(every?.problems).toEqual([]);
+    const all = await reads.captureRuleset('gf9', { spiceExtras: 'every' });
+    expect(all.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['expansion', 'homebrew']);
+  });
+
   it('turns a refused ruleset or faction into its one problem, so the rest is still judged', async () => {
     const report = await playReadiness(
       catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } }),

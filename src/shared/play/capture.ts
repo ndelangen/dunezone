@@ -40,8 +40,14 @@ export const rulesetSupplySchema = z.object({
   board: boardCaptureSchema.nullish(),
   /* The ruleset's battle dialing mechanism; absent from a Convex one deploy behind, and for a ruleset that never chose. */
   battleDialing: battleDialingSchema.nullish(),
-  slots: z.array(z.object({ slot: z.enum(RULESET_ASSET_SLOT_ORDER), asset: slotAssetSchema })),
+  /* A slot this Worker does not know yet, from a Convex one deploy ahead, is left out rather than refusing the whole supply. */
+  slots: z
+    .array(z.object({ slot: z.string(), asset: slotAssetSchema }))
+    .transform((rows) => rows.filter((row): row is SuppliedSlot => isRulesetAssetSlot(row.slot))),
 });
+type SuppliedSlot = { slot: (typeof RULESET_ASSET_SLOT_ORDER)[number]; asset: z.infer<typeof slotAssetSchema> };
+const isRulesetAssetSlot = (slot: string): slot is SuppliedSlot['slot'] =>
+  (RULESET_ASSET_SLOT_ORDER as readonly string[]).includes(slot);
 export type RulesetSupply = z.infer<typeof rulesetSupplySchema>;
 
 /* The stored definition as the catalogue answer carries it, under the `hero` literal. */

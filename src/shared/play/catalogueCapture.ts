@@ -81,12 +81,15 @@ export class CatalogueCapture {
     // Captured in presentation order, so the readiness problems list in the order the editor shows the slots.
     const treachery = await this.captureSlots('treachery', supply, problems);
     const spice = await this.captureSlots('spice', supply, problems);
-    /* Only the extra spice decks the game's creator ticked are retained; a readiness check judges every one a creator could tick. */
+    /*
+     * Only the extra spice decks the game's creator ticked are retained; the ruleset editor's readiness judges every one a creator could tick.
+     * The spice deck itself is never an extra, so slotting it twice cannot double its cards.
+     */
     const extras = await this.captureSlots(
       'spiceExtras',
       supply,
       problems,
-      (asset) => spiceExtras === 'every' || spiceExtras.includes(asset.id)
+      (asset) => asset.id !== spice[0]?.asset.id && (spiceExtras === 'every' || spiceExtras.includes(asset.id))
     );
     const techToken = await this.captureSlots('techToken', supply, problems);
     const customDecks = await this.captureSlots('custom', supply, problems);
@@ -390,10 +393,12 @@ async function judged(subject: string, capture: () => Promise<{ readiness: { pro
 export async function playReadiness(
   capture: CatalogueCapture,
   ruleset: { id: string; name: string },
-  factions: readonly { id: string; name: string }[]
+  factions: readonly { id: string; name: string }[],
+  /* The create page judges the extra spice decks its creator ticked, as the game will capture them; the ruleset editor judges every one. */
+  { spiceExtras = 'every' }: Readonly<{ spiceExtras?: readonly string[] | 'every' }> = {}
 ): Promise<PlayReadinessEntry[]> {
   const [rulesetProblems, ...factionProblems] = await Promise.all([
-    judged('ruleset', () => capture.captureRuleset(ruleset.id, { spiceExtras: 'every' })),
+    judged('ruleset', () => capture.captureRuleset(ruleset.id, { spiceExtras })),
     ...factions.map((faction) => judged('faction', () => capture.captureFaction(faction.id))),
   ]);
   return [

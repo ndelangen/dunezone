@@ -97,8 +97,7 @@ function suppliedSnapshot(
   }
   table.pieces.push(
     ...slotPieces(ruleset.decks.treachery, 'shared', cardBaySlotPositions('left')[0]!),
-    /* The creator's chosen extra spice decks shuffle into the one spice deck (#2986). */
-    ...slotPieces([ruleset.decks.spice, ...ruleset.decks.spiceExtras], 'shared', cardBaySlotPositions('right')[0]!),
+    ...spiceDeck(ruleset.decks),
     ...[...ruleset.decks.custom, ruleset.bundles.techToken, ...ruleset.bundles.custom].flatMap((slot) =>
       slotPieces(slot, 'shared')
     )
@@ -149,6 +148,22 @@ function supplyInventory(next: StoredSnapshot, capture: FactionCapture, hand: St
 function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
   const { capable: _capable, combat: _battleValues, ...artwork } = face;
   return artwork;
+}
+
+/**
+ * The one spice deck in the right card bay, with the creator's chosen extra spice decks shuffled into it (#2986).
+ * Extras join a spice deck and never stand in for one, so the deck keeps the spice deck's label and stack.
+ * Every card wears the spice deck's back, since a card on another deck's back would show what it is before it is drawn.
+ */
+export function spiceDeck(decks: Pick<RulesetCapture['decks'], 'spice' | 'spiceExtras'>): StoredPiece[] {
+  const slots = decks.spice?.contents ? [decks.spice, ...decks.spiceExtras] : [decks.spice];
+  const back = decks.spice?.contents?.pieces[0]?.items[0]?.artwork;
+  return slotPieces(slots, 'shared', cardBaySlotPositions('right')[0]!).map((deck) => ({
+    ...deck,
+    items: deck.items.map((item) =>
+      item.artwork && back ? { ...item, artwork: { ...item.artwork, back: back.back, backName: back.backName } } : item
+    ),
+  }));
 }
 
 /** Every occurrence gets independent physical identities while its retained artwork and stack compatibility survive. */

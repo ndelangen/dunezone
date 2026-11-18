@@ -15,7 +15,7 @@ import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/ga
 import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
-import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
+import { RULESET_ASSET_SLOT_ORDER, SPICE_EXTRAS_LIMIT } from '../src/shared/rulesets/assetSlots';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action } from './_generated/server';
@@ -94,7 +94,6 @@ const rulesetPreviewValidator = v.object({
   /* Optional decks the creator may tick to shuffle into the spice deck (#2986); they stay out of `packed` until ticked. */
   spiceExtras: v.array(v.object({ id: v.id('assets'), name: v.string() })),
 });
-const SPICE_EXTRAS_LIMIT = 20;
 
 const PREVIEW_FACTION_LIMIT = 50;
 /* Each container reads its members to skip deleted ones, so the manifest stops after this many to keep the page's one query inside its read budget. */
@@ -114,6 +113,7 @@ async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   };
 }
 
+/* The slot holds at most SPICE_EXTRAS_LIMIT rows (the slot mutation refuses more), so this read is the whole slot. */
 async function spiceExtrasFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const rows = await ctx.db
     .query('ruleset_asset_slots')
@@ -430,6 +430,13 @@ async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof pl
   const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
   if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
     return { ok: false as const, reason: 'unavailable' as const };
+  }
+  /* A ticked deck the ruleset no longer offers would silently stay off the table, so the game is refused instead. */
+  if (args.spiceExtras?.length) {
+    const offered = new Set<string>((await spiceExtrasFor(ctx, ruleset._id)).map((extra) => extra.id));
+    if (!args.spiceExtras.every((id) => offered.has(id))) {
+      return { ok: false as const, reason: 'unavailable' as const };
+    }
   }
   if (await atPlaySeatLimit(ctx, session.userId)) {
     return { ok: false as const, reason: 'seat_limit' as const };

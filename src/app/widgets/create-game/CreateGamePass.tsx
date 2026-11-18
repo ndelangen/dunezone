@@ -266,7 +266,7 @@ export function CreateGamePass({
                 {chosen && preview ? (
                   <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
                 ) : null}
-                {chosen && preview?.spiceExtras.length ? (
+                {chosen && preview?.spiceExtras?.length ? (
                   <SpiceExtrasField
                     decks={preview.spiceExtras}
                     value={draft.spiceExtras}
