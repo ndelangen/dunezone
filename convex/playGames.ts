@@ -4,6 +4,7 @@ import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import { playSpiceExtrasSchema } from '../src/shared/play/admission';
 import type { playCreateGameRequestSchema } from '../src/shared/play/admission';
 import {
   playGeneratedGameRequestSchema,
@@ -14,7 +15,7 @@ import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/ga
 import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
-import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
+import { RULESET_ASSET_SLOT_ORDER, SPICE_EXTRAS_LIMIT } from '../src/shared/rulesets/assetSlots';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action } from './_generated/server';
@@ -90,6 +91,8 @@ const rulesetPreviewValidator = v.object({
     })
   ),
   factions: v.array(v.object({ id: v.id('factions'), name: v.string(), token: v.string(), own: v.boolean() })),
+  /* Optional decks the creator may tick to shuffle into the spice deck (#2986); they stay out of `packed` until ticked. */
+  spiceExtras: v.array(v.object({ id: v.id('assets'), name: v.string() })),
 });
 
 const PREVIEW_FACTION_LIMIT = 50;
@@ -102,13 +105,35 @@ const FACTION_LINK_SCAN = 10;
  * then its factions, marked `own` when no other ruleset links them.
  */
 async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  return { rulesetId, packed: await packedFor(ctx, rulesetId), factions: await factionsFor(ctx, rulesetId) };
+  return {
+    rulesetId,
+    packed: await packedFor(ctx, rulesetId),
+    factions: await factionsFor(ctx, rulesetId),
+    spiceExtras: await spiceExtrasFor(ctx, rulesetId),
+  };
+}
+
+/* The slot holds at most SPICE_EXTRAS_LIMIT rows (the slot mutation refuses more), so this read is the whole slot. */
+async function spiceExtrasFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const rows = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'spiceExtras'))
+    .take(SPICE_EXTRAS_LIMIT);
+  const extras = [];
+  for (const row of rows) {
+    const asset = await ctx.db.get(row.asset_id);
+    if (asset && !asset.is_deleted) {
+      extras.push({ id: asset._id, name: assetDisplayName(asset) });
+    }
+  }
+  return extras;
 }
 
 /* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. Slots are read in order, so the required decks always come first. */
 async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const packed = [];
-  for (const slot of RULESET_ASSET_SLOT_ORDER) {
+  /* Extra spice decks stay out until ticked; the create page lists them as switches instead. */
+  for (const slot of RULESET_ASSET_SLOT_ORDER.filter((entry) => entry !== 'spiceExtras')) {
     const rows = await ctx.db
       .query('ruleset_asset_slots')
       .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
@@ -314,6 +339,7 @@ export const createGameWithName = action({
         rulesetId: args.rulesetId,
         minimumPlayers: args.minimumPlayers,
         lastTurn: args.lastTurn,
+        spiceExtras: args.spiceExtras,
         discordVoice: args.discordVoice,
         name: prepared.name,
         base: prepared.base,
@@ -393,6 +419,7 @@ export const createNamedGame = internalMutation({
 async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof playCreateGameRequestSchema>) {
   /* The Convex validator keeps only the type, so the turn's whole-number range is enforced here, before any budget is spent. */
   lastTurnSchema.optional().parse(args.lastTurn);
+  playSpiceExtrasSchema.optional().parse(args.spiceExtras);
   const session = await livePlaySession(ctx);
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
@@ -401,6 +428,13 @@ async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof pl
   const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
   if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
     return { ok: false as const, reason: 'unavailable' as const };
+  }
+  /* A ticked deck the ruleset no longer offers would silently stay off the table, so the game is refused instead. */
+  if (args.spiceExtras?.length) {
+    const offered = new Set<string>((await spiceExtrasFor(ctx, ruleset._id)).map((extra) => extra.id));
+    if (!args.spiceExtras.every((id) => offered.has(id))) {
+      return { ok: false as const, reason: 'unavailable' as const };
+    }
   }
   if (await atPlaySeatLimit(ctx, session.userId)) {
     return { ok: false as const, reason: 'seat_limit' as const };
@@ -430,6 +464,7 @@ export async function createAuthorizedGame(
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
       last_turn: args.lastTurn,
+      ...(args.spiceExtras?.length ? { spice_extras: args.spiceExtras } : {}),
       discord_voice: args.discordVoice === true,
       creator_id: eligible.userId,
       name,

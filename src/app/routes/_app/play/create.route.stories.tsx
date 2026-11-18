@@ -1,11 +1,17 @@
 import preview from '@sb/preview';
 import { publishingRectangleTokenFace } from '@shared/assets/fixtures/publishingRectangleTokenFace';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { asset, db, ref } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { creatable, creatableDatabase, chooseRuleset, typeCustomName } from './create.route.stories.fixture';
+import {
+  creatable,
+  creatableDatabase,
+  chooseRuleset,
+  typeCustomName,
+  withExtraSpiceDeck,
+} from './create.route.stories.fixture';
 
 const meta = preview.meta({
   ...pageStoryMeta,
@@ -19,6 +25,29 @@ export const DiscordVoice = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
     await expect(page.getByRole('switch', { name: 'Discord voice chat' })).not.toBeChecked();
+  },
+});
+
+/** A ruleset's extra spice decks are offered off by default; a ticked one is shuffled into the spice deck when the table is set up (#2986). */
+export const ExtraSpiceDecks = meta.story({
+  parameters: {
+    ...creatable,
+    database: db((baseline) => {
+      creatableDatabase(baseline);
+      withExtraSpiceDeck(baseline);
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    const extra = await page.findByRole('switch', { name: 'Expansion spice cards' });
+    await expect(extra).not.toBeChecked();
+    await userEvent.click(extra);
+    await expect(extra).toBeChecked();
+    /* The ticked deck is checked as the game will capture it before Create game opens again. */
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
   },
 });
 

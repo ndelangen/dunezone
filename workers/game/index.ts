@@ -392,12 +392,15 @@ export class GameRoom extends DurableObject<GameEnv> {
    * edit or a deletion changes nothing.
    * They are protected so the native fixture can also drive them directly.
    */
-  protected async retainRulesetCapture(rulesetId: string, options: { provisional?: boolean } = {}) {
+  protected async retainRulesetCapture(
+    rulesetId: string,
+    { spiceExtras, ...options }: { provisional?: boolean; spiceExtras?: readonly string[] } = {}
+  ) {
     const existing = this.session.retainedRuleset(rulesetId);
     if (existing) {
       return existing;
     }
-    const capture = await this.catalogue().captureRuleset(rulesetId);
+    const capture = await this.catalogue().captureRuleset(rulesetId, { spiceExtras });
     return this.session.retainRuleset(capture, options);
   }
 

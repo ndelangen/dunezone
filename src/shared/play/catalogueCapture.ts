@@ -65,7 +65,10 @@ export class CatalogueCapture {
    * A slot the catalogue cannot supply completely is kept by name with the reason;
    * the verdict names both required decks when they are absent or empty.
    */
-  async captureRuleset(rulesetId: string, now = Date.now()): Promise<RulesetCapture> {
+  async captureRuleset(
+    rulesetId: string,
+    { now = Date.now(), spiceExtras = [] }: Readonly<{ now?: number; spiceExtras?: readonly string[] | 'every' }> = {}
+  ): Promise<RulesetCapture> {
     const raw = await this.reads.rulesetSupply(rulesetId);
     const supply = rulesetSupplySchema.nullable().parse(raw);
     if (!supply) {
@@ -78,6 +81,23 @@ export class CatalogueCapture {
     // Captured in presentation order, so the readiness problems list in the order the editor shows the slots.
     const treachery = await this.captureSlots('treachery', supply, problems);
     const spice = await this.captureSlots('spice', supply, problems);
+    /*
+     * Only the extra spice decks the game's creator ticked are retained; the ruleset editor's readiness judges every one a creator could tick.
+     * The spice deck itself is never an extra, so slotting it twice cannot double its cards.
+     */
+    const offered = new Set(
+      supply.slots.filter((entry) => entry.slot === 'spiceExtras').map((entry) => entry.asset.id)
+    );
+    for (const id of spiceExtras === 'every' ? [] : spiceExtras.filter((entry) => !offered.has(entry))) {
+      /* A deck unslotted after the creator ticked it would silently stay off the table, so the capture names it. */
+      problems.push({ subject: `spiceExtras: ${id}`, reason: 'The ruleset no longer offers this extra spice deck.' });
+    }
+    const extras = await this.captureSlots(
+      'spiceExtras',
+      supply,
+      problems,
+      (asset) => asset.id !== spice[0]?.asset.id && (spiceExtras === 'every' || spiceExtras.includes(asset.id))
+    );
     const techToken = await this.captureSlots('techToken', supply, problems);
     const customDecks = await this.captureSlots('custom', supply, problems);
     const customTokens = await this.captureSlots('customTokens', supply, problems);
@@ -86,7 +106,7 @@ export class CatalogueCapture {
       board: supply.board,
       battleDialing: supply.battleDialing ?? undefined,
       capturedAt: now,
-      decks: { treachery: treachery[0] ?? null, spice: spice[0] ?? null, custom: customDecks },
+      decks: { treachery: treachery[0] ?? null, spice: spice[0] ?? null, spiceExtras: extras, custom: customDecks },
       bundles: { techToken: techToken[0] ?? null, custom: customTokens },
       readiness: readiness(problems),
     });
@@ -107,8 +127,16 @@ export class CatalogueCapture {
   }
 
   /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */
-  private async captureSlots(slot: RulesetAssetSlot, supply: RulesetSupply, problems: CaptureProblem[]) {
-    const assets = supply.slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);
+  private async captureSlots(
+    slot: RulesetAssetSlot,
+    supply: RulesetSupply,
+    problems: CaptureProblem[],
+    chosen: (asset: RulesetSupply['slots'][number]['asset']) => boolean = () => true
+  ) {
+    const assets = supply.slots
+      .filter((entry) => entry.slot === slot)
+      .map((entry) => entry.asset)
+      .filter(chosen);
     const required = REQUIRED_DECKS[slot];
     if (!assets.length && required) {
       problems.push({ subject: slot, reason: required });
@@ -372,10 +400,12 @@ async function judged(subject: string, capture: () => Promise<{ readiness: { pro
 export async function playReadiness(
   capture: CatalogueCapture,
   ruleset: { id: string; name: string },
-  factions: readonly { id: string; name: string }[]
+  factions: readonly { id: string; name: string }[],
+  /* The create page judges the extra spice decks its creator ticked, as the game will capture them; the ruleset editor judges every one. */
+  { spiceExtras = 'every' }: Readonly<{ spiceExtras?: readonly string[] | 'every' }> = {}
 ): Promise<PlayReadinessEntry[]> {
   const [rulesetProblems, ...factionProblems] = await Promise.all([
-    judged('ruleset', () => capture.captureRuleset(ruleset.id)),
+    judged('ruleset', () => capture.captureRuleset(ruleset.id, { spiceExtras })),
     ...factions.map((faction) => judged('faction', () => capture.captureFaction(faction.id))),
   ]);
   return [

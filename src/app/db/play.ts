@@ -84,7 +84,9 @@ function browserCatalogue() {
 export function usePlayReadiness(
   ruleset: { id: string; name: string } | null,
   factions: readonly { id: string; name: string }[] | undefined,
-  revision: string
+  revision: string,
+  /* The extra spice decks a game's creator ticked; left out, every extra deck the ruleset slots is judged. */
+  spiceExtras?: readonly string[]
 ) {
   const [round, setRound] = useState(0);
   const recheck = useCallback(() => setRound((value) => value + 1), []);
@@ -98,6 +100,7 @@ export function usePlayReadiness(
       ? JSON.stringify({
           ruleset: { id: ruleset.id, name: ruleset.name },
           factions: factions.map(({ id, name }) => ({ id, name })),
+          spiceExtras: spiceExtras ? [...spiceExtras] : 'every',
           revision,
           round,
         })
@@ -108,10 +111,13 @@ export function usePlayReadiness(
       return;
     }
     let current = true;
-    const asked: { ruleset: { id: string; name: string }; factions: { id: string; name: string }[] } =
-      JSON.parse(request);
+    const asked: {
+      ruleset: { id: string; name: string };
+      factions: { id: string; name: string }[];
+      spiceExtras: string[] | 'every';
+    } = JSON.parse(request);
     const answer = (check: PlayReadinessCheck) => current && setAnswered({ request, check });
-    playReadiness(browserCatalogue(), asked.ruleset, asked.factions).then(
+    playReadiness(browserCatalogue(), asked.ruleset, asked.factions, { spiceExtras: asked.spiceExtras }).then(
       (entries) => answer({ status: 'checked', entries }),
       (error: unknown) =>
         answer({ status: 'failed', reason: error instanceof Error ? error.message : 'The check could not finish.' })

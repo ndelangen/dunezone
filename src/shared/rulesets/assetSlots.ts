@@ -10,10 +10,15 @@
  * The literal union on `ruleset_asset_slots` in `convex/schema.ts` must list the same slots.
  * A drift test asserts it, since the schema cannot import this and stay a schema.
  */
+/** How many extra spice decks a ruleset may slot: the create page offers each one as a switch, and a game's creator may tick them all. */
+export const SPICE_EXTRAS_LIMIT = 20;
+
 export const RULESET_ASSET_SLOTS = {
   board: { holds: 'board', single: true, label: 'Board', noun: 'a board' },
   treachery: { holds: 'deck', single: true, label: 'Treachery deck', noun: 'a deck' },
   spice: { holds: 'deck', single: true, label: 'Spice deck', noun: 'a deck' },
+  /* Decks a game's creator may choose to shuffle into the spice deck at table setup, such as a set of expansion cards (#2986). */
+  spiceExtras: { holds: 'deck', single: false, label: 'Extra spice decks', noun: 'decks' },
   custom: { holds: 'deck', single: false, label: 'Custom decks', noun: 'decks' },
   techToken: { holds: 'bundle', single: true, label: 'Tech token bundle', noun: 'a token bundle' },
   customTokens: { holds: 'bundle', single: false, label: 'Custom token bundles', noun: 'token bundles' },
@@ -26,6 +31,7 @@ export const RULESET_ASSET_SLOT_ORDER = [
   'board',
   'treachery',
   'spice',
+  'spiceExtras',
   'techToken',
   'custom',
   'customTokens',

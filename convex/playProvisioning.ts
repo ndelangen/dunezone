@@ -46,7 +46,13 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
   if (game.fixture_key !== undefined) {
     return { fixtureKey: PLAY_FIXTURE_KEY } as const;
   }
-  const { ruleset_id: rulesetId, minimum_players: minimumPlayers, last_turn: lastTurn, creator_id: creatorId } = game;
+  const {
+    ruleset_id: rulesetId,
+    minimum_players: minimumPlayers,
+    last_turn: lastTurn,
+    spice_extras: spiceExtras,
+    creator_id: creatorId,
+  } = game;
   if (rulesetId === undefined || minimumPlayers === undefined || creatorId === undefined) {
     return null;
   }
@@ -60,6 +66,7 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
       minimumPlayers,
       discordVoice: game.discord_voice === true,
       ...(lastTurn === undefined ? {} : { lastTurn }),
+      ...(spiceExtras?.length ? { spiceExtras } : {}),
       creator: { userId: creatorId, ...playerSummary(profile) },
     },
     /* Only an isolated development backend may retain provisional catalogue content. */
