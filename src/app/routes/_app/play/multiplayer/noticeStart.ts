@@ -8,15 +8,25 @@ import { actingFaction, stageInPlay } from './tableFactions';
 
 /**
  * The live table the soft notices compare later tables with, and the faction the viewer acts for at it (#2981).
- * `shown` is the table as last shown, the viewer's own pending drag of the movement order included, kept from the first render on.
  * `epoch` is the tutorial run it belongs to: a reset starts the notices afresh.
  */
-export type NoticeStart = Readonly<{
-  own: string;
-  snapshot: GameSnapshot;
-  epoch: number;
-  shown: Readonly<{ current: GameSnapshot | null }>;
-}>;
+export type NoticeStart = Readonly<{ own: string; snapshot: GameSnapshot; epoch: number }>;
+
+/** The table as last shown, the viewer's own pending drag of the movement order included. */
+export type ShownTable = Readonly<{ current: GameSnapshot | null }>;
+
+/**
+ * Keeps the table as last shown from the first render on, outside the notices' own lazily loaded code, so a drag made before it arrives still counts as seen.
+ * Updated after the notices' own effects, so while they compare a change it still holds the table shown before it.
+ */
+export function useShownTable(table: TableProjection): ShownTable {
+  const shown = useRef<GameSnapshot | null>(null);
+  const displayed = table.snapshot;
+  useEffect(() => {
+    shown.current = displayed;
+  }, [displayed]);
+  return shown;
+}
 
 /*
  * The faction the viewer acts for, while the live table is set up or in play: no notices while a past table, a recall or another stage shows.
@@ -36,17 +46,11 @@ function noticedFaction(table: TableProjection): string | undefined {
 export function useNoticeStart(table: TableProjection): NoticeStart | null {
   const own = noticedFaction(table);
   const epoch = useContext(CompassEpochContext);
-  /* Updated after the notices' own effects, so while they compare a change it still holds the table shown before it. */
-  const shown = useRef<GameSnapshot | null>(null);
-  const displayed = table.snapshot;
-  useEffect(() => {
-    shown.current = displayed;
-  }, [displayed]);
   const [start, setStart] = useState<NoticeStart | null>(null);
   if (start === null ? own === undefined : start.own === own && start.epoch === epoch) {
     return start;
   }
-  const next = own ? { own, snapshot: table.confirmedSnapshot ?? table.snapshot, epoch, shown } : null;
+  const next = own ? { own, snapshot: table.confirmedSnapshot ?? table.snapshot, epoch } : null;
   setStart(next);
   return next;
 }

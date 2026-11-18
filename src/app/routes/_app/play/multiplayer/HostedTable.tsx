@@ -80,7 +80,7 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
-import { useNoticeStart } from './noticeStart';
+import { useNoticeStart, useShownTable } from './noticeStart';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -833,6 +833,7 @@ function ConnectedTable({
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
+  const shownTable = useShownTable(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -930,6 +931,7 @@ function ConnectedTable({
                     key={noticeStart?.epoch}
                     table={table}
                     start={noticeStart}
+                    shown={shownTable}
                     inert={inert}
                     openPanel={openNoticePanel}
                     openBattlePlan={noticeBattleOpener}

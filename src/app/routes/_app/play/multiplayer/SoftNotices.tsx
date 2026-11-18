@@ -14,7 +14,7 @@ import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween, onlyReordered } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
-import type { NoticeStart } from './noticeStart';
+import type { NoticeStart, ShownTable } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
 
@@ -103,7 +103,7 @@ function keptAndRaised(
  * A recall, playback or lost connection clears them, since what they point at is not on screen, and a turn that has passed takes its notice with it.
  * The baseline only moves with the table's revision, so the viewer's own drag of the movement order, shown before the table answers, never stands in for the table.
  */
-function useSoftNotices(table: TableProjection, start: NoticeStart | null): readonly SoftNotice[] {
+function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown: ShownTable): readonly SoftNotice[] {
   const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
   const playing = stageInPlay(table.snapshot.stage);
@@ -116,7 +116,7 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
   }
   useEffect(() => {
     /* The table shown before this change, kept by the table itself so a drag made before this code loaded still counts. */
-    const seen = start?.shown.current ?? null;
+    const seen = shown.current;
     /* A faction newly acted for starts from the table the page first showed it at. */
     const before = previous.current?.own === own ? previous.current : start;
     if (!own || !before) {
@@ -133,7 +133,7 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
-  }, [own, start, snapshot, playing]);
+  }, [own, start, shown, snapshot, playing]);
   return notices;
 }
 
@@ -240,12 +240,14 @@ const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances',
 export function TableSoftNotices({
   table,
   start,
+  shown,
   inert,
   openPanel,
   openBattlePlan,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
+  shown: ShownTable;
   /** Whether a board gesture holds the pointer, when no notice may be opened. */
   inert: boolean;
   openPanel: (key: string) => void;
@@ -259,5 +261,5 @@ export function TableSoftNotices({
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} />;
+  return <SoftNotices notices={useSoftNotices(table, start, shown)} inert={inert} onOpen={open} />;
 }
