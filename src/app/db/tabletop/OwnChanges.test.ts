@@ -1,7 +1,7 @@
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import { expect, test } from 'vite-plus/test';
 
-import { OwnChanges, ownChangesBetween } from './OwnChanges';
+import { OwnChanges, ownChangesBetween, ownStep } from './OwnChanges';
 
 const room = (revision: number, table: Readonly<{ order?: string[]; sides?: (string | null)[] }>) =>
   ({
@@ -39,8 +39,16 @@ test('after a resync the receipt waits for the replacement table', () => {
   changes.sent('a', reorder);
   changes.settled('a', 'completed', { room: room(1, {}), followsLater: true });
   expect(changes.view().changes).toEqual([]);
-  changes.observed(room(3, { order }));
-  expect(changes.view().changes).toEqual([{ kind: 'movement-order', order, revision: 3 }]);
+  changes.observed(room(2, { order }));
+  expect(changes.view().changes).toEqual([{ kind: 'movement-order', order, revision: 2 }]);
+});
+
+test('after a resync a table that holds other changes too credits the command with nothing', () => {
+  const changes = new OwnChanges();
+  changes.sent('a', claim);
+  changes.settled('a', 'completed', { room: room(1, {}), followsLater: true });
+  changes.observed(room(3, { sides: ['atreides', 'harkonnen'] }));
+  expect(changes.view().changes).toEqual([]);
 });
 
 test('a claim counts only when the room shows it completed the battle, even one sent from a stale table', () => {
@@ -61,4 +69,13 @@ test('the view stays the same object until something changes', () => {
   const view = changes.view();
   changes.settled('unknown', 'completed', { room: room(2, {}), followsLater: false });
   expect(changes.view()).toBe(view);
+});
+
+test('a step over several revisions credits the viewer’s order only when their drag made the later table', () => {
+  const mine = [
+    { kind: 'movement-order', order, revision: 2 },
+    { kind: 'battle-completed', battleId: 'b1', revision: 3 },
+  ] as const;
+  expect(ownStep(mine, { revision: 1 }, { revision: 2 })).toEqual({ completed: [], ownOrder: order });
+  expect(ownStep(mine, { revision: 1 }, { revision: 4 })).toEqual({ completed: ['b1'], ownOrder: null });
 });

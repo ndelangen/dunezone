@@ -9,8 +9,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { ownChangesBetween } from '../../../../db/tabletop/OwnChanges';
-import type { OwnChange } from '../../../../db/tabletop/OwnChanges';
+import { ownStep } from '../../../../db/tabletop/OwnChanges';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
@@ -66,15 +65,6 @@ function newsFor(
   const { playing, ownOrder, before, after } = context;
   const ownDrag = draft.kind === 'ship' && onlyReordered(before, after) && ownMovementOrder(ownOrder, after);
   return playing && !ownDrag;
-}
-
-/* What the viewer's own commands did in the step from one table to the next: the battles they completed, and the order they dragged. */
-function ownStep(changes: readonly OwnChange[] | undefined, before: GameSnapshot, after: GameSnapshot) {
-  const step = ownChangesBetween(changes, before, after);
-  return {
-    completed: step.flatMap((change) => (change.kind === 'battle-completed' ? [change.battleId] : [])),
-    ownOrder: step.flatMap((change) => (change.kind === 'movement-order' ? [change.order] : [])).at(-1) ?? null,
-  };
 }
 
 /* The notices still standing at the table, then the newly raised ones, newest last and at most KEPT of them. */

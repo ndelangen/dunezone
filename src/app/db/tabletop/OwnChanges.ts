@@ -41,6 +41,13 @@ function shows(sent: Sent, snapshot: GameSnapshot): boolean {
   return battle?.id === sent.battleId && battle.sides.every(Boolean);
 }
 
+/*
+ * Whether the room's table is the one the command made.
+ * A view arrives with it, while the table after a resync only is when the room made no other change since, as each change moves the revision by one.
+ * Otherwise another player's change may be in it too, so the command is not credited with what that table shows.
+ */
+const madeBy = (taken: Taken, snapshot: GameSnapshot) => !taken.followsLater || snapshot.revision === taken.from + 1;
+
 /**
  * Remembers what this viewer's own commands changed, by the room's answer to each and the revision that showed it, so a notice never tells them what they did themselves.
  * It lives with the connection rather than with the lazily loaded notices, so a change made before they load still counts.
@@ -87,7 +94,7 @@ export class OwnChanges {
     for (const taken of this.taken) {
       if (taken.followsLater && snapshot.revision <= taken.from) {
         waiting.push(taken);
-      } else if (shows(taken.sent, snapshot)) {
+      } else if (madeBy(taken, snapshot) && shows(taken.sent, snapshot)) {
         confirmed.push({ ...taken.sent, revision: snapshot.revision });
       }
     }
@@ -121,3 +128,20 @@ export const ownChangesBetween = (
   after: Readonly<{ revision: number }>
 ): readonly OwnChange[] =>
   (changes ?? []).filter((change) => change.revision > before.revision && change.revision <= after.revision);
+
+/*
+ * What the viewer's own commands did in the step from one table to the next: the battles they completed, and the order they dragged.
+ * The order only counts when the viewer's drag made the later table itself, so a step over several revisions never credits an earlier drag with an order someone else restored.
+ */
+export function ownStep(
+  changes: readonly OwnChange[] | undefined,
+  before: Readonly<{ revision: number }>,
+  after: Readonly<{ revision: number }>
+) {
+  const step = ownChangesBetween(changes, before, after);
+  const last = step.findLast((change) => change.revision === after.revision && change.kind === 'movement-order');
+  return {
+    completed: step.flatMap((change) => (change.kind === 'battle-completed' ? [change.battleId] : [])),
+    ownOrder: last?.kind === 'movement-order' ? last.order : null,
+  };
+}
