@@ -906,7 +906,8 @@ export function GameTable({
                 focus={focus}
                 onOpenWindows={onOpenWindows}
               />
-              {notices?.(overlaysInert)}
+              {/* Notices mount once the table is open, so what arrived while it loaded shows then, its fade and glow starting there. */}
+              {arrival === 'open' && notices?.(overlaysInert)}
             </div>
           </DarkSchemeIsland>
         </TableArrivalStage>

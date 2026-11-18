@@ -821,6 +821,16 @@ function ConnectedTable({
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
+  /* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
+  const openNoticePanel = useCallback(
+    (key: string) => {
+      if (key === 'transfers') {
+        client.readSpiceHistory();
+      }
+      openWindow(key);
+    },
+    [client, openWindow]
+  );
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -911,7 +921,7 @@ function ConnectedTable({
                     table={table}
                     start={noticeStart}
                     inert={inert}
-                    openPanel={openWindow}
+                    openPanel={openNoticePanel}
                     openBattlePlan={battlePlanOpener}
                   />
                 )}
