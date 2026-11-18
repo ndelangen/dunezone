@@ -59,5 +59,5 @@ export async function tableShown(canvasElement: HTMLElement) {
 /** The notification area, and whether the screen's edge glows for the viewer's turn. */
 export function noticeLog(page: ReturnType<typeof within>) {
   const log = page.getByRole('log', { name: 'Notifications' });
-  return { log: within(log), glowing: () => Boolean(log.querySelector('[data-on]')) };
+  return { log: within(log), glowing: () => Boolean(log.querySelector('[data-glow]')) };
 }

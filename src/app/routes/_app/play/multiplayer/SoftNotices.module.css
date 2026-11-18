@@ -64,11 +64,15 @@
   inset: 0;
   box-shadow: inset 0 0 64px 8px rgb(from var(--color-brand) r g b / 55%);
   opacity: 0;
-  transition: opacity 600ms ease-out;
+  animation: glow 2400ms ease-out;
 }
 
-.glow[data-on] {
-  opacity: 1;
+/* In softly, held, then out: 2.4 s in all. */
+@keyframes glow {
+  25%,
+  60% {
+    opacity: 1;
+  }
 }
 
 @keyframes arrive {

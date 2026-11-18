@@ -41,25 +41,11 @@ const ICONS: Record<SoftNoticeKind, LucideIcon> = {
 /** The viewer's own turns, which the screen's edge glows for as well. */
 const TURN_KINDS: ReadonlySet<SoftNoticeKind> = new Set(['bid', 'ship', 'battle']);
 
-/** How long a notice shows before it fades, how long the fade takes, and how long a turn's glow lasts. */
+/** How long a notice shows before it is gone, and how long its fade takes before that. The turn's glow is a CSS animation of its own. */
 const LIFETIME_MS = 6000;
 const FADE_MS = 400;
-const GLOW_MS = 2400;
-/** The most notices kept at once; older ones have long faded. */
+/** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
-
-/** The current time on the page's clock, ticking while anything could still change with it. */
-function useNow(running: boolean) {
-  const [now, setNow] = useState(() => performance.now());
-  useEffect(() => {
-    if (!running) {
-      return;
-    }
-    const tick = window.setInterval(() => setNow(performance.now()), 200);
-    return () => window.clearInterval(tick);
-  }, [running]);
-  return now;
-}
 
 /* The faction the viewer acts for, while the live table is in play: no notices while a past table, a recall or another stage shows. */
 function noticedFaction(table: TableProjection): string | undefined {
@@ -117,22 +103,27 @@ export function SoftNotices({
   onOpen,
 }: Readonly<{ notices: readonly SoftNotice[]; onOpen?: (notice: SoftNotice) => void }>) {
   const motion = useMotionAllowed();
-  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
-  const [running, setRunning] = useState(false);
-  const now = useNow(running);
-  /* The clock ticks while a notice could still show: a new one starts it, and it stops once the last has faded. */
-  const showing = notices.some((notice) => now - notice.at < LIFETIME_MS);
-  if (showing !== running) {
-    setRunning(showing);
-  }
-  const live = notices
-    .filter((notice) => !dismissed.has(notice.id) && now - notice.at < LIFETIME_MS)
-    .toSorted((a, b) => b.at - a.at);
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const [leaving, setLeaving] = useState<ReadonlySet<string>>(new Set());
+  /* Each notice starts to fade a moment before its lifetime ends, then leaves: one timer for each step, not a ticking clock. */
+  useEffect(() => {
+    const after = (notice: SoftNotice, ms: number, step: (id: string) => void) =>
+      window.setTimeout(() => step(notice.id), Math.max(0, notice.at + ms - performance.now()));
+    const timers = notices
+      .filter((notice) => !gone.has(notice.id))
+      .flatMap((notice) => [
+        after(notice, LIFETIME_MS - FADE_MS, (id) => setLeaving((before) => new Set(before).add(id))),
+        after(notice, LIFETIME_MS, (id) => setGone((before) => new Set(before).add(id))),
+      ]);
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [notices, gone]);
+  const live = notices.filter((notice) => !gone.has(notice.id)).toSorted((a, b) => b.at - a.at);
   const open = (notice: SoftNotice) => {
-    setDismissed((before) => new Set(before).add(notice.id));
+    setGone((before) => new Set(before).add(notice.id));
     onOpen?.(notice);
   };
-  const glowing = live.some((notice) => TURN_KINDS.has(notice.kind) && now - notice.at < GLOW_MS);
+  /* The newest turn still showing glows the screen's edge once, as its own animation, so a later notice does not restart it. */
+  const turn = live.find((notice) => TURN_KINDS.has(notice.kind));
 
   return (
     <DarkSchemeIsland>
@@ -144,10 +135,10 @@ export function SoftNotices({
         aria-live="polite"
         aria-label="Notifications"
       >
-        <div className={styles.glow} data-on={glowing || undefined} aria-hidden />
+        {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
         <div className={styles.stack}>
           {live.slice(0, 4).map((notice) => (
-            <Toast key={notice.id} notice={notice} onOpen={open} leaving={now - notice.at > LIFETIME_MS - FADE_MS} />
+            <Toast key={notice.id} notice={notice} onOpen={open} leaving={leaving.has(notice.id)} />
           ))}
         </div>
       </div>
