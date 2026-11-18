@@ -95,6 +95,9 @@ export const RecallingASettledBattle = meta.story({
     await expect(call).toBeVisible();
     /* The pieces each side played stay on its wheel, though the table no longer marks them as part of the battle. */
     await expect(body.queryAllByText('No leader')).toHaveLength(0);
+    for (const name of [/Feyd Rautha/i, /Lady Jessica/i, /Crysknife/i]) {
+      await expect(await body.findByRole('img', { name })).toBeInTheDocument();
+    }
     for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
       await expect(body.queryByRole('button', { name })).toBeNull();
     }
