@@ -80,10 +80,10 @@
   display: block;
   box-shadow: inset 0 0 64px 8px rgb(from var(--color-brand) r g b / 55%);
   opacity: 0;
-  animation: glow 2400ms ease-out;
+  animation: glow 2400ms ease-out forwards;
 }
 
-/* In softly, held, then out: 2.4 s in all. */
+/* In softly, held, then out: 2.4 s in all. It keeps its last, unlit frame, so a story can still seek back into it. */
 @keyframes glow {
   25%,
   60% {

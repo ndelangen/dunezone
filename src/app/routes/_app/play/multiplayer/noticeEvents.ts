@@ -49,8 +49,12 @@ const bidUp = (snapshot: GameSnapshot, own: string) =>
 /* A turn to bid names its round, so a round started afresh on the viewer is news, and takes the old round's notice with it. */
 const bidKey = (snapshot: GameSnapshot) => `bid-${snapshot.bidding?.round}-`;
 
+/* The viewer's turn to bid carried on from the snapshot before, in the same round. */
+const stillBidding = (before: GameSnapshot, after: GameSnapshot, own: string) =>
+  bidUp(before, own) && before.bidding?.round === after.bidding?.round;
+
 function biddingTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  if (!bidUp(after, own) || (bidUp(before, own) && before.bidding?.round === after.bidding?.round)) {
+  if (!bidUp(after, own) || stillBidding(before, after, own)) {
     return [];
   }
   return [{ key: `${bidKey(after)}${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
@@ -110,7 +114,9 @@ function spiceReceived(
   name: (id: string) => string
 ): NoticeDraft[] {
   const seen = new Set((before.spiceTransfers ?? []).map((transfer) => transfer.revision));
-  return (after.spiceTransfers ?? []).flatMap((transfer) => {
+  /* The table lists its transfers newest first; notices run oldest first, so the newest are the ones kept. */
+  const transfers = (after.spiceTransfers ?? []).toSorted((a, b) => a.revision - b.revision);
+  return transfers.flatMap((transfer) => {
     if (seen.has(transfer.revision) || transfer.destination !== own) {
       return [];
     }
@@ -146,6 +152,12 @@ function allianceOffers(
     }));
 }
 
+const battlePlanning = (snapshot: GameSnapshot, key: string) =>
+  snapshot.battle?.stage === 'preparing' && key === `battle-${snapshot.battle.id}`;
+
+const offerOpen = (snapshot: GameSnapshot, key: string) =>
+  (snapshot.alliances?.offers ?? []).some((offer) => key === `alliance-${offer.id}`);
+
 /**
  * Whether what a notice announced still stands: a turn that has passed, a battle past its planning, or an alliance offer withdrawn or answered is no news any more.
  * Payments stay until they fade.
@@ -161,9 +173,9 @@ export function noticeStillHolds(
     case 'ship':
       return shipUp(snapshot, own);
     case 'battle':
-      return snapshot.battle?.stage === 'preparing' && notice.key === `battle-${snapshot.battle.id}`;
+      return battlePlanning(snapshot, notice.key);
     case 'alliance':
-      return (snapshot.alliances?.offers ?? []).some((offer) => notice.key === `alliance-${offer.id}`);
+      return offerOpen(snapshot, notice.key);
     default:
       return true;
   }

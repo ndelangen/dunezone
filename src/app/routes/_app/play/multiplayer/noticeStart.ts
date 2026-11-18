@@ -14,10 +14,8 @@ export type NoticeStart = Readonly<{ own: string; snapshot: GameSnapshot }>;
  */
 function noticedFaction(table: TableProjection): string | undefined {
   const stage = table.snapshot.stage;
-  if (table.reconnecting || !(stage === 'setup' || stageInPlay(stage)) || reviewRunning(table.review?.current)) {
-    return undefined;
-  }
-  return actingFaction(table);
+  const live = !table.reconnecting && !reviewRunning(table.review?.current);
+  return live && (stage === 'setup' || stageInPlay(stage)) ? actingFaction(table) : undefined;
 }
 
 /**

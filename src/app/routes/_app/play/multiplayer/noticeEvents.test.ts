@@ -177,3 +177,18 @@ test('a notice holds only while what it announced stands; payments hold until th
   expect(noticeStillHolds(table(), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
   expect(noticeStillHolds(table(), OWN, { key: 'spice-3', kind: 'spice' })).toBe(true);
 });
+
+test('a batch of transfers raises its notices oldest first, though the table lists them newest first', () => {
+  const paid = (revision: number) => ({
+    revision,
+    kind: 'payment' as const,
+    actor: 'nobody',
+    amount: 1,
+    source: 'table',
+    destination: OWN,
+  });
+  const keys = between(table(), table({ spiceTransfers: [paid(5), paid(4)] } as Partial<GameSnapshot>)).map(
+    (notice) => notice.key
+  );
+  expect(keys).toEqual(['spice-4', 'spice-5']);
+});

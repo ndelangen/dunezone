@@ -1,5 +1,6 @@
 import { Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import type { GameSnapshot } from '@shared/play/protocol';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
@@ -12,7 +13,7 @@ import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween } from './noticeEvents';
-import type { SoftNoticeKind } from './noticeEvents';
+import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
@@ -48,6 +49,30 @@ export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
+/* The notices still standing at the table, then the newly raised ones, newest last and at most KEPT of them. */
+function keptAndRaised(
+  all: readonly SoftNotice[],
+  raised: readonly NoticeDraft[],
+  context: Readonly<{ snapshot: GameSnapshot; own: string; names: Readonly<Record<string, string>>; at: number }>
+): readonly SoftNotice[] {
+  const { snapshot, own, names, at } = context;
+  const kept = all.filter((notice) => noticeStillHolds(snapshot, own, { key: notice.id, kind: notice.kind }));
+  if (!raised.length && kept.length === all.length) {
+    return all;
+  }
+  const known = new Set(kept.map((notice) => notice.id));
+  const fresh = raised
+    .filter((draft) => !known.has(draft.key))
+    .map((draft) => ({
+      id: draft.key,
+      kind: draft.kind,
+      text: draft.text,
+      from: snapshotFactionToken(snapshot, draft.factionId, names),
+      at,
+    }));
+  return [...kept, ...fresh].slice(-KEPT);
+}
+
 /**
  * The soft notices the live table raises for the viewer as it changes, newest last.
  * Each change is compared with the one before it, starting from the first live table the page showed, so joining or reloading raises nothing for what already happened.
@@ -82,23 +107,7 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
       (draft) => playing || !TURN_KINDS.has(draft.kind)
     );
     const at = performance.now();
-    setNotices((all) => {
-      const kept = all.filter((notice) => noticeStillHolds(snapshot, own, { key: notice.id, kind: notice.kind }));
-      if (!raised.length && kept.length === all.length) {
-        return all;
-      }
-      const known = new Set(kept.map((notice) => notice.id));
-      const fresh = raised
-        .filter((draft) => !known.has(draft.key))
-        .map((draft) => ({
-          id: draft.key,
-          kind: draft.kind,
-          text: draft.text,
-          from: snapshotFactionToken(snapshot, draft.factionId, names),
-          at,
-        }));
-      return [...kept, ...fresh].slice(-KEPT);
-    });
+    setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
   }, [own, start, snapshot, playing]);
   return notices;
 }
@@ -110,8 +119,9 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
  */
 function SoftNotices({
   notices,
+  inert,
   onOpen,
-}: Readonly<{ notices: readonly SoftNotice[]; onOpen?: (notice: SoftNotice) => void }>) {
+}: Readonly<{ notices: readonly SoftNotice[]; inert: boolean; onOpen?: (notice: SoftNotice) => void }>) {
   const motion = useMotionAllowed();
   const lifetime = useContext(NoticeLifetime);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
@@ -150,6 +160,7 @@ function SoftNotices({
   return (
     <div
       className={styles.root}
+      inert={inert}
       data-motion={motion || undefined}
       role="log"
       aria-live="polite"
@@ -198,11 +209,14 @@ const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances',
 export function TableSoftNotices({
   table,
   start,
+  inert,
   openPanel,
   openBattlePlan,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
+  /** Whether a board gesture holds the pointer, when no notice may be opened. */
+  inert: boolean;
   openPanel: (key: string) => void;
   openBattlePlan: (() => void) | null;
 }>) {
@@ -214,5 +228,5 @@ export function TableSoftNotices({
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table, start)} onOpen={open} />;
+  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} />;
 }
