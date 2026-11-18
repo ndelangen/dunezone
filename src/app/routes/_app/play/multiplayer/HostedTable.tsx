@@ -27,7 +27,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
@@ -121,6 +121,15 @@ const ConnectedBattlePlanPanel = lazy(() =>
 
 /* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
 const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
+
+/* The notices with their own loading boundary, so the table renders without waiting for them. */
+function LazySoftNotices(props: ComponentProps<typeof TableSoftNotices>) {
+  return (
+    <Suspense fallback={null}>
+      <TableSoftNotices {...props} />
+    </Suspense>
+  );
+}
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -885,11 +894,7 @@ function ConnectedTable({
                 })}
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
-                notices={
-                  <Suspense fallback={null}>
-                    <TableSoftNotices table={table} openPanel={openWindow} openBattlePlan={battlePlanOpener} />
-                  </Suspense>
-                }
+                notices={<LazySoftNotices table={table} openPanel={openWindow} openBattlePlan={battlePlanOpener} />}
               />
             </CompassTableContext>
             {tracker ? (

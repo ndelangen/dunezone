@@ -65,15 +65,14 @@ function noticedFaction(table: TableProjection): string | undefined {
  */
 function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
   const own = noticedFaction(table);
-  const snapshot = table.snapshot;
+  /* The room's own table, not the viewer's pending drag of the movement order, so a turn the room never gave is never announced. */
+  const snapshot = table.confirmedSnapshot ?? table.snapshot;
   const previous = useRef<{ own: string; snapshot: GameSnapshot } | null>(null);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
   const [shownFor, setShownFor] = useState(own);
   if (shownFor !== own) {
     setShownFor(own);
-    if (!own) {
-      setNotices([]);
-    }
+    setNotices([]);
   }
   useEffect(() => {
     const before = previous.current;
@@ -187,8 +186,11 @@ function Toast({ notice, onOpen }: Readonly<{ notice: SoftNotice; onOpen: (notic
   );
 }
 
-/* The panel each notice opens; the battle opens its planner, and the turn to ship and move is played on the table itself. */
-const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances', bid: 'hand', spice: 'spice' };
+/*
+ * The panel each notice opens; the battle opens its planner, and the turn to ship and move is played on the table itself.
+ * Spice opens the transfers, which record a bribe still lying on the table as well as a payment.
+ */
+const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances', bid: 'hand', spice: 'transfers' };
 
 /**
  * The live table's soft notices, raised and shown in one, each opening what it is about.

@@ -35,6 +35,8 @@ export type TableProjection = {
   canHandleTable: boolean;
   /* The connection is being restored: this is the last live table, read-only, until a fresh view replaces it. */
   reconnecting: boolean;
+  /* The table as the room confirmed it, present only while this viewer's own drag of the movement order shows on `snapshot` ahead of the room's answer. */
+  confirmedSnapshot?: GameSnapshot;
   /* A seat command is on its way; the bar holds its buttons until the table answers. */
   seatCommandPending: boolean;
   /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */

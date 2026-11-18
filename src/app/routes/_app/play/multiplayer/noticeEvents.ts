@@ -78,7 +78,7 @@ function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): N
 function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   const ownSide = (battle: GameSnapshot['battle']) => battle?.sides.some((side) => side?.factionId === own) ?? false;
   const battle = after.battle;
-  if (!battle || !battle.sides.every(Boolean) || !ownSide(battle)) {
+  if (battle?.stage !== 'preparing' || !battle.sides.every(Boolean) || !ownSide(battle)) {
     return [];
   }
   const earlier = before.battle?.id === battle.id ? before.battle : undefined;
@@ -144,8 +144,8 @@ function allianceOffers(
 }
 
 /**
- * Whether the turn a notice announced is still the viewer's: a turn notice that has passed, as when they bid, finished moving or their battle was resolved, is no news any more.
- * Other notices stay until they fade.
+ * Whether what a notice announced still stands: a turn that has passed, a battle past its planning, or an alliance offer withdrawn or answered is no news any more.
+ * Payments stay until they fade.
  */
 export function noticeStillHolds(
   snapshot: GameSnapshot,
@@ -158,7 +158,9 @@ export function noticeStillHolds(
     case 'ship':
       return shipUp(snapshot, own);
     case 'battle':
-      return notice.key === `battle-${snapshot.battle?.id}`;
+      return snapshot.battle?.stage === 'preparing' && notice.key === `battle-${snapshot.battle.id}`;
+    case 'alliance':
+      return (snapshot.alliances?.offers ?? []).some((offer) => notice.key === `alliance-${offer.id}`);
     default:
       return true;
   }

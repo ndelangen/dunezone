@@ -72,6 +72,7 @@ test('a battle raises the viewer’s turn once both its sides are claimed, one o
     battle: {
       id: 'b1',
       territory: 'Arrakeen',
+      stage: 'preparing',
       sides: sides.map((factionId) => (factionId ? { factionId } : null)),
     } as unknown as GameSnapshot['battle'],
   });
@@ -89,6 +90,7 @@ test('the viewer’s own claim completing their battle raises nothing, since the
     battle: {
       id: 'b1',
       territory: 'Arrakeen',
+      stage: 'preparing',
       sides: sides.map((factionId) => (factionId ? { factionId } : null)),
     } as unknown as GameSnapshot['battle'],
   });
@@ -153,12 +155,18 @@ test('a new alliance offer to the viewer names who offers it', () => {
   ).toEqual([{ key: 'alliance-4', kind: 'alliance', factionId: OTHER, text: 'House Atreides offers you an alliance' }]);
 });
 
-test('a turn notice holds only while the turn is still the viewer’s; other notices hold until they fade', () => {
+test('a notice holds only while what it announced stands; payments hold until they fade', () => {
   const open = (turn: string) => table({ bidding: { stage: 'open', turn } as GameSnapshot['bidding'] });
   expect(noticeStillHolds(open(OWN), OWN, { key: 'bid-2', kind: 'bid' })).toBe(true);
   expect(noticeStillHolds(open(OTHER), OWN, { key: 'bid-2', kind: 'bid' })).toBe(false);
-  const battle = table({ battle: { id: 'b1', sides: [] } as unknown as GameSnapshot['battle'] });
-  expect(noticeStillHolds(battle, OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);
+  const battle = (stage: string) =>
+    table({ battle: { id: 'b1', stage, sides: [] } as unknown as GameSnapshot['battle'] });
+  expect(noticeStillHolds(battle('preparing'), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);
+  expect(noticeStillHolds(battle('countdown'), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
+  const offers = (ids: number[]) =>
+    table({ alliances: { groups: [], offers: ids.map((id) => ({ from: OTHER, to: OWN, at: 1, id })) } });
+  expect(noticeStillHolds(offers([4]), OWN, { key: 'alliance-4', kind: 'alliance' })).toBe(true);
+  expect(noticeStillHolds(offers([]), OWN, { key: 'alliance-4', kind: 'alliance' })).toBe(false);
   expect(noticeStillHolds(table(), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
   expect(noticeStillHolds(table(), OWN, { key: 'spice-3', kind: 'spice' })).toBe(true);
 });

@@ -671,6 +671,7 @@ export class TableSession {
     return {
       viewer,
       snapshot: displayed,
+      ...(this.pendingMovementOrder && !this.history ? { confirmedSnapshot: this.snapshot } : {}),
       liveRevision: this.snapshot.revision,
       playback: this.history
         ? {
