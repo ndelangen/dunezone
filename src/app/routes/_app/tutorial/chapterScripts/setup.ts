@@ -114,7 +114,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'deal-traitors',
       task: 'Deal yourself four traitors',
       get detail() {
-        return `The Setup window has Deal 1 and Deal 4 buttons beside each faction.\n\nPress Deal 4 beside ${myName()} to give yourself four cards. If you deal too many, drag the extras back onto the table until four remain.`;
+        return `The Setup panel has Deal 1 and Deal 4 buttons beside each faction.\n\nPress Deal 4 beside ${myName()} to give yourself four cards. If you deal too many, drag the extras back onto the table until four remain.`;
       },
       anchor: {
         kind: 'page',

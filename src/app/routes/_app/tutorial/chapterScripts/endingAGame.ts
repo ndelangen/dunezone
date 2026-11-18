@@ -26,7 +26,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'determine',
       task: 'Determine the winner',
       detail:
-        "You've reached Mentat Pause. If the game is over, it's time to work out who won.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the window.\n\nPlayers with predictions will be reminded to reveal them.",
+        "You've reached Mentat Pause. If the game is over, it's time to work out who won.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the Phase panel.\n\nPlayers with predictions will be reminded to reveal them.",
       anchor: {
         kind: 'page',
         element: () =>

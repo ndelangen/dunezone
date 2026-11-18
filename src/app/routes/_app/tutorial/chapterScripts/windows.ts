@@ -164,7 +164,7 @@ const slotTasks = (): GuideTask[] => [
     id: 'letter',
     task: 'Open chat with a shortcut',
     detail:
-      "Here's a quicker way back to chat. Click the table, then press {G}.\n\nEach window has a shortcut shown in the controls. You can also hold {Space}, tap a direction and release it to open a window.",
+      "Here's a quicker way back to chat. Click the table, then press {G}.\n\nEach panel has a shortcut shown in the controls. You can also hold {Space}, tap a direction and release it to open a panel.",
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
     ...openedWindow(windowShown('table-chat')),
   }),

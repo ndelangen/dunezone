@@ -4,6 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
+import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, onBoard, openedWindow, task, windowShown } from './guideChecks';
 
@@ -145,7 +146,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
           document.querySelector('[aria-label="Open battle plan"]') ??
           document.querySelector('[data-window="battle"] button[aria-label="Unpin"]'),
       },
-      ...openedWindow(windowShown('battle')),
+      ...openedWindow(windowShown(PANEL_WINDOWS.battlePlan.key)),
     }),
     task({
       id: 'ready',

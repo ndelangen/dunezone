@@ -1,10 +1,11 @@
-import { alliesOf } from '@shared/play/alliances';
+import { alliesOf, hasOffer, relationTo } from '@shared/play/alliances';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import { FACTION_INFO } from '../../play/compass/windows';
+import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
 
@@ -49,8 +50,12 @@ function atreidesAccepts(snapshot: () => GameSnapshot, players: TablePlayers, pa
   };
 }
 
-/* Fremen offers the learner an alliance when the task starts, unless an offer between them already stands or they are allied. */
-function suitorOffers(snapshot: () => GameSnapshot, players: TablePlayers, suitor: () => Seat | undefined) {
+/*
+ * Fremen stands ready to ally with the learner: it offers an alliance unless one is already offered to the learner or
+ * they are allied. If the learner offered Fremen first, Fremen accepts that offer instead, since the table refuses a counter-offer.
+ * Every step from the offer on asks for it, so a chapter opened at a later step (`?step=7`) still has its offer.
+ */
+export function suitorOffers(snapshot: () => GameSnapshot, players: TablePlayers, suitor: () => Seat | undefined) {
   const own = snapshot().bank?.factionId;
   const seat = suitor();
   const from = seat?.faction?.id;
@@ -58,11 +63,13 @@ function suitorOffers(snapshot: () => GameSnapshot, players: TablePlayers, suito
     return;
   }
   const alliances = snapshot().alliances;
-  const pending = alliances?.offers.some((offer) => offer.from === from && offer.to === own);
-  if (pending || alliesOf(alliances, own).includes(from)) {
-    return;
+  const relation = relationTo(alliances, own, from);
+  const learnersOffer = alliances?.offers.find((entry) => entry.from === own && entry.to === from);
+  if (relation === 'outgoing' && learnersOffer) {
+    players.act(seat.id, { kind: 'alliance-accept', factionId: own, offer: learnersOffer.id });
+  } else if (relation === 'none') {
+    players.act(seat.id, { kind: 'alliance-offer', factionId: own });
   }
-  players.act(seat.id, { kind: 'alliance-offer', factionId: own });
 }
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
@@ -75,6 +82,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const alliedWith = (seat: () => Seat | undefined) => () => allies().includes(seat()?.faction?.id ?? '');
   const tokenOf = (seat: () => Seat | undefined) => () =>
     at(factionTokenOf(snapshot().table.pieces, seat()?.faction?.id ?? ''));
+  const alliancesOpened = openedWindow(windowShown(PANEL_WINDOWS.alliances.key));
+  const suitorOffered = () => hasOffer(snapshot().alliances, suitor()?.faction?.id, snapshot().bank?.factionId);
   return [
     task({
       id: 'chat',
@@ -139,18 +148,19 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: { kind: 'page', element: element('[aria-label="Alliance offer"] button') },
       begin: () => {
         suitorOffers(snapshot, players, suitor);
-        return openedWindow(windowShown('alliances')).begin();
+        return alliancesOpened.begin();
       },
+      /* Only an offer that stands counts, so opening Alliances without one never moves the learner on to a step it cannot finish. */
       done: (watch: { was: boolean; closed: boolean }) =>
-        openedWindow(windowShown('alliances')).done(watch) || alliedWith(suitor)(),
+        (alliancesOpened.done(watch) && suitorOffered()) || alliedWith(suitor)(),
     }),
     task({
       id: 'accept',
       task: 'Switch sides',
       detail:
         "Press the alliance button beside Fremen's offer to accept it.\n\nAccepting a new alliance ends the one you have, so Atreides is on their own again.",
-      anchor: { kind: 'page', element: buttonIn('alliances', 'Accept alliance') },
-      begin: () => undefined,
+      anchor: { kind: 'page', element: buttonIn(PANEL_WINDOWS.alliances.key, 'Accept alliance') },
+      begin: () => suitorOffers(snapshot, players, suitor),
       done: alliedWith(suitor),
     }),
     task({
