@@ -310,7 +310,13 @@ function useInventoryDrop({ client, table }: Props) {
   }, [camera, renderer, client, table.canHandleTable]);
 }
 /* `openPlan` opens the closed Battle plan panel for a player who has taken a side (#2984). */
-type ActiveProps = Props & { battle: PublicBattle; own: number; openPlan?: (() => void) | null };
+type ActiveProps = Props & {
+  battle: PublicBattle;
+  own: number;
+  openPlan?: (() => void) | null;
+  /* A settled battle a recall shows again: its plans keep every piece, though none is on the table as part of it any more. */
+  settled?: boolean;
+};
 function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
@@ -527,7 +533,7 @@ function SideContents({
   own,
   index,
   active,
-}: ActiveProps & { index: 0 | 1; active: Set<string> }) {
+}: ActiveProps & { index: 0 | 1; active?: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
   const hint = useId();
@@ -630,9 +636,11 @@ function useClaimDrops(battle: PublicBattle) {
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
   const claims = useClaimDrops(battle);
-  const active = new Set(
-    table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
-  );
+  const active = props.settled
+    ? undefined
+    : new Set(
+        table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
+      );
   return (
     <Group justify="space-between" wrap="nowrap" gap="sm" pos="relative">
       {([0, 1] as const).map((index) => {
@@ -693,14 +701,20 @@ function usePointerReach() {
   }, [run]);
   return motion ? reach : 1;
 }
-function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
+function BattleCallout({
+  client,
+  table,
+  battle,
+  placement,
+  settled,
+}: Props & { battle: PublicBattle; placement: Placement; settled?: boolean }) {
   const pointerSession = usePointerSession();
   const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   /* The callout draws in its own root, which no context reaches, so the opener is read here and handed down. */
-  const props = { client, table, battle, own, openPlan: useBattlePlanOpener() };
+  const props = { client, table, battle, own, settled, openPlan: useBattlePlanOpener() };
   const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
@@ -759,7 +773,7 @@ function settledReveal(result: BattleResult): PublicBattle {
 export function RecalledBattleScene({ result, ...props }: Props & Readonly<{ result: BattleResult }>) {
   const battle = settledReveal(result);
   const placement = useBattlePlacement(battle);
-  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} />;
+  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} settled />;
 }
 /**
  * The scene owns pointer projection;

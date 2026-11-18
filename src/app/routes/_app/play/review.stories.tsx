@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, within } from 'storybook/test';
@@ -89,7 +90,11 @@ export const RecallingASettledBattle = meta.story({
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     /* The table's own reveal comes back where the battle was fought: the winner's call under its wheel, and nothing to press. */
-    await expect(await body.findByText('Left side won', {}, { timeout: 5000 })).toBeVisible();
+    const call = await body.findByText('Left side won', {}, { timeout: 5000 });
+    finishTransitions(call);
+    await expect(call).toBeVisible();
+    /* The pieces each side played stay on its wheel, though the table no longer marks them as part of the battle. */
+    await expect(body.queryAllByText('No leader')).toHaveLength(0);
     for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
       await expect(body.queryByRole('button', { name })).toBeNull();
     }
