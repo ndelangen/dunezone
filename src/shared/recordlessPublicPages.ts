@@ -32,6 +32,7 @@ export const TUTORIAL_PAGES = [
   '/tutorial',
   '/create',
   '/create/faction',
+  '/create/variant',
   ...[
     'welcome',
     'create-a-game',

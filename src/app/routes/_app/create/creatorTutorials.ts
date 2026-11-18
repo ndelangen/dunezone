@@ -25,6 +25,8 @@ export type CreatorTutorial = Readonly<{
   part: CreatorPart;
   /** The tutorial's page, once it is written. */
   page?: LinkProps;
+  /** The slug of the tutorial whose still it shows, while it has none of its own. */
+  still?: string;
 }>;
 
 const TUTORIALS: readonly Omit<CreatorTutorial, 'number'>[] = [
@@ -35,6 +37,16 @@ const TUTORIALS: readonly Omit<CreatorTutorial, 'number'>[] = [
     minutes: 10,
     part: 'Factions',
     page: { to: '/create/faction' },
+  },
+  {
+    slug: 'make-a-variant',
+    title: 'Make your own variant',
+    goal: 'Switch between the variants of a faction, then make one of your own and change a field',
+    minutes: 3,
+    part: 'Factions',
+    page: { to: '/create/variant' },
+    /* Its own still needs a JPEG copy among the media originals for the social card, which only the upload machine can add. */
+    still: 'create-a-faction',
   },
   {
     slug: 'write-faction-rules',
@@ -142,4 +154,4 @@ export const CREATOR_TUTORIALS: readonly CreatorTutorial[] = TUTORIALS.map((tuto
 }));
 
 /* The picture on a creator tutorial's tile: a still of the Dune Zone page it teaches, from public/tutorial/create. */
-export const creatorArt = (tutorial: CreatorTutorial) => `/tutorial/create/${tutorial.slug}.webp`;
+export const creatorArt = (tutorial: CreatorTutorial) => `/tutorial/create/${tutorial.still ?? tutorial.slug}.webp`;

@@ -38,6 +38,9 @@ The faction tutorial at `/create/faction` is the first user: the rail and arrow 
 beside the real `/factions/create`, through Save to the new faction's page. Every other creator
 tutorial can use the same copy, since every editor runs on it.
 
+The variant tutorial at `/create/variant` is the second: the copy opens on `/factions`, where House
+Atreides has several variants, and the learner makes one more and gives it a field of its own.
+
 ## Consequences
 
 - The production build bundles the worker and the Convex functions it loads, lazily, only for a page

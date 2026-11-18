@@ -53,6 +53,13 @@ const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
   </Link>
 );
 
+/* The end of this tutorial leads on to the next, Make your own variant. */
+const nextLink = ({ children, ...props }: { children?: ReactNode }) => (
+  <Link {...props} to="/create/variant">
+    {children}
+  </Link>
+);
+
 function FactionTutorialPage() {
   const { step } = Route.useSearch();
   const loading = (
@@ -75,6 +82,7 @@ function FactionTutorialPage() {
           title={TUTORIAL.title}
           firstTask={step === undefined ? 0 : step - 1}
           chaptersLink={chaptersLink}
+          nextLink={nextLink}
         />
       </Suspense>
     </ClientOnly>

@@ -8,10 +8,10 @@ import { NewFactionDraft } from '@app/widgets/faction-editor/newFactionDraft';
 import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import { SandboxApp } from '../../../db/sandbox/SandboxApp';
-import type { SandboxControls } from '../../../db/sandbox/SandboxApp';
 import { blankFaction, draftAfter } from './blankFaction';
 import { FACTION_TUTORIAL_LEARNED, FACTION_TUTORIAL_TASKS } from './factionTutorialTasks';
 import { PRACTICE_VIEWER, practiceDatabase } from './practiceDatabase';
+import { practiceCopy } from './practicePageChecks';
 
 /*
  * The faction tutorial's page: the rail beside a practice copy of the site, opened on the faction creator.
@@ -22,28 +22,19 @@ export default function FactionChapter({
   title,
   firstTask = 0,
   chaptersLink,
+  nextLink,
 }: Readonly<{
   number: number;
   title: string;
   firstTask?: number;
   chaptersLink: (props: object) => ReactNode;
+  nextLink: (props: object) => ReactNode;
 }>) {
-  /*
-   * The tasks read where the practice copy is through whichever copy is running now; a Reset starts another.
-   * They read the page it has finished opening, so the rail moves on only once the learner sees that page.
-   */
-  const [chapter] = useState(() => {
-    let controls: SandboxControls | null = null;
-    return {
-      ready: (next: SandboxControls) => {
-        controls = next;
-      },
-      tasks: FACTION_TUTORIAL_TASKS({ pathname: () => controls?.router.state.resolvedLocation?.pathname ?? '' }),
-    };
-  });
+  const [copy] = useState(practiceCopy);
+  const [tasks] = useState(() => FACTION_TUTORIAL_TASKS(copy.page));
   const [run, setRun] = useState(0);
   /* `?step` opens on what the earlier tasks would have made; Reset starts the chapter afresh from a blank faction. */
-  const [deepLinkDraft] = useState(() => draftAfter(chapter.tasks.slice(0, firstTask).map((task) => task.id)));
+  const [deepLinkDraft] = useState(() => draftAfter(tasks.slice(0, firstTask).map((task) => task.id)));
   const loading = (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -60,11 +51,15 @@ export default function FactionChapter({
     <TutorialGuide
       number={number}
       title={title}
-      tasks={chapter.tasks}
+      tasks={tasks}
       firstTask={firstTask}
       learned={FACTION_TUTORIAL_LEARNED}
-      onReset={() => setRun((current) => current + 1)}
+      onReset={() => {
+        copy.reset();
+        setRun((current) => current + 1);
+      }}
       chaptersLink={chaptersLink}
+      nextLink={nextLink}
     >
       <NewFactionDraft value={run === 0 ? deepLinkDraft : blankFaction}>
         <SandboxApp
@@ -72,7 +67,7 @@ export default function FactionChapter({
           database={practiceDatabase}
           identity={PRACTICE_VIEWER}
           path="/factions/create"
-          onReady={chapter.ready}
+          onReady={copy.ready}
           loading={loading}
         />
       </NewFactionDraft>
