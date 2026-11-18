@@ -57,20 +57,21 @@ export function reviewCheckpoints(stage: Stage = 'play'): ReviewCheckpoint[] {
   ];
 }
 
-/* The step the table saves when Turn 1's battle settles, just after the Battle phase began. */
-export const SETTLED_BATTLE_STEP = 900;
 type SettledBattle = NonNullable<GameSnapshot['battleResults']>[number];
 
-/** The checkpoints with the one Turn 1's settled battle saved, right after the Battle phase's own. */
+/** The checkpoints with Turn 1's Battle checkpoint saved as the one its battle settled, the way the table saves it once a battle ends. */
 export function withSettledBattle(checkpoints: readonly ReviewCheckpoint[]): ReviewCheckpoint[] {
-  const battle = checkpoints.findIndex((entry) => entry.step === FIRST_PLAY_STEP + BATTLE);
-  const settled: ReviewCheckpoint = {
-    ...checkpoints[battle]!,
-    step: SETTLED_BATTLE_STEP,
-    context: 'Turn 1, Battle',
-    moment: 'battle',
-  };
-  return [...checkpoints.slice(0, battle + 1), settled, ...checkpoints.slice(battle + 1)];
+  if (!checkpoints.some((entry) => entry.step === FIRST_PLAY_STEP + BATTLE)) {
+    throw new Error('These checkpoints have no Turn 1 Battle to settle.');
+  }
+  return checkpoints.map((entry) =>
+    entry.step === FIRST_PLAY_STEP + BATTLE ? { ...entry, context: 'Turn 1, Battle', moment: 'battle' as const } : entry
+  );
+}
+
+/** The checkpoint a settled-battle recall asks for, from the same list its transport serves. */
+export function settledBattleCheckpoint(stage: Stage = 'play'): ReviewCheckpoint {
+  return withSettledBattle(reviewCheckpoints(stage)).find((entry) => entry.moment === 'battle')!;
 }
 
 /** The live table a review is asked from: Turn 1's Battle, or the game finished at its Mentat Pause; nobody reviewing yet. */
@@ -147,10 +148,11 @@ export function reviewTransport(
   {
     agreeAfterMs = 1500 as number | null,
     stage = 'play' as Stage,
-    settledBattle = undefined as SettledBattle | undefined,
+    /* The table's settled battles, newest first as the game keeps them; the newest is the one Turn 1's Battle checkpoint settled. */
+    settledBattles = [] as readonly SettledBattle[],
   } = {}
 ) {
-  const checkpoints = settledBattle ? withSettledBattle(reviewCheckpoints(stage)) : reviewCheckpoints(stage);
+  const checkpoints = settledBattles.length ? withSettledBattle(reviewCheckpoints(stage)) : reviewCheckpoints(stage);
   let live = reviewableSnapshot(viewerSeat, review, stage);
   live.reviewCheckpoints = checkpoints;
   let revision = live.revision;
@@ -227,8 +229,8 @@ export function reviewTransport(
         step: message.step,
         lastStep: checkpoints.at(-1)!.step,
         snapshot:
-          settledBattle && message.step === SETTLED_BATTLE_STEP
-            ? { ...checkpointSnapshot(FIRST_PLAY_STEP + BATTLE, viewerSeat), battleResults: [settledBattle] }
+          settledBattles.length && message.step === FIRST_PLAY_STEP + BATTLE
+            ? { ...checkpointSnapshot(message.step, viewerSeat), battleResults: [...settledBattles] }
             : checkpointSnapshot(message.step, viewerSeat),
       })
     );

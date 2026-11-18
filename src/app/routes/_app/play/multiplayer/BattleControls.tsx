@@ -310,13 +310,7 @@ function useInventoryDrop({ client, table }: Props) {
   }, [camera, renderer, client, table.canHandleTable]);
 }
 /* `openPlan` opens the closed Battle plan panel for a player who has taken a side (#2984). */
-type ActiveProps = Props & {
-  battle: PublicBattle;
-  own: number;
-  openPlan?: (() => void) | null;
-  /* A settled battle a recall shows again: its plans keep every piece, though none is on the table as part of it any more. */
-  settled?: boolean;
-};
+type ActiveProps = Props & { battle: PublicBattle; own: number; openPlan?: (() => void) | null };
 function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
@@ -423,7 +417,13 @@ function waitingOn({ battle, table, own }: ActiveProps) {
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
     if (!offersActions(props.table)) {
-      return null;
+      /* A recalled battle that settled with no winner says so once, between the wheels; a winner's call sits under its own wheel. */
+      const recalled = props.battle.id !== props.table.snapshot.battle?.id;
+      return recalled && !props.battle.sides.some((side) => side?.choice) ? (
+        <Text className={styles.choice} size="xs">
+          {OUTCOME_LABELS.none}
+        </Text>
+      ) : null;
     }
     /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
     const waiting = waitingOn(props);
@@ -545,7 +545,7 @@ function SideContents({
         factionId={side!.factionId}
         factionName={rosterName(side!.factionId, names)}
         artwork={table.snapshot.factionArtwork}
-        client={table.canHandleTable && offersActions(table) ? client : undefined}
+        client={table.canHandleTable ? client : undefined}
         active={active}
       />
     );
@@ -636,11 +636,13 @@ function useClaimDrops(battle: PublicBattle) {
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
   const claims = useClaimDrops(battle);
-  const active = props.settled
-    ? undefined
-    : new Set(
-        table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
-      );
+  /* Only the live battle marks its pieces on the table; one a recall shows again draws every piece from its saved plans. */
+  const active =
+    battle.id === table.snapshot.battle?.id
+      ? new Set(
+          table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
+        )
+      : undefined;
   return (
     <Group justify="space-between" wrap="nowrap" gap="sm" pos="relative">
       {([0, 1] as const).map((index) => {
@@ -701,20 +703,14 @@ function usePointerReach() {
   }, [run]);
   return motion ? reach : 1;
 }
-function BattleCallout({
-  client,
-  table,
-  battle,
-  placement,
-  settled,
-}: Props & { battle: PublicBattle; placement: Placement; settled?: boolean }) {
+function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   /* The callout draws in its own root, which no context reaches, so the opener is read here and handed down. */
-  const props = { client, table, battle, own, settled, openPlan: useBattlePlanOpener() };
+  const props = { client, table, battle, own, openPlan: useBattlePlanOpener() };
   const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
@@ -751,11 +747,11 @@ function BattleCallout({
 type BattleResult = NonNullable<TableProjection['snapshot']['battleResults']>[number];
 /*
  * A settled battle drawn as the table revealed it, for a recall: both wheels in the callout pointing at its territory,
- * with each winning side's call under its wheel. A recall plays back, so the callout offers no controls.
+ * with the winner's call under its wheel, or No winner once between them. The result keeps no side's own call, so no other call shows.
+ * A recall plays back, so the callout offers no controls.
  */
 function settledReveal(result: BattleResult): PublicBattle {
-  const choice = (index: 0 | 1) =>
-    result.outcome === 'none' || result.outcome === (index ? 'right' : 'left') ? result.outcome : null;
+  const choice = (index: 0 | 1) => (result.outcome === (index ? 'right' : 'left') ? result.outcome : null);
   return {
     id: result.id,
     anchor: result.anchor,
@@ -773,7 +769,7 @@ function settledReveal(result: BattleResult): PublicBattle {
 export function RecalledBattleScene({ result, ...props }: Props & Readonly<{ result: BattleResult }>) {
   const battle = settledReveal(result);
   const placement = useBattlePlacement(battle);
-  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} settled />;
+  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} />;
 }
 /**
  * The scene owns pointer projection;

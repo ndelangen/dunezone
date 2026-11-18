@@ -13,7 +13,7 @@ import {
   reviewCheckpoints,
   reviewOf,
   reviewTransport,
-  withSettledBattle,
+  settledBattleCheckpoint,
 } from './review.stories.fixture';
 
 const meta = preview.meta({
@@ -79,13 +79,14 @@ export const RecallingAfterTheGame = meta.story({
 /* Recalling the checkpoint saved right after a battle settled shows that battle's reveal on the table again, read-only (#2985). */
 export const RecallingASettledBattle = meta.story({
   beforeEach: install(() => {
-    const settled = withSettledBattle(reviewCheckpoints('finished')).find(
-      (checkpoint) => checkpoint.moment === 'battle'
-    )!;
-    return reviewTransport('seat-2', reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settled, 'seat-1'), {
-      stage: 'finished',
-      settledBattle: agreedBattle().results[0],
-    });
+    const [newest] = agreedBattle().results;
+    /* An earlier battle the table still keeps, behind the one this checkpoint settled, which the right side won. */
+    const earlier = { ...newest!, id: 'earlier-battle', territory: 'Carthag', outcome: 'right' as const };
+    return reviewTransport(
+      'seat-2',
+      reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settledBattleCheckpoint('finished'), 'seat-1'),
+      { stage: 'finished', settledBattles: [newest!, earlier] }
+    );
   }),
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
@@ -93,6 +94,8 @@ export const RecallingASettledBattle = meta.story({
     const call = await body.findByText('Left side won', {}, { timeout: 5000 });
     finishTransitions(call);
     await expect(call).toBeVisible();
+    /* The newest settled battle is the one this checkpoint saved, not an earlier one the table still keeps. */
+    await expect(body.queryByText('Right side won')).toBeNull();
     /* The pieces each side played stay on its wheel, though the table no longer marks them as part of the battle. */
     await expect(body.queryAllByText('No leader')).toHaveLength(0);
     for (const name of [/Feyd Rautha/i, /Lady Jessica/i, /Crysknife/i]) {
@@ -101,6 +104,26 @@ export const RecallingASettledBattle = meta.story({
     for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
       await expect(body.queryByRole('button', { name })).toBeNull();
     }
+  },
+});
+
+/* A recalled battle that settled with no winner says so once, between the wheels, since the table keeps no side's own call. */
+export const RecallingABattleWithNoWinner = meta.story({
+  beforeEach: install(() => {
+    const [result] = agreedBattle().results;
+    return reviewTransport(
+      'seat-2',
+      reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settledBattleCheckpoint('finished'), 'seat-1'),
+      { stage: 'finished', settledBattles: [{ ...result!, outcome: 'none' }] }
+    );
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const call = await body.findByText('No winner', {}, { timeout: 5000 });
+    finishTransitions(call);
+    await expect(call).toBeVisible();
+    await expect(body.getAllByText('No winner')).toHaveLength(1);
+    await expect(body.queryByText(/side won$/)).toBeNull();
   },
 });
 
