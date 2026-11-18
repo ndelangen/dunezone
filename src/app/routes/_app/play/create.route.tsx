@@ -16,6 +16,7 @@ import {
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
 import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/widgets/create-game/CreateGamePass';
+import { offeredSpiceExtras } from '@app/widgets/create-game/offeredSpiceExtras';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { openDeparture } from '@app/widgets/voyage/voyage';
@@ -211,7 +212,7 @@ function CreateGameForm({
     pass.rulesets,
     pass.draft.rulesetId,
     JSON.stringify(pass.preview?.packed ?? null),
-    pass.draft.spiceExtras
+    offeredSpiceExtras(pass.draft.spiceExtras, pass.preview)
   );
   return (
     <PageLayout>

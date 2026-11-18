@@ -32,6 +32,7 @@ import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
 import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './CreateGamePass.module.css';
+import { offeredSpiceExtras } from './offeredSpiceExtras';
 import { RulesetManifest } from './RulesetManifest';
 
 /*
@@ -192,9 +193,10 @@ export function CreateGamePass({
   );
   const voiceHintId = useId();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
+  const spiceExtras = offeredSpiceExtras(draft.spiceExtras, preview);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
-    ...(draft.spiceExtras.length ? { spiceExtras: draft.spiceExtras } : {}),
+    ...(spiceExtras.length ? { spiceExtras } : {}),
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
     discordVoice: discordVoiceAvailable && draft.discordVoice,
