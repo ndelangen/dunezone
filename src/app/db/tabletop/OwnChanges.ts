@@ -60,22 +60,26 @@ export class OwnChanges {
     }
   }
 
-  /** Takes the room's answer to a command, against the room's table as it stood before that answer. */
+  /**
+   * Takes the room's answer to a command, with the room's table as the subscription holds it.
+   * A view's answer arrives with its table applied, while a resync's waits for the replacement table.
+   */
   settled(
     commandId: string,
     outcome: 'completed' | 'rejected',
-    context: Readonly<{ from: number; followsLater: boolean }>
+    context: Readonly<{ room: GameSnapshot | null; followsLater: boolean }>
   ) {
     const sent = this.sentCommands.get(commandId);
     this.sentCommands.delete(commandId);
     if (sent && outcome === 'completed') {
-      this.taken.push({ sent, ...context });
+      this.taken.push({ sent, from: context.room?.revision ?? -1, followsLater: context.followsLater });
+      this.observed(context.room);
     }
   }
 
-  /** Reads the room's table once an answer has been applied, confirming each taken command at the revision that shows it. */
-  observed(snapshot: GameSnapshot) {
-    if (!this.taken.length) {
+  /** Reads the room's table as each message leaves it, confirming each taken command at the revision that shows it. */
+  observed(snapshot: GameSnapshot | null) {
+    if (!snapshot || !this.taken.length) {
       return;
     }
     const waiting: Taken[] = [];
