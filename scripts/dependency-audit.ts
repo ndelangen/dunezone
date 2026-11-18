@@ -16,6 +16,12 @@ export const AUDIT_LEVEL = 'moderate';
 export const ATTEMPT_MS = 30_000;
 export const RETRY_DELAYS_MS: readonly number[] = [5000, 15_000, 45_000];
 
+/*
+ * Advisories the audit skips, each until a fix ships, with its tracking issue.
+ * GHSA-fc5q-39xc-vjpf: picomatch <= 4.0.7 has no patched release and package.json pins 4.0.7 (#3004).
+ */
+export const IGNORED_ADVISORIES: readonly string[] = ['GHSA-fc5q-39xc-vjpf'];
+
 export type AuditAttempt = {
   exitCode: number | null;
   exitedDueToTimeout: boolean;
@@ -57,7 +63,13 @@ export function classifyAudit(attempt: AuditAttempt): AuditVerdict {
 /** One bounded `bun audit`, killed after ATTEMPT_MS. */
 function runBunAudit(extraArgs: readonly string[]): AuditAttempt {
   const proc = Bun.spawnSync({
-    cmd: [process.execPath, 'audit', `--audit-level=${AUDIT_LEVEL}`, ...extraArgs],
+    cmd: [
+      process.execPath,
+      'audit',
+      `--audit-level=${AUDIT_LEVEL}`,
+      ...IGNORED_ADVISORIES.map((id) => `--ignore=${id}`),
+      ...extraArgs,
+    ],
     stdout: 'pipe',
     stderr: 'pipe',
     timeout: ATTEMPT_MS,
