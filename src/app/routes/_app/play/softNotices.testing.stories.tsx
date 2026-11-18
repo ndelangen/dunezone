@@ -6,6 +6,7 @@ import { gameMeta } from './game.stories.fixture';
 import {
   biddingReachesViewer,
   changeTable,
+  holdNotices,
   noticeLog,
   noticeSetup,
   otherSeat,
@@ -23,6 +24,7 @@ const meta = testingPreview.meta({
       await import('./multiplayer/HostedTable');
     },
   ],
+  decorators: [...gameMeta.decorators, holdNotices],
   beforeEach: noticeSetup(),
 });
 

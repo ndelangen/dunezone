@@ -3,11 +3,11 @@ import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
-import { NoticeLifetime } from './multiplayer/SoftNotices';
 import {
   biddingReachesViewer,
   changeTable,
   holdGlowLit,
+  holdNotices,
   noticeLog,
   noticeSetup,
   tableShown,
@@ -26,19 +26,13 @@ const meta = preview.meta({
       await import('./multiplayer/HostedTable');
     },
   ],
+  decorators: [...gameMeta.decorators, holdNotices],
   beforeEach: noticeSetup(),
 });
 
-/* The bidder comes to the viewer's faction: a toast says it is their turn, and the screen's edge glows, held here at its height with the toast kept. */
+/* The bidder comes to the viewer's faction: a toast says it is their turn, and the screen's edge glows, held here at its height. */
 export const YourTurnGlows = meta.story({
   globals: { motion: 'on' },
-  decorators: [
-    (Story) => (
-      <NoticeLifetime value={Number.POSITIVE_INFINITY}>
-        <Story />
-      </NoticeLifetime>
-    ),
-  ],
   play: async ({ canvasElement }) => {
     const page = await tableShown(canvasElement);
     changeTable(biddingReachesViewer);

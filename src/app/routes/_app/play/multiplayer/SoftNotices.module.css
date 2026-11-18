@@ -26,7 +26,9 @@
   pointer-events: auto;
 }
 
+/* A leaving toast no longer takes the pointer, whether it fades or, with motion off, is gone at once. */
 .slot[data-leaving] {
+  pointer-events: none;
   opacity: 0;
 }
 

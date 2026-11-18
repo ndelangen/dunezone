@@ -1,15 +1,24 @@
 import { idleBidding } from '@shared/play/bidding';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import type { Decorator } from '@storybook/tanstack-react';
 import { within } from 'storybook/test';
 
 import { install } from './game.stories.fixture';
+import { NoticeLifetime } from './multiplayer/SoftNotices';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 /** The seat the soft notification stories watch from. */
 const NOTICE_VIEWER = 'seat-2';
 
 let live: { snapshot: GameSnapshot; transport: ReturnType<typeof productTransport> } | null = null;
+
+/** Keeps every notice until the story is done with it, so a slow runner never loses one to its 6 s lifetime. */
+export const holdNotices: Decorator = (Story) => (
+  <NoticeLifetime value={Number.POSITIVE_INFINITY}>
+    <Story />
+  </NoticeLifetime>
+);
 
 /** A table in play for the viewer, which a story then changes as the room would, to raise a notice. */
 export function noticeSetup(start?: (snapshot: GameSnapshot) => void) {

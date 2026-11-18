@@ -144,7 +144,8 @@ function SoftNotices({
       : [];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [notices, gone, lifetime]);
-  const live = notices.filter((notice) => !gone.has(notice.id)).toSorted((a, b) => b.at - a.at);
+  /* Newest first: the list runs oldest to newest, a batch from one change included, so its newest take the slots. */
+  const live = notices.filter((notice) => !gone.has(notice.id)).toReversed();
   const open = (notice: SoftNotice) => {
     const current = new Set(notices.map((kept) => kept.id));
     setGone((before) => new Set([...before].filter((known) => current.has(known))).add(notice.id));
@@ -169,7 +170,12 @@ function SoftNotices({
       {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
       <div className={styles.stack}>
         {live.slice(0, 4).map((notice) => (
-          <div key={notice.id} className={styles.slot} data-leaving={leaving.has(notice.id) || undefined}>
+          <div
+            key={notice.id}
+            className={styles.slot}
+            data-leaving={leaving.has(notice.id) || undefined}
+            inert={leaving.has(notice.id)}
+          >
             <Toast notice={notice} onOpen={open} />
           </div>
         ))}
