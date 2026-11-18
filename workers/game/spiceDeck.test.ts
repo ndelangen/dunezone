@@ -28,7 +28,7 @@ function deck(slug: string, cards: number, back = BACK): SlotCapture {
         },
       ],
     },
-  } as unknown as SlotCapture;
+  };
 }
 
 const names = (pieces: ReturnType<typeof spiceDeck>) =>
