@@ -42,6 +42,23 @@ export function otherSeat(snapshot: GameSnapshot) {
   return { faction: seat.faction!, player: player.name };
 }
 
+/** A payment of 3 spice to the viewer from another seat's player, as the table records it; returns the giver's faction name. */
+export function payViewer(snapshot: GameSnapshot) {
+  const other = otherSeat(snapshot);
+  snapshot.spiceTransfers = [
+    ...(snapshot.spiceTransfers ?? []),
+    {
+      revision: snapshot.revision,
+      kind: 'payment',
+      actor: other.player,
+      amount: 3,
+      source: 'table',
+      destination: ownFaction(snapshot).id,
+    },
+  ];
+  return other.faction.name;
+}
+
 /** Opens the Bidding phase with the bidder pointing at the viewer's faction. */
 export function biddingReachesViewer(snapshot: GameSnapshot) {
   snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');

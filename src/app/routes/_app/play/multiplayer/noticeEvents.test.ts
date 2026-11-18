@@ -59,12 +59,20 @@ test('the first snapshot a page sees raises nothing, even on the viewer’s turn
   expect(between(undefined, table({ bidding: { stage: 'open', turn: OWN } as GameSnapshot['bidding'] }))).toEqual([]);
 });
 
+const openBid = (turn: string, round = 1) => ({ bidding: { stage: 'open', turn, round } as GameSnapshot['bidding'] });
+
 test('the bidder coming to the viewer raises their turn once, not again while it stays there', () => {
-  const open = (turn: string) => ({ bidding: { stage: 'open', turn } as GameSnapshot['bidding'] });
-  expect(between(table(open(OTHER)), table({ ...open(OWN), revision: 2 }))).toEqual([
-    { key: 'bid-2', kind: 'bid', factionId: OWN, text: 'Your turn to bid' },
+  expect(between(table(openBid(OTHER)), table({ ...openBid(OWN), revision: 2 }))).toEqual([
+    { key: 'bid-1-2', kind: 'bid', factionId: OWN, text: 'Your turn to bid' },
   ]);
-  expect(between(table(open(OWN)), table({ ...open(OWN), revision: 3 }))).toEqual([]);
+  expect(between(table(openBid(OWN)), table({ ...openBid(OWN), revision: 3 }))).toEqual([]);
+});
+
+test('a round started afresh on the viewer raises their turn again, and the old round’s notice no longer holds', () => {
+  expect(between(table(openBid(OWN, 1)), table({ ...openBid(OWN, 2), revision: 3 }))).toEqual([
+    { key: 'bid-2-3', kind: 'bid', factionId: OWN, text: 'Your turn to bid' },
+  ]);
+  expect(noticeStillHolds(table(openBid(OWN, 2)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(false);
 });
 
 test('a battle raises the viewer’s turn once both its sides are claimed, one of them theirs', () => {
@@ -156,9 +164,8 @@ test('a new alliance offer to the viewer names who offers it', () => {
 });
 
 test('a notice holds only while what it announced stands; payments hold until they fade', () => {
-  const open = (turn: string) => table({ bidding: { stage: 'open', turn } as GameSnapshot['bidding'] });
-  expect(noticeStillHolds(open(OWN), OWN, { key: 'bid-2', kind: 'bid' })).toBe(true);
-  expect(noticeStillHolds(open(OTHER), OWN, { key: 'bid-2', kind: 'bid' })).toBe(false);
+  expect(noticeStillHolds(table(openBid(OWN)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(true);
+  expect(noticeStillHolds(table(openBid(OTHER)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(false);
   const battle = (stage: string) =>
     table({ battle: { id: 'b1', stage, sides: [] } as unknown as GameSnapshot['battle'] });
   expect(noticeStillHolds(battle('preparing'), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);

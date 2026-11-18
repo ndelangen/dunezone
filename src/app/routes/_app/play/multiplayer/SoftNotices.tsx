@@ -1,12 +1,10 @@
 import { Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import type { GameSnapshot } from '@shared/play/protocol';
-import { reviewRunning } from '@shared/play/review';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -15,8 +13,9 @@ import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween } from './noticeEvents';
 import type { SoftNoticeKind } from './noticeEvents';
+import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
-import { actingFaction, stageInPlay } from './tableFactions';
+import { stageInPlay } from './tableFactions';
 
 type SoftNotice = Readonly<{
   id: string;
@@ -43,31 +42,24 @@ const TURN_KINDS: ReadonlySet<SoftNoticeKind> = new Set(['bid', 'ship', 'battle'
 /** How long a notice shows before it is gone, and how long its fade takes before that. The turn's glow is a CSS animation of its own. */
 const LIFETIME_MS = 6000;
 const FADE_MS = 400;
+
+/** How long a notice shows; a story holds its notices with an endless one, so a slow runner never loses them before it looks. */
+export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
-/*
- * The faction the viewer acts for, while the live table is in play: no notices while a past table, a recall or another stage shows.
- * Nor while the connection is restored: the table shown then is the last one kept, perhaps from an earlier visit, so the fresh table that follows starts afresh rather than counting everything since as news.
- */
-function noticedFaction(table: TableProjection): string | undefined {
-  if (table.reconnecting || !stageInPlay(table.snapshot.stage) || reviewRunning(table.review?.current)) {
-    return undefined;
-  }
-  return actingFaction(table);
-}
-
 /**
  * The soft notices the live table raises for the viewer as it changes, newest last.
- * Each change is compared with the one before it, so joining or reloading raises nothing for what already happened.
+ * Each change is compared with the one before it, starting from the first live table the page showed, so joining or reloading raises nothing for what already happened.
  * A recall, playback or lost connection clears them, since what they point at is not on screen, and a turn that has passed takes its notice with it.
  * The baseline only moves with the table's revision, so the viewer's own drag of the movement order, shown before the table answers, never stands in for the table.
  */
-function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
-  const own = noticedFaction(table);
-  /* The room's own table, not the viewer's pending drag of the movement order, so a turn the room never gave is never announced. */
+function useSoftNotices(table: TableProjection, start: NoticeStart | null): readonly SoftNotice[] {
+  const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
-  const previous = useRef<{ own: string; snapshot: GameSnapshot } | null>(null);
+  /* Setup has no turns, but a faction can be paid or offered an alliance there. */
+  const playing = stageInPlay(table.snapshot.stage);
+  const previous = useRef(start);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
   const [shownFor, setShownFor] = useState(own);
   if (shownFor !== own) {
@@ -75,16 +67,20 @@ function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
     setNotices([]);
   }
   useEffect(() => {
-    const before = previous.current;
-    if (own && before?.own === own && before.snapshot.revision === snapshot.revision) {
+    /* A faction newly acted for starts from the table the page first showed it at. */
+    const before = previous.current?.own === own ? previous.current : start;
+    if (!own || !before) {
+      previous.current = null;
       return;
     }
-    previous.current = own ? { own, snapshot } : null;
-    if (!own || before?.own !== own) {
+    if (before.snapshot.revision === snapshot.revision) {
       return;
     }
+    previous.current = { own, snapshot };
     const names = snapshotFactionLabels(snapshot);
-    const raised = noticesBetween(before.snapshot, snapshot, own, names);
+    const raised = noticesBetween(before.snapshot, snapshot, own, names).filter(
+      (draft) => playing || !TURN_KINDS.has(draft.kind)
+    );
     const at = performance.now();
     setNotices((all) => {
       const kept = all.filter((notice) => noticeStillHolds(snapshot, own, { key: notice.id, kind: notice.kind }));
@@ -103,7 +99,7 @@ function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
         }));
       return [...kept, ...fresh].slice(-KEPT);
     });
-  }, [own, snapshot]);
+  }, [own, start, snapshot, playing]);
   return notices;
 }
 
@@ -117,6 +113,7 @@ function SoftNotices({
   onOpen,
 }: Readonly<{ notices: readonly SoftNotice[]; onOpen?: (notice: SoftNotice) => void }>) {
   const motion = useMotionAllowed();
+  const lifetime = useContext(NoticeLifetime);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const [leaving, setLeaving] = useState<ReadonlySet<string>>(new Set());
   /* Each notice starts to fade a moment before its lifetime ends, then leaves: one timer for each step, not a ticking clock. */
@@ -127,14 +124,16 @@ function SoftNotices({
       new Set([...before].filter((known) => current.has(known))).add(id);
     const after = (notice: SoftNotice, ms: number, step: (id: string) => void) =>
       window.setTimeout(() => step(notice.id), Math.max(0, notice.at + ms - performance.now()));
-    const timers = notices
-      .filter((notice) => !gone.has(notice.id))
-      .flatMap((notice) => [
-        after(notice, LIFETIME_MS - FADE_MS, (id) => setLeaving(mark(id))),
-        after(notice, LIFETIME_MS, (id) => setGone(mark(id))),
-      ]);
+    const timers = Number.isFinite(lifetime)
+      ? notices
+          .filter((notice) => !gone.has(notice.id))
+          .flatMap((notice) => [
+            after(notice, lifetime - FADE_MS, (id) => setLeaving(mark(id))),
+            after(notice, lifetime, (id) => setGone(mark(id))),
+          ])
+      : [];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [notices, gone]);
+  }, [notices, gone, lifetime]);
   const live = notices.filter((notice) => !gone.has(notice.id)).toSorted((a, b) => b.at - a.at);
   const open = (notice: SoftNotice) => {
     const current = new Set(notices.map((kept) => kept.id));
@@ -198,9 +197,15 @@ const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances',
  */
 export function TableSoftNotices({
   table,
+  start,
   openPanel,
   openBattlePlan,
-}: Readonly<{ table: TableProjection; openPanel: (key: string) => void; openBattlePlan: (() => void) | null }>) {
+}: Readonly<{
+  table: TableProjection;
+  start: NoticeStart | null;
+  openPanel: (key: string) => void;
+  openBattlePlan: (() => void) | null;
+}>) {
   const open = (notice: SoftNotice) => {
     const panel = PANELS[notice.kind];
     if (panel) {
@@ -209,5 +214,5 @@ export function TableSoftNotices({
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table)} onOpen={open} />;
+  return <SoftNotices notices={useSoftNotices(table, start)} onOpen={open} />;
 }

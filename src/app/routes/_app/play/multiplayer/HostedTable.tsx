@@ -27,7 +27,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
@@ -64,7 +64,6 @@ import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel'
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
@@ -80,6 +79,7 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
+import { useNoticeStart } from './noticeStart';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -115,21 +115,17 @@ const ConnectedKeyboardShortcutsPanel = lazy(() =>
 );
 
 /* The planner loads when a battle first needs it, which keeps the table's own bundle within its budget. */
+/* The territory tints are a rare setting, so their panel loads when opened rather than in the table's bundle. */
+const ConnectedTerritoryTintsPanel = lazy(() =>
+  import('../panels/tints/useTerritoryTintsPanel').then((module) => ({ default: module.ConnectedTerritoryTintsPanel }))
+);
+
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
 );
 
 /* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
 const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
-
-/* The notices with their own loading boundary, so the table renders without waiting for them. */
-function LazySoftNotices(props: ComponentProps<typeof TableSoftNotices>) {
-  return (
-    <Suspense fallback={null}>
-      <TableSoftNotices {...props} />
-    </Suspense>
-  );
-}
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -509,7 +505,12 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         ? [
             {
               ...PANEL_WINDOWS.tints,
-              content: withTableError(error, <ConnectedTerritoryTintsPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedTerritoryTintsPanel client={client} table={table} />
+                </Suspense>
+              ),
             },
           ]
         : []),
@@ -808,6 +809,7 @@ function ConnectedTable({
   const [battleOpen, setBattleOpen] = useState(false);
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
+  const noticeStart = useNoticeStart(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
@@ -894,7 +896,16 @@ function ConnectedTable({
                 })}
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
-                notices={<LazySoftNotices table={table} openPanel={openWindow} openBattlePlan={battlePlanOpener} />}
+                notices={
+                  <Suspense fallback={null}>
+                    <TableSoftNotices
+                      table={table}
+                      start={noticeStart}
+                      openPanel={openWindow}
+                      openBattlePlan={battlePlanOpener}
+                    />
+                  </Suspense>
+                }
               />
             </CompassTableContext>
             {tracker ? (

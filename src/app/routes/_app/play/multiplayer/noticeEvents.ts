@@ -46,11 +46,14 @@ export function noticesBetween(
 const bidUp = (snapshot: GameSnapshot, own: string) =>
   snapshot.bidding?.stage === 'open' && snapshot.bidding.turn === own;
 
+/* A turn to bid names its round, so a round started afresh on the viewer is news, and takes the old round's notice with it. */
+const bidKey = (snapshot: GameSnapshot) => `bid-${snapshot.bidding?.round}-`;
+
 function biddingTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  if (!bidUp(after, own) || bidUp(before, own)) {
+  if (!bidUp(after, own) || (bidUp(before, own) && before.bidding?.round === after.bidding?.round)) {
     return [];
   }
-  return [{ key: `bid-${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
+  return [{ key: `${bidKey(after)}${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
 }
 
 /* The table records no movement turns until the first faction is done, so the phase itself says when movement is played. */
@@ -154,7 +157,7 @@ export function noticeStillHolds(
 ): boolean {
   switch (notice.kind) {
     case 'bid':
-      return bidUp(snapshot, own);
+      return bidUp(snapshot, own) && notice.key.startsWith(bidKey(snapshot));
     case 'ship':
       return shipUp(snapshot, own);
     case 'battle':

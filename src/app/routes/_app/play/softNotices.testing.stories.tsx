@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
-import { expect, userEvent } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
 import {
@@ -10,6 +10,7 @@ import {
   noticeSetup,
   otherSeat,
   ownFaction,
+  payViewer,
   tableShown,
 } from './softNotices.stories.fixture';
 
@@ -31,24 +32,30 @@ export const PaidByAnotherFaction = meta.story({
     const page = await tableShown(canvasElement);
     let giver = '';
     changeTable((snapshot) => {
-      const other = otherSeat(snapshot);
-      giver = other.faction.name;
-      snapshot.spiceTransfers = [
-        ...(snapshot.spiceTransfers ?? []),
-        {
-          revision: snapshot.revision,
-          kind: 'payment',
-          actor: other.player,
-          amount: 3,
-          source: 'table',
-          destination: ownFaction(snapshot).id,
-        },
-      ];
+      giver = payViewer(snapshot);
     });
     const { log, glowing } = noticeLog(page);
     const toast = await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
     await expect(finishTransitions(toast)).toBeVisible();
     await expect(glowing()).toBe(false);
+  },
+});
+
+/* Spice paid during setup toasts as well, though setup has no turns to announce. */
+export const PaidDuringSetup = meta.story({
+  beforeEach: noticeSetup((snapshot) => {
+    snapshot.stage = 'setup';
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('log', { name: 'Notifications' }, { timeout: 30_000 });
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(finishTransitions(toast)).toBeVisible();
   },
 });
 
