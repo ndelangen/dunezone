@@ -60,7 +60,7 @@ export function reviewCheckpoints(stage: Stage = 'play'): ReviewCheckpoint[] {
 type SettledBattle = NonNullable<GameSnapshot['battleResults']>[number];
 
 /** The checkpoints with Turn 1's Battle checkpoint saved as the one its battle settled, the way the table saves it once a battle ends. */
-export function withSettledBattle(checkpoints: readonly ReviewCheckpoint[]): ReviewCheckpoint[] {
+function withSettledBattle(checkpoints: readonly ReviewCheckpoint[]): ReviewCheckpoint[] {
   if (!checkpoints.some((entry) => entry.step === FIRST_PLAY_STEP + BATTLE)) {
     throw new Error('These checkpoints have no Turn 1 Battle to settle.');
   }
