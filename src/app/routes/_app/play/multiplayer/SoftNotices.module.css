@@ -1,5 +1,5 @@
 /*
- * The viewer's soft notifications (#2981): small panes over the table that never take the pointer away from it.
+ * The viewer's soft notifications (#2981): small panes under the phase header that never take the pointer away from the table.
  * The root covers the screen without catching the pointer; only the notices themselves do.
  */
 .root {
@@ -11,24 +11,13 @@
 
 .stack {
   position: absolute;
+  top: 72px;
+  left: 50%;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-}
-
-.root[data-variant="header"] .stack,
-.root[data-variant="glow"] .stack,
-.root[data-variant="ticker"] .stack {
-  top: 72px;
-  left: 50%;
   align-items: center;
   transform: translateX(-50%);
-}
-
-.root[data-variant="corner"] .stack {
-  right: var(--space-md);
-  bottom: 88px;
-  align-items: flex-end;
 }
 
 .toast {
@@ -52,10 +41,6 @@
   animation: arrive 260ms ease-out backwards;
 }
 
-.root[data-variant="corner"][data-motion] .toast {
-  animation-name: arrive-from-below;
-}
-
 /* The viewer's own turn reads as the one to act on: a brand edge rather than a brighter pane. */
 .turn {
   box-shadow:
@@ -73,40 +58,6 @@
   color: var(--color-muted);
 }
 
-.more {
-  flex-shrink: 0;
-}
-
-.ticker {
-  min-width: 260px;
-  max-width: 420px;
-  white-space: nowrap;
-}
-
-/* The viewer's own token under the game's name, speaking the newest notice. */
-.bubbleRow {
-  position: absolute;
-  top: 132px;
-  left: var(--space-md);
-  display: flex;
-  gap: var(--space-xs);
-  align-items: center;
-}
-
-.pulse {
-  display: inline-flex;
-  border-radius: 50%;
-}
-
-.root[data-motion] .pulse {
-  animation: pulse 1200ms ease-out 2;
-}
-
-.bubble {
-  position: relative;
-  border-top-left-radius: 2px;
-}
-
 /* A soft brand glow round the screen's edge while it is the viewer's turn. */
 .glow {
   position: absolute;
@@ -120,95 +71,9 @@
   opacity: 1;
 }
 
-/* Tokens down the left edge that stay until clicked, each saying its line on hover or focus. */
-.rail {
-  position: absolute;
-  top: 50%;
-  left: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  transform: translateY(-50%);
-}
-
-.railItem {
-  position: relative;
-  display: inline-flex;
-  padding: 0;
-  font: inherit;
-  color: var(--color-text);
-  cursor: pointer;
-  pointer-events: auto;
-  background: none;
-  border: 0;
-  border-radius: 50%;
-}
-
-.root[data-motion] .railItem {
-  animation: arrive-from-left 260ms ease-out backwards;
-}
-
-.railItem:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
-.railIcon {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  display: inline-flex;
-  padding: 2px;
-  color: var(--color-inverse);
-  background: var(--color-brand);
-  border-radius: 50%;
-}
-
-.railLabel {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + var(--space-xs));
-  width: max-content;
-  max-width: 300px;
-  visibility: hidden;
-  opacity: 0;
-  transform: translateY(-50%);
-  transition: opacity 150ms ease-out;
-}
-
-.railItem:hover .railLabel,
-.railItem:focus-visible .railLabel {
-  visibility: visible;
-  opacity: 1;
-}
-
 @keyframes arrive {
   from {
     opacity: 0;
     transform: translateY(-8px);
-  }
-}
-
-@keyframes arrive-from-below {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes arrive-from-left {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-}
-
-@keyframes pulse {
-  from {
-    box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 70%);
-  }
-
-  to {
-    box-shadow: 0 0 0 12px rgb(from var(--color-brand) r g b / 0%);
   }
 }

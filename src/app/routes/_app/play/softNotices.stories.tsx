@@ -1,15 +1,21 @@
 import preview from '@sb/preview';
-import { waitForFrame } from '@sb/storyWaits';
-import { expect, within } from 'storybook/test';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
+import { expect, userEvent } from 'storybook/test';
 
-import { gameMeta, install } from './game.stories.fixture';
-import type { SoftNoticeVariant } from './multiplayer/SoftNotices';
-import { productTransport } from './product.stories.fixture';
-import { NOTICE_VIEWER, withSoftNotices } from './softNotices.stories.fixture';
+import { gameMeta } from './game.stories.fixture';
+import {
+  biddingReachesViewer,
+  changeTable,
+  noticeLog,
+  noticeSetup,
+  otherSeat,
+  ownFaction,
+  tableShown,
+} from './softNotices.stories.fixture';
 
 /*
- * Prototypes of soft notifications over the table (#2981): the same minute of play, told six ways.
- * Each story plays a loop of what happens to the viewer: their turns, a payment, a ping, an alliance offer and a mention.
+ * Soft notifications over the table (#2981): a toast under the phase header when something happens to the viewer,
+ * and a soft glow round the screen's edge when it is their turn.
  */
 const meta = preview.meta({
   ...gameMeta,
@@ -19,31 +25,77 @@ const meta = preview.meta({
       await import('./multiplayer/HostedTable');
     },
   ],
-  beforeEach: install(() => productTransport(NOTICE_VIEWER)),
+  beforeEach: noticeSetup(),
 });
 
-/* The first notice of the loop, the viewer's turn to bid, arrives over the table. */
-const firstNoticeArrives = async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-  const log = within(within(canvasElement.ownerDocument.body).getByRole('log', { name: 'Notifications' }));
-  await waitForFrame(() => expect(log.getByText('Your turn to bid')).toBeInTheDocument());
-};
+/* The bidder comes to the viewer's faction: a toast says it is their turn, and the screen's edge glows. */
+export const YourTurnGlows = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    changeTable(biddingReachesViewer);
+    const { log, glowing } = noticeLog(page);
+    const toast = await waitForFrame(() => log.getByRole('button', { name: /Your turn to bid/ }));
+    await expect(finishTransitions(toast)).toBeVisible();
+    await expect(glowing()).toBe(true);
+  },
+});
 
-const variant = (name: SoftNoticeVariant) => ({ decorators: [withSoftNotices(name)], play: firstNoticeArrives });
+/* Another faction pays the viewer: a toast names who and how much, and nothing glows, since it is not their turn. */
+export const PaidByAnotherFaction = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    let giver = '';
+    changeTable((snapshot) => {
+      const other = otherSeat(snapshot);
+      giver = other.faction.name;
+      snapshot.spiceTransfers = [
+        ...(snapshot.spiceTransfers ?? []),
+        {
+          revision: snapshot.revision,
+          kind: 'payment',
+          actor: other.player,
+          amount: 3,
+          source: 'table',
+          destination: ownFaction(snapshot).id,
+        },
+      ];
+    });
+    const { log, glowing } = noticeLog(page);
+    const toast = await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(finishTransitions(toast)).toBeVisible();
+    await expect(glowing()).toBe(false);
+  },
+});
 
-/* Toasts stack under the phase header, newest on top, and fade after a few seconds. */
-export const HeaderToasts = meta.story(variant('header'));
+/* An alliance offer to the viewer toasts, and clicking it opens the Alliances panel, where the offer is answered. */
+export const AllianceOfferOpensAlliances = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    let from = '';
+    changeTable((snapshot) => {
+      const other = otherSeat(snapshot);
+      from = other.faction.name;
+      snapshot.alliances = {
+        groups: [],
+        offers: [{ from: other.faction.id, to: ownFaction(snapshot).id, at: snapshot.revision, id: 0 }],
+      };
+    });
+    const { log } = noticeLog(page);
+    await userEvent.click(
+      await waitForFrame(() => log.getByRole('button', { name: `${from} offers you an alliance` }))
+    );
+    await expect(await page.findByText('Offers you an alliance')).toBeVisible();
+    await expect(log.queryByRole('button', { name: `${from} offers you an alliance` })).toBeNull();
+  },
+});
 
-/* Toasts stack in the lower right, above the table chat button, newest at the bottom. */
-export const CornerStack = meta.story(variant('corner'));
-
-/* One line under the header that the newest notice replaces, saying how many more came. */
-export const HeaderTicker = meta.story(variant('ticker'));
-
-/* The sender's token under the game's name pulses and speaks the newest notice in a bubble. */
-export const TokenBubble = meta.story(variant('bubble'));
-
-/* Header toasts, and the screen's edge glows softly when it is the viewer's turn. */
-export const TurnGlow = meta.story(variant('glow'));
-
-/* Tokens down the left edge that stay until clicked, each saying its line on hover. */
-export const UnreadRail = meta.story(variant('rail'));
+/* A page that joins while it is already the viewer's turn raises nothing: only what happens while it watches is news. */
+export const JoiningRaisesNothing = meta.story({
+  beforeEach: noticeSetup(biddingReachesViewer),
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const { log, glowing } = noticeLog(page);
+    await expect(log.queryAllByRole('button')).toHaveLength(0);
+    await expect(glowing()).toBe(false);
+  },
+});

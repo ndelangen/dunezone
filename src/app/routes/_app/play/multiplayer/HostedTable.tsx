@@ -84,6 +84,7 @@ import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } fr
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
+import { SoftNotices, useSoftNotices } from './SoftNotices';
 import { nextPhaseStep, PhaseTurns, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
@@ -792,6 +793,7 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
+  const notices = useSoftNotices(table);
   /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
   const [battleOpen, setBattleOpen] = useState(false);
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
@@ -884,6 +886,17 @@ function ConnectedTable({
                 tableControls={phaseTabControls({ client, table, error, progress })}
               />
             </CompassTableContext>
+            <SoftNotices
+              notices={notices}
+              onOpen={(notice) => {
+                /* An alliance offer is answered in the Alliances panel, and a battle in the planner; a turn or a payment has nowhere to open. */
+                if (notice.kind === 'alliance') {
+                  openWindow('alliances');
+                } else if (notice.kind === 'battle') {
+                  battlePlanOpener?.();
+                }
+              }}
+            />
             {tracker ? (
               <Suspense fallback={null}>
                 <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
