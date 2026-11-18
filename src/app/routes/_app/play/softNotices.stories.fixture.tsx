@@ -59,5 +59,17 @@ export async function tableShown(canvasElement: HTMLElement) {
 /** The notification area, and whether the screen's edge glows for the viewer's turn. */
 export function noticeLog(page: ReturnType<typeof within>) {
   const log = page.getByRole('log', { name: 'Notifications' });
-  return { log: within(log), glowing: () => Boolean(log.querySelector('[data-glow]')) };
+  return {
+    log: within(log),
+    glowing: () => Boolean(log.querySelector('[data-glow]')),
+    glow: () => log.querySelector('[data-glow]') as HTMLElement | null,
+  };
+}
+
+/* Holds the edge glow at the height of its pulse, where it is fully lit, so a capture or a check sees it rather than a moment of its fade. */
+export function holdGlowLit(glow: HTMLElement) {
+  for (const animation of glow.getAnimations()) {
+    animation.pause();
+    animation.currentTime = 1000;
+  }
 }

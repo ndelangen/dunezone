@@ -84,7 +84,6 @@ import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } fr
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
 import { GameMenu, SeatPopover } from './SeatRequests';
-import { SoftNotices, useSoftNotices } from './SoftNotices';
 import { nextPhaseStep, PhaseTurns, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { SwapScene } from './SwapScene';
@@ -119,6 +118,9 @@ const ConnectedKeyboardShortcutsPanel = lazy(() =>
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
 );
+
+/* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
+const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -793,7 +795,6 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
-  const notices = useSoftNotices(table);
   /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
   const [battleOpen, setBattleOpen] = useState(false);
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
@@ -885,21 +886,9 @@ function ConnectedTable({
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={
-                  <SoftNotices
-                    notices={notices}
-                    onOpen={(notice) => {
-                      /* Each notice opens the panel it is about; the turn to ship and move is played on the table itself. */
-                      if (notice.kind === 'alliance') {
-                        openWindow('alliances');
-                      } else if (notice.kind === 'battle') {
-                        battlePlanOpener?.();
-                      } else if (notice.kind === 'bid') {
-                        openWindow('hand');
-                      } else if (notice.kind === 'spice') {
-                        openWindow('spice');
-                      }
-                    }}
-                  />
+                  <Suspense fallback={null}>
+                    <TableSoftNotices table={table} openPanel={openWindow} openBattlePlan={battlePlanOpener} />
+                  </Suspense>
                 }
               />
             </CompassTableContext>

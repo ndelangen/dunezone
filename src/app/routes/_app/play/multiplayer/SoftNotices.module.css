@@ -14,12 +14,12 @@
 .stack {
   position: absolute;
   top: calc(var(--play-header-height) + var(--space-xs));
-  left: 50%;
+  inset-inline: var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   align-items: center;
-  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .slot {

@@ -84,3 +84,17 @@ export const JoiningRaisesNothing = meta.story({
     await expect(glowing()).toBe(false);
   },
 });
+
+/* The viewer's turn passing to another faction takes its toast with it, so a stale "Your turn" never lingers. */
+export const PassedTurnLeaves = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    changeTable(biddingReachesViewer);
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: /Your turn to bid/ }));
+    changeTable((snapshot) => {
+      snapshot.bidding = { ...snapshot.bidding!, turn: otherSeat(snapshot).faction.id };
+    });
+    await waitForFrame(() => expect(log.queryByRole('button', { name: /Your turn to bid/ })).toBeNull());
+  },
+});

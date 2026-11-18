@@ -43,26 +43,29 @@ export function noticesBetween(
   ];
 }
 
+const bidUp = (snapshot: GameSnapshot, own: string) =>
+  snapshot.bidding?.stage === 'open' && snapshot.bidding.turn === own;
+
 function biddingTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  const up = (snapshot: GameSnapshot) => snapshot.bidding?.stage === 'open' && snapshot.bidding.turn === own;
-  if (!up(after) || up(before)) {
+  if (!bidUp(after, own) || bidUp(before, own)) {
     return [];
   }
   return [{ key: `bid-${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
 }
 
 /* The table records no movement turns until the first faction is done, so the phase itself says when movement is played. */
-function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  const up = (snapshot: GameSnapshot) =>
-    phaseAt(snapshot.phase, snapshot.phases ?? STANDARD_PHASES).id === MOVEMENT_PHASE_ID &&
-    nextToMove(
-      movementOrder(
-        stormOrder(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
-        snapshot.movement
-      ),
+const shipUp = (snapshot: GameSnapshot, own: string) =>
+  phaseAt(snapshot.phase, snapshot.phases ?? STANDARD_PHASES).id === MOVEMENT_PHASE_ID &&
+  nextToMove(
+    movementOrder(
+      stormOrder(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
       snapshot.movement
-    ) === own;
-  if (!up(after) || up(before)) {
+    ),
+    snapshot.movement
+  ) === own;
+
+function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
+  if (!shipUp(after, own) || shipUp(before, own)) {
     return [];
   }
   return [{ key: `ship-${after.revision}`, kind: 'ship', factionId: own, text: 'Your turn to ship and move' }];
@@ -138,4 +141,25 @@ function allianceOffers(
       factionId: offer.from,
       text: `${name(offer.from)} offers you an alliance`,
     }));
+}
+
+/**
+ * Whether the turn a notice announced is still the viewer's: a turn notice that has passed, as when they bid, finished moving or their battle was resolved, is no news any more.
+ * Other notices stay until they fade.
+ */
+export function noticeStillHolds(
+  snapshot: GameSnapshot,
+  own: string,
+  notice: Pick<NoticeDraft, 'key' | 'kind'>
+): boolean {
+  switch (notice.kind) {
+    case 'bid':
+      return bidUp(snapshot, own);
+    case 'ship':
+      return shipUp(snapshot, own);
+    case 'battle':
+      return notice.key === `battle-${snapshot.battle?.id}`;
+    default:
+      return true;
+  }
 }

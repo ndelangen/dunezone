@@ -3,7 +3,7 @@ import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { noticesBetween } from './noticeEvents';
+import { noticeStillHolds, noticesBetween } from './noticeEvents';
 
 /* Storm order reads the faction tokens' sectors; these tables carry no pieces, so the viewer moves first. */
 vi.mock('@shared/play/stormSector', () => ({ stormOrder: () => [OWN, OTHER] }));
@@ -151,4 +151,14 @@ test('a new alliance offer to the viewer names who offers it', () => {
       )
     )
   ).toEqual([{ key: 'alliance-4', kind: 'alliance', factionId: OTHER, text: 'House Atreides offers you an alliance' }]);
+});
+
+test('a turn notice holds only while the turn is still the viewer’s; other notices hold until they fade', () => {
+  const open = (turn: string) => table({ bidding: { stage: 'open', turn } as GameSnapshot['bidding'] });
+  expect(noticeStillHolds(open(OWN), OWN, { key: 'bid-2', kind: 'bid' })).toBe(true);
+  expect(noticeStillHolds(open(OTHER), OWN, { key: 'bid-2', kind: 'bid' })).toBe(false);
+  const battle = table({ battle: { id: 'b1', sides: [] } as unknown as GameSnapshot['battle'] });
+  expect(noticeStillHolds(battle, OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);
+  expect(noticeStillHolds(table(), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
+  expect(noticeStillHolds(table(), OWN, { key: 'spice-3', kind: 'spice' })).toBe(true);
 });

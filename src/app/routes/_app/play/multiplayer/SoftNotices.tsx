@@ -13,12 +13,12 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticesBetween } from './noticeEvents';
+import { noticeStillHolds, noticesBetween } from './noticeEvents';
 import type { SoftNoticeKind } from './noticeEvents';
 import styles from './SoftNotices.module.css';
 import { actingFaction, stageInPlay } from './tableFactions';
 
-export type SoftNotice = Readonly<{
+type SoftNotice = Readonly<{
   id: string;
   kind: SoftNoticeKind;
   /** One line, as the viewer reads it: "Your turn to bid", "Harkonnen paid you 3 spice". */
@@ -60,9 +60,10 @@ function noticedFaction(table: TableProjection): string | undefined {
 /**
  * The soft notices the live table raises for the viewer as it changes, newest last.
  * Each change is compared with the one before it, so joining or reloading raises nothing for what already happened.
- * A recall, playback or lost connection clears them, since what they point at is not on screen.
+ * A recall, playback or lost connection clears them, since what they point at is not on screen, and a turn that has passed takes its notice with it.
+ * The baseline only moves with the table's revision, so the viewer's own drag of the movement order, shown before the table answers, never stands in for the table.
  */
-export function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
+function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
   const own = noticedFaction(table);
   const snapshot = table.snapshot;
   const previous = useRef<{ own: string; snapshot: GameSnapshot } | null>(null);
@@ -76,17 +77,21 @@ export function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
   }
   useEffect(() => {
     const before = previous.current;
+    if (own && before?.own === own && before.snapshot.revision === snapshot.revision) {
+      return;
+    }
     previous.current = own ? { own, snapshot } : null;
     if (!own || before?.own !== own) {
       return;
     }
     const names = snapshotFactionLabels(snapshot);
     const raised = noticesBetween(before.snapshot, snapshot, own, names);
-    if (!raised.length) {
-      return;
-    }
     const at = performance.now();
-    setNotices((kept) => {
+    setNotices((all) => {
+      const kept = all.filter((notice) => noticeStillHolds(snapshot, own, { key: notice.id, kind: notice.kind }));
+      if (!raised.length && kept.length === all.length) {
+        return all;
+      }
       const known = new Set(kept.map((notice) => notice.id));
       const fresh = raised
         .filter((draft) => !known.has(draft.key))
@@ -108,7 +113,7 @@ export function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
  * When it is the viewer's turn the screen's edge glows softly as well.
  * Clicking one opens what it is about, where it has a place to open, and dismisses it.
  */
-export function SoftNotices({
+function SoftNotices({
   notices,
   onOpen,
 }: Readonly<{ notices: readonly SoftNotice[]; onOpen?: (notice: SoftNotice) => void }>) {
@@ -180,4 +185,27 @@ function Toast({ notice, onOpen }: Readonly<{ notice: SoftNotice; onOpen: (notic
       <Icon size={16} aria-hidden className={styles.icon} />
     </Surface>
   );
+}
+
+/* The panel each notice opens; the battle opens its planner, and the turn to ship and move is played on the table itself. */
+const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances', bid: 'hand', spice: 'spice' };
+
+/**
+ * The live table's soft notices, raised and shown in one, each opening what it is about.
+ * The table loads this lazily, which keeps its own bundle within its budget.
+ */
+export function TableSoftNotices({
+  table,
+  openPanel,
+  openBattlePlan,
+}: Readonly<{ table: TableProjection; openPanel: (key: string) => void; openBattlePlan: (() => void) | null }>) {
+  const open = (notice: SoftNotice) => {
+    const panel = PANELS[notice.kind];
+    if (panel) {
+      openPanel(panel);
+    } else if (notice.kind === 'battle') {
+      openBattlePlan?.();
+    }
+  };
+  return <SoftNotices notices={useSoftNotices(table)} onOpen={open} />;
 }
