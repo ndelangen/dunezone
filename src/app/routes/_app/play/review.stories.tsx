@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { finishTransitions } from '@sb/storyWaits';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, within } from 'storybook/test';
@@ -91,16 +91,22 @@ export const RecallingASettledBattle = meta.story({
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     /* The table's own reveal comes back where the battle was fought: the winner's call under its wheel, and nothing to press. */
-    const call = await body.findByText('Left side won', {}, { timeout: 5000 });
+    const call = await waitForFrame(() => body.getByText('Left side won'));
     finishTransitions(call);
     await expect(call).toBeVisible();
     /* The newest settled battle is the one this checkpoint saved, not an earlier one the table still keeps. */
     await expect(body.queryByText('Right side won')).toBeNull();
-    /* The pieces each side played stay on its wheel, though the table no longer marks them as part of the battle. */
+    /* The pieces each side played stay on its own wheel, though the table no longer marks them as part of the battle. */
     await expect(body.queryAllByText('No leader')).toHaveLength(0);
-    for (const name of [/Feyd Rautha/i, /Lady Jessica/i, /Crysknife/i]) {
-      await expect(await body.findByRole('img', { name })).toBeInTheDocument();
-    }
+    const harkonnen = within(body.getByLabelText(/^House Harkonnen plan, troop strength/));
+    const atreides = within(body.getByLabelText(/^House Atreides plan, troop strength/));
+    const pieces = [
+      harkonnen.getByRole('img', { name: /Feyd Rautha/i }),
+      harkonnen.getByRole('img', { name: /Crysknife/i }),
+      atreides.getByRole('img', { name: /Lady Jessica/i }),
+    ];
+    /* Each picture fades in once it has loaded. */
+    await waitForFrame(() => Promise.all(pieces.map((piece) => expect(finishTransitions(piece)).toBeVisible())));
     for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
       await expect(body.queryByRole('button', { name })).toBeNull();
     }
@@ -119,7 +125,7 @@ export const RecallingABattleWithNoWinner = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    const call = await body.findByText('No winner', {}, { timeout: 5000 });
+    const call = await waitForFrame(() => body.getByText('No winner'));
     finishTransitions(call);
     await expect(call).toBeVisible();
     await expect(body.getAllByText('No winner')).toHaveLength(1);
