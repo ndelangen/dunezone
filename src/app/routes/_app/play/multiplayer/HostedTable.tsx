@@ -927,6 +927,7 @@ function ConnectedTable({
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={(inert) => (
                   <TableNotices
+                    key={noticeStart?.epoch}
                     table={table}
                     start={noticeStart}
                     inert={inert}

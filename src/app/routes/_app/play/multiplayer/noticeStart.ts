@@ -1,12 +1,22 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 import { reviewRunning } from '@shared/play/review';
-import { useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { CompassEpochContext } from '../compass/compassEpoch';
 import { actingFaction, stageInPlay } from './tableFactions';
 
-/** The live table the soft notices compare later tables with, and the faction the viewer acts for at it (#2981). */
-export type NoticeStart = Readonly<{ own: string; snapshot: GameSnapshot }>;
+/**
+ * The live table the soft notices compare later tables with, and the faction the viewer acts for at it (#2981).
+ * `shown` is the table as last shown, the viewer's own pending drag of the movement order included, kept from the first render on.
+ * `epoch` is the tutorial run it belongs to: a reset starts the notices afresh.
+ */
+export type NoticeStart = Readonly<{
+  own: string;
+  snapshot: GameSnapshot;
+  epoch: number;
+  shown: Readonly<{ current: GameSnapshot | null }>;
+}>;
 
 /*
  * The faction the viewer acts for, while the live table is set up or in play: no notices while a past table, a recall or another stage shows.
@@ -25,11 +35,18 @@ function noticedFaction(table: TableProjection): string | undefined {
  */
 export function useNoticeStart(table: TableProjection): NoticeStart | null {
   const own = noticedFaction(table);
+  const epoch = useContext(CompassEpochContext);
+  /* Updated after the notices' own effects, so while they compare a change it still holds the table shown before it. */
+  const shown = useRef<GameSnapshot | null>(null);
+  const displayed = table.snapshot;
+  useEffect(() => {
+    shown.current = displayed;
+  }, [displayed]);
   const [start, setStart] = useState<NoticeStart | null>(null);
-  if (start?.own === own) {
+  if (start === null ? own === undefined : start.own === own && start.epoch === epoch) {
     return start;
   }
-  const next = own ? { own, snapshot: table.confirmedSnapshot ?? table.snapshot } : null;
+  const next = own ? { own, snapshot: table.confirmedSnapshot ?? table.snapshot, epoch, shown } : null;
   setStart(next);
   return next;
 }

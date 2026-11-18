@@ -107,19 +107,16 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
   const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
   const playing = stageInPlay(table.snapshot.stage);
-  const previous = useRef(start);
-  /* The table as last shown, the viewer's own pending drag of the movement order included. */
-  const shown = useRef<GameSnapshot | null>(null);
+  const previous = useRef<Readonly<{ own: string; snapshot: GameSnapshot }> | null>(start);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
   const [shownFor, setShownFor] = useState(own);
   if (shownFor !== own) {
     setShownFor(own);
     setNotices([]);
   }
-  const displayed = table.snapshot;
   useEffect(() => {
-    const seen = shown.current;
-    shown.current = displayed;
+    /* The table shown before this change, kept by the table itself so a drag made before this code loaded still counts. */
+    const seen = start?.shown.current ?? null;
     /* A faction newly acted for starts from the table the page first showed it at. */
     const before = previous.current?.own === own ? previous.current : start;
     if (!own || !before) {
@@ -136,7 +133,7 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
-  }, [own, start, snapshot, displayed, playing]);
+  }, [own, start, snapshot, playing]);
   return notices;
 }
 
