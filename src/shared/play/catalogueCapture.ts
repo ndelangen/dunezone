@@ -85,6 +85,13 @@ export class CatalogueCapture {
      * Only the extra spice decks the game's creator ticked are retained; the ruleset editor's readiness judges every one a creator could tick.
      * The spice deck itself is never an extra, so slotting it twice cannot double its cards.
      */
+    const offered = new Set(
+      supply.slots.filter((entry) => entry.slot === 'spiceExtras').map((entry) => entry.asset.id)
+    );
+    for (const id of spiceExtras === 'every' ? [] : spiceExtras.filter((entry) => !offered.has(entry))) {
+      /* A deck unslotted after the creator ticked it would silently stay off the table, so the capture names it. */
+      problems.push({ subject: `spiceExtras: ${id}`, reason: 'The ruleset no longer offers this extra spice deck.' });
+    }
     const extras = await this.captureSlots(
       'spiceExtras',
       supply,

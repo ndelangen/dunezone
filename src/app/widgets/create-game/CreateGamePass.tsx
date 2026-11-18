@@ -340,7 +340,7 @@ function SpiceExtrasField({
   onChange,
   disabled,
 }: Readonly<{
-  decks: readonly { id: string; name: string }[];
+  decks: Readonly<CreatableRulesetPreview['spiceExtras']>;
   value: readonly string[];
   onChange: (next: string[]) => void;
   disabled: boolean;

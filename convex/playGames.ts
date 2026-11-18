@@ -132,10 +132,8 @@ async function spiceExtrasFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
 /* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. Slots are read in order, so the required decks always come first. */
 async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const packed = [];
-  for (const slot of RULESET_ASSET_SLOT_ORDER) {
-    if (slot === 'spiceExtras') {
-      continue;
-    }
+  /* Extra spice decks stay out until ticked; the create page lists them as switches instead. */
+  for (const slot of RULESET_ASSET_SLOT_ORDER.filter((entry) => entry !== 'spiceExtras')) {
     const rows = await ctx.db
       .query('ruleset_asset_slots')
       .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))

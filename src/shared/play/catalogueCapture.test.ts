@@ -175,6 +175,10 @@ describe('playReadiness', () => {
     expect(ticked.readiness.problems).toEqual([]);
     const [chosen] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, [], { spiceExtras: ['expansion'] });
     expect(chosen?.problems).toEqual([]);
+    const gone = await reads.captureRuleset('gf9', { spiceExtras: ['unslotted'] });
+    expect(gone.readiness.problems).toEqual([
+      { subject: 'spiceExtras: unslotted', reason: 'The ruleset no longer offers this extra spice deck.' },
+    ]);
     const [every] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, []);
     expect(every?.problems).toEqual([]);
     const all = await reads.captureRuleset('gf9', { spiceExtras: 'every' });
