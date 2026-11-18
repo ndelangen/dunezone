@@ -11,8 +11,8 @@ export type NoticeDraft = Readonly<{
   /** Names the event, so the same one is never raised twice. */
   key: string;
   kind: SoftNoticeKind;
-  /** The faction it came from: another for a payment or an offer, the viewer's own for their turn. */
-  factionId: string;
+  /** The faction it came from: another for a payment or an offer, the viewer's own for their turn, or null for a gift whose giver the table did not record. */
+  factionId: string | null;
   text: string;
   /** The table revision it happened at, which orders a batch that spans several. */
   revision: number;
@@ -134,16 +134,6 @@ function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): No
   ];
 }
 
-/*
- * A transfer names the player who made it; the faction is the one their seat carries, where the table can tell.
- * A name two players share, or one no player carries any more, tells nothing.
- */
-function playerFaction(snapshot: GameSnapshot, player: string): string | undefined {
-  const seats = (snapshot.controls?.players ?? []).filter((entry) => entry.name === player);
-  const seat = seats.length === 1 ? seats[0]?.seat : undefined;
-  return snapshot.roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
-}
-
 function spiceReceived(
   before: GameSnapshot,
   after: GameSnapshot,
@@ -160,9 +150,8 @@ function spiceReceived(
     if (transfer.kind !== 'payment' && transfer.kind !== 'bribe') {
       return [];
     }
-    /* The giver is told by the name recorded with the gift, which can match the viewer's own after a namesake left: then it names nobody, and never drops the gift. */
-    const found = playerFaction(after, transfer.actor);
-    const giver = found === own ? undefined : found;
+    /* The giver is the faction the room recorded with the gift, never a display name matched against today's seats; a gift recorded without one names nobody, and is never dropped. */
+    const giver = transfer.giver === own ? undefined : transfer.giver;
     const verb = transfer.kind === 'bribe' ? 'bribed' : 'paid';
     const text = giver
       ? `${name(giver)} ${verb} you ${transfer.amount} spice`
@@ -171,7 +160,7 @@ function spiceReceived(
       {
         key: `spice-${transfer.revision}`,
         kind: 'spice' as const,
-        factionId: giver ?? own,
+        factionId: giver ?? null,
         text,
         revision: transfer.revision,
       },

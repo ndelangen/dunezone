@@ -13,6 +13,7 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
 import { Section } from '@ui/block/Section';
 import { Pending } from '@ui/content/Pending';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -81,6 +82,7 @@ import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeStart, useShownTable } from './noticeStart';
+import { OptionalChunkBoundary } from './OptionalChunkBoundary';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -128,12 +130,14 @@ const ConnectedBattlePlanPanel = lazy(() =>
 /* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
 const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
 
-/* The notices with their own loading boundary, so the table renders without waiting for them. */
+/* The notices with their own loading and error boundaries, so the table renders without waiting for them and plays on if they never load. */
 function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
   return (
-    <Suspense fallback={null}>
-      <TableSoftNotices {...props} />
-    </Suspense>
+    <OptionalChunkBoundary fallback={null}>
+      <Suspense fallback={null}>
+        <TableSoftNotices {...props} />
+      </Suspense>
+    </OptionalChunkBoundary>
   );
 }
 
@@ -530,9 +534,15 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
               ...PANEL_WINDOWS.tints,
               content: withTableError(
                 error,
-                <Suspense fallback={<Pending>Loading territory tints</Pending>}>
-                  <ConnectedTerritoryTintsPanel client={client} table={table} />
-                </Suspense>
+                <OptionalChunkBoundary
+                  fallback={
+                    <LoadError title="Territory tints could not be loaded">Reload the page to try again.</LoadError>
+                  }
+                >
+                  <Suspense fallback={<Pending>Loading territory tints</Pending>}>
+                    <ConnectedTerritoryTintsPanel client={client} table={table} />
+                  </Suspense>
+                </OptionalChunkBoundary>
               ),
             },
           ]

@@ -105,45 +105,36 @@ test('the viewer’s own claim completing their battle raises nothing, since the
   expect(between(table(battle([OTHER, null])), table(battle([OTHER, OWN])))).toEqual([]);
 });
 
-test('a payment or bribe to the viewer names the giving faction; one whose name matches their own names nobody; other transfers raise nothing', () => {
-  const transfer = (revision: number, kind: string, actor: string, destination?: string) =>
-    ({ revision, kind, actor, amount: 3, source: 'table', destination }) as NonNullable<
+test('a payment or bribe to the viewer names the faction recorded as giving it; other transfers raise nothing', () => {
+  const transfer = (revision: number, kind: string, giver: string | undefined, destination?: string) =>
+    ({ revision, kind, actor: 'Alia', amount: 3, source: 'table', destination, giver }) as NonNullable<
       GameSnapshot['spiceTransfers']
     >[number];
   const after = table({
     spiceTransfers: [
-      transfer(1, 'payment', 'Alia', OWN),
-      transfer(2, 'payment', 'Alia', OWN),
-      transfer(3, 'bribe', 'Alia', OWN),
-      transfer(4, 'payment', 'Feyd', OWN),
-      transfer(5, 'payment', 'Alia', OTHER),
-      transfer(6, 'collection', 'Alia', OWN),
+      transfer(1, 'payment', OTHER, OWN),
+      transfer(2, 'payment', OTHER, OWN),
+      transfer(3, 'bribe', OTHER, OWN),
+      transfer(5, 'payment', OWN, OTHER),
+      transfer(6, 'collection', OTHER, OWN),
     ],
   });
-  expect(between(table({ spiceTransfers: [transfer(1, 'payment', 'Alia', OWN)] }), after)).toMatchObject([
+  expect(between(table({ spiceTransfers: [transfer(1, 'payment', OTHER, OWN)] }), after)).toMatchObject([
     { key: 'spice-2', kind: 'spice', factionId: OTHER, text: 'House Atreides paid you 3 spice' },
     { key: 'spice-3', kind: 'spice', factionId: OTHER, text: 'House Atreides bribed you 3 spice' },
-    { key: 'spice-4', kind: 'spice', factionId: OWN, text: 'You were paid 3 spice' },
   ]);
 });
 
-test('a payment from a player the table cannot tell apart names no faction', () => {
-  const transfer = (revision: number, actor: string) =>
-    ({ revision, kind: 'payment', actor, amount: 2, source: 'table', destination: OWN }) as NonNullable<
+test('a gift recorded without its giver, or with the viewer’s own faction, names nobody rather than a namesake', () => {
+  const transfer = (revision: number, actor: string, giver?: string) =>
+    ({ revision, kind: 'payment', actor, amount: 2, source: 'table', destination: OWN, giver }) as NonNullable<
       GameSnapshot['spiceTransfers']
     >[number];
-  const shared = {
-    controls: {
-      players: [
-        { seat: 'seat-1', name: 'Alia' },
-        { seat: 'seat-2', name: 'Alia' },
-      ],
-    },
-  } as unknown as Partial<GameSnapshot>;
-  const after = table({ ...shared, spiceTransfers: [transfer(1, 'Alia'), transfer(2, '[deleted user]')] });
-  expect(between(table(shared), after)).toMatchObject([
-    { key: 'spice-1', kind: 'spice', factionId: OWN, text: 'You were paid 2 spice' },
-    { key: 'spice-2', kind: 'spice', factionId: OWN, text: 'You were paid 2 spice' },
+  /* Alia sits at Atreides now, but the gift does not say it came from there. */
+  const after = table({ spiceTransfers: [transfer(1, 'Alia'), transfer(2, 'Feyd', OWN)] });
+  expect(between(table(), after)).toMatchObject([
+    { key: 'spice-1', kind: 'spice', factionId: null, text: 'You were paid 2 spice' },
+    { key: 'spice-2', kind: 'spice', factionId: null, text: 'You were paid 2 spice' },
   ]);
 });
 

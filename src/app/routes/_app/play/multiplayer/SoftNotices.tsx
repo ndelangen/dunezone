@@ -23,8 +23,8 @@ type SoftNotice = Readonly<{
   kind: SoftNoticeKind;
   /** One line, as the viewer reads it: "Your turn to bid", "Harkonnen paid you 3 spice". */
   text: string;
-  /** The faction it came from, or the viewer's own for their turn. */
-  from: FactionToken;
+  /** The faction it came from, or the viewer's own for their turn; null for a gift whose giver the table did not record. */
+  from: FactionToken | null;
   /** When it arrived, on this page's own clock (`performance.now()`): a notice is the page's, not the table's. */
   at: number;
 }>;
@@ -91,7 +91,7 @@ function keptAndRaised(
       id: draft.key,
       kind: draft.kind,
       text: draft.text,
-      from: snapshotFactionToken(snapshot, draft.factionId, names),
+      from: draft.factionId === null ? null : snapshotFactionToken(snapshot, draft.factionId, names),
       at,
     }));
   return [...kept, ...fresh].slice(-KEPT);
@@ -106,6 +106,7 @@ function keptAndRaised(
 function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown: ShownTable): readonly SoftNotice[] {
   const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
+  const pending = Boolean(table.confirmedSnapshot);
   const playing = stageInPlay(table.snapshot.stage);
   const previous = useRef<Readonly<{ own: string; snapshot: GameSnapshot }> | null>(start);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
@@ -115,8 +116,6 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown
     setNotices([]);
   }
   useEffect(() => {
-    /* The table shown before this change, kept by the table itself so a drag made before this code loaded still counts. */
-    const seen = shown.current;
     /* A faction newly acted for starts from the table the page first showed it at. */
     const before = previous.current?.own === own ? previous.current : start;
     if (!own || !before) {
@@ -127,13 +126,15 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown
       return;
     }
     previous.current = { own, snapshot };
+    /* The table shown with the viewer's own drag pending, kept by the table itself so a drag the room confirmed before this code loaded still counts. */
+    const seen = shown.take(pending);
     const names = snapshotFactionLabels(snapshot);
     const raised = noticesBetween(before.snapshot, snapshot, own, names).filter((draft) =>
       newsFor(draft, { own, playing, seen, before: before.snapshot, after: snapshot })
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
-  }, [own, start, shown, snapshot, playing]);
+  }, [own, start, shown, snapshot, pending, playing]);
   return notices;
 }
 
@@ -218,7 +219,7 @@ function Toast({ notice, onOpen }: Readonly<{ notice: SoftNotice; onOpen: (notic
       className={clsx(styles.toast, TURN_KINDS.has(notice.kind) && styles.turn)}
       renderRoot={(props) => <button type="button" {...props} onClick={() => onOpen(notice)} />}
     >
-      <FactionTokenFace token={notice.from} size={28} aria-hidden />
+      {notice.from && <FactionTokenFace token={notice.from} size={28} aria-hidden />}
       <Text size="sm" className={styles.line}>
         {notice.text}
       </Text>

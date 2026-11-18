@@ -63,6 +63,7 @@ export function payViewer(snapshot: GameSnapshot) {
       amount: 3,
       source: 'table',
       destination: ownFaction(snapshot).id,
+      giver: other.faction.id,
     },
   ];
   return other.faction.name;
