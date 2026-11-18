@@ -13,7 +13,9 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
 import { Section } from '@ui/block/Section';
+import { Pending } from '@ui/content/Pending';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
 import {
@@ -27,7 +29,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
@@ -64,7 +66,6 @@ import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel'
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
@@ -80,6 +81,8 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
+import { useNoticeStart } from './noticeStart';
+import { OptionalChunkBoundary } from './OptionalChunkBoundary';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -115,9 +118,28 @@ const ConnectedKeyboardShortcutsPanel = lazy(() =>
 );
 
 /* The planner loads when a battle first needs it, which keeps the table's own bundle within its budget. */
+/* The territory tints are a rare setting, so their panel loads when opened rather than in the table's bundle. */
+const ConnectedTerritoryTintsPanel = lazy(() =>
+  import('../panels/tints/useTerritoryTintsPanel').then((module) => ({ default: module.ConnectedTerritoryTintsPanel }))
+);
+
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
 );
+
+/* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
+const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
+
+/* The notices with their own loading and error boundaries, so the table renders without waiting for them and plays on if they never load. */
+function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
+  return (
+    <OptionalChunkBoundary fallback={null}>
+      <Suspense fallback={null}>
+        <TableSoftNotices {...props} />
+      </Suspense>
+    </OptionalChunkBoundary>
+  );
+}
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -244,6 +266,19 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
  * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
+/* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
+function useNoticePanelOpener(client: TableSession, openWindow: (key: string) => void) {
+  return useCallback(
+    (key: string) => {
+      if (key === 'transfers') {
+        client.readSpiceHistory();
+      }
+      openWindow(key);
+    },
+    [client, openWindow]
+  );
+}
+
 function useAskedWindow(focus: WindowFocus) {
   /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
@@ -497,7 +532,18 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         ? [
             {
               ...PANEL_WINDOWS.tints,
-              content: withTableError(error, <ConnectedTerritoryTintsPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <OptionalChunkBoundary
+                  fallback={
+                    <LoadError title="Territory tints could not be loaded">Reload the page to try again.</LoadError>
+                  }
+                >
+                  <Suspense fallback={<Pending>Loading territory tints</Pending>}>
+                    <ConnectedTerritoryTintsPanel client={client} table={table} />
+                  </Suspense>
+                </OptionalChunkBoundary>
+              ),
             },
           ]
         : []),
@@ -796,7 +842,14 @@ function ConnectedTable({
   const [battleOpen, setBattleOpen] = useState(false);
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
+  const noticeStart = useNoticeStart(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
+  const openNoticePanel = useNoticePanelOpener(client, openWindow);
+  /* A battle toast brings the planner forward even when it is open behind another panel. */
+  const noticeBattleOpener = useMemo(
+    () => (battlePlanCanOpen(table) ? () => openWindow('battle') : null),
+    [table, openWindow]
+  );
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -882,6 +935,16 @@ function ConnectedTable({
                 })}
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
+                notices={(inert) => (
+                  <TableNotices
+                    key={noticeStart?.epoch}
+                    table={table}
+                    start={noticeStart}
+                    inert={inert}
+                    openPanel={openNoticePanel}
+                    openBattlePlan={noticeBattleOpener}
+                  />
+                )}
               />
             </CompassTableContext>
             {tracker ? (

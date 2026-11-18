@@ -28,7 +28,9 @@ export class SpiceLedger {
     /* A payment lands in the receiving faction's spice reserve; a bribe on its bribe pile, still on the table. */
     if (message.type === 'drop' && message.give) {
       const { as, factionId: destination } = message.give;
-      return held > 0 ? { ...record, kind: as, amount: held, source: 'table', destination } : undefined;
+      return held > 0
+        ? { ...record, kind: as, amount: held, source: 'table', destination, ...(factionId && { giver: factionId }) }
+        : undefined;
     }
     const disposed = spiceOnTable(before) - spiceOnTable(next);
     return disposed > 0 ? { ...record, kind: 'disposal', amount: disposed, source: 'table' } : undefined;

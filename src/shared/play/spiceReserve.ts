@@ -29,6 +29,8 @@ export const spiceTransferSchema = z.object({
   amount: tableCountSchema.positive(),
   source: z.string(),
   destination: z.string().optional(),
+  /** The faction a payment or bribe came from, as the room knew it when the spice was given; a display name can be shared or reused, a faction cannot. */
+  giver: z.string().optional(),
 });
 export type SpiceTransfer = z.infer<typeof spiceTransferSchema>;
 
