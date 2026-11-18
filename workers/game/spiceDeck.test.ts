@@ -11,6 +11,9 @@ function deck(slug: string, cards: number, back = BACK): SlotCapture {
     asset: { id: slug, type: 'deck', slug, name: slug },
     contents: {
       assetId: slug,
+      type: 'deck',
+      members: [],
+      definitions: [],
       name: slug,
       pieces: [
         {
@@ -23,6 +26,7 @@ function deck(slug: string, cards: number, back = BACK): SlotCapture {
               back,
               backName: slug,
               name: `${slug} ${index}`,
+              type: 'card-spice',
             },
           })),
         },
