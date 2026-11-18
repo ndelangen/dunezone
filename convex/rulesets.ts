@@ -2,6 +2,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
 
 import { RULESET_ASSET_SLOTS, SPICE_EXTRAS_LIMIT } from '../src/shared/rulesets/assetSlots';
+import type { RulesetAssetSlot } from '../src/shared/rulesets/assetSlots';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import type { BattleDialing } from '../src/shared/rulesets/battleDialing';
 import {
@@ -584,6 +585,24 @@ const assetSlotValidator = v.union(
   v.literal('customTokens')
 );
 
+/* Setup shuffles the extras into the spice deck, so one deck in both slots would put its cards on the table twice. */
+async function refuseSpiceTwin(
+  ctx: MutationCtx,
+  args: { ruleset_id: Id<'rulesets'>; asset_id: Id<'assets'>; slot: RulesetAssetSlot }
+) {
+  const other = args.slot === 'spice' ? 'spiceExtras' : args.slot === 'spiceExtras' ? 'spice' : null;
+  if (!other) {
+    return;
+  }
+  const twin = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', args.ruleset_id).eq('slot', other))
+    .take(SLOT_CONTENTS_LIMIT);
+  if (twin.some((row) => row.asset_id === args.asset_id)) {
+    throw new Error(`This deck is already in the ruleset's ${RULESET_ASSET_SLOTS[other].label} slot`);
+  }
+}
+
 /**
  * Puts an asset in a slot.
  *
@@ -622,17 +641,7 @@ export const setAssetSlot = mutation({
     if (!rule.single && existing.length >= capacity) {
       throw new Error(`The ${rule.label} slot is full`);
     }
-    /* Setup shuffles the extras into the spice deck, so one deck in both slots would put its cards on the table twice. */
-    const other = args.slot === 'spice' ? 'spiceExtras' : args.slot === 'spiceExtras' ? 'spice' : null;
-    if (other) {
-      const twin = await ctx.db
-        .query('ruleset_asset_slots')
-        .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', args.ruleset_id).eq('slot', other))
-        .take(SLOT_CONTENTS_LIMIT);
-      if (twin.some((row) => row.asset_id === args.asset_id)) {
-        throw new Error(`This deck is already in the ruleset's ${RULESET_ASSET_SLOTS[other].label} slot`);
-      }
-    }
+    await refuseSpiceTwin(ctx, args);
     if (rule.single) {
       for (const row of existing) {
         await ctx.db.delete(row._id);
