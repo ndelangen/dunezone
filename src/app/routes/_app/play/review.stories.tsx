@@ -1,12 +1,20 @@
 import preview from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
-import { within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
+import { agreedBattle } from './panels/battles/BattleHistoryPanel.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
-import { reviewableSnapshot, reviewCheckpoints, reviewOf, reviewTransport } from './review.stories.fixture';
+import {
+  reviewableSnapshot,
+  reviewCheckpoints,
+  reviewOf,
+  reviewTransport,
+  settledBattleCheckpoint,
+} from './review.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -66,6 +74,63 @@ export const RecallingAfterTheGame = meta.story({
       stage: 'finished',
     })
   ),
+});
+
+/* Recalling the checkpoint saved right after a battle settled shows that battle's reveal on the table again, read-only (#2985). */
+export const RecallingASettledBattle = meta.story({
+  beforeEach: install(() => {
+    const [newest] = agreedBattle().results;
+    /* An earlier battle the table still keeps, behind the one this checkpoint settled, which the right side won. */
+    const earlier = { ...newest!, id: 'earlier-battle', territory: 'Carthag', outcome: 'right' as const };
+    return reviewTransport(
+      'seat-2',
+      reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settledBattleCheckpoint('finished'), 'seat-1'),
+      { stage: 'finished', settledBattles: [newest!, earlier] }
+    );
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    /* The table's own reveal comes back where the battle was fought: the winner's call under its wheel, and nothing to press. */
+    const call = await waitForFrame(() => body.getByText('Left side won'));
+    finishTransitions(call);
+    await expect(call).toBeVisible();
+    /* The newest settled battle is the one this checkpoint saved, not an earlier one the table still keeps. */
+    await expect(body.queryByText('Right side won')).toBeNull();
+    /* The pieces each side played stay on its own wheel, though the table no longer marks them as part of the battle. */
+    await expect(body.queryAllByText('No leader')).toHaveLength(0);
+    const harkonnen = within(body.getByLabelText(/^House Harkonnen plan, troop strength/));
+    const atreides = within(body.getByLabelText(/^House Atreides plan, troop strength/));
+    const pieces = [
+      harkonnen.getByRole('img', { name: /Feyd Rautha/i }),
+      harkonnen.getByRole('img', { name: /Crysknife/i }),
+      atreides.getByRole('img', { name: /Lady Jessica/i }),
+    ];
+    /* Each picture fades in once it has loaded. */
+    await waitForFrame(() => Promise.all(pieces.map((piece) => expect(finishTransitions(piece)).toBeVisible())));
+    for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
+      await expect(body.queryByRole('button', { name })).toBeNull();
+    }
+  },
+});
+
+/* A recalled battle that settled with no winner says so once, between the wheels, since the table keeps no side's own call. */
+export const RecallingABattleWithNoWinner = meta.story({
+  beforeEach: install(() => {
+    const [result] = agreedBattle().results;
+    return reviewTransport(
+      'seat-2',
+      reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settledBattleCheckpoint('finished'), 'seat-1'),
+      { stage: 'finished', settledBattles: [{ ...result!, outcome: 'none' }] }
+    );
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const call = await waitForFrame(() => body.getByText('No winner'));
+    finishTransitions(call);
+    await expect(call).toBeVisible();
+    await expect(body.getAllByText('No winner')).toHaveLength(1);
+    await expect(body.queryByText(/side won$/)).toBeNull();
+  },
 });
 
 /* Shipment and Movement with the first faction done: the phase chip shows every faction's token in turn order, the first faded as done and the second ringed as up now, for any seated player to mark done, which saves a checkpoint. */

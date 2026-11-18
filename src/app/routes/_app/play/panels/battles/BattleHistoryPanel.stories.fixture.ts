@@ -10,7 +10,7 @@ import { BattleHistoryPanel } from './BattleHistoryPanel';
 import type { BattleHistoryPanelProps } from './BattleHistoryPanel';
 
 /* The story battle at Arrakeen once both sides agreed the left side won: Harkonnen's planned wheel against an Atreides leader and a lightly supported force. */
-function agreedBattle(): BattleHistoryPanelProps {
+export function agreedBattle(): BattleHistoryPanelProps {
   const snapshot = battleStory('revealed');
   const battle = snapshot.battle!;
   const [harkonnen, atreides] = battle.revealed!;

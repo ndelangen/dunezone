@@ -102,6 +102,17 @@ describe('ruleset asset slots', () => {
     ).rejects.toThrow('holds a token bundle');
   });
 
+  test('one deck cannot be both the spice deck and an extra spice deck, in either order (#2986)', async () => {
+    const { owner, ruleset, first, second } = await slotFixture();
+    const slot = (asset_id: typeof first.id, slot: 'spice' | 'spiceExtras') =>
+      owner.mutation(api.rulesets.setAssetSlot, { ruleset_id: ruleset._id, asset_id, slot });
+
+    await slot(first.id, 'spice');
+    await expect(slot(first.id, 'spiceExtras')).rejects.toThrow("already in the ruleset's Spice deck slot");
+    await slot(second.id, 'spiceExtras');
+    await expect(slot(second.id, 'spice')).rejects.toThrow("already in the ruleset's Extra spice decks slot");
+  });
+
   test('the detail page carries the slotted board with its face, and null once the slot is empty', async () => {
     const { t, owner, ruleset } = await slotFixture();
     const board = await owner.mutation(api.assets.create, {

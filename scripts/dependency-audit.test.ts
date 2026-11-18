@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { ATTEMPT_MS, RETRY_DELAYS_MS, auditDependencies, classifyAudit, verdictLine } from './dependency-audit';
+import {
+  ATTEMPT_MS,
+  IGNORED_ADVISORIES,
+  RETRY_DELAYS_MS,
+  auditArgs,
+  auditDependencies,
+  classifyAudit,
+  verdictLine,
+} from './dependency-audit';
 import type { AuditAttempt } from './dependency-audit';
 import { jobTimeoutMinutes, verifyJob } from './lib/verify-workflow';
 import { TransientError } from './retry-transient';
@@ -134,5 +142,17 @@ describe('auditDependencies', () => {
     expect(job).toContain('run: bun run dependencies:audit');
     const worstCaseMs = (RETRY_DELAYS_MS.length + 1) * ATTEMPT_MS + RETRY_DELAYS_MS.reduce((sum, ms) => sum + ms, 0);
     expect(jobTimeoutMinutes(job) * 60_000).toBeGreaterThan(LINT_STEPS_BEFORE_AUDIT_MS + worstCaseMs);
+  });
+});
+
+describe('auditArgs', () => {
+  test('skips each ignored advisory by its GHSA id and keeps the caller arguments last', () => {
+    expect(IGNORED_ADVISORIES.every((id) => /^GHSA(?:-[0-9a-z]{4}){3}$/.test(id))).toBe(true);
+    expect(auditArgs(['--json'])).toEqual([
+      'audit',
+      '--audit-level=moderate',
+      ...IGNORED_ADVISORIES.map((id) => `--ignore=${id}`),
+      '--json',
+    ]);
   });
 });

@@ -71,7 +71,7 @@ import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
-import { BattleModeToggle, BattleScene } from './BattleControls';
+import { BattleModeToggle, BattleScene, RecalledBattleScene } from './BattleControls';
 import { BattlePlanHint, BattlePlanOpenerContext } from './BattlePlanHint';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
@@ -79,7 +79,7 @@ import { useChatSounds } from './chatSounds';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
-import { mentatRecall } from './MentatRecall';
+import { mentatRecall, recalledBattle } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -625,7 +625,8 @@ function stageScene({
   onMarkerTerritory,
 }: TableControlProps & Readonly<{ bidderFaded: boolean; onMarkerTerritory: (territoryId: string | null) => void }>) {
   if (reviewRunning(table.review?.current)) {
-    return null;
+    const settled = recalledBattle(table);
+    return settled ? <RecalledBattleScene client={client} table={table} result={settled} /> : null;
   }
   const stage = table.snapshot.stage;
   if (stage === 'swapping' || stage === 'setup') {

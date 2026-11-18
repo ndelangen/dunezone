@@ -103,6 +103,8 @@ export default defineSchema({
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
     last_turn: v.optional(zodToConvex(lastTurnSchema)),
+    /* The ruleset's extra spice decks the creator ticked; absent when none were (#2986). */
+    spice_extras: v.optional(v.array(v.string())),
     discord_voice: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
@@ -736,6 +738,7 @@ export default defineSchema({
       v.literal('board'),
       v.literal('treachery'),
       v.literal('spice'),
+      v.literal('spiceExtras'),
       v.literal('custom'),
       v.literal('techToken'),
       v.literal('customTokens')
