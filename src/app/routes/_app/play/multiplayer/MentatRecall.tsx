@@ -28,6 +28,23 @@ import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
 
+/** The battle a recalled checkpoint settled, once that checkpoint has loaded: the table shows its reveal again where it was fought (#2985). */
+export function recalledBattle(table: TableProjection) {
+  const review = table.review;
+  const current = review?.current;
+  if (
+    !review ||
+    !current ||
+    current.startedAt === null ||
+    table.historyPending ||
+    table.playback?.step !== current.step
+  ) {
+    return undefined;
+  }
+  const moment = review.checkpoints.find((checkpoint) => checkpoint.step === current.step)?.moment;
+  return moment === 'battle' ? table.snapshot.battleResults?.at(-1) : undefined;
+}
+
 /** The shared checkpoint and private recorded inventories, with no mutation controls in their rendering. */
 export function mentatRecall(client: TableSession, table: TableProjection): CompassTable['recall'] {
   const review = table.review;

@@ -57,6 +57,22 @@ export function reviewCheckpoints(stage: Stage = 'play'): ReviewCheckpoint[] {
   ];
 }
 
+/* The step the table saves when Turn 1's battle settles, just after the Battle phase began. */
+export const SETTLED_BATTLE_STEP = 900;
+type SettledBattle = NonNullable<GameSnapshot['battleResults']>[number];
+
+/** The checkpoints with the one Turn 1's settled battle saved, right after the Battle phase's own. */
+export function withSettledBattle(checkpoints: readonly ReviewCheckpoint[]): ReviewCheckpoint[] {
+  const battle = checkpoints.findIndex((entry) => entry.step === FIRST_PLAY_STEP + BATTLE);
+  const settled: ReviewCheckpoint = {
+    ...checkpoints[battle]!,
+    step: SETTLED_BATTLE_STEP,
+    context: 'Turn 1, Battle',
+    moment: 'battle',
+  };
+  return [...checkpoints.slice(0, battle + 1), settled, ...checkpoints.slice(battle + 1)];
+}
+
 /** The live table a review is asked from: Turn 1's Battle, or the game finished at its Mentat Pause; nobody reviewing yet. */
 export function reviewableSnapshot(
   viewerSeat = 'seat-2',
@@ -128,10 +144,15 @@ function checkpointSnapshot(step: number, viewerSeat: string): GameSnapshot {
 export function reviewTransport(
   viewerSeat: string,
   review: TableReview | null = null,
-  { agreeAfterMs = 1500 as number | null, stage = 'play' as Stage } = {}
+  {
+    agreeAfterMs = 1500 as number | null,
+    stage = 'play' as Stage,
+    settledBattle = undefined as SettledBattle | undefined,
+  } = {}
 ) {
-  const checkpoints = reviewCheckpoints(stage);
+  const checkpoints = settledBattle ? withSettledBattle(reviewCheckpoints(stage)) : reviewCheckpoints(stage);
   let live = reviewableSnapshot(viewerSeat, review, stage);
+  live.reviewCheckpoints = checkpoints;
   let revision = live.revision;
   const messages: ConversationMessage[] = [];
   const pointers = (live.controls?.players ?? [])
@@ -205,7 +226,10 @@ export function reviewTransport(
         ...(message.requestId ? { requestId: message.requestId } : {}),
         step: message.step,
         lastStep: checkpoints.at(-1)!.step,
-        snapshot: checkpointSnapshot(message.step, viewerSeat),
+        snapshot:
+          settledBattle && message.step === SETTLED_BATTLE_STEP
+            ? { ...checkpointSnapshot(FIRST_PLAY_STEP + BATTLE, viewerSeat), battleResults: [settledBattle] }
+            : checkpointSnapshot(message.step, viewerSeat),
       })
     );
     return true;

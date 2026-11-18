@@ -539,7 +539,7 @@ function SideContents({
         factionId={side!.factionId}
         factionName={rosterName(side!.factionId, names)}
         artwork={table.snapshot.factionArtwork}
-        client={table.canHandleTable ? client : undefined}
+        client={table.canHandleTable && offersActions(table) ? client : undefined}
         active={active}
       />
     );
@@ -733,6 +733,33 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       </PointerSessionContext>
     </Html>
   );
+}
+type BattleResult = NonNullable<TableProjection['snapshot']['battleResults']>[number];
+/*
+ * A settled battle drawn as the table revealed it, for a recall: both wheels in the callout pointing at its territory,
+ * with each winning side's call under its wheel. A recall plays back, so the callout offers no controls.
+ */
+function settledReveal(result: BattleResult): PublicBattle {
+  const choice = (index: 0 | 1) =>
+    result.outcome === 'none' || result.outcome === (index ? 'right' : 'left') ? result.outcome : null;
+  return {
+    id: result.id,
+    anchor: result.anchor,
+    territory: result.territory,
+    stage: 'revealed',
+    sides: [
+      { factionId: result.factions[0], ready: true, choice: choice(0) },
+      { factionId: result.factions[1], ready: true, choice: choice(1) },
+    ],
+    deadline: null,
+    revealed: result.plans,
+  };
+}
+/** The reveal of the battle a recalled checkpoint settled, read-only, where the battle was fought (#2985). */
+export function RecalledBattleScene({ result, ...props }: Props & Readonly<{ result: BattleResult }>) {
+  const battle = settledReveal(result);
+  const placement = useBattlePlacement(battle);
+  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} />;
 }
 /**
  * The scene owns pointer projection;

@@ -1,12 +1,19 @@
 import preview from '@sb/preview';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
-import { within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
+import { agreedBattle } from './panels/battles/BattleHistoryPanel.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
-import { reviewableSnapshot, reviewCheckpoints, reviewOf, reviewTransport } from './review.stories.fixture';
+import {
+  reviewableSnapshot,
+  reviewCheckpoints,
+  reviewOf,
+  reviewTransport,
+  withSettledBattle,
+} from './review.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -66,6 +73,27 @@ export const RecallingAfterTheGame = meta.story({
       stage: 'finished',
     })
   ),
+});
+
+/* Recalling the checkpoint saved right after a battle settled shows that battle's reveal on the table again, read-only (#2985). */
+export const RecallingASettledBattle = meta.story({
+  beforeEach: install(() => {
+    const settled = withSettledBattle(reviewCheckpoints('finished')).find(
+      (checkpoint) => checkpoint.moment === 'battle'
+    )!;
+    return reviewTransport('seat-2', reviewOf(reviewableSnapshot('seat-2', null, 'finished'), settled, 'seat-1'), {
+      stage: 'finished',
+      settledBattle: agreedBattle().results[0],
+    });
+  }),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    /* The table's own reveal comes back where the battle was fought: the winner's call under its wheel, and nothing to press. */
+    await expect(await body.findByText('Left side won', {}, { timeout: 5000 })).toBeVisible();
+    for (const name of ['No winner', 'Left side won', 'Right side won', 'Resolve battle']) {
+      await expect(body.queryByRole('button', { name })).toBeNull();
+    }
+  },
 });
 
 /* Shipment and Movement with the first faction done: the phase chip shows every faction's token in turn order, the first faded as done and the second ringed as up now, for any seated player to mark done, which saves a checkpoint. */
