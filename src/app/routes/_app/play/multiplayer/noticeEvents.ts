@@ -90,6 +90,10 @@ export const onlyReordered = (before: GameSnapshot, after: GameSnapshot) =>
   (before.movement?.done ?? []).join() === (after.movement?.done ?? []).join() &&
   (before.movement?.order ?? []).join() !== (after.movement?.order ?? []).join();
 
+/** Whether a table shows exactly the movement order another does, as the viewer's own drag showed it before the room answered. */
+export const sameMovementOrder = (shown: GameSnapshot, after: GameSnapshot) =>
+  (shown.movement?.order ?? []).join() === (after.movement?.order ?? []).join();
+
 function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   if (!shipUp(after, own) || shipUp(before, own)) {
     return [];

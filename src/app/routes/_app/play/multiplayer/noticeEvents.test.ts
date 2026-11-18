@@ -3,7 +3,7 @@ import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { noticeStillHolds, noticesBetween, onlyReordered } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered, sameMovementOrder } from './noticeEvents';
 
 /* Storm order reads the faction tokens' sectors; these tables carry no pieces, so the viewer moves first. */
 vi.mock('@shared/play/stormSector', () => ({ stormOrder: () => [OWN, OTHER] }));
@@ -224,4 +224,11 @@ test('only a new movement order, with nobody newly done, counts as a reorder the
   expect(onlyReordered(moves([]), moves([], [OWN, OTHER]))).toBe(true);
   expect(onlyReordered(moves([]), moves([OTHER], [OWN]))).toBe(false);
   expect(onlyReordered(moves([], [OWN]), moves([], [OWN]))).toBe(false);
+});
+
+test('only the exact movement order a drag showed counts as the one the room confirmed', () => {
+  const order = (list: string[]) =>
+    table({ movement: { done: [], order: list } as unknown as GameSnapshot['movement'] });
+  expect(sameMovementOrder(order([OWN, OTHER]), order([OWN, OTHER]))).toBe(true);
+  expect(sameMovementOrder(order([OWN, OTHER]), order([OWN, OTHER, 'house-fremen']))).toBe(false);
 });

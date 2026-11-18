@@ -12,7 +12,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticeStillHolds, noticesBetween, onlyReordered } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered, sameMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import type { NoticeStart, ShownTable } from './noticeStart';
 import styles from './SoftNotices.module.css';
@@ -51,8 +51,9 @@ const KEPT = 12;
 
 /*
  * Whether a raised notice is news to the viewer. Setup has no turns, so turn notices wait for play.
- * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news;
- * only a change that just reordered counts as that, so a faction finishing still hands on a real turn.
+ * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
+ * Only a change that just reordered counts as that, so a faction finishing still hands on a real turn.
+ * The room's order must also be exactly the one that drag showed, so another player's reorder that lands meanwhile, in any other order, is still announced.
  * Only that turn: a battle or a bid already standing before is raised for what changed, such as the second side claimed.
  */
 function newsFor(
@@ -69,7 +70,12 @@ function newsFor(
     return true;
   }
   const { own, playing, seen, before, after } = context;
-  const ownDrag = draft.kind === 'ship' && onlyReordered(before, after) && seen && noticeStillHolds(seen, own, draft);
+  const ownDrag =
+    draft.kind === 'ship' &&
+    onlyReordered(before, after) &&
+    seen !== null &&
+    sameMovementOrder(seen, after) &&
+    noticeStillHolds(seen, own, draft);
   return playing && !ownDrag;
 }
 
@@ -187,14 +193,14 @@ function SoftNotices({
   return (
     <div
       className={styles.root}
-      inert={inert}
       data-motion={motion || undefined}
       role="log"
       aria-live="polite"
       aria-label="Notifications"
     >
       {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
-      <div className={styles.stack}>
+      {/* Only the toasts give way to a board gesture: the log stays in the accessibility tree, so what arrives meanwhile is still announced. */}
+      <div className={styles.stack} inert={inert}>
         {live.slice(0, 4).map((notice) => (
           <div
             key={notice.id}
