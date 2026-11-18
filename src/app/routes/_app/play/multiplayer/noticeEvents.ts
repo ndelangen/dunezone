@@ -14,6 +14,8 @@ export type NoticeDraft = Readonly<{
   /** The faction it came from: another for a payment or an offer, the viewer's own for their turn. */
   factionId: string;
   text: string;
+  /** The table revision it happened at, which orders a batch that spans several. */
+  revision: number;
 }>;
 
 type Names = Readonly<Record<string, string>>;
@@ -40,7 +42,7 @@ export function noticesBetween(
     ...battleReady(before, after, own),
     ...spiceReceived(before, after, own, name),
     ...allianceOffers(before, after, own, name),
-  ];
+  ].toSorted((a, b) => a.revision - b.revision);
 }
 
 const bidUp = (snapshot: GameSnapshot, own: string) =>
@@ -57,7 +59,15 @@ function biddingTurn(before: GameSnapshot, after: GameSnapshot, own: string): No
   if (!bidUp(after, own) || stillBidding(before, after, own)) {
     return [];
   }
-  return [{ key: `${bidKey(after)}${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
+  return [
+    {
+      key: `${bidKey(after)}${after.revision}`,
+      kind: 'bid',
+      factionId: own,
+      text: 'Your turn to bid',
+      revision: after.revision,
+    },
+  ];
 }
 
 /* The table records no movement turns until the first faction is done, so the phase itself says when movement is played. */
@@ -75,17 +85,29 @@ function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): N
   if (!shipUp(after, own) || shipUp(before, own)) {
     return [];
   }
-  return [{ key: `ship-${after.revision}`, kind: 'ship', factionId: own, text: 'Your turn to ship and move' }];
+  return [
+    {
+      key: `ship-${after.revision}`,
+      kind: 'ship',
+      factionId: own,
+      text: 'Your turn to ship and move',
+      revision: after.revision,
+    },
+  ];
 }
 
 /*
  * The viewer's battle is ready for their plan once both its sides are claimed, one of them the viewer's.
  * When the viewer's own claim completes it, they made it ready themselves, so there is nothing to tell them.
  */
+/* The viewer's side of a battle, while it is planning and their plan is not yet Ready. */
+const planning = (battle: GameSnapshot['battle'], own: string) =>
+  battle?.stage === 'preparing' && battle.sides.some((side) => side?.factionId === own && !side.ready);
+
 function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   const ownSide = (battle: GameSnapshot['battle']) => battle?.sides.some((side) => side?.factionId === own) ?? false;
   const battle = after.battle;
-  if (battle?.stage !== 'preparing' || !battle.sides.every(Boolean) || !ownSide(battle)) {
+  if (!battle || !battle.sides.every(Boolean) || !planning(battle, own)) {
     return [];
   }
   const earlier = before.battle?.id === battle.id ? before.battle : undefined;
@@ -93,7 +115,13 @@ function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): No
     return [];
   }
   return [
-    { key: `battle-${battle.id}`, kind: 'battle', factionId: own, text: `Your battle in ${battle.territory} is up` },
+    {
+      key: `battle-${battle.id}`,
+      kind: 'battle',
+      factionId: own,
+      text: `Your battle in ${battle.territory} is up`,
+      revision: after.revision,
+    },
   ];
 }
 
@@ -131,7 +159,15 @@ function spiceReceived(
     const text = giver
       ? `${name(giver)} ${verb} you ${transfer.amount} spice`
       : `You were ${verb} ${transfer.amount} spice`;
-    return [{ key: `spice-${transfer.revision}`, kind: 'spice' as const, factionId: giver ?? own, text }];
+    return [
+      {
+        key: `spice-${transfer.revision}`,
+        kind: 'spice' as const,
+        factionId: giver ?? own,
+        text,
+        revision: transfer.revision,
+      },
+    ];
   });
 }
 
@@ -149,17 +185,19 @@ function allianceOffers(
       kind: 'alliance' as const,
       factionId: offer.from,
       text: `${name(offer.from)} offers you an alliance`,
+      /* An offer's id is the revision that made it. */
+      revision: offer.id,
     }));
 }
 
-const battlePlanning = (snapshot: GameSnapshot, key: string) =>
-  snapshot.battle?.stage === 'preparing' && key === `battle-${snapshot.battle.id}`;
+const battlePlanning = (snapshot: GameSnapshot, own: string, key: string) =>
+  planning(snapshot.battle, own) && key === `battle-${snapshot.battle?.id}`;
 
 const offerOpen = (snapshot: GameSnapshot, key: string) =>
   (snapshot.alliances?.offers ?? []).some((offer) => key === `alliance-${offer.id}`);
 
 /**
- * Whether what a notice announced still stands: a turn that has passed, a battle past its planning, or an alliance offer withdrawn or answered is no news any more.
+ * Whether what a notice announced still stands: a turn that has passed, a battle past its planning or already planned, or an alliance offer withdrawn or answered is no news any more.
  * Payments stay until they fade.
  */
 export function noticeStillHolds(
@@ -173,7 +211,7 @@ export function noticeStillHolds(
     case 'ship':
       return shipUp(snapshot, own);
     case 'battle':
-      return battlePlanning(snapshot, notice.key);
+      return battlePlanning(snapshot, own, notice.key);
     case 'alliance':
       return offerOpen(snapshot, notice.key);
     default:

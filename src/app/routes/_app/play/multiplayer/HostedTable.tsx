@@ -14,6 +14,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { Pending } from '@ui/content/Pending';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
 import {
@@ -516,7 +517,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
               ...PANEL_WINDOWS.tints,
               content: withTableError(
                 error,
-                <Suspense fallback={<Loader size="sm" />}>
+                <Suspense fallback={<Pending>Loading territory tints</Pending>}>
                   <ConnectedTerritoryTintsPanel client={client} table={table} />
                 </Suspense>
               ),

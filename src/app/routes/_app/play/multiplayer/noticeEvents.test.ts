@@ -50,7 +50,7 @@ test('a change shown before the table makes it, at the same revision, raises not
 
 test('the movement phase starting with the viewer first to move raises their turn, before any faction is done', () => {
   const movementIndex = STANDARD_PHASES.findIndex((phase) => phase.id === MOVEMENT_PHASE_ID);
-  expect(between(table({ phase: movementIndex - 1 }), table({ phase: movementIndex, revision: 2 }))).toEqual([
+  expect(between(table({ phase: movementIndex - 1 }), table({ phase: movementIndex, revision: 2 }))).toMatchObject([
     { key: 'ship-2', kind: 'ship', factionId: OWN, text: 'Your turn to ship and move' },
   ]);
 });
@@ -62,14 +62,14 @@ test('the first snapshot a page sees raises nothing, even on the viewer’s turn
 const openBid = (turn: string, round = 1) => ({ bidding: { stage: 'open', turn, round } as GameSnapshot['bidding'] });
 
 test('the bidder coming to the viewer raises their turn once, not again while it stays there', () => {
-  expect(between(table(openBid(OTHER)), table({ ...openBid(OWN), revision: 2 }))).toEqual([
+  expect(between(table(openBid(OTHER)), table({ ...openBid(OWN), revision: 2 }))).toMatchObject([
     { key: 'bid-1-2', kind: 'bid', factionId: OWN, text: 'Your turn to bid' },
   ]);
   expect(between(table(openBid(OWN)), table({ ...openBid(OWN), revision: 3 }))).toEqual([]);
 });
 
 test('a round started afresh on the viewer raises their turn again, and the old round’s notice no longer holds', () => {
-  expect(between(table(openBid(OWN, 1)), table({ ...openBid(OWN, 2), revision: 3 }))).toEqual([
+  expect(between(table(openBid(OWN, 1)), table({ ...openBid(OWN, 2), revision: 3 }))).toMatchObject([
     { key: 'bid-2-3', kind: 'bid', factionId: OWN, text: 'Your turn to bid' },
   ]);
   expect(noticeStillHolds(table(openBid(OWN, 2)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(false);
@@ -84,10 +84,10 @@ test('a battle raises the viewer’s turn once both its sides are claimed, one o
       sides: sides.map((factionId) => (factionId ? { factionId } : null)),
     } as unknown as GameSnapshot['battle'],
   });
-  expect(between(table(battle([null, OWN])), table(battle([OTHER, OWN])))).toEqual([
+  expect(between(table(battle([null, OWN])), table(battle([OTHER, OWN])))).toMatchObject([
     { key: 'battle-b1', kind: 'battle', factionId: OWN, text: 'Your battle in Arrakeen is up' },
   ]);
-  expect(between(table(), table(battle([OTHER, OWN])))).toEqual([
+  expect(between(table(), table(battle([OTHER, OWN])))).toMatchObject([
     { key: 'battle-b1', kind: 'battle', factionId: OWN, text: 'Your battle in Arrakeen is up' },
   ]);
   expect(between(table(battle([OTHER, OWN])), table(battle([OTHER, OWN])))).toEqual([]);
@@ -120,7 +120,7 @@ test('a payment or bribe to the viewer names the giving faction; their own and o
       transfer(6, 'collection', 'Alia', OWN),
     ],
   });
-  expect(between(table({ spiceTransfers: [transfer(1, 'payment', 'Alia', OWN)] }), after)).toEqual([
+  expect(between(table({ spiceTransfers: [transfer(1, 'payment', 'Alia', OWN)] }), after)).toMatchObject([
     { key: 'spice-2', kind: 'spice', factionId: OTHER, text: 'House Atreides paid you 3 spice' },
     { key: 'spice-3', kind: 'spice', factionId: OTHER, text: 'House Atreides bribed you 3 spice' },
   ]);
@@ -140,7 +140,7 @@ test('a payment from a player the table cannot tell apart names no faction', () 
     },
   } as unknown as Partial<GameSnapshot>;
   const after = table({ ...shared, spiceTransfers: [transfer(1, 'Alia'), transfer(2, '[deleted user]')] });
-  expect(between(table(shared), after)).toEqual([
+  expect(between(table(shared), after)).toMatchObject([
     { key: 'spice-1', kind: 'spice', factionId: OWN, text: 'You were paid 2 spice' },
     { key: 'spice-2', kind: 'spice', factionId: OWN, text: 'You were paid 2 spice' },
   ]);
@@ -160,14 +160,18 @@ test('a new alliance offer to the viewer names who offers it', () => {
         ])
       )
     )
-  ).toEqual([{ key: 'alliance-4', kind: 'alliance', factionId: OTHER, text: 'House Atreides offers you an alliance' }]);
+  ).toMatchObject([
+    { key: 'alliance-4', kind: 'alliance', factionId: OTHER, text: 'House Atreides offers you an alliance' },
+  ]);
 });
 
 test('a notice holds only while what it announced stands; payments hold until they fade', () => {
   expect(noticeStillHolds(table(openBid(OWN)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(true);
   expect(noticeStillHolds(table(openBid(OTHER)), OWN, { key: 'bid-1-2', kind: 'bid' })).toBe(false);
   const battle = (stage: string) =>
-    table({ battle: { id: 'b1', stage, sides: [] } as unknown as GameSnapshot['battle'] });
+    table({
+      battle: { id: 'b1', stage, sides: [{ factionId: OWN, ready: false }] } as unknown as GameSnapshot['battle'],
+    });
   expect(noticeStillHolds(battle('preparing'), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);
   expect(noticeStillHolds(battle('countdown'), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
   const offers = (ids: number[]) =>
@@ -191,4 +195,33 @@ test('a batch of transfers raises its notices oldest first, though the table lis
     (notice) => notice.key
   );
   expect(keys).toEqual(['spice-4', 'spice-5']);
+});
+
+test('a battle whose viewer is already Ready raises nothing, and a notice for it no longer holds once they are', () => {
+  const battle = (ready: boolean) =>
+    ({
+      battle: {
+        id: 'b1',
+        territory: 'Arrakeen',
+        stage: 'preparing',
+        sides: [
+          { factionId: OWN, ready, choice: null },
+          { factionId: OTHER, ready: false, choice: null },
+        ],
+      },
+    }) as unknown as Partial<GameSnapshot>;
+  const claimed = { battle: { ...battle(true).battle!, sides: [battle(true).battle!.sides[0], null] } };
+  expect(between(table(claimed as Partial<GameSnapshot>), table(battle(true)))).toEqual([]);
+  expect(noticeStillHolds(table(battle(true)), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(false);
+  expect(noticeStillHolds(table(battle(false)), OWN, { key: 'battle-b1', kind: 'battle' })).toBe(true);
+});
+
+test('a batch spanning several revisions comes out in the order things happened', () => {
+  const after = table({
+    ...openBid(OWN),
+    revision: 9,
+    spiceTransfers: [{ revision: 7, kind: 'payment', actor: 'nobody', amount: 1, source: 'table', destination: OWN }],
+    alliances: { groups: [], offers: [{ from: OTHER, to: OWN, at: 0, id: 8 }] },
+  } as Partial<GameSnapshot>);
+  expect(between(table(openBid(OTHER)), after).map((notice) => notice.kind)).toEqual(['spice', 'alliance', 'bid']);
 });

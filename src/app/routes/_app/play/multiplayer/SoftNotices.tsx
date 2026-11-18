@@ -49,6 +49,20 @@ export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
+/*
+ * Whether a raised notice is news to the viewer. Setup has no turns, so turn notices wait for play.
+ * A turn the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
+ */
+function newsFor(
+  draft: NoticeDraft,
+  context: Readonly<{ own: string; playing: boolean; seen: GameSnapshot | null }>
+): boolean {
+  if (!TURN_KINDS.has(draft.kind)) {
+    return true;
+  }
+  return context.playing && !(context.seen && noticeStillHolds(context.seen, context.own, draft));
+}
+
 /* The notices still standing at the table, then the newly raised ones, newest last and at most KEPT of them. */
 function keptAndRaised(
   all: readonly SoftNotice[],
@@ -82,16 +96,20 @@ function keptAndRaised(
 function useSoftNotices(table: TableProjection, start: NoticeStart | null): readonly SoftNotice[] {
   const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
-  /* Setup has no turns, but a faction can be paid or offered an alliance there. */
   const playing = stageInPlay(table.snapshot.stage);
   const previous = useRef(start);
+  /* The table as last shown, the viewer's own pending drag of the movement order included. */
+  const shown = useRef<GameSnapshot | null>(null);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
   const [shownFor, setShownFor] = useState(own);
   if (shownFor !== own) {
     setShownFor(own);
     setNotices([]);
   }
+  const displayed = table.snapshot;
   useEffect(() => {
+    const seen = shown.current;
+    shown.current = displayed;
     /* A faction newly acted for starts from the table the page first showed it at. */
     const before = previous.current?.own === own ? previous.current : start;
     if (!own || !before) {
@@ -103,12 +121,12 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
     }
     previous.current = { own, snapshot };
     const names = snapshotFactionLabels(snapshot);
-    const raised = noticesBetween(before.snapshot, snapshot, own, names).filter(
-      (draft) => playing || !TURN_KINDS.has(draft.kind)
+    const raised = noticesBetween(before.snapshot, snapshot, own, names).filter((draft) =>
+      newsFor(draft, { own, playing, seen })
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
-  }, [own, start, snapshot, playing]);
+  }, [own, start, snapshot, displayed, playing]);
   return notices;
 }
 
