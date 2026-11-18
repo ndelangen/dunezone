@@ -835,6 +835,11 @@ function ConnectedTable({
   const noticeStart = useNoticeStart(table);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
+  /* A battle toast brings the planner forward even when it is open behind another panel. */
+  const noticeBattleOpener = useMemo(
+    () => (battlePlanCanOpen(table) ? () => openWindow('battle') : null),
+    [table, openWindow]
+  );
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
@@ -926,7 +931,7 @@ function ConnectedTable({
                     start={noticeStart}
                     inert={inert}
                     openPanel={openNoticePanel}
-                    openBattlePlan={battlePlanOpener}
+                    openBattlePlan={noticeBattleOpener}
                   />
                 )}
               />

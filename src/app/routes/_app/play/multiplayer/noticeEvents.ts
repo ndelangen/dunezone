@@ -81,6 +81,15 @@ const shipUp = (snapshot: GameSnapshot, own: string) =>
     snapshot.movement
   ) === own;
 
+/*
+ * Whether the table's change to the movement turns was only a new order: same phase, nobody newly done.
+ * Only such a change can be the viewer's own drag of the order confirmed; a faction finishing hands on a real turn.
+ */
+export const onlyReordered = (before: GameSnapshot, after: GameSnapshot) =>
+  before.phase === after.phase &&
+  (before.movement?.done ?? []).join() === (after.movement?.done ?? []).join() &&
+  (before.movement?.order ?? []).join() !== (after.movement?.order ?? []).join();
+
 function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   if (!shipUp(after, own) || shipUp(before, own)) {
     return [];
@@ -151,10 +160,9 @@ function spiceReceived(
     if (transfer.kind !== 'payment' && transfer.kind !== 'bribe') {
       return [];
     }
-    const giver = playerFaction(after, transfer.actor);
-    if (giver === own) {
-      return [];
-    }
+    /* The giver is told by the name recorded with the gift, which can match the viewer's own after a namesake left: then it names nobody, and never drops the gift. */
+    const found = playerFaction(after, transfer.actor);
+    const giver = found === own ? undefined : found;
     const verb = transfer.kind === 'bribe' ? 'bribed' : 'paid';
     const text = giver
       ? `${name(giver)} ${verb} you ${transfer.amount} spice`

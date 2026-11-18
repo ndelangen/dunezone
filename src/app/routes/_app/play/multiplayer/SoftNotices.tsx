@@ -12,7 +12,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticeStillHolds, noticesBetween } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
@@ -51,19 +51,26 @@ const KEPT = 12;
 
 /*
  * Whether a raised notice is news to the viewer. Setup has no turns, so turn notices wait for play.
- * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
+ * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news;
+ * only a change that just reordered counts as that, so a faction finishing still hands on a real turn.
  * Only that turn: a battle or a bid already standing before is raised for what changed, such as the second side claimed.
  */
 function newsFor(
   draft: NoticeDraft,
-  context: Readonly<{ own: string; playing: boolean; seen: GameSnapshot | null }>
+  context: Readonly<{
+    own: string;
+    playing: boolean;
+    seen: GameSnapshot | null;
+    before: GameSnapshot;
+    after: GameSnapshot;
+  }>
 ): boolean {
   if (!TURN_KINDS.has(draft.kind)) {
     return true;
   }
-  return (
-    context.playing && !(draft.kind === 'ship' && context.seen && noticeStillHolds(context.seen, context.own, draft))
-  );
+  const { own, playing, seen, before, after } = context;
+  const ownDrag = draft.kind === 'ship' && onlyReordered(before, after) && seen && noticeStillHolds(seen, own, draft);
+  return playing && !ownDrag;
 }
 
 /* The notices still standing at the table, then the newly raised ones, newest last and at most KEPT of them. */
@@ -125,7 +132,7 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
     previous.current = { own, snapshot };
     const names = snapshotFactionLabels(snapshot);
     const raised = noticesBetween(before.snapshot, snapshot, own, names).filter((draft) =>
-      newsFor(draft, { own, playing, seen })
+      newsFor(draft, { own, playing, seen, before: before.snapshot, after: snapshot })
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));

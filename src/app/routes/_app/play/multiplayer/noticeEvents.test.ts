@@ -3,7 +3,7 @@ import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { noticeStillHolds, noticesBetween } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered } from './noticeEvents';
 
 /* Storm order reads the faction tokens' sectors; these tables carry no pieces, so the viewer moves first. */
 vi.mock('@shared/play/stormSector', () => ({ stormOrder: () => [OWN, OTHER] }));
@@ -105,7 +105,7 @@ test('the viewer’s own claim completing their battle raises nothing, since the
   expect(between(table(battle([OTHER, null])), table(battle([OTHER, OWN])))).toEqual([]);
 });
 
-test('a payment or bribe to the viewer names the giving faction; their own and other transfers raise nothing', () => {
+test('a payment or bribe to the viewer names the giving faction; one whose name matches their own names nobody; other transfers raise nothing', () => {
   const transfer = (revision: number, kind: string, actor: string, destination?: string) =>
     ({ revision, kind, actor, amount: 3, source: 'table', destination }) as NonNullable<
       GameSnapshot['spiceTransfers']
@@ -123,6 +123,7 @@ test('a payment or bribe to the viewer names the giving faction; their own and o
   expect(between(table({ spiceTransfers: [transfer(1, 'payment', 'Alia', OWN)] }), after)).toMatchObject([
     { key: 'spice-2', kind: 'spice', factionId: OTHER, text: 'House Atreides paid you 3 spice' },
     { key: 'spice-3', kind: 'spice', factionId: OTHER, text: 'House Atreides bribed you 3 spice' },
+    { key: 'spice-4', kind: 'spice', factionId: OWN, text: 'You were paid 3 spice' },
   ]);
 });
 
@@ -224,4 +225,12 @@ test('a batch spanning several revisions comes out in the order things happened'
     alliances: { groups: [], offers: [{ from: OTHER, to: OWN, at: 0, id: 8 }] },
   } as Partial<GameSnapshot>);
   expect(between(table(openBid(OTHER)), after).map((notice) => notice.kind)).toEqual(['spice', 'alliance', 'bid']);
+});
+
+test('only a new movement order, with nobody newly done, counts as a reorder the viewer may have made', () => {
+  const moves = (done: string[], order?: string[]) =>
+    table({ movement: { done, ...(order ? { order } : {}) } as GameSnapshot['movement'] });
+  expect(onlyReordered(moves([]), moves([], [OWN, OTHER]))).toBe(true);
+  expect(onlyReordered(moves([]), moves([OTHER], [OWN]))).toBe(false);
+  expect(onlyReordered(moves([], [OWN]), moves([], [OWN]))).toBe(false);
 });
