@@ -417,7 +417,13 @@ function waitingOn({ battle, table, own }: ActiveProps) {
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
     if (!offersActions(props.table)) {
-      return null;
+      /* A recalled battle that settled with no winner says so once, between the wheels; a winner's call sits under its own wheel. */
+      const recalled = props.battle.id !== props.table.snapshot.battle?.id;
+      return recalled && !props.battle.sides.some((side) => side?.choice) ? (
+        <Text className={styles.choice} size="xs">
+          {OUTCOME_LABELS.none}
+        </Text>
+      ) : null;
     }
     /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
     const waiting = waitingOn(props);
@@ -527,7 +533,7 @@ function SideContents({
   own,
   index,
   active,
-}: ActiveProps & { index: 0 | 1; active: Set<string> }) {
+}: ActiveProps & { index: 0 | 1; active?: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
   const hint = useId();
@@ -630,9 +636,13 @@ function useClaimDrops(battle: PublicBattle) {
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
   const claims = useClaimDrops(battle);
-  const active = new Set(
-    table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
-  );
+  /* Only the live battle marks its pieces on the table; one a recall shows again draws every piece from its saved plans. */
+  const active =
+    battle.id === table.snapshot.battle?.id
+      ? new Set(
+          table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
+        )
+      : undefined;
   return (
     <Group justify="space-between" wrap="nowrap" gap="sm" pos="relative">
       {([0, 1] as const).map((index) => {
@@ -733,6 +743,33 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       </PointerSessionContext>
     </Html>
   );
+}
+type BattleResult = NonNullable<TableProjection['snapshot']['battleResults']>[number];
+/*
+ * A settled battle drawn as the table revealed it, for a recall: both wheels in the callout pointing at its territory,
+ * with the winner's call under its wheel, or No winner once between them. The result keeps no side's own call, so no other call shows.
+ * A recall plays back, so the callout offers no controls.
+ */
+function settledReveal(result: BattleResult): PublicBattle {
+  const choice = (index: 0 | 1) => (result.outcome === (index ? 'right' : 'left') ? result.outcome : null);
+  return {
+    id: result.id,
+    anchor: result.anchor,
+    territory: result.territory,
+    stage: 'revealed',
+    sides: [
+      { factionId: result.factions[0], ready: true, choice: choice(0) },
+      { factionId: result.factions[1], ready: true, choice: choice(1) },
+    ],
+    deadline: null,
+    revealed: result.plans,
+  };
+}
+/** The reveal of the battle a recalled checkpoint settled, read-only, where the battle was fought (#2985). */
+export function RecalledBattleScene({ result, ...props }: Props & Readonly<{ result: BattleResult }>) {
+  const battle = settledReveal(result);
+  const placement = useBattlePlacement(battle);
+  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} />;
 }
 /**
  * The scene owns pointer projection;

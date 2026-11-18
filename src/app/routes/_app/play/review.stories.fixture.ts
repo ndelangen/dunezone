@@ -57,6 +57,23 @@ export function reviewCheckpoints(stage: Stage = 'play'): ReviewCheckpoint[] {
   ];
 }
 
+type SettledBattle = NonNullable<GameSnapshot['battleResults']>[number];
+
+/** The checkpoints with Turn 1's Battle checkpoint saved as the one its battle settled, the way the table saves it once a battle ends. */
+function withSettledBattle(checkpoints: readonly ReviewCheckpoint[]): ReviewCheckpoint[] {
+  if (!checkpoints.some((entry) => entry.step === FIRST_PLAY_STEP + BATTLE)) {
+    throw new Error('These checkpoints have no Turn 1 Battle to settle.');
+  }
+  return checkpoints.map((entry) =>
+    entry.step === FIRST_PLAY_STEP + BATTLE ? { ...entry, context: 'Turn 1, Battle', moment: 'battle' as const } : entry
+  );
+}
+
+/** The checkpoint a settled-battle recall asks for, from the same list its transport serves. */
+export function settledBattleCheckpoint(stage: Stage = 'play'): ReviewCheckpoint {
+  return withSettledBattle(reviewCheckpoints(stage)).find((entry) => entry.moment === 'battle')!;
+}
+
 /** The live table a review is asked from: Turn 1's Battle, or the game finished at its Mentat Pause; nobody reviewing yet. */
 export function reviewableSnapshot(
   viewerSeat = 'seat-2',
@@ -128,10 +145,16 @@ function checkpointSnapshot(step: number, viewerSeat: string): GameSnapshot {
 export function reviewTransport(
   viewerSeat: string,
   review: TableReview | null = null,
-  { agreeAfterMs = 1500 as number | null, stage = 'play' as Stage } = {}
+  {
+    agreeAfterMs = 1500 as number | null,
+    stage = 'play' as Stage,
+    /* The table's settled battles, newest first as the game keeps them; the newest is the one Turn 1's Battle checkpoint settled. */
+    settledBattles = [] as readonly SettledBattle[],
+  } = {}
 ) {
-  const checkpoints = reviewCheckpoints(stage);
+  const checkpoints = settledBattles.length ? withSettledBattle(reviewCheckpoints(stage)) : reviewCheckpoints(stage);
   let live = reviewableSnapshot(viewerSeat, review, stage);
+  live.reviewCheckpoints = checkpoints;
   let revision = live.revision;
   const messages: ConversationMessage[] = [];
   const pointers = (live.controls?.players ?? [])
@@ -205,7 +228,10 @@ export function reviewTransport(
         ...(message.requestId ? { requestId: message.requestId } : {}),
         step: message.step,
         lastStep: checkpoints.at(-1)!.step,
-        snapshot: checkpointSnapshot(message.step, viewerSeat),
+        snapshot:
+          settledBattles.length && message.step === FIRST_PLAY_STEP + BATTLE
+            ? { ...checkpointSnapshot(message.step, viewerSeat), battleResults: [...settledBattles] }
+            : checkpointSnapshot(message.step, viewerSeat),
       })
     );
     return true;

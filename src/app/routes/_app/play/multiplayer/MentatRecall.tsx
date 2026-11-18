@@ -28,6 +28,23 @@ import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
 
+/** Whether the checkpoint a running recall shows has arrived: the reveal and the recalled inventories wait on the same thing. */
+function recallLoaded(table: TableProjection, current: NonNullable<TableProjection['review']>['current']) {
+  return !table.historyPending && current !== null && table.playback?.step === current.step;
+}
+
+/** The battle a recalled checkpoint settled, once that checkpoint has loaded: the table shows its reveal again where it was fought (#2985). */
+export function recalledBattle(table: TableProjection) {
+  const review = table.review;
+  const current = review?.current;
+  if (!review || !current || current.startedAt === null || !recallLoaded(table, current)) {
+    return undefined;
+  }
+  const moment = review.checkpoints.find((checkpoint) => checkpoint.step === current.step)?.moment;
+  /* The game keeps its settled battles newest first, so the one this checkpoint saved leads the list. */
+  return moment === 'battle' ? table.snapshot.battleResults?.[0] : undefined;
+}
+
 /** The shared checkpoint and private recorded inventories, with no mutation controls in their rendering. */
 export function mentatRecall(client: TableSession, table: TableProjection): CompassTable['recall'] {
   const review = table.review;
@@ -35,7 +52,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
   if (!review || !current || current.startedAt === null) {
     return;
   }
-  const loading = table.historyPending || table.playback?.step !== current.step;
+  const loading = !recallLoaded(table, current);
   const failed = loading && !table.historyPending;
   const failure = client.getSnapshot().error ?? 'The selected checkpoint is not loaded.';
   /*

@@ -130,6 +130,7 @@ export const PlannerClosedHints = meta.story({
     const page = await openPanel(canvasElement, 'Hand');
     const hand = within(windowNamed(page, 'Hand')!);
     await settled(() => expect(hand.getByRole('button', { name: 'Open battle plan' })).toBeVisible());
-    await expect(page.getAllByRole('button', { name: 'Open battle plan' })).toHaveLength(2);
+    /* The callout draws in the table's own frame, which can land after the Hand's: wait for both hints, not only the first. */
+    await settled(() => expect(page.getAllByRole('button', { name: 'Open battle plan' })).toHaveLength(2));
   },
 });
