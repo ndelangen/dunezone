@@ -207,7 +207,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'cancel',
       task: 'Cancel your offer',
       get detail() {
-        return `Changed your mind? Press the hourglass, Cancel offer, in the same window to keep ${dealt(snapshot)}.`;
+        return `Changed your mind? Press the hourglass, Cancel offer, in the same panel to keep ${dealt(snapshot)}.`;
       },
       anchor: { kind: 'page', element: element('button[aria-label^="Cancel offer to"]') },
       begin: () => undefined,

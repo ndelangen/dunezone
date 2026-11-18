@@ -4,13 +4,13 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * "Windows", as its page serves it: the compass on Space, a window in the middle, two slots to pin it in,
+ * "Panels", as its page serves it: the compass on Space, a window in the middle, two slots to pin it in,
  * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
-  title: 'Tutorial/Windows',
+  title: 'Tutorial/Panels',
   args: { path: '/tutorial/windows' },
   globals: chapterGlobals,
 });
@@ -18,5 +18,5 @@ const meta = testingPreview.meta({
 /** The chapter as a player meets it: do what the rail says, where its arrow shows, and it moves on by itself. */
 export const Chapter = meta.story({
   parameters: chapterParameters,
-  play: playChapter('Chapter 8: Windows', 'Find your controls'),
+  play: playChapter('Chapter 8: Panels', 'Find your controls'),
 });

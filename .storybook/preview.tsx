@@ -124,7 +124,7 @@ const parameters = {
             'Draft and trade',
             'Looking around',
             'Moving pieces',
-            'Windows',
+            'Panels',
             'Your hand and spice',
             'Decks and dealing',
             'What goes where',

@@ -89,7 +89,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'storm',
       task: 'Place the storm',
       detail:
-        'The game is in Storm. Press {Space}, type Phase and confirm with {Enter}. In the Phase window, press Place storm randomly before moving on.',
+        'The game is in Storm. Press {Space}, type Phase and confirm with {Enter}. In the Phase panel, press Place storm randomly before moving on.',
       anchor: {
         kind: 'page',
         element: () =>
