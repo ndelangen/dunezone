@@ -1089,6 +1089,10 @@ export class TableSession {
   }
   private receive(message: Exclude<TableSubscriptionEvent, { type: 'ping' | 'card-draw' }>) {
     this.settleRequest(message);
+    /* The subscription applies a view before it hands it on, so the room's table already shows what each taken command did. */
+    if (this.saved) {
+      this.ownChanges.observed(this.saved);
+    }
     switch (message.type) {
       case 'connection':
         this.conversations.disconnected(this.status === 'denied');
@@ -1172,7 +1176,10 @@ export class TableSession {
       return;
     }
     this.settle(settled.id, settled.outcome, message.type === 'resync');
-    this.ownChanges.settled(settled.id, settled.outcome);
+    this.ownChanges.settled(settled.id, settled.outcome, {
+      from: this.saved?.revision ?? -1,
+      followsLater: message.type === 'resync',
+    });
     /* A refused close leaves the peek open, so it shows again. */
     if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
       this.closedPeek = null;
@@ -1862,7 +1869,7 @@ export class TableSession {
   private sendCommand(commandId: string, action: PieceAction) {
     const sent = this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision });
     if (sent) {
-      this.ownChanges.sent(commandId, action, this.snapshot);
+      this.ownChanges.sent(commandId, action);
       this.unanswered.add(commandId);
     }
     return sent;

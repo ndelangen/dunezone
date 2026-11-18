@@ -31,7 +31,7 @@ export function noticesBetween(
   after: GameSnapshot,
   own: string,
   names: Names,
-  /** The battles the viewer's own claim completed, which they made ready themselves. */
+  /** The battles the viewer's own claim completed in this step, which they made ready themselves. */
   ownCompleted: readonly string[] = []
 ): NoticeDraft[] {
   if (!before || before.revision === after.revision) {

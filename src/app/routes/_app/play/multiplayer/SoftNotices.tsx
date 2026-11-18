@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { ownChangesBetween } from '../../../../db/tabletop/OwnChanges';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
@@ -120,9 +121,15 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
     }
     previous.current = { own, snapshot };
     const names = snapshotFactionLabels(snapshot);
-    /* What the viewer's own commands changed is kept by the connection, so a change made before this code loaded still counts. */
-    const raised = noticesBetween(before.snapshot, snapshot, own, names, mine?.completedBattles).filter((draft) =>
-      newsFor(draft, { playing, ownOrder: mine?.movementOrder ?? null, before: before.snapshot, after: snapshot })
+    /*
+     * What the viewer's own commands changed is kept by the connection, so a change made before this code loaded still counts.
+     * Only the changes this step brought count, so an order or claim the viewer made long ago never hides a later turn.
+     */
+    const step = ownChangesBetween(mine?.changes, before.snapshot, snapshot);
+    const completed = step.flatMap((change) => (change.kind === 'battle-completed' ? [change.battleId] : []));
+    const ownOrder = step.flatMap((change) => (change.kind === 'movement-order' ? [change.order] : [])).at(-1) ?? null;
+    const raised = noticesBetween(before.snapshot, snapshot, own, names, completed).filter((draft) =>
+      newsFor(draft, { playing, ownOrder, before: before.snapshot, after: snapshot })
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));

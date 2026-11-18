@@ -1,42 +1,72 @@
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 import { expect, test } from 'vite-plus/test';
 
-import { OwnChanges } from './OwnChanges';
+import { OwnChanges, ownChangesBetween } from './OwnChanges';
 
-const room = (sides: (string | null)[]) =>
+const room = (revision: number, table: Readonly<{ order?: string[]; sides?: (string | null)[] }>) =>
   ({
-    battle: { id: 'b1', sides: sides.map((factionId) => (factionId ? { factionId } : null)) },
+    revision,
+    movement: { order: table.order ?? [], done: [] },
+    battle: { id: 'b1', sides: (table.sides ?? []).map((factionId) => (factionId ? { factionId } : null)) },
   }) as unknown as GameSnapshot;
-const reorder = { kind: 'movement-order', order: ['harkonnen', 'atreides'] } as unknown as PieceAction;
+const order = ['harkonnen', 'atreides'];
+const reorder = { kind: 'movement-order', order } as unknown as PieceAction;
 const claim = { kind: 'battle-claim', battleId: 'b1', side: 1 } as unknown as PieceAction;
+const now = { from: 1, followsLater: false };
 
-test('a reorder counts as the viewer’s own while it waits and once the room took it, not once refused', () => {
+test('a reorder counts as the viewer’s own at the revision that showed it, and not once refused', () => {
   const changes = new OwnChanges();
-  changes.sent('a', reorder, room([]));
-  expect(changes.view().movementOrder).toEqual(['harkonnen', 'atreides']);
-  changes.settled('a', 'completed');
-  expect(changes.view().movementOrder).toEqual(['harkonnen', 'atreides']);
+  changes.sent('a', reorder);
+  expect(changes.view().changes).toEqual([]);
+  changes.settled('a', 'completed', now);
+  changes.observed(room(2, { order }));
+  expect(changes.view().changes).toEqual([{ kind: 'movement-order', order, revision: 2 }]);
   const refused = new OwnChanges();
-  refused.sent('b', reorder, room([]));
-  refused.settled('b', 'rejected');
-  expect(refused.view().movementOrder).toBeNull();
+  refused.sent('b', reorder);
+  refused.settled('b', 'rejected', now);
+  refused.observed(room(2, { order }));
+  expect(refused.view().changes).toEqual([]);
 });
 
-test('only a claim that completes its battle counts, and a dropped connection forgets everything', () => {
+test('an old accepted order is outside a later step that lands on the same order', () => {
   const changes = new OwnChanges();
-  changes.sent('first', claim, room([null, null]));
-  expect(changes.view().completedBattles).toEqual([]);
-  changes.sent('last', claim, room(['atreides', null]));
-  expect(changes.view().completedBattles).toEqual(['b1']);
-  changes.settled('last', 'completed');
-  expect(changes.view().completedBattles).toEqual(['b1']);
-  changes.forget();
-  expect(changes.view()).toEqual({ movementOrder: null, completedBattles: [] });
+  changes.sent('a', reorder);
+  changes.settled('a', 'completed', now);
+  changes.observed(room(2, { order }));
+  const mine = changes.view().changes;
+  expect(ownChangesBetween(mine, { revision: 1 }, { revision: 2 })).toHaveLength(1);
+  expect(ownChangesBetween(mine, { revision: 3 }, { revision: 4 })).toEqual([]);
+});
+
+test('after a resync the receipt waits for the replacement table', () => {
+  const changes = new OwnChanges();
+  changes.sent('a', reorder);
+  changes.settled('a', 'completed', { from: 1, followsLater: true });
+  changes.observed(room(1, {}));
+  expect(changes.view().changes).toEqual([]);
+  changes.observed(room(3, { order }));
+  expect(changes.view().changes).toEqual([{ kind: 'movement-order', order, revision: 3 }]);
+});
+
+test('a claim counts only when the room shows it completed the battle, even one sent from a stale table', () => {
+  const first = new OwnChanges();
+  first.sent('first', claim);
+  first.settled('first', 'completed', now);
+  first.observed(room(2, { sides: [null, 'harkonnen'] }));
+  expect(first.view().changes).toEqual([]);
+  const raced = new OwnChanges();
+  raced.sent('last', claim);
+  raced.settled('last', 'completed', now);
+  raced.observed(room(3, { sides: ['atreides', 'harkonnen'] }));
+  expect(raced.view().changes).toEqual([{ kind: 'battle-completed', battleId: 'b1', revision: 3 }]);
+  raced.forget();
+  expect(raced.view()).toEqual({ changes: [] });
 });
 
 test('the view stays the same object until something changes', () => {
   const changes = new OwnChanges();
   const view = changes.view();
-  changes.settled('unknown', 'completed');
+  changes.settled('unknown', 'completed', now);
+  changes.observed(room(2, {}));
   expect(changes.view()).toBe(view);
 });
