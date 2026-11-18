@@ -3,7 +3,6 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { reviewRunning } from '@shared/play/review';
 import { Surface } from '@ui/surface';
-import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
 import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -17,7 +16,7 @@ import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticesBetween } from './noticeEvents';
 import type { SoftNoticeKind } from './noticeEvents';
 import styles from './SoftNotices.module.css';
-import { actingFaction } from './tableFactions';
+import { actingFaction, stageInPlay } from './tableFactions';
 
 export type SoftNotice = Readonly<{
   id: string;
@@ -47,9 +46,12 @@ const FADE_MS = 400;
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
-/* The faction the viewer acts for, while the live table is in play: no notices while a past table, a recall or another stage shows. */
+/*
+ * The faction the viewer acts for, while the live table is in play: no notices while a past table, a recall or another stage shows.
+ * Nor while the connection is restored: the table shown then is the last one kept, perhaps from an earlier visit, so the fresh table that follows starts afresh rather than counting everything since as news.
+ */
 function noticedFaction(table: TableProjection): string | undefined {
-  if (table.snapshot.stage !== 'play' || reviewRunning(table.review?.current)) {
+  if (table.reconnecting || !stageInPlay(table.snapshot.stage) || reviewRunning(table.review?.current)) {
     return undefined;
   }
   return actingFaction(table);
@@ -58,12 +60,20 @@ function noticedFaction(table: TableProjection): string | undefined {
 /**
  * The soft notices the live table raises for the viewer as it changes, newest last.
  * Each change is compared with the one before it, so joining or reloading raises nothing for what already happened.
+ * A recall, playback or lost connection clears them, since what they point at is not on screen.
  */
 export function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
   const own = noticedFaction(table);
   const snapshot = table.snapshot;
   const previous = useRef<{ own: string; snapshot: GameSnapshot } | null>(null);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
+  const [shownFor, setShownFor] = useState(own);
+  if (shownFor !== own) {
+    setShownFor(own);
+    if (!own) {
+      setNotices([]);
+    }
+  }
   useEffect(() => {
     const before = previous.current;
     previous.current = own ? { own, snapshot } : null;
@@ -94,7 +104,7 @@ export function useSoftNotices(table: TableProjection): readonly SoftNotice[] {
 }
 
 /**
- * The viewer's soft notifications (#2981): small toasts under the phase header, each with the token of the faction it came from and one line, that fade after a few seconds.
+ * The viewer's soft notifications (#2981), laid over the table inside its shell: small toasts under the phase header, each with the token of the faction it came from and one line, that fade after a few seconds.
  * When it is the viewer's turn the screen's edge glows softly as well.
  * Clicking one opens what it is about, where it has a place to open, and dismisses it.
  */
@@ -107,59 +117,61 @@ export function SoftNotices({
   const [leaving, setLeaving] = useState<ReadonlySet<string>>(new Set());
   /* Each notice starts to fade a moment before its lifetime ends, then leaves: one timer for each step, not a ticking clock. */
   useEffect(() => {
+    const current = new Set(notices.map((notice) => notice.id));
+    /* Marks one notice, keeping only notices still kept, so neither set outgrows the list. */
+    const mark = (id: string) => (before: ReadonlySet<string>) =>
+      new Set([...before].filter((known) => current.has(known))).add(id);
     const after = (notice: SoftNotice, ms: number, step: (id: string) => void) =>
       window.setTimeout(() => step(notice.id), Math.max(0, notice.at + ms - performance.now()));
     const timers = notices
       .filter((notice) => !gone.has(notice.id))
       .flatMap((notice) => [
-        after(notice, LIFETIME_MS - FADE_MS, (id) => setLeaving((before) => new Set(before).add(id))),
-        after(notice, LIFETIME_MS, (id) => setGone((before) => new Set(before).add(id))),
+        after(notice, LIFETIME_MS - FADE_MS, (id) => setLeaving(mark(id))),
+        after(notice, LIFETIME_MS, (id) => setGone(mark(id))),
       ]);
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [notices, gone]);
   const live = notices.filter((notice) => !gone.has(notice.id)).toSorted((a, b) => b.at - a.at);
   const open = (notice: SoftNotice) => {
-    setGone((before) => new Set(before).add(notice.id));
+    const current = new Set(notices.map((kept) => kept.id));
+    setGone((before) => new Set([...before].filter((known) => current.has(known))).add(notice.id));
     onOpen?.(notice);
   };
-  /* The newest turn still showing glows the screen's edge once, as its own animation, so a later notice does not restart it. */
-  const turn = live.find((notice) => TURN_KINDS.has(notice.kind));
+  /*
+   * The newest turn glows the screen's edge once, as its own animation, so a later notice does not restart it.
+   * Only the newest: dismissing it leaves an older turn's toast showing, which has glowed already.
+   */
+  const newestTurn = notices.findLast((notice) => TURN_KINDS.has(notice.kind));
+  const turn = newestTurn && live.includes(newestTurn) ? newestTurn : undefined;
 
   return (
-    <DarkSchemeIsland>
-      <div
-        {...darkSchemeIslandAttributes}
-        className={styles.root}
-        data-motion={motion || undefined}
-        role="log"
-        aria-live="polite"
-        aria-label="Notifications"
-      >
-        {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
-        <div className={styles.stack}>
-          {live.slice(0, 4).map((notice) => (
-            <Toast key={notice.id} notice={notice} onOpen={open} leaving={leaving.has(notice.id)} />
-          ))}
-        </div>
+    <div
+      className={styles.root}
+      data-motion={motion || undefined}
+      role="log"
+      aria-live="polite"
+      aria-label="Notifications"
+    >
+      {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
+      <div className={styles.stack}>
+        {live.slice(0, 4).map((notice) => (
+          <div key={notice.id} className={styles.slot} data-leaving={leaving.has(notice.id) || undefined}>
+            <Toast notice={notice} onOpen={open} />
+          </div>
+        ))}
       </div>
-    </DarkSchemeIsland>
+    </div>
   );
 }
 
-function Toast({
-  notice,
-  onOpen,
-  leaving,
-}: Readonly<{ notice: SoftNotice; onOpen: (notice: SoftNotice) => void; leaving: boolean }>) {
+function Toast({ notice, onOpen }: Readonly<{ notice: SoftNotice; onOpen: (notice: SoftNotice) => void }>) {
   const Icon = ICONS[notice.kind];
   return (
     <Surface
       padding="sm"
       interactive
       className={clsx(styles.toast, TURN_KINDS.has(notice.kind) && styles.turn)}
-      renderRoot={(props) => (
-        <button type="button" {...props} data-leaving={leaving || undefined} onClick={() => onOpen(notice)} />
-      )}
+      renderRoot={(props) => <button type="button" {...props} onClick={() => onOpen(notice)} />}
     >
       <FactionTokenFace token={notice.from} size={28} aria-hidden />
       <Text size="sm" className={styles.line}>

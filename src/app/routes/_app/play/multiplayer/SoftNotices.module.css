@@ -1,17 +1,19 @@
 /*
  * The viewer's soft notifications (#2981): small panes under the phase header that never take the pointer away from the table.
- * The root covers the screen without catching the pointer; only the notices themselves do.
+ * The root covers the table's shell without catching the pointer; only the notices themselves do.
+ * Each pane is the kit's interactive Surface as it is: its slot fades and arrives, so the kit's own hover keeps its transitions.
  */
 .root {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 40;
   pointer-events: none;
 }
 
+/* Under the rendered phase header, however tall its wrapped names and controls make it. */
 .stack {
   position: absolute;
-  top: 72px;
+  top: calc(var(--play-header-height) + var(--space-xs));
   left: 50%;
   display: flex;
   flex-direction: column;
@@ -20,7 +22,21 @@
   transform: translateX(-50%);
 }
 
+.slot {
+  pointer-events: auto;
+}
+
+.slot[data-leaving] {
+  opacity: 0;
+}
+
+.root[data-motion] .slot {
+  transition: opacity 400ms ease-in;
+  animation: arrive 260ms ease-out backwards;
+}
+
 .toast {
+  position: relative;
   display: flex;
   gap: var(--space-xs);
   align-items: center;
@@ -29,23 +45,18 @@
   color: var(--color-text);
   text-align: start;
   cursor: pointer;
-  pointer-events: auto;
-  transition: opacity 400ms ease-in;
 }
 
-.toast[data-leaving] {
-  opacity: 0;
-}
-
-.root[data-motion] .toast {
-  animation: arrive 260ms ease-out backwards;
-}
-
-/* The viewer's own turn reads as the one to act on: a brand edge rather than a brighter pane. */
-.turn {
-  box-shadow:
-    inset 3px 0 0 var(--color-brand),
-    var(--panel-shadow);
+/* The viewer's own turn reads as the one to act on: a brand edge rather than a brighter pane, drawn apart from the pane's own shadow so its hover keeps it. */
+.turn::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  content: "";
+  background: var(--color-brand);
+  border-start-start-radius: inherit;
+  border-end-start-radius: inherit;
 }
 
 .line {
@@ -58,10 +69,15 @@
   color: var(--color-muted);
 }
 
-/* A soft brand glow round the screen's edge while it is the viewer's turn. */
+/* A soft brand glow round the screen's edge while it is the viewer's turn; with motion off it does not pulse at all, as the turn's toast says it already. */
 .glow {
+  display: none;
+}
+
+.root[data-motion] .glow {
   position: absolute;
   inset: 0;
+  display: block;
   box-shadow: inset 0 0 64px 8px rgb(from var(--color-brand) r g b / 55%);
   opacity: 0;
   animation: glow 2400ms ease-out;

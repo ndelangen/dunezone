@@ -132,6 +132,8 @@ type GameTableProps = {
   phaseTurns?: ReactNode;
   /* Play chrome laid over the scene for a stage, under the header: the drafting ledger. */
   stageOverlay?: ReactNode;
+  /* The viewer's soft notifications, laid over everything inside the shell so they sit under its measured header. */
+  notices?: ReactNode;
   /* A stage's own panel, leading the Game group: the drafting panel. Its window is flush, so the content insets itself. */
   panelContent?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
@@ -769,6 +771,7 @@ export function GameTable({
   stage,
   mapVisible,
   stageOverlay,
+  notices,
   panelContent,
   toolbarControl,
   connectionStatus,
@@ -903,6 +906,7 @@ export function GameTable({
                 focus={focus}
                 onOpenWindows={onOpenWindows}
               />
+              {notices}
             </div>
           </DarkSchemeIsland>
         </TableArrivalStage>

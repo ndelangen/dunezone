@@ -1,4 +1,5 @@
-import { movementOrder, nextToMove } from '@shared/play/movement';
+import { MOVEMENT_PHASE_ID, movementOrder, nextToMove } from '@shared/play/movement';
+import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { stormOrder } from '@shared/play/stormSector';
 
@@ -21,6 +22,7 @@ type Names = Readonly<Record<string, string>>;
  * What happened to the viewer's faction `own` between two live snapshots of the table, as soft notices (#2981).
  * Their turn to bid or to ship and move came up, their battle has both sides, another faction paid or bribed them, or offered an alliance.
  * The first snapshot a page sees raises none, since nothing happened while it watched.
+ * Nor does a change the table has not made yet: the viewer's own drag of the movement order shows before the table answers, at the same revision.
  */
 export function noticesBetween(
   before: GameSnapshot | undefined,
@@ -28,7 +30,7 @@ export function noticesBetween(
   own: string,
   names: Names
 ): NoticeDraft[] {
-  if (!before) {
+  if (!before || before.revision === after.revision) {
     return [];
   }
   const name = (id: string) => names[id] ?? id;
@@ -49,9 +51,10 @@ function biddingTurn(before: GameSnapshot, after: GameSnapshot, own: string): No
   return [{ key: `bid-${after.revision}`, kind: 'bid', factionId: own, text: 'Your turn to bid' }];
 }
 
+/* The table records no movement turns until the first faction is done, so the phase itself says when movement is played. */
 function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   const up = (snapshot: GameSnapshot) =>
-    snapshot.movement !== undefined &&
+    phaseAt(snapshot.phase, snapshot.phases ?? STANDARD_PHASES).id === MOVEMENT_PHASE_ID &&
     nextToMove(
       movementOrder(
         stormOrder(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
@@ -65,16 +68,18 @@ function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): N
   return [{ key: `ship-${after.revision}`, kind: 'ship', factionId: own, text: 'Your turn to ship and move' }];
 }
 
-/* The viewer's battle is ready for their plan once both its sides are claimed, one of them the viewer's. */
+/*
+ * The viewer's battle is ready for their plan once both its sides are claimed, one of them the viewer's.
+ * When the viewer's own claim completes it, they made it ready themselves, so there is nothing to tell them.
+ */
 function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  const ready = (snapshot: GameSnapshot) => {
-    const battle = snapshot.battle;
-    return battle && battle.sides.every(Boolean) && battle.sides.some((side) => side?.factionId === own)
-      ? battle
-      : null;
-  };
-  const battle = ready(after);
-  if (!battle || ready(before)?.id === battle.id) {
+  const ownSide = (battle: GameSnapshot['battle']) => battle?.sides.some((side) => side?.factionId === own) ?? false;
+  const battle = after.battle;
+  if (!battle || !battle.sides.every(Boolean) || !ownSide(battle)) {
+    return [];
+  }
+  const earlier = before.battle?.id === battle.id ? before.battle : undefined;
+  if (earlier && (earlier.sides.every(Boolean) || !ownSide(earlier))) {
     return [];
   }
   return [
@@ -82,9 +87,13 @@ function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): No
   ];
 }
 
-/* A transfer names the player who made it; the faction is the one their seat carries, where the table can tell. */
+/*
+ * A transfer names the player who made it; the faction is the one their seat carries, where the table can tell.
+ * A name two players share, or one no player carries any more, tells nothing.
+ */
 function playerFaction(snapshot: GameSnapshot, player: string): string | undefined {
-  const seat = snapshot.controls?.players.find((entry) => entry.name === player)?.seat;
+  const seats = (snapshot.controls?.players ?? []).filter((entry) => entry.name === player);
+  const seat = seats.length === 1 ? seats[0]?.seat : undefined;
   return snapshot.roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
 }
 
@@ -106,11 +115,10 @@ function spiceReceived(
     if (giver === own) {
       return [];
     }
-    const from = giver ? name(giver) : transfer.actor;
-    const text =
-      transfer.kind === 'bribe'
-        ? `${from} bribed you ${transfer.amount} spice`
-        : `${from} paid you ${transfer.amount} spice`;
+    const verb = transfer.kind === 'bribe' ? 'bribed' : 'paid';
+    const text = giver
+      ? `${name(giver)} ${verb} you ${transfer.amount} spice`
+      : `You were ${verb} ${transfer.amount} spice`;
     return [{ key: `spice-${transfer.revision}`, kind: 'spice' as const, factionId: giver ?? own, text }];
   });
 }

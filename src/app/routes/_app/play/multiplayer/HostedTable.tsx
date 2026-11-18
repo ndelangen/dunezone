@@ -884,19 +884,25 @@ function ConnectedTable({
                 })}
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
+                notices={
+                  <SoftNotices
+                    notices={notices}
+                    onOpen={(notice) => {
+                      /* Each notice opens the panel it is about; the turn to ship and move is played on the table itself. */
+                      if (notice.kind === 'alliance') {
+                        openWindow('alliances');
+                      } else if (notice.kind === 'battle') {
+                        battlePlanOpener?.();
+                      } else if (notice.kind === 'bid') {
+                        openWindow('hand');
+                      } else if (notice.kind === 'spice') {
+                        openWindow('spice');
+                      }
+                    }}
+                  />
+                }
               />
             </CompassTableContext>
-            <SoftNotices
-              notices={notices}
-              onOpen={(notice) => {
-                /* An alliance offer is answered in the Alliances panel, and a battle in the planner; a turn or a payment has nowhere to open. */
-                if (notice.kind === 'alliance') {
-                  openWindow('alliances');
-                } else if (notice.kind === 'battle') {
-                  battlePlanOpener?.();
-                }
-              }}
-            />
             {tracker ? (
               <Suspense fallback={null}>
                 <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
