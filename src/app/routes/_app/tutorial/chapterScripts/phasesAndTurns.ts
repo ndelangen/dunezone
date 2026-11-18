@@ -49,7 +49,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'ready',
       task: 'Ready for the next turn',
       detail:
-        'Before a new turn starts, everyone gets a chance to finish up. Press Ready at Mentat Pause.\n\nThe count shows how many players have confirmed.',
+        'Before a new turn starts, everyone gets a chance to finish up. When the table waits on you, Ready flashes and a soft chime plays. Press Ready now.\n\nThe count shows how many players have confirmed; hover it to see who. Sound volume in the game menu sets how loud the chime is.',
       anchor: {
         kind: 'page',
         element: () =>
@@ -78,6 +78,7 @@ const learned = [
   'The arrow beside it steps back a phase',
   'A turn runs from the Storm to the Mentat Pause',
   'Some phases wait until every player presses Ready',
+  'Ready flashes and chimes when the table waits on you; its count lists who is ready',
 ];
 
 export const phasesAndTurns: ChapterScript = {

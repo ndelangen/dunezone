@@ -90,7 +90,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
     task({
       id: 'pin-hand',
       task: 'Keep your hand open',
-      detail: 'Use the left pin beside the window title, or press {[}, to keep your hand open in the bottom left.',
+      detail: 'Use the left pin beside the panel title, or press {[}, to keep your hand open in the bottom left.',
       anchor: { kind: 'page', element: element('[aria-label="Pin to the bottom left"]') },
       begin: () => null,
       done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
@@ -159,7 +159,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Pin a window with {[} or {]} to keep it open beside another',
+  'Pin a panel with {[} or {]} to keep it open beside another',
   '{J}, or {Space} {←} {←}, opens your private side-table, and only you see it',
   'Drag a piece from your hand onto the side-table, or right-click it and choose Move to private side-table',
   'Pieces stay where you lay them, so a counter can sit on a card’s track',

@@ -1,21 +1,26 @@
-import { alliesOf } from '@shared/play/alliances';
+import { alliesOf, hasOffer, relationTo } from '@shared/play/alliances';
 import { factionTokenOf } from '@shared/play/factionToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import { FACTION_INFO } from '../../play/compass/windows';
+import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
 
 /*
  * "Talking & Alliances": a word with one player, a look at their faction, and an alliance from offer to break.
  * The chat bar under the table holds a token for every player; a token opens that player's chat, and the token in the chat's
- * title opens their faction information, where the alliance offer sits. Atreides answers the chat and accepts the offer
- * by itself, as a player at the table would, and the ally then sits twice right on the compass.
+ * title opens their faction information. Alliances are made from a faction token's ring on the board (#2978): the learner
+ * offers one to Atreides, who accepts by itself, as a player at the table would. Then Fremen offers the learner one;
+ * the header's notice leads to the Alliances panel, and accepting it ends the Atreides alliance. The ally sits twice right
+ * on the compass, and the learner breaks the alliance from the ally's token.
  */
 
 const PARTNER = 'Atreides';
+/* The second faction, whose offer the learner answers. */
+const SUITOR = 'Fremen';
 /* How long Atreides thinks over the offer before it accepts. */
 const ACCEPT_AFTER_MS = 1500;
 type Seat = NonNullable<GameSnapshot['roster']>['seats'][number];
@@ -45,13 +50,40 @@ function atreidesAccepts(snapshot: () => GameSnapshot, players: TablePlayers, pa
   };
 }
 
+/*
+ * Fremen stands ready to ally with the learner: it offers an alliance unless one is already offered to the learner or
+ * they are allied. If the learner offered Fremen first, Fremen accepts that offer instead, since the table refuses a counter-offer.
+ * Every step from the offer on asks for it, so a chapter opened at a later step (`?step=7`) still has its offer.
+ */
+export function suitorOffers(snapshot: () => GameSnapshot, players: TablePlayers, suitor: () => Seat | undefined) {
+  const own = snapshot().bank?.factionId;
+  const seat = suitor();
+  const from = seat?.faction?.id;
+  if (!own || !seat || !from) {
+    return;
+  }
+  const alliances = snapshot().alliances;
+  const relation = relationTo(alliances, own, from);
+  const learnersOffer = alliances?.offers.find((entry) => entry.from === own && entry.to === from);
+  if (relation === 'outgoing' && learnersOffer) {
+    players.act(seat.id, { kind: 'alliance-accept', factionId: own, offer: learnersOffer.id });
+  } else if (relation === 'none') {
+    players.act(seat.id, { kind: 'alliance-offer', factionId: own });
+  }
+}
+
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
-  const partner = () => snapshot().roster?.seats.find((seat) => seat.faction?.name === PARTNER);
-  const partnerSeat = () => partner()?.id;
-  const chatWindow = () => `[data-window="player:${partnerSeat()}"]`;
-  const history = () => document.querySelector(`${chatWindow()} [aria-label="Conversation history"]`);
+  const seatOf = (name: string) => () => snapshot().roster?.seats.find((seat) => seat.faction?.name === name);
+  const partner = seatOf(PARTNER);
+  const suitor = seatOf(SUITOR);
+  const chatWindow = (seat: () => Seat | undefined) => `[data-window="player:${seat()?.id}"]`;
+  const history = () => document.querySelector(`${chatWindow(partner)} [aria-label="Conversation history"]`);
   const allies = () => alliesOf(snapshot().alliances, snapshot().bank?.factionId ?? '');
-  const allied = () => allies().includes(partner()?.faction?.id ?? '');
+  const alliedWith = (seat: () => Seat | undefined) => () => allies().includes(seat()?.faction?.id ?? '');
+  const tokenOf = (seat: () => Seat | undefined) => () =>
+    at(factionTokenOf(snapshot().table.pieces, seat()?.faction?.id ?? ''));
+  const alliancesOpened = openedWindow(windowShown(PANEL_WINDOWS.alliances.key));
+  const suitorOffered = () => hasOffer(snapshot().alliances, suitor()?.faction?.id, snapshot().bank?.factionId);
   return [
     task({
       id: 'chat',
@@ -61,7 +93,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector(history() ? `${chatWindow()} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`),
+          document.querySelector(
+            history() ? `${chatWindow(partner)} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`
+          ),
       },
       /* Conversations outlive a Reset, so only entries dated after the task began count: the learner's message and the answer. */
       begin: () => Date.now(),
@@ -73,18 +107,18 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'faction',
       task: 'Get to know Atreides',
       detail:
-        'Want to check what your new friend can do? Click the Atreides token beside the chat title to see their faction rules, leaders and alliance.',
-      anchor: { kind: 'page', element: element(`${chatWindow()} header button[aria-label="${PARTNER} info"]`) },
+        'Want to check what your new friend can do? Click the Atreides token beside the chat title to see their faction rules and leaders.',
+      anchor: { kind: 'page', element: element(`${chatWindow(partner)} header button[aria-label="${PARTNER} info"]`) },
       ...openedWindow(windowShown(FACTION_INFO)),
     }),
     task({
       id: 'offer',
       task: 'Offer an alliance',
       detail:
-        "Let's team up! Press Offer alliance, the handshake beside their status. Atreides will accept in a moment.",
-      anchor: { kind: 'page', element: buttonIn(FACTION_INFO, 'Offer alliance') },
+        "Let's team up! Right-click the Atreides faction token on the board and choose Offer alliance.\n\nAtreides will accept in a moment.",
+      anchor: { kind: 'table', point: tokenOf(partner) },
       begin: () => ({ stop: atreidesAccepts(snapshot, players, partner) }),
-      done: allied,
+      done: alliedWith(partner),
       finish: (watch: { stop: () => void }) => watch.stop(),
     }),
     task({
@@ -102,29 +136,47 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'alliance-list',
       task: 'See every alliance',
       detail:
-        'The left side of the screen also shows the alliances. You can check who is teamed up without opening a window.\n\nPress {Enter} to continue.',
+        'The left side of the screen also shows the alliances. You can check who is teamed up without opening a panel.\n\nPress {Enter} to continue.',
       anchor: { kind: 'page', element: element('[aria-label="Alliances"]') },
       ...pressEnter(),
+    }),
+    task({
+      id: 'incoming',
+      task: 'Read an alliance offer',
+      detail:
+        'Fremen wants to team up with you too. Their offer shows at the top of the screen.\n\nClick Alliances in it to answer.',
+      anchor: { kind: 'page', element: element('[aria-label="Alliance offer"] button') },
+      begin: () => {
+        suitorOffers(snapshot, players, suitor);
+        return alliancesOpened.begin();
+      },
+      /* Only an offer that stands counts, so opening Alliances without one never moves the learner on to a step it cannot finish. */
+      done: (watch: { was: boolean; closed: boolean }) =>
+        (alliancesOpened.done(watch) && suitorOffered()) || alliedWith(suitor)(),
+    }),
+    task({
+      id: 'accept',
+      task: 'Switch sides',
+      detail:
+        "Press the alliance button beside Fremen's offer to accept it.\n\nAccepting a new alliance ends the one you have, so Atreides is on their own again.",
+      anchor: { kind: 'page', element: buttonIn(PANEL_WINDOWS.alliances.key, 'Accept alliance') },
+      begin: () => suitorOffers(snapshot, players, suitor),
+      done: alliedWith(suitor),
     }),
     task({
       id: 'ally-chat',
       task: 'Talk to your ally',
       detail:
-        'Close the chat, then press {F} to open it through the ally shortcut.\n\nYou can also hold {Space}, tap {→} twice and release.',
+        'Close the Alliances panel, then press {F} to open your ally chat.\n\nYou can also hold {Space}, tap {→} twice and release.',
       anchor: { kind: 'page', element: viaCompass('ally') },
-      ...openedWindow(() => document.querySelector(chatWindow()) !== null),
+      ...openedWindow(() => document.querySelector(chatWindow(suitor)) !== null),
     }),
     task({
       id: 'break',
       task: 'End the alliance',
       detail:
-        'Sometimes alliances come to an end. Press {Space}, type Alliances and confirm with {Enter}.\n\nChoose Break alliance beside your ally.',
-      anchor: {
-        kind: 'page',
-        element: () =>
-          buttonIn('alliances', 'Break alliance')() ??
-          document.querySelector('[aria-label="Search controls"], [data-compass-launcher]'),
-      },
+        'Sometimes alliances come to an end. Close the chat, then right-click the Fremen faction token at the bottom of the table and choose Break alliance.',
+      anchor: { kind: 'table', point: tokenOf(suitor) },
       begin: () => undefined,
       done: () => allies().length === 0,
     }),
@@ -135,9 +187,11 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 const learned = [
   'A token on the chat bar opens a private chat with that player',
   'The token in a chat’s title opens their faction information',
-  'Offer alliance in the faction information; it forms once they accept',
+  'Right-click a faction token to offer an alliance; it forms once they accept',
+  'An offer to you shows at the top; answer it in the Alliances panel',
+  'Accepting a new alliance ends the one you had',
   'Your ally sits twice right on the compass, or on {F}',
-  'The Alliances window lists every alliance, and breaks yours',
+  'Right-click your ally’s token to break the alliance',
 ];
 
 export const alliancesAndTalking: ChapterScript = {

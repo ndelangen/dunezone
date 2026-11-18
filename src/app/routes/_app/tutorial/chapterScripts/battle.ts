@@ -4,8 +4,9 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
+import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, element, onBoard, task } from './guideChecks';
+import { at, element, onBoard, openedWindow, task, windowShown } from './guideChecks';
 
 /*
  * "Battle": one battle from the battle marker to an agreed result.
@@ -100,7 +101,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'claim',
       task: 'Take the aggressor side',
       detail:
-        'Press Claim left side below the marker. Atreides will take the right side.\n\nYour battle plan opens on the left. Press {B} whenever you need to hide or reopen it.',
+        'Press Claim left side below the marker. Atreides will take the right side.\n\nYour battle plan opens on the left. If you put it away, {B} brings it back.',
       anchor: { kind: 'page', element: element('[aria-label="Claim left side"]') },
       ...fightsUntil(() => mySide() === 0 && Boolean(battle()?.sides[1])),
     }),
@@ -133,6 +134,19 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       done: () =>
         (plan()?.troops ?? []).reduce((total, troop) => total + troop.dialed + troop.undialed, 0) >= 2 ||
         plan()?.disclosed.dial === true,
+    }),
+    task({
+      id: 'reopen',
+      task: 'Hide and find your plan',
+      detail:
+        'Want a clear look at the board? Press the crossed-out pin in the Battle plan title to put it away.\n\nTo bring it back, press Battle plan below the marker. {B} and your Hand bring it back too.',
+      anchor: {
+        kind: 'page',
+        element: () =>
+          document.querySelector('[aria-label="Open battle plan"]') ??
+          document.querySelector('[data-window="battle"] button[aria-label="Unpin"]'),
+      },
+      ...openedWindow(windowShown(PANEL_WINDOWS.battlePlan.key)),
     }),
     task({
       id: 'ready',
@@ -205,7 +219,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 const learned = [
   'Drag the battle marker from the phase tracker onto a contested territory',
   'Each faction claims a side; the aggressor takes the left',
-  'Your battle plan opens with the claim, and {B} shows or hides it: a leader, cards and a dial',
+  'Your battle plan opens with the claim: a leader, cards and a dial',
+  'Put away, the plan comes back from Battle plan below the marker, {B}, or your Hand',
   'Ready locks the plan, and both reveal together',
   'The players agree who won; the table never decides it for them',
   'The eye shows part of the plan early and fixes it for that battle',

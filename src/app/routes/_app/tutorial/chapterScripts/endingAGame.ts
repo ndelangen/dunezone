@@ -26,7 +26,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'determine',
       task: 'Determine the winner',
       detail:
-        "You've reached Mentat Pause. If the game is over, it's time to work out who won.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the window.\n\nPlayers with predictions will be reminded to reveal them.",
+        "You've reached Mentat Pause. If the game is over, it's time to work out who won.\n\nPress {Space}, type Phase and confirm with {Enter}. Choose Determine winner in the Phase panel.\n\nPlayers with predictions will be reminded to reveal them.",
       anchor: {
         kind: 'page',
         element: () =>
@@ -40,7 +40,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'declare',
       task: 'Declare the result',
       detail:
-        'Agree on the winner with the other players first.\n\nIn the Result window, leave Faction selected, choose a Winning faction and press Declare. This records the result immediately, without a vote.',
+        'Agree on the winner with the other players first.\n\nIn the Result panel, leave Faction selected, choose a Winning faction and press Declare. This records the result immediately, without a vote.',
       anchor: { kind: 'page', element: element('[data-window="result"]') },
       begin: () => undefined,
       done: () => snapshot().stage === 'finished',
