@@ -83,13 +83,21 @@ export const AllianceOfferOpensAlliances = meta.story({
   },
 });
 
-/* A page that joins while it is already the viewer's turn raises nothing: only what happens while it watches is news. */
+/*
+ * A page that joins while it is already the viewer's turn raises nothing: only what happens while it watches is news.
+ * A payment after joining shows the notices are raised, so the missing turn toast is not just one that has yet to arrive.
+ */
 export const JoiningRaisesNothing = meta.story({
   beforeEach: noticeSetup(biddingReachesViewer),
   play: async ({ canvasElement }) => {
     const page = await tableShown(canvasElement);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
     const { log, glowing } = noticeLog(page);
-    await expect(log.queryAllByRole('button')).toHaveLength(0);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /Your turn to bid/ })).toBeNull();
     await expect(glowing()).toBe(false);
   },
 });

@@ -89,16 +89,11 @@ export class OwnChanges {
     if (!snapshot || !this.taken.length) {
       return;
     }
-    const waiting: Taken[] = [];
-    const confirmed: OwnChange[] = [];
-    for (const taken of this.taken) {
-      if (taken.followsLater && snapshot.revision <= taken.from) {
-        waiting.push(taken);
-      } else if (madeBy(taken, snapshot) && shows(taken.sent, snapshot)) {
-        confirmed.push({ ...taken.sent, revision: snapshot.revision });
-      }
-    }
-    this.taken = waiting;
+    const waits = (taken: Taken) => taken.followsLater && snapshot.revision <= taken.from;
+    const confirmed: OwnChange[] = this.taken
+      .filter((taken) => !waits(taken) && madeBy(taken, snapshot) && shows(taken.sent, snapshot))
+      .map((taken) => ({ ...taken.sent, revision: snapshot.revision }));
+    this.taken = this.taken.filter(waits);
     if (confirmed.length) {
       this.confirmed = [...this.confirmed, ...confirmed].slice(-KEPT);
       this.shown = { changes: this.confirmed };
