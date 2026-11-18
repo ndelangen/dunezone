@@ -27,6 +27,11 @@
   pointer-events: auto;
 }
 
+/* While a board gesture holds the pointer no toast may be opened, but each stays readable, so the log still announces it. */
+.stack[data-gesture] .slot {
+  pointer-events: none;
+}
+
 /* A leaving toast no longer takes the pointer, whether it fades or, with motion off, is gone at once. */
 .slot[data-leaving] {
   pointer-events: none;

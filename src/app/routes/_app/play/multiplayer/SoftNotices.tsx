@@ -199,8 +199,8 @@ function SoftNotices({
       aria-label="Notifications"
     >
       {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
-      {/* Only the toasts give way to a board gesture: the log stays in the accessibility tree, so what arrives meanwhile is still announced. */}
-      <div className={styles.stack} inert={inert}>
+      {/* A board gesture only takes the pointer from the toasts; they stay in the accessibility tree, so the log still announces what arrives meanwhile. */}
+      <div className={styles.stack} data-gesture={inert || undefined}>
         {live.slice(0, 4).map((notice) => (
           <div
             key={notice.id}
