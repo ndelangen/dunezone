@@ -48,6 +48,7 @@ import { troopFactionOf } from '@shared/play/troopReserves';
 import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
+import { OwnChanges } from './OwnChanges';
 import type { GameRuntime } from './runtime';
 import type { StoredTable } from './storedTable';
 import { TablePages } from './TablePages';
@@ -257,6 +258,8 @@ export class TableSession {
   /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
   private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
   private movementShown: { from: GameSnapshot; commandId: string; shown: GameSnapshot } | null = null;
+  /* What this viewer's own commands changed, by the room's answers, for the soft notices. */
+  private readonly ownChanges = new OwnChanges();
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -672,6 +675,7 @@ export class TableSession {
       viewer,
       snapshot: displayed,
       ...(this.pendingMovementOrder && !this.history ? { confirmedSnapshot: this.snapshot } : {}),
+      ownChanges: this.ownChanges.view(),
       liveRevision: this.snapshot.revision,
       playback: this.history
         ? {
@@ -1090,6 +1094,7 @@ export class TableSession {
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
         this.pendingMovementOrder = null;
+        this.ownChanges.forget();
         this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
@@ -1167,6 +1172,7 @@ export class TableSession {
       return;
     }
     this.settle(settled.id, settled.outcome, message.type === 'resync');
+    this.ownChanges.settled(settled.id, settled.outcome);
     /* A refused close leaves the peek open, so it shows again. */
     if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
       this.closedPeek = null;
@@ -1856,6 +1862,7 @@ export class TableSession {
   private sendCommand(commandId: string, action: PieceAction) {
     const sent = this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision });
     if (sent) {
+      this.ownChanges.sent(commandId, action, this.snapshot);
       this.unanswered.add(commandId);
     }
     return sent;

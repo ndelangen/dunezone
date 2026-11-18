@@ -30,7 +30,9 @@ export function noticesBetween(
   before: GameSnapshot | undefined,
   after: GameSnapshot,
   own: string,
-  names: Names
+  names: Names,
+  /** The battles the viewer's own claim completed, which they made ready themselves. */
+  ownCompleted: readonly string[] = []
 ): NoticeDraft[] {
   if (!before || before.revision === after.revision) {
     return [];
@@ -39,7 +41,7 @@ export function noticesBetween(
   return [
     ...biddingTurn(before, after, own),
     ...movementTurn(before, after, own),
-    ...battleReady(before, after, own),
+    ...battleReady(before, after, own, ownCompleted),
     ...spiceReceived(before, after, own, name),
     ...allianceOffers(before, after, own, name),
   ].toSorted((a, b) => a.revision - b.revision);
@@ -90,9 +92,9 @@ export const onlyReordered = (before: GameSnapshot, after: GameSnapshot) =>
   (before.movement?.done ?? []).join() === (after.movement?.done ?? []).join() &&
   (before.movement?.order ?? []).join() !== (after.movement?.order ?? []).join();
 
-/** Whether a table shows exactly the movement order another does, as the viewer's own drag showed it before the room answered. */
-export const sameMovementOrder = (shown: GameSnapshot, after: GameSnapshot) =>
-  (shown.movement?.order ?? []).join() === (after.movement?.order ?? []).join();
+/** Whether the room's movement order is exactly the one the viewer's own drag asked for. */
+export const ownMovementOrder = (order: readonly string[] | null | undefined, after: GameSnapshot) =>
+  order != null && order.join() === (after.movement?.order ?? []).join();
 
 function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
   if (!shipUp(after, own) || shipUp(before, own)) {
@@ -111,20 +113,23 @@ function movementTurn(before: GameSnapshot, after: GameSnapshot, own: string): N
 
 /*
  * The viewer's battle is ready for their plan once both its sides are claimed, one of them the viewer's.
- * When the viewer's own claim completes it, they made it ready themselves, so there is nothing to tell them.
+ * When the viewer's own claim completed it, as the room answered that claim, they made it ready themselves, so there is nothing to tell them.
  */
 /* The viewer's side of a battle, while it is planning and their plan is not yet Ready. */
 const planning = (battle: GameSnapshot['battle'], own: string) =>
   battle?.stage === 'preparing' && battle.sides.some((side) => side?.factionId === own && !side.ready);
 
-function battleReady(before: GameSnapshot, after: GameSnapshot, own: string): NoticeDraft[] {
-  const ownSide = (battle: GameSnapshot['battle']) => battle?.sides.some((side) => side?.factionId === own) ?? false;
+function battleReady(
+  before: GameSnapshot,
+  after: GameSnapshot,
+  own: string,
+  ownCompleted: readonly string[]
+): NoticeDraft[] {
   const battle = after.battle;
-  if (!battle || !battle.sides.every(Boolean) || !planning(battle, own)) {
+  if (!battle || !battle.sides.every(Boolean) || !planning(battle, own) || ownCompleted.includes(battle.id)) {
     return [];
   }
-  const earlier = before.battle?.id === battle.id ? before.battle : undefined;
-  if (earlier && (earlier.sides.every(Boolean) || !ownSide(earlier))) {
+  if (before.battle?.id === battle.id && before.battle.sides.every(Boolean)) {
     return [];
   }
   return [

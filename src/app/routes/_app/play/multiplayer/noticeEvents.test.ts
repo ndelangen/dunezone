@@ -3,7 +3,7 @@ import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { noticeStillHolds, noticesBetween, onlyReordered, sameMovementOrder } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 
 /* Storm order reads the faction tokens' sectors; these tables carry no pieces, so the viewer moves first. */
 vi.mock('@shared/play/stormSector', () => ({ stormOrder: () => [OWN, OTHER] }));
@@ -35,12 +35,13 @@ function table(changes: Partial<GameSnapshot> = {}): GameSnapshot {
 }
 
 /* Each change the table makes moves its revision on, so a later table is a later revision unless a test says which. */
-const between = (before: GameSnapshot | undefined, after: GameSnapshot) =>
+const between = (before: GameSnapshot | undefined, after: GameSnapshot, ownCompleted: string[] = []) =>
   noticesBetween(
     before,
     before && after.revision <= before.revision ? { ...after, revision: before.revision + 1 } : after,
     OWN,
-    NAMES
+    NAMES,
+    ownCompleted
   );
 
 test('a change shown before the table makes it, at the same revision, raises nothing', () => {
@@ -102,7 +103,10 @@ test('the viewer’s own claim completing their battle raises nothing, since the
       sides: sides.map((factionId) => (factionId ? { factionId } : null)),
     } as unknown as GameSnapshot['battle'],
   });
-  expect(between(table(battle([OTHER, null])), table(battle([OTHER, OWN])))).toEqual([]);
+  expect(between(table(battle([OTHER, null])), table(battle([OTHER, OWN])), ['b1'])).toEqual([]);
+  /* The same change made by the other side, after the viewer claimed first, is news, even seen in one step from before either claim. */
+  expect(between(table(battle([null, null])), table(battle([OTHER, OWN])))).toMatchObject([{ key: 'battle-b1' }]);
+  expect(between(table(battle([OTHER, null])), table(battle([OTHER, OWN])))).toMatchObject([{ key: 'battle-b1' }]);
 });
 
 test('a payment or bribe to the viewer names the faction recorded as giving it; other transfers raise nothing', () => {
@@ -226,9 +230,10 @@ test('only a new movement order, with nobody newly done, counts as a reorder the
   expect(onlyReordered(moves([], [OWN]), moves([], [OWN]))).toBe(false);
 });
 
-test('only the exact movement order a drag showed counts as the one the room confirmed', () => {
+test('only the exact movement order the viewer asked for counts as their own', () => {
   const order = (list: string[]) =>
     table({ movement: { done: [], order: list } as unknown as GameSnapshot['movement'] });
-  expect(sameMovementOrder(order([OWN, OTHER]), order([OWN, OTHER]))).toBe(true);
-  expect(sameMovementOrder(order([OWN, OTHER]), order([OWN, OTHER, 'house-fremen']))).toBe(false);
+  expect(ownMovementOrder([OWN, OTHER], order([OWN, OTHER]))).toBe(true);
+  expect(ownMovementOrder([OWN, OTHER], order([OWN, OTHER, 'house-fremen']))).toBe(false);
+  expect(ownMovementOrder(null, order([OWN, OTHER]))).toBe(false);
 });

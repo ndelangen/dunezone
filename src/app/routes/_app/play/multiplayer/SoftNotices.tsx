@@ -12,9 +12,9 @@ import { useMotionAllowed } from '@app/styles/motion';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticeStillHolds, noticesBetween, onlyReordered, sameMovementOrder } from './noticeEvents';
+import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
-import type { NoticeStart, ShownTable } from './noticeStart';
+import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
 
@@ -51,31 +51,18 @@ const KEPT = 12;
 
 /*
  * Whether a raised notice is news to the viewer. Setup has no turns, so turn notices wait for play.
- * A turn to ship the viewer already saw, because their own drag of the movement order put them first before the table confirmed it, is not news.
- * Only a change that just reordered counts as that, so a faction finishing still hands on a real turn.
- * The room's order must also be exactly the one that drag showed, so another player's reorder that lands meanwhile, in any other order, is still announced.
- * Only that turn: a battle or a bid already standing before is raised for what changed, such as the second side claimed.
+ * A turn to ship that came of the viewer's own drag of the movement order is not news: they put themselves first.
+ * Only a change that just reordered counts as that, into exactly the order the viewer asked for, so a faction finishing or another player's reorder still hands on a real turn.
  */
 function newsFor(
   draft: NoticeDraft,
-  context: Readonly<{
-    own: string;
-    playing: boolean;
-    seen: GameSnapshot | null;
-    before: GameSnapshot;
-    after: GameSnapshot;
-  }>
+  context: Readonly<{ playing: boolean; ownOrder: readonly string[] | null; before: GameSnapshot; after: GameSnapshot }>
 ): boolean {
   if (!TURN_KINDS.has(draft.kind)) {
     return true;
   }
-  const { own, playing, seen, before, after } = context;
-  const ownDrag =
-    draft.kind === 'ship' &&
-    onlyReordered(before, after) &&
-    seen !== null &&
-    sameMovementOrder(seen, after) &&
-    noticeStillHolds(seen, own, draft);
+  const { playing, ownOrder, before, after } = context;
+  const ownDrag = draft.kind === 'ship' && onlyReordered(before, after) && ownMovementOrder(ownOrder, after);
   return playing && !ownDrag;
 }
 
@@ -109,10 +96,10 @@ function keptAndRaised(
  * A recall, playback or lost connection clears them, since what they point at is not on screen, and a turn that has passed takes its notice with it.
  * The baseline only moves with the table's revision, so the viewer's own drag of the movement order, shown before the table answers, never stands in for the table.
  */
-function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown: ShownTable): readonly SoftNotice[] {
+function useSoftNotices(table: TableProjection, start: NoticeStart | null): readonly SoftNotice[] {
   const own = start?.own;
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
-  const pending = Boolean(table.confirmedSnapshot);
+  const mine = table.ownChanges;
   const playing = stageInPlay(table.snapshot.stage);
   const previous = useRef<Readonly<{ own: string; snapshot: GameSnapshot }> | null>(start);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
@@ -132,15 +119,14 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null, shown
       return;
     }
     previous.current = { own, snapshot };
-    /* The table shown with the viewer's own drag pending, kept by the table itself so a drag the room confirmed before this code loaded still counts. */
-    const seen = shown.take(pending);
     const names = snapshotFactionLabels(snapshot);
-    const raised = noticesBetween(before.snapshot, snapshot, own, names).filter((draft) =>
-      newsFor(draft, { own, playing, seen, before: before.snapshot, after: snapshot })
+    /* What the viewer's own commands changed is kept by the connection, so a change made before this code loaded still counts. */
+    const raised = noticesBetween(before.snapshot, snapshot, own, names, mine?.completedBattles).filter((draft) =>
+      newsFor(draft, { playing, ownOrder: mine?.movementOrder ?? null, before: before.snapshot, after: snapshot })
     );
     const at = performance.now();
     setNotices((all) => keptAndRaised(all, raised, { snapshot, own, names, at }));
-  }, [own, start, shown, snapshot, pending, playing]);
+  }, [own, start, snapshot, mine, playing]);
   return notices;
 }
 
@@ -208,7 +194,7 @@ function SoftNotices({
             data-leaving={leaving.has(notice.id) || undefined}
             inert={leaving.has(notice.id)}
           >
-            <Toast notice={notice} onOpen={open} />
+            <Toast notice={notice} onOpen={open} held={inert} />
           </div>
         ))}
       </div>
@@ -216,14 +202,19 @@ function SoftNotices({
   );
 }
 
-function Toast({ notice, onOpen }: Readonly<{ notice: SoftNotice; onOpen: (notice: SoftNotice) => void }>) {
+/* While a board gesture holds the pointer the toast cannot be opened, by pointer or by keyboard, but it stays readable. */
+function Toast({
+  notice,
+  onOpen,
+  held,
+}: Readonly<{ notice: SoftNotice; onOpen: (notice: SoftNotice) => void; held: boolean }>) {
   const Icon = ICONS[notice.kind];
   return (
     <Surface
       padding="sm"
       interactive
       className={clsx(styles.toast, TURN_KINDS.has(notice.kind) && styles.turn)}
-      renderRoot={(props) => <button type="button" {...props} onClick={() => onOpen(notice)} />}
+      renderRoot={(props) => <button type="button" {...props} disabled={held} onClick={() => onOpen(notice)} />}
     >
       {notice.from && <FactionTokenFace token={notice.from} size={28} aria-hidden />}
       <Text size="sm" className={styles.line}>
@@ -247,14 +238,12 @@ const PANELS: Partial<Record<SoftNoticeKind, string>> = { alliance: 'alliances',
 export function TableSoftNotices({
   table,
   start,
-  shown,
   inert,
   openPanel,
   openBattlePlan,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
-  shown: ShownTable;
   /** Whether a board gesture holds the pointer, when no notice may be opened. */
   inert: boolean;
   openPanel: (key: string) => void;
@@ -268,5 +257,5 @@ export function TableSoftNotices({
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table, start, shown)} inert={inert} onOpen={open} />;
+  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} />;
 }
