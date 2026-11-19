@@ -104,6 +104,22 @@ export const FlipWhileCarrying = meta.story({
   },
 });
 
+/**
+ * A slow connection holds every answer back by most of a second: select the Treachery deck and press F.
+ * The deck lifts at once on the click, and turns over from that height when the room answers with the card on top (#2990).
+ */
+export const FlipOnASlowConnection = meta.story({
+  beforeEach: () => {
+    sandbox.latencyMs = 800;
+    return () => {
+      sandbox.latencyMs = undefined;
+    };
+  },
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+  },
+});
+
 /** An HMS plate for seat 1's faction, set down on the board where nothing stands. */
 function withHms(stored: StoredSnapshot): StoredSnapshot {
   const seat = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!;

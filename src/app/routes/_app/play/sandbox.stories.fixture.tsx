@@ -85,7 +85,8 @@ export class SandboxTable extends LocalTable {
 }
 
 /** What the story shows: the live table and the transport the page is connected through. */
-export const sandbox: { table?: SandboxTable; transport?: ReturnType<typeof storyTransport> } = {};
+/* `latencyMs` holds every answer back as a slow connection would, so a story can show what the table does while it waits. */
+export const sandbox: { table?: SandboxTable; transport?: ReturnType<typeof storyTransport>; latencyMs?: number } = {};
 
 /** How the live table looks in the Play debugger panel: where it started, the seat it is viewed as, the room's own state and a restart. */
 function describeSandbox() {
@@ -150,7 +151,14 @@ export function sandboxTransport(
     receive: (message) => sandbox.table!.receive(message as TableMessage),
   });
   /* Answers leave after the message that caused them, as they do from a socket. */
-  table.deliver = (message) => queueMicrotask(() => transport.connected() && transport.deliver(message));
+  table.deliver = (message) => {
+    const send = () => transport.connected() && transport.deliver(message);
+    if (sandbox.latencyMs) {
+      setTimeout(send, sandbox.latencyMs);
+    } else {
+      queueMicrotask(send);
+    }
+  };
   const dispose = transport.dispose;
   sandbox.transport = {
     ...transport,

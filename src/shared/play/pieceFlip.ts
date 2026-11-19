@@ -16,6 +16,21 @@ export const PIECE_FLIP_DURATION_MS = 520;
 export const PIECE_FLIP_HOLD_MS = 1200;
 
 const FLIP_CLEARANCE = 0.06;
+/*
+ * How high a piece rises off the table while its flip waits: for the room's answer on the page that asked, or for the face's art (#2990).
+ * The click is answered at once by the lift, and the turn starts from that height.
+ */
+export const PIECE_FLIP_HOVER = 0.1;
+const HOVER_RISE_MS = 140;
+
+/** The hover's height a while after it began, eased up to `PIECE_FLIP_HOVER`; nothing when it has not begun. */
+export function pieceFlipHover(since: number | null, nowMs: number): number {
+  if (since === null) {
+    return 0;
+  }
+  const fraction = Math.min(1, Math.max(0, nowMs - since) / HOVER_RISE_MS);
+  return PIECE_FLIP_HOVER * fraction * (2 - fraction);
+}
 
 export function stackLayerItemIndex(
   itemCount: number,
@@ -37,6 +52,8 @@ export type PieceFlipMotion = {
   startedAt: number | null;
   /** When a flip began waiting for the art of the face it turns up; it shows the old face until then. */
   heldSince: number | null;
+  /** The height the piece hovered at when the turn began, which it comes down from as it turns. */
+  liftFrom?: number;
 };
 
 export type PieceFlipFrame = {
@@ -61,7 +78,8 @@ export function retargetPieceFlipMotion(
   motion: PieceFlipMotion,
   revision: number,
   nowMs: number,
-  faceReady = true
+  faceReady = true,
+  liftFrom = 0
 ): PieceFlipMotion {
   if (revision === motion.targetRevision) {
     return motion;
@@ -78,7 +96,9 @@ export function retargetPieceFlipMotion(
     fromRevision: motion.targetRevision,
     targetRevision: revision,
     startedAt: faceReady ? nowMs : null,
-    heldSince: faceReady ? null : nowMs,
+    /* A piece already hovering for the answer keeps hovering for its art, so it never drops back first. */
+    heldSince: faceReady ? null : nowMs - (liftFrom > 0 ? HOVER_RISE_MS : 0),
+    ...(faceReady && liftFrom > 0 ? { liftFrom } : {}),
   };
 }
 
@@ -87,7 +107,7 @@ export function releasePieceFlipMotion(motion: PieceFlipMotion, nowMs: number, f
   if (motion.heldSince === null || (!faceReady && nowMs - motion.heldSince < PIECE_FLIP_HOLD_MS)) {
     return motion;
   }
-  return { ...motion, startedAt: nowMs, heldSince: null };
+  return { ...motion, startedAt: nowMs, heldSince: null, liftFrom: pieceFlipHover(motion.heldSince, nowMs) };
 }
 
 function matchingFlipIdentity(previous: TablePiece, next: TablePiece): boolean {
@@ -132,7 +152,16 @@ function pieceHalfWidth(piece: TablePiece): number {
   return Math.max(TROOP_BOTTOM_RADIUS, TROOP_TOP_RADIUS) * troopScale(piece);
 }
 
-export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs: number): PieceFlipFrame {
+/**
+ * The piece's pose this frame.
+ * `awaitingSince` is when this page asked the room to flip it and is still waiting, which lifts it before the room answers.
+ */
+export function pieceFlipFrame(
+  motion: PieceFlipMotion,
+  piece: TablePiece,
+  nowMs: number,
+  awaitingSince: number | null = null
+): PieceFlipFrame {
   const height = stackTopHeight(piece);
   const idle: PieceFlipFrame = {
     rotationZ: 0,
@@ -145,18 +174,28 @@ export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs
   if (piece.kind === 'marker' || piece.items.length === 0) {
     return idle;
   }
-  if ((motion.startedAt === null && motion.heldSince === null) || motion.targetRevision !== motion.fromRevision + 1) {
+  const turning = motion.targetRevision === motion.fromRevision + 1;
+  if (motion.startedAt === null && (motion.heldSince === null || !turning)) {
+    /* Still the old pose: lift it while the room is asked, so the click shows at once. */
+    return awaitingSince === null ? idle : hoverFrame(piece, idle, 0, pieceFlipHover(awaitingSince, nowMs));
+  }
+  if (!turning) {
     return idle;
   }
+  if (motion.startedAt === null) {
+    /* The new faces are in, turned back to show the old one, until the art of the face it turns up is ready. */
+    return hoverFrame(piece, idle, -Math.PI, pieceFlipHover(motion.heldSince, nowMs));
+  }
 
-  const fraction = motion.startedAt === null ? 0 : Math.max(0, nowMs - motion.startedAt) / PIECE_FLIP_DURATION_MS;
+  const fraction = Math.max(0, nowMs - motion.startedAt) / PIECE_FLIP_DURATION_MS;
   if (fraction >= 1) {
     return idle;
   }
 
   const easedFraction = fraction * fraction * (3 - 2 * fraction);
   const halfWidth = pieceHalfWidth(piece);
-  const lift = (halfWidth + FLIP_CLEARANCE) * Math.sin(Math.PI * easedFraction);
+  const lift =
+    (halfWidth + FLIP_CLEARANCE) * Math.sin(Math.PI * easedFraction) + (motion.liftFrom ?? 0) * (1 - easedFraction);
   const rotationZ = (easedFraction - 1) * Math.PI;
   const pivotY = height / 2 + lift;
   const rotatedHalfHeight = halfWidth * Math.abs(Math.sin(rotationZ)) + (height / 2) * Math.abs(Math.cos(rotationZ));
@@ -169,4 +208,11 @@ export function pieceFlipFrame(motion: PieceFlipMotion, piece: TablePiece, nowMs
     shadowScale: 1 + lift * 0.35,
     active: true,
   };
+}
+
+/* A piece raised off the table without turning further, as it waits. */
+function hoverFrame(piece: TablePiece, idle: PieceFlipFrame, rotationZ: number, lift: number): PieceFlipFrame {
+  const height = stackTopHeight(piece);
+  const pivotY = height / 2 + lift;
+  return { ...idle, rotationZ, lift, pivotY, labelY: idle.labelY + lift, shadowScale: 1 + lift * 0.35, active: true };
 }

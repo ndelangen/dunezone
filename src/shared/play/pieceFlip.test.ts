@@ -7,6 +7,8 @@ import {
   createPieceFlipMotion,
   PIECE_FLIP_DURATION_MS,
   PIECE_FLIP_HOLD_MS,
+  PIECE_FLIP_HOVER,
+  pieceFlipHover,
   pieceFlipFrame,
   releasePieceFlipMotion,
   retargetPieceFlipMotion,
@@ -272,6 +274,31 @@ describe('single piece flips', () => {
     const started = releasePieceFlipMotion(held, 300, true);
     expect(started).toMatchObject({ startedAt: 300, heldSince: null });
     expect(pieceFlipFrame(started, piece, 300 + PIECE_FLIP_DURATION_MS).active).toBe(false);
+  });
+
+  test('a flip this page asked for lifts at once, and turns from that height when the room answers (#2990)', () => {
+    const piece = pieceWithItems('card', 1, 1);
+    const waiting = createPieceFlipMotion(0);
+
+    expect(pieceFlipFrame(waiting, piece, 100).active).toBe(false);
+    const lifted = pieceFlipFrame(waiting, piece, 1000, 100);
+    expect(lifted).toMatchObject({ active: true, rotationZ: 0, lift: PIECE_FLIP_HOVER });
+
+    const answered = retargetPieceFlipMotion(waiting, 1, 1000, true, pieceFlipHover(100, 1000));
+    const start = pieceFlipFrame(answered, flippedToRevision(piece, 1), 1000);
+    expect(start.lift).toBeCloseTo(PIECE_FLIP_HOVER);
+    expect(start.rotationZ).toBeCloseTo(-Math.PI);
+    expect(pieceFlipFrame(answered, flippedToRevision(piece, 1), 1000 + PIECE_FLIP_DURATION_MS).active).toBe(false);
+  });
+
+  test('a flip waiting for its new face hovers while it waits, and keeps the height it already had', () => {
+    const piece = pieceWithItems('card', 1, 1);
+    const held = retargetPieceFlipMotion(createPieceFlipMotion(0), 1, 100, false, PIECE_FLIP_HOVER);
+
+    expect(pieceFlipFrame(held, piece, 100).lift).toBeCloseTo(PIECE_FLIP_HOVER);
+    const started = releasePieceFlipMotion(held, 400, true);
+    expect(started.liftFrom).toBeCloseTo(PIECE_FLIP_HOVER);
+    expect(pieceFlipFrame(started, piece, 400).lift).toBeCloseTo(PIECE_FLIP_HOVER);
   });
 
   test('a flip stops waiting for its new face after the hold limit', () => {

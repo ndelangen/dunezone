@@ -71,8 +71,22 @@ function renderPiece() {
   const shadow = new Group();
   const onFinish = vi.fn();
 
-  function AnimatedPiece({ value, interrupted = false }: { value: TablePiece; interrupted?: boolean }) {
-    const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(value, interrupted, onFinish);
+  function AnimatedPiece({
+    value,
+    interrupted = false,
+    awaiting = false,
+  }: {
+    value: TablePiece;
+    interrupted?: boolean;
+    awaiting?: boolean;
+  }) {
+    const { pivotRef, labelRef, shadowRef, badgeRef } = usePieceFlipAnimation(
+      value,
+      interrupted,
+      onFinish,
+      true,
+      awaiting
+    );
     return (
       <span
         data-testid="flip-badge"
@@ -102,6 +116,8 @@ function renderPiece() {
     readPose,
     unmount: view.unmount,
     flip: () => view.rerender(<AnimatedPiece value={flippedPiece} />),
+    ask: () => view.rerender(<AnimatedPiece value={piece} awaiting />),
+    answer: () => view.rerender(<AnimatedPiece value={flippedPiece} awaiting />),
     interrupt: () => view.rerender(<AnimatedPiece value={flippedPiece} interrupted />),
     sample: (time: number) => {
       act(() => {
@@ -123,6 +139,24 @@ function renderMidFlip() {
   expect(animation.onFinish).not.toHaveBeenCalled();
   return animation;
 }
+
+describe('a flip this page asked for', () => {
+  test('lifts the piece before the room answers, then turns it from there and comes to rest (#2990)', () => {
+    const animation = renderPiece();
+    const resting = animation.readPose().pivotY;
+    animation.ask();
+    const lifted = animation.sample(400);
+    expect(lifted).toMatchObject({ active: true, rotationZ: 0 });
+    expect(lifted.pivotY).toBeGreaterThan(resting);
+
+    animation.answer();
+    const turning = animation.readPose();
+    expect(turning.pivotY).toBeCloseTo(lifted.pivotY);
+    expect(turning.rotationZ).toBeCloseTo(-Math.PI);
+    expect(animation.sample(400 + 520).active).toBe(false);
+    expect(animation.sample(1200)).toMatchObject({ active: false, rotationZ: 0, pivotY: resting });
+  });
+});
 
 describe('explicit flip animation', () => {
   test.each([false, true])('animates the object with reduced motion set to %s', (reduced) => {
