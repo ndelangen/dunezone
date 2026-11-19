@@ -61,8 +61,24 @@ export function sittingOutSetup() {
 
 export let storyClock: { hold(): void; advance(milliseconds: number): void; resume(): void } | null = null;
 
+/* How long a story's other factions take over their bid, and how long a finished round shows before the next card. */
+const OPPONENT_THINKS_MS = 1400;
+const NEXT_CARD_MS = 3000;
+
 /* The real bidder and command reducer, with an isolated story clock in place of the room alarm. */
 export function clockSetup(timed: boolean) {
+  return liveBiddingSetup(timed, false);
+}
+
+/**
+ * A bidding table that plays on its own: the other factions bid against the viewer, each up to a limit of its own per card.
+ * A new card goes up a few seconds after each round ends, so a prototype of the bidder can be tried over many cards (#2983).
+ */
+export function opponentsSetup() {
+  return liveBiddingSetup(false, true);
+}
+
+function liveBiddingSetup(timed: boolean, opponents: boolean) {
   return install(() => {
     const snapshot = playingSnapshot('seat-2');
     snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === 'bidding');
@@ -91,8 +107,8 @@ export function clockSetup(timed: boolean) {
     };
     storyClock = clock;
     const now = () => STORYBOOK_NOW + Math.floor(monotonicNow());
-    const context = () => ({
-      factionId: 'house-harkonnen',
+    const context = (factionId = 'house-harkonnen') => ({
+      factionId,
       order: stormOrder(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
       eligible: biddingFactions(snapshot.table.stormSectorIndex, snapshot.roster, snapshot.table.pieces),
       now: now(),
@@ -107,13 +123,57 @@ export function clockSetup(timed: boolean) {
         return { ...transport.view(snapshot, message.commandId), serverNow: now() };
       },
     });
+    const deliver = () => {
+      snapshot.revision += 1;
+      const frame = { ...transport.view(snapshot), serverNow: now() };
+      transport.deliver(frame);
+    };
+    const limits = new Map<string, number>();
+    let since = { key: '', at: now() };
+    /* Another faction's turn: it raises one or two while under its limit for this card and hands on, else passes. */
+    const playOpponents = () => {
+      const state = snapshot.bidding!;
+      const key = `${state.stage}:${state.round}:${state.turn}:${state.bid?.amount ?? 0}`;
+      if (key !== since.key) {
+        since = { key, at: now() };
+      }
+      const waited = now() - since.at;
+      const { eligible } = context();
+      if (state.stage !== 'open') {
+        if (waited >= NEXT_CARD_MS && eligible.length) {
+          const opener = eligible[state.round % eligible.length]!;
+          snapshot.bidding = applyBidding(state, { kind: 'bid-start', factionId: opener }, context(opener));
+          limits.clear();
+          deliver();
+        }
+        return;
+      }
+      if (!state.turn || state.turn === 'house-harkonnen' || waited < OPPONENT_THINKS_MS) {
+        return;
+      }
+      const factionId = state.turn;
+      if (!limits.has(factionId)) {
+        limits.set(factionId, 2 + Math.floor(Math.random() * 8));
+      }
+      const amount = state.bid?.amount ?? 0;
+      const round = state.round;
+      let next = state;
+      if (amount < limits.get(factionId)! && state.bid?.factionId !== factionId) {
+        const to = Math.min(limits.get(factionId)!, amount + 1 + Math.floor(Math.random() * 2));
+        next = applyBidding(next, { kind: 'bid-raise', round, to }, context(factionId));
+      }
+      snapshot.bidding = applyBidding(next, { kind: 'bid-pass', round }, context(factionId));
+      deliver();
+    };
     const timer = setInterval(() => {
+      if (opponents && transport.connected()) {
+        playOpponents();
+        return;
+      }
       const next = expireBid(snapshot.bidding!, context());
       if (next && transport.connected()) {
         snapshot.bidding = next;
-        snapshot.revision += 1;
-        const frame = { ...transport.view(snapshot), serverNow: now() };
-        transport.deliver(frame);
+        deliver();
       }
     }, 100);
     const dispose = transport.dispose;

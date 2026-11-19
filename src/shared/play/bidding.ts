@@ -50,7 +50,8 @@ export type BiddingState = z.infer<typeof biddingStateSchema>;
 export const biddingActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('bid-start'), factionId: id }),
   z.strictObject({ kind: z.literal('bid-reset') }),
-  z.strictObject({ kind: z.literal('bid-raise'), round: count }),
+  /* `to` raises straight to that amount, so a bid of several spice is one command; without it a raise is one spice. */
+  z.strictObject({ kind: z.literal('bid-raise'), round: count, to: count.min(1).optional() }),
   z.strictObject({ kind: z.literal('bid-pass'), round: count }),
   z.strictObject({ kind: z.literal('bid-lower'), round: count }),
   z.strictObject({ kind: z.literal('bid-seconds'), seconds: bidSecondsSchema }),
@@ -204,7 +205,7 @@ function turnAction(
     return lowerBid(state, factionId);
   }
   const started = { ...state, started: true };
-  return action.kind === 'bid-pass' ? passBid(started, context) : raiseBid(started, factionId, context);
+  return action.kind === 'bid-pass' ? passBid(started, context) : raiseBid(started, factionId, context, action.to);
 }
 
 /** Whether the faction the bidder points at raised since it came to them, so it can take a raise back. */
@@ -235,14 +236,17 @@ function lowerBid(state: BiddingState, factionId: string): BiddingState {
   return { ...state, bid: { factionId, amount } };
 }
 
-/** One more spice on the current bid, from a faction whose token is face up; every pass so far is forgotten. */
-function raiseBid(state: BiddingState, factionId: string, context: BiddingContext): BiddingState {
+/** One more spice on the current bid, or straight to `to`, from a faction whose token is face up; every pass so far is forgotten. */
+function raiseBid(state: BiddingState, factionId: string, context: BiddingContext, to?: number): BiddingState {
   if (!context.eligible.includes(factionId)) {
     return refuse('Turn your faction token face up to bid.');
   }
+  if (to !== undefined && to <= (state.bid?.amount ?? 0)) {
+    return refuse('A bid must be higher than the bid on the table.');
+  }
   /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
   const turnStart = state.turnStart ?? { bid: state.bid, passed: state.passed };
-  const amount = (state.bid?.amount ?? 0) + 1;
+  const amount = to ?? (state.bid?.amount ?? 0) + 1;
   const high = turnStart.high ?? turnStart.bid?.amount ?? 0;
   /*
    * Only a bid higher than any this turn reached renews the clock, and lowering leaves the clock alone,

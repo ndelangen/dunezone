@@ -32,6 +32,18 @@ describe('the bidder', () => {
     expect(() => applyBidding(restarted, { kind: 'bid-raise', round: 1 }, at('d'))).toThrow(BiddingRefusal);
   });
 
+  test('a raise straight to an amount is one bid, refused unless it beats the bid on the table', () => {
+    const raised = applyBidding(opened(), { kind: 'bid-raise', round: 1, to: 5 }, at('a'));
+    expect(raised.bid).toEqual({ factionId: 'a', amount: 5 });
+    expect(canLowerBid(raised, 'a')).toBe(true);
+    const passed = applyBidding(raised, { kind: 'bid-pass', round: 1 }, at('a'));
+    expect(() => applyBidding(passed, { kind: 'bid-raise', round: 1, to: 5 }, at('b'))).toThrow(BiddingRefusal);
+    expect(applyBidding(passed, { kind: 'bid-raise', round: 1, to: 7 }, at('b')).bid).toEqual({
+      factionId: 'b',
+      amount: 7,
+    });
+  });
+
   test('a reset puts the bidder away and keeps its time and round count', () => {
     const reset = applyBidding(opened(), { kind: 'bid-reset' }, at('b'));
     expect(reset).toEqual({ ...idleBidding(10, true), round: 1 });

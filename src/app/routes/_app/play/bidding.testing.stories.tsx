@@ -3,9 +3,10 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { biddingSetup, clockSetup, openBiddingSettings, storyClock } from './bidding.stories.fixture';
+import { biddingSetup, clockSetup, openBiddingSettings, opponentsSetup, storyClock } from './bidding.stories.fixture';
 import { WAIT } from './controls.stories.fixture';
 import { gameMeta, lastCommand } from './game.stories.fixture';
+import { showBidderVariant } from './multiplayer/BidControls';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -181,5 +182,42 @@ export const ObserverDuringARound = meta.story({
     await expect(disc).toBeVisible();
     await expect(disc).toHaveTextContent('4');
     await expect(page.queryByRole('button', { name: /^Waiting for/ })).toBeNull();
+  },
+});
+
+/* A quick raise bids over the table's bid and hands the bidder on in one click, and the other factions answer it (#2983). */
+export const QuickRaiseHandsOn = meta.story({
+  beforeEach: () => {
+    showBidderVariant('quick');
+    const dispose = opponentsSetup()();
+    return () => {
+      dispose();
+      showBidderVariant('today');
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const raise = await page.findByRole('button', { name: 'Bid 2 and hand the bidder on' }, { timeout: 30_000 });
+    await waitFor(() => expect(raise).toBeEnabled());
+    await userEvent.click(raise);
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-pass', round: 1 }));
+    await expect(await page.findByRole('button', { name: /Waiting for/ })).toBeInTheDocument();
+  },
+});
+
+/* "Pass this card" passes for the viewer as soon as the bidder points at them. */
+export const PassThisCardPassesForYou = meta.story({
+  beforeEach: () => {
+    showBidderVariant('passCard');
+    const dispose = opponentsSetup()();
+    return () => {
+      dispose();
+      showBidderVariant('today');
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('switch', { name: 'Pass this card' }, { timeout: 30_000 }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-pass', round: 1 }));
   },
 });

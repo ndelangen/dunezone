@@ -193,3 +193,16 @@
   font-size: 15px;
   line-height: 1;
 }
+
+/* A pill with no key beside its sign, such as a quick raise, keeps even padding. */
+.turnButton[data-compact] {
+  padding: 0 12px;
+}
+
+/* The automatic choices stand on the same overlay as the turn row. */
+.autoRow {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  color: var(--color-text);
+}

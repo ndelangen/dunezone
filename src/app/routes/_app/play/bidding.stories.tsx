@@ -6,8 +6,10 @@ import { expect, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { biddingSetup, clockSetup } from './bidding.stories.fixture';
+import { biddingSetup, clockSetup, opponentsSetup } from './bidding.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
+import { showBidderVariant } from './multiplayer/BidControls';
+import type { BidderVariant } from './multiplayer/BidControls';
 import { productTransport, playingSnapshot } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -53,3 +55,40 @@ export const HandCounts = meta.story({
 });
 
 export const Timed = meta.story({ beforeEach: clockSetup(true) });
+
+/*
+ * Prototypes of a more fluent bidder (#2983): the other factions bid on their own, card after card, while the viewer tries each way to bid.
+ * Every variant but today's bids and hands the bidder on in one step.
+ */
+const prototype = (variant: BidderVariant) => ({
+  beforeEach: () => {
+    showBidderVariant(variant);
+    const dispose = opponentsSetup()();
+    return () => {
+      dispose();
+      showBidderVariant('today');
+    };
+  },
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('group', { name: 'Your bid' }, { timeout: 30_000 })).resolves.toBeInTheDocument();
+  },
+});
+
+/* As the bidder plays now: + raises one spice at a time, − takes one back, Pass hands the bidder on. */
+export const PrototypeToday = meta.story(prototype('today'));
+
+/* Pick the amount with ↑ ↓ or the wheel, then Enter bids it and hands the bidder on. */
+export const PrototypeAmount = meta.story(prototype('amount'));
+
+/* +1, +2 and +5 over the table's bid, each one click that also hands the bidder on. */
+export const PrototypeQuickRaises = meta.story(prototype('quick'));
+
+/* Today's buttons, and "Pass this card" passes for you whenever the bidder comes round this card. */
+export const PrototypePassThisCard = meta.story(prototype('passCard'));
+
+/* Today's buttons, and a limit: the bidder bids one over for you until the bid reaches it, then passes. */
+export const PrototypeBidUpTo = meta.story(prototype('limit'));
+
+/* Amount, quick raises, "Pass this card" and a limit together. */
+export const PrototypeEverything = meta.story(prototype('all'));

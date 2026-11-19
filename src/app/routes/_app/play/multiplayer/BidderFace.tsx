@@ -10,6 +10,7 @@ import { Token as FactionToken } from '@game/assets/faction/token/Token';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassTable } from '../compass/compassTable';
 import { SHORTCUTS } from '../compass/shortcuts';
+import { BidControls, useBidderVariant } from './BidControls';
 import styles from './Bidder.module.css';
 import { offersActions } from './tableFactions';
 
@@ -269,6 +270,7 @@ export function OpenRound({
   now: number;
 }) {
   const { bid, round, turn } = bidding;
+  const variant = useBidderVariant();
   const mine = table.canInteract && turn !== null && table.snapshot.bank?.factionId === turn;
   const turnName = factionName(table, turn);
   const label = turnLabel(mine, bid, turnName);
@@ -323,7 +325,12 @@ export function OpenRound({
           · {turnName}
         </Text>
       )}
-      {offersActions(table) && <TurnButtons commands={commands} bid={bid} />}
+      {offersActions(table) && (variant === 'today' || variant === 'passCard' || variant === 'limit') && (
+        <TurnButtons commands={commands} bid={bid} />
+      )}
+      {offersActions(table) && variant !== 'today' && (
+        <BidControls client={client} table={table} bidding={bidding} mine={mine} variant={variant} />
+      )}
     </Stack>
   );
 }
