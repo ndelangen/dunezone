@@ -284,14 +284,15 @@ function useNoticePanelOpener(client: TableSession, openWindow: (key: string) =>
 function useAskedWindow(focus: WindowFocus) {
   /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
-  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre'; seat?: string } | null>(null);
   const [followed, setFollowed] = useState({ token: focus?.token, epoch });
   if (focus?.token !== followed.token || epoch !== followed.epoch) {
     setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
   const open = useCallback(
-    (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' }),
+    (key: string, seat?: string) =>
+      setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre', ...(seat ? { seat } : {}) }),
     []
   );
   return [asked ?? focus, open] as const;
@@ -781,7 +782,12 @@ function useHostedControls(
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
-    dealing: table.snapshot.stage === 'swapping' || table.snapshot.stage === 'setup',
+    /* Only the live table deals: a past table or a recall showing Trading or Setup is not news. */
+    dealing:
+      !table.playback &&
+      !table.historyPending &&
+      !recall &&
+      (table.snapshot.stage === 'swapping' || table.snapshot.stage === 'setup'),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -861,7 +867,9 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
-  const openOwnFactionInfo = useCallback(() => openWindow(FACTION_INFO), [openWindow]);
+  const ownSeat = table.viewer.viewerSeat;
+  /* Faction info set on the viewer's own seat, even where it is already open on another. */
+  const openOwnFactionInfo = useCallback(() => openWindow(FACTION_INFO, ownSeat), [openWindow, ownSeat]);
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
     () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),

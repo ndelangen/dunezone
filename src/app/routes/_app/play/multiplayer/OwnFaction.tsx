@@ -1,4 +1,4 @@
-import { Text } from '@mantine/core';
+import { Text, VisuallyHidden } from '@mantine/core';
 import { Surface } from '@ui/surface';
 import { useContext, useEffect, useState } from 'react';
 
@@ -39,6 +39,7 @@ export function useOwnFactionArrival(): Readonly<{ player?: CompassPlayer; arriv
  * It goes after the notices' own lifetime;
  * clicking it opens Faction info, which shows the viewer's own faction.
  * While a board gesture holds the pointer (`inert`) it stays readable but cannot be opened.
+ * A polite live region stays mounted beside it, so a screen reader hears the faction even though the toast comes and goes.
  */
 export function OwnFactionToast({ inert, onOpen }: Readonly<{ inert: boolean; onOpen: () => void }>) {
   const { player, arrival } = useOwnFactionArrival();
@@ -52,31 +53,36 @@ export function OwnFactionToast({ inert, onOpen }: Readonly<{ inert: boolean; on
     const gone = window.setTimeout(() => setDismissed(arrival), lifetime);
     return () => window.clearTimeout(gone);
   }, [arrival, lifetime]);
-  if (!player || !arrival || dismissed === arrival) {
-    return null;
-  }
+  const shown = player && arrival > 0 && dismissed !== arrival;
   return (
-    <div className={styles.stack} data-motion={motion || undefined}>
-      <Surface
-        key={arrival}
-        padding="sm"
-        interactive
-        className={styles.toast}
-        renderRoot={(props) => (
-          <button
-            type="button"
-            {...props}
-            disabled={inert}
-            onClick={() => {
-              setDismissed(arrival);
-              onOpen();
-            }}
-          />
-        )}
-      >
-        <PlayerToken player={player} size={28} />
-        <Text size="sm">You are playing {player.factionName}</Text>
-      </Surface>
-    </div>
+    <>
+      <VisuallyHidden role="status" aria-live="polite">
+        {player && arrival > 0 ? `You are playing ${player.factionName}` : ''}
+      </VisuallyHidden>
+      {shown && (
+        <div className={styles.stack} data-motion={motion || undefined}>
+          <Surface
+            key={arrival}
+            padding="sm"
+            interactive
+            className={styles.toast}
+            renderRoot={(props) => (
+              <button
+                type="button"
+                {...props}
+                disabled={inert}
+                onClick={() => {
+                  setDismissed(arrival);
+                  onOpen();
+                }}
+              />
+            )}
+          >
+            <PlayerToken player={player} size={28} />
+            <Text size="sm">You are playing {player.factionName}</Text>
+          </Surface>
+        </div>
+      )}
+    </>
   );
 }

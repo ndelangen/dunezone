@@ -50,22 +50,25 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const chatLabel = recall ? 'Recall chat' : 'Table chat';
   const own = table?.players.find((player) => player.own);
   const shortcutsButton = useShortcutsButton();
-  /* The viewer's token stands in the bar from the deal on, pulsing as a faction is dealt to them (#2987); before there is a hand it opens Faction info. */
+  /*
+   * The viewer's token stands in the bar from the deal on, pulsing as a faction is dealt to them (#2987).
+   * Before there is a hand it opens their Faction info; a recall has no Faction info, so there it waits for the recalled hand as before.
+   */
   const { arrival } = useOwnFactionArrival();
   const motion = useMotionAllowed();
+  const ownToken = own?.factionName && (hasHand || !recall) ? own : undefined;
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
-      {own?.factionName && (
+      {ownToken && (
         <OwnToken
-          key={arrival}
-          player={own}
+          player={ownToken}
           label={hasHand ? (recall ? 'Your recalled hand' : 'Hand & spice') : 'Faction info'}
-          open={hasHand ? isOpen('hand') : isOpen(FACTION_INFO, own.seat)}
-          onOpen={() => (hasHand ? onShow('hand') : onShow(FACTION_INFO, own.seat))}
-          pulse={motion && arrival > 0}
+          open={hasHand ? isOpen('hand') : isOpen(FACTION_INFO, ownToken.seat)}
+          onOpen={() => (hasHand ? onShow('hand') : onShow(FACTION_INFO, ownToken.seat))}
+          pulse={motion ? arrival : 0}
         />
       )}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
@@ -107,19 +110,27 @@ function OwnToken({
   label,
   open,
   onOpen,
-  pulse = false,
-}: Readonly<{ player: CompassPlayer; label: string; open: boolean; onOpen: () => void; pulse?: boolean }>) {
+  pulse = 0,
+}: Readonly<{
+  player: CompassPlayer;
+  label: string;
+  open: boolean;
+  onOpen: () => void;
+  /** Which faction arrival the ring pulses for; 0 for none. A new one restarts the ring, never the button, so focus stays. */
+  pulse?: number;
+}>) {
   return (
     <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
-        className={clsx(styles.chat, styles.own, pulse && ownFaction.pulse)}
+        className={clsx(styles.chat, styles.own)}
         aria-pressed={open}
         aria-label={`${label}, you are playing as ${player.factionName}`}
         data-own-token
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
+        {pulse > 0 && <span key={pulse} className={ownFaction.pulse} data-own-pulse aria-hidden />}
       </button>
     </Tooltip>
   );

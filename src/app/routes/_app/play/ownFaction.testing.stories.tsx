@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { windowNamed } from './controls.stories.fixture';
+import { openFactionInfo, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { beforeTheDeal, dealFactions, tradeWithSeatOne, VIEWER_FACTION } from './ownFaction.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
@@ -37,6 +37,30 @@ export const ToastOpensOwnFactionInfo = meta.story({
     await userEvent.click(await page.findByRole('button', { name }, WAIT));
     await expectOwnFactionInfo(page);
     await expect(page.queryByRole('button', { name })).toBeNull();
+  },
+});
+
+/* Faction info already open on another faction turns to the viewer's own when the toast is clicked. */
+export const ToastTurnsOpenFactionInfoToOwn = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    await openFactionInfo(canvasElement, 'Central');
+    await userEvent.click(await page.findByRole('button', { name: `You are playing ${VIEWER_FACTION}` }, WAIT));
+    await expectOwnFactionInfo(page);
+  },
+});
+
+/* A screen reader hears the faction from a polite live region, which outlasts the toast. */
+export const DealAnnounced = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    await waitFor(
+      () =>
+        expect(
+          page.getAllByRole('status').some((region) => region.textContent === `You are playing ${VIEWER_FACTION}`)
+        ).toBe(true),
+      WAIT
+    );
   },
 });
 
@@ -76,7 +100,8 @@ export const SpectatorIsToldNothing = meta.story({
   beforeEach: beforeTheDeal('neutral'),
   play: async ({ canvasElement }) => {
     const page = await dealFactions(canvasElement);
-    await page.findByRole('group', { name: 'Factions' }, WAIT).catch(() => undefined);
+    /* The spectator sees the deal land as the Trading countdown. */
+    await page.findByLabelText('Trading time remaining', {}, WAIT);
     await expect(page.queryByRole('button', { name: /^You are playing/ })).toBeNull();
     await expect(page.queryByRole('button', { name: /you are playing as/ })).toBeNull();
   },
