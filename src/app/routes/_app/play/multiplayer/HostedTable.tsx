@@ -775,12 +775,18 @@ function nudgeControls(
   };
 }
 
-/* The viewer's own faction while the live table deals and sets up factions; a past table, a recall, or a saved table still reconnecting is not news. */
+/* A table the server has confirmed and is showing as it is now: not a past table, a recall, or a saved table still reconnecting. */
+function showsLiveTable(table: TableProjection, recalling: boolean) {
+  return !table.playback && !table.historyPending && !table.reconnecting && !recalling;
+}
+
+/* The viewer's own faction while the live table deals and sets up factions; anything else is not news. */
 function dealtFaction(table: TableProjection, recalling: boolean) {
   const { stage, roster } = table.snapshot;
-  const live = !table.playback && !table.historyPending && !table.reconnecting && !recalling;
-  const dealing = live && (stage === 'swapping' || stage === 'setup');
-  return dealing ? (roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null) : null;
+  if (!showsLiveTable(table, recalling) || (stage !== 'swapping' && stage !== 'setup')) {
+    return null;
+  }
+  return roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null;
 }
 
 function useHostedControls(

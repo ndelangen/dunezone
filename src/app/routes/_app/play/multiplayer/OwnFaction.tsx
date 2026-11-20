@@ -52,10 +52,36 @@ export function OwnFactionNotice({
   children: (toast: ReactNode) => ReactNode;
 }>) {
   const { player, arrival } = useOwnFactionArrival();
-  const motion = useMotionAllowed();
+  const { dismissed, dismiss, markSeen } = useToastLifetime(arrival);
+  const announced = arrival > 0 ? player : undefined;
+  const shown = dismissed === arrival ? undefined : announced;
+  const toast = shown && (
+    <FactionToast
+      key={arrival}
+      player={shown}
+      inert={inert}
+      onSeen={markSeen}
+      onOpen={() => {
+        dismiss();
+        onOpenFactionInfo(shown.seat);
+      }}
+    />
+  );
+  return (
+    <>
+      <Announcement text={announced ? `You are playing ${announced.factionName}` : ''} />
+      {children(toast)}
+    </>
+  );
+}
+
+/*
+ * Which arrival's toast is dismissed, by its lifetime or a click.
+ * The lifetime counts from when the toast first shows, not from the arrival, so a slow notices chunk does not use it up unseen.
+ */
+function useToastLifetime(arrival: number) {
   const lifetime = useContext(NoticeLifetime);
   const [dismissed, setDismissed] = useState(0);
-  /* The lifetime counts from when the toast first shows, not from the arrival, so a slow notices chunk does not use it up unseen. */
   const [seenSince, setSeenSince] = useState<Readonly<{ arrival: number; at: number }> | null>(null);
   const markSeen = useCallback(
     () => setSeenSince((before) => (before?.arrival === arrival ? before : { arrival, at: performance.now() })),
@@ -69,37 +95,29 @@ export function OwnFactionNotice({
     const gone = window.setTimeout(() => setDismissed(arrival), Math.max(0, since + lifetime - performance.now()));
     return () => window.clearTimeout(gone);
   }, [arrival, since, lifetime]);
-  const announced = arrival > 0 ? player : undefined;
-  const shown = dismissed === arrival ? undefined : announced;
-  const toast = shown && (
+  return { dismissed, dismiss: () => setDismissed(arrival), markSeen };
+}
+
+/* The toast itself: the viewer's token and faction, a button that is disabled while a board gesture holds the pointer. */
+function FactionToast({
+  player,
+  inert,
+  onSeen,
+  onOpen,
+}: Readonly<{ player: CompassPlayer; inert: boolean; onSeen: () => void; onOpen: () => void }>) {
+  const motion = useMotionAllowed();
+  return (
     <Surface
-      key={arrival}
       padding="sm"
       interactive
       className={styles.toast}
       data-motion={motion || undefined}
-      renderRoot={(props) => (
-        <button
-          type="button"
-          {...props}
-          disabled={inert}
-          onClick={() => {
-            setDismissed(arrival);
-            onOpenFactionInfo(shown.seat);
-          }}
-        />
-      )}
+      renderRoot={(props) => <button type="button" {...props} disabled={inert} onClick={onOpen} />}
     >
-      <SeenMark onSeen={markSeen} />
-      <PlayerToken player={shown} size={28} />
-      <Text size="sm">You are playing {shown.factionName}</Text>
+      <SeenMark onSeen={onSeen} />
+      <PlayerToken player={player} size={28} />
+      <Text size="sm">You are playing {player.factionName}</Text>
     </Surface>
-  );
-  return (
-    <>
-      <Announcement text={announced ? `You are playing ${announced.factionName}` : ''} />
-      {children(toast)}
-    </>
   );
 }
 
