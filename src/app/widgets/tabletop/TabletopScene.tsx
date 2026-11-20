@@ -628,7 +628,7 @@ export type PieceSceneState = {
   peeked: string | undefined;
   /* The peekers' tokens a card or deck carries in its corner, as the table shows them. */
   peekMarkers: readonly TablePiece[];
-  /* PROTOTYPE (#2988): the pointer rests on this piece. */
+  /* The pointer rests on this piece, so its tag shows its name and count. */
   hovered: boolean;
 };
 
@@ -1007,10 +1007,6 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceNamePeeked: styles.pieceNamePeeked,
   pieceCount: styles.pieceCount,
   pieceCountSelected: styles.pieceCountSelected,
-  hoverTip: styles.hoverTip,
-  hoverTipCount: styles.hoverTipCount,
-  hoverTipHint: styles.hoverTipHint,
-  hoverKey: styles.hoverKey,
 };
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {

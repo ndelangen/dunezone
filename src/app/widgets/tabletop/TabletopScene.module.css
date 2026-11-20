@@ -232,7 +232,9 @@
   text-align: center;
 }
 
-:global([data-show-counts="true"]) .pieceCount {
+:global([data-show-counts="true"]) .pieceCount,
+.pieceTag[data-hovered] .pieceCount,
+.pieceTag[data-hovered] .pieceName {
   visibility: visible;
 }
 
@@ -257,76 +259,4 @@
 /* The scene takes the focus only from script, as a chat's Escape hands the keys back to the table, so it shows no ring. */
 .focusTarget:focus {
   outline: none;
-}
-
-/*
- * PROTOTYPE (#2988): what hovering a stack shows. The tag's `data-hover-look` names the look its story picked.
- * The count and the name reuse the Alt and Control labels; the tip is a label of the same glass.
- */
-.pieceTag[data-hovered][data-hover-look="count"] .pieceCount,
-.pieceTag[data-hovered][data-hover-look="name-and-count"] .pieceCount,
-.pieceTag[data-hovered][data-hover-look="name-and-count"] .pieceName {
-  visibility: visible;
-}
-
-.hoverTip {
-  position: absolute;
-  bottom: calc(100% + 0.2rem);
-  left: 50%;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  translate: -50% 0;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
-  border-radius: 0.4rem;
-  color: var(--color-text);
-  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
-  box-shadow: 0 5px 14px rgb(from var(--play-black) r g b / 0.28);
-  line-height: 1.25;
-  text-align: center;
-}
-
-.hoverTipCount {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.hoverTipHint {
-  color: var(--color-muted);
-  font-size: 0.6rem;
-  font-weight: 600;
-}
-
-.hoverKey {
-  color: var(--color-muted);
-  font-size: 0.6rem;
-  font-weight: 600;
-}
-
-/* The hint waits a moment, so a passing pointer sees only the count. */
-.hoverTip[data-look="hint-after-pause"] .hoverTipHint {
-  animation: hoverHintArrives 200ms ease-out 1.2s both;
-}
-
-@keyframes hoverHintArrives {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* While every count shows, the hovered one needs no tip of its own. */
-:global([data-show-counts="true"]) .hoverTip {
-  display: none;
 }

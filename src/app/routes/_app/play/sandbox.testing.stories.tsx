@@ -19,7 +19,8 @@ import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPh
 import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
-import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
+import { waitForTableOpen } from './mapView.stories.fixture';
+import { expectHeaderPhase, openTab, phaseControls, waitForPlayCamera } from './playing.stories.fixture';
 import {
   messyReservesSandbox,
   piece,
@@ -129,6 +130,70 @@ export const Sandbox = meta.story({
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
     await expect(sandbox.table).not.toBe(table);
     await expect(shown().hand ?? []).toHaveLength(handSize);
+  },
+});
+
+/**
+ * Hovering a stack shows its count and its name, as Alt and Control would, for that stack alone (#2988).
+ * The pointer rests on a troop stack: its tag shows the count and the name, every other count stays hidden, and leaving the stack hides them again.
+ */
+export const HoverShowsNameAndCount = meta.story({
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const document = canvasElement.ownerDocument;
+    await waitForPlayCamera(document);
+    await waitForTableOpen(document);
+    const view = document.defaultView!;
+    const counts = () => Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-count'));
+    /* A troop stack of several, in view, so the pointer can rest on it. */
+    const onScreen = (count: HTMLElement) => {
+      const box = count.getBoundingClientRect();
+      return box.top > 120 && box.bottom < view.innerHeight - 120 && box.left > 80 && box.right < view.innerWidth - 80;
+    };
+    const troopIds = new Set(
+      shown()
+        .table.pieces.filter((candidate) => candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1)
+        .map((candidate) => candidate.id)
+    );
+    const count = await waitFor(async () => {
+      const found = counts().find((candidate) => troopIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
+      await expect(found).toBeDefined();
+      return found!;
+    });
+    const tag = count.closest<HTMLElement>('.scene-piece-tag')!;
+    const name = tag.querySelector<HTMLElement>('.scene-piece-name')!;
+    await expect(count).not.toBeVisible();
+    await expect(name).not.toBeVisible();
+
+    /* The table hears the pointer on its canvas, whatever page chrome lies over the spot. */
+    const canvas = document.querySelector('canvas')!;
+    const pointAt = (clientX: number, clientY: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
+      );
+    /* The tag floats over the stack, so the stack lies just under it on screen. */
+    await waitFor(async () => {
+      const box = count.getBoundingClientRect();
+      pointAt(box.left + box.width / 2, box.bottom + 8);
+      await expect(tag).toHaveAttribute('data-hovered', 'true');
+    });
+    await waitFor(() => expect(count).toBeVisible());
+    await expect(name).toBeVisible();
+    await expect(name).toHaveTextContent(
+      shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label
+    );
+    for (const other of counts().filter((candidate) => candidate !== count)) {
+      await expect(other).not.toBeVisible();
+    }
+
+    /* Off the stack, the tag hides again. */
+    await waitFor(async () => {
+      const edge = canvas.getBoundingClientRect();
+      pointAt(edge.left + 4, edge.top + edge.height / 2);
+      await expect(tag).not.toHaveAttribute('data-hovered');
+    });
+    await waitFor(() => expect(count).not.toBeVisible());
+    await expect(name).not.toBeVisible();
   },
 });
 
