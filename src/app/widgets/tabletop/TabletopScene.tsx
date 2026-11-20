@@ -628,8 +628,6 @@ export type PieceSceneState = {
   peeked: string | undefined;
   /* The peekers' tokens a card or deck carries in its corner, as the table shows them. */
   peekMarkers: readonly TablePiece[];
-  /* The pointer rests on this piece, so its tag shows its name and count. */
-  hovered: boolean;
 };
 
 type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean; arrivalDelay?: number } & PieceSceneState;
@@ -643,16 +641,9 @@ function pieceSceneState(
     remoteCarriedIds,
     plateRiders,
     reservedPieceIds,
-    hoveredPieceId,
   }: Pick<
     TabletopContextValue,
-    | 'state'
-    | 'gestureActivePieceId'
-    | 'canHandleTable'
-    | 'remoteCarriedIds'
-    | 'plateRiders'
-    | 'reservedPieceIds'
-    | 'hoveredPieceId'
+    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -661,7 +652,6 @@ function pieceSceneState(
   const localSource = state.draftMove?.sourcePieceId === piece.id;
   return {
     selected: state.selectedPieceId === piece.id,
-    hovered: hoveredPieceId === piece.id && !state.draftMove,
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
@@ -812,6 +802,11 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
   };
   /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
   const hovered = useRef(false);
+  /*
+   * Whether the pointer rests on the piece, so its tag shows its name and count (#2988).
+   * Kept apart from the table's hover, which aims the keys and only follows pieces the viewer may handle: a spectator sees the tag too.
+   */
+  const [pointerOver, setPointerOver] = useState(false);
   useEffect(
     () => () => {
       if (hovered.current) {
@@ -821,7 +816,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     [setHoveredPiece]
   );
 
-  return {
+  const handlers = {
     onContextMenu: (event: ThreeEvent<MouseEvent>) => {
       if (hasMenu && openPieceMenu) {
         event.stopPropagation();
@@ -850,6 +845,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
     },
     onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
+      setPointerOver(true);
       if (!interactionBlocked) {
         hovered.current = true;
         setHoveredPiece(piece.id);
@@ -863,6 +859,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       }
     },
     onPointerLeave: () => {
+      setPointerOver(false);
       hovered.current = false;
       setHoveredPiece(null);
       if (!pointerSession.busy) {
@@ -870,6 +867,7 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       }
     },
   };
+  return { handlers, pointerOver };
 }
 
 const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
@@ -1025,7 +1023,9 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     peekMarkers,
   } = props;
   const { finishPieceFlip } = useTabletopActions();
-  const pointerEvents = usePiecePointerEvents(props);
+  const { handlers: pointerEvents, pointerOver } = usePiecePointerEvents(props);
+  /* A piece in someone's hand, or the viewer's own, moves out from under a still pointer, so it shows no hover tag. */
+  const hovered = pointerOver && !props.carrying && !remoteCarried;
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
@@ -1111,7 +1111,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                   owner={owner}
                   peeked={peeked}
                   selected={selected}
-                  hovered={props.hovered}
+                  hovered={hovered}
                   labelRef={labelRef}
                   badgeRef={badgeRef}
                 />
