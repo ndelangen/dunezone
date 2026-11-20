@@ -1,6 +1,7 @@
 import { idleBidding } from '@shared/play/bidding';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { Vector3Tuple } from '@shared/play/model';
+import { MOVEMENT_PHASE_ID } from '@shared/play/movement';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
@@ -173,4 +174,11 @@ export function pingFromOtherSeat(position: Vector3Tuple) {
     },
   });
   return seat.faction!.name;
+}
+
+/** Opens Shipment and Movement with the viewer's faction first to move. */
+export function movementReachesViewer(snapshot: GameSnapshot) {
+  const own = ownFaction(snapshot).id;
+  snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === MOVEMENT_PHASE_ID);
+  snapshot.movement = { done: [], order: [own, ...otherFactions(snapshot).map((faction) => faction.id)] };
 }

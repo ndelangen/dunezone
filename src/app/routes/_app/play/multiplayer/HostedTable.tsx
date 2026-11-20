@@ -26,6 +26,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -35,6 +36,7 @@ import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
+import type { TableView } from '@app/widgets/tabletop/playView';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -140,6 +142,27 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
       </Suspense>
     </OptionalChunkBoundary>
   );
+}
+
+/*
+ * The camera view the page last asked for: the bottom view once the Traitor pile is gathered under the Tanks (#1635),
+ * or the Map view a notice asks for. Each request takes a revision of its own, so asking again moves the camera again.
+ */
+function useAskedTableView(traitorsGathered: number | undefined) {
+  const gathered = traitorsGathered ? { view: 'bottom' as TableView, revision: traitorsGathered } : undefined;
+  const [asked, setAsked] = useState(gathered);
+  const [seenGathered, setSeenGathered] = useState(traitorsGathered);
+  if (seenGathered !== traitorsGathered) {
+    setSeenGathered(traitorsGathered);
+    setAsked(gathered);
+  }
+  /* A notice's requests count down from -1, so they never meet a table revision. */
+  const asks = useRef(0);
+  const ask = useCallback((view: TableView) => {
+    asks.current += 1;
+    setAsked({ view, revision: -asks.current });
+  }, []);
+  return [asked, ask] as const;
 }
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
@@ -846,6 +869,7 @@ function ConnectedTable({
   const noticeStart = useNoticeStart(table);
   /* A notice about a spot on the table, such as a ping, has the camera look there. */
   const [cameraLook] = useState(createCameraLook);
+  const [askedView, askView] = useAskedTableView(table.traitorsGathered);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -896,9 +920,7 @@ function ConnectedTable({
                     onOpenAlliances: () => openWindow('alliances'),
                   })}
                   /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-                  requestedView={
-                    table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined
-                  }
+                  requestedView={askedView}
                   showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
                   highlightTerritory={markerTerritory}
                   sceneContent={
@@ -950,6 +972,7 @@ function ConnectedTable({
                       subscribeMessages={client.conversations.subscribeMessages}
                       subscribePings={client.subscribePings}
                       lookAt={cameraLook.lookAt}
+                      showMapView={() => askView('map')}
                     />
                   )}
                 />

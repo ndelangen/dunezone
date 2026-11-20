@@ -6,6 +6,7 @@ import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TablePing } from '@shared/play/protocol';
 import { territoryAtTable } from '@shared/play/territoryPlacement';
+import { troopReserveKeys, troopReserveSpots } from '@shared/play/troopReserves';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { AtSign, Coins, Gavel, Handshake, MapPin, MessageCircle, Sailboat, Swords } from 'lucide-react';
@@ -54,6 +55,29 @@ type SoftNotice = Readonly<{
  */
 export type PingNoticeStyle = 'off' | 'pieces' | 'place' | 'every';
 export const PingNoticeStyleContext = createContext<PingNoticeStyle>('place');
+
+/**
+ * PROTOTYPE (#2981 follow-up): what the "Your turn to ship and move" toast does when clicked, while the owner picks.
+ * `close` only closes it, as today;
+ * `map` returns the camera to the Map view;
+ * `reserves` has the camera glide to the viewer's reserves behind their seat.
+ */
+export type ShipToastStyle = 'close' | 'map' | 'reserves';
+export const ShipToastStyleContext = createContext<ShipToastStyle>('reserves');
+
+/* Where the viewer's troop reserves stand behind their seat: the middle of them, or nothing for a faction with none. */
+function reservesSpot(table: TableProjection, own: string): Vector3Tuple | undefined {
+  const snapshot = table.confirmedSnapshot ?? table.snapshot;
+  const spots = troopReserveSpots(snapshot.roster, own, troopReserveKeys(snapshot.table.pieces, own));
+  if (!spots?.length) {
+    return undefined;
+  }
+  const sum = spots.reduce<Vector3Tuple>(
+    (total, { position }) => [total[0] + position[0], total[1] + position[1], total[2] + position[2]],
+    [0, 0, 0]
+  );
+  return [sum[0] / spots.length, sum[1] / spots.length, sum[2] / spots.length];
+}
 
 /* How near one of the viewer's pieces a ping lands to be about them, in table units: about a troop stack's width. */
 const PING_NEAR = 0.25;
@@ -459,6 +483,7 @@ export function TableSoftNotices({
   subscribeMessages,
   subscribePings,
   lookAt,
+  showMapView,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
@@ -472,10 +497,20 @@ export function TableSoftNotices({
   inert: boolean;
   openPanel: (key: string) => void;
   openBattlePlan: (() => void) | null;
+  /** Returns the camera to the Map view. */
+  showMapView?: () => void;
 }>) {
+  const shipStyle = useContext(ShipToastStyleContext);
   const open = (notice: SoftNotice) => {
     const panel = notice.opens ?? PANELS[notice.kind];
-    if (notice.spot) {
+    if (notice.kind === 'ship') {
+      const reserves = start?.own && shipStyle === 'reserves' ? reservesSpot(table, start.own) : undefined;
+      if (reserves) {
+        lookAt?.(reserves);
+      } else if (shipStyle === 'map') {
+        showMapView?.();
+      }
+    } else if (notice.spot) {
       lookAt?.(notice.spot);
     } else if (panel) {
       openPanel(panel);
