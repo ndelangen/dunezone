@@ -1,0 +1,71 @@
+/* The prototypes' table: a dark disc standing in for the planet, the factions on a ring, the bidder's face in the middle. */
+.frame {
+  padding: 16px;
+  color: var(--color-text);
+}
+
+.title {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+}
+
+.stage {
+  position: relative;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ui-recess) 0%, var(--play-black) 100%);
+  border: 2px solid var(--panel-border);
+}
+
+.centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.seat {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-border);
+  overflow: hidden;
+  transition: opacity 200ms;
+}
+
+.seat > svg,
+.seat > div {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.seat[data-turn] {
+  border-color: var(--color-brand-strong);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+
+.seat[data-viewer] {
+  outline: 2px dashed var(--color-text);
+  outline-offset: 4px;
+}
+
+.seat[data-passed] {
+  filter: grayscale(1);
+  opacity: 0.4;
+}
+
+.autoPass {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+}
+
+.tooLow {
+  color: var(--color-error);
+}
