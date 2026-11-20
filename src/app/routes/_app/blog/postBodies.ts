@@ -13,6 +13,7 @@ type BodyModule = { default: ComponentType };
 export const BLOG_POST_BODIES: Record<BlogPostSlug, () => Promise<BodyModule>> = {
   'all-in-one-dune-board-game-webapp': () => import('./posts/all-in-one-dune-board-game-webapp'),
   'anatomy-of-a-dune-faction-atreides': () => import('./posts/anatomy-of-a-dune-faction-atreides'),
+  'mentat-recall-online-dune-game-history': () => import('./posts/mentat-recall-online-dune-game-history'),
   'building-a-dune-sandbox': () => import('./posts/building-a-dune-sandbox'),
   'dune-homebrew-art-ai-and-credits': () => import('./posts/dune-homebrew-art-ai-and-credits'),
   'dune-board-game-style-guide': () => import('./posts/dune-board-game-style-guide'),

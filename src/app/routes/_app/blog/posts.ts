@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'mentat-recall-online-dune-game-history': {
+    slug: 'mentat-recall-online-dune-game-history',
+    title: 'Mentat recall: looking back at an online Dune game together',
+    date: '2026-11-08',
+    author: 'Central419',
+    summary:
+      'Dune is a game of memory, and an online table remembers everything. Mentat recall lets the whole table look back at an earlier moment together, and keeps anyone from doing it alone.',
+    cover: {
+      key: '/web/blog/mentat-recall-online-dune-game-history/recall-table.jpg',
+      alt: 'The dune.zone game table during a Mentat recall, the board frozen in cool blue tones with the Shared history slider',
+      aspect: 1280 / 2048,
+    },
+  },
   'dune-homebrew-art-ai-and-credits': {
     slug: 'dune-homebrew-art-ai-and-credits',
     title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
