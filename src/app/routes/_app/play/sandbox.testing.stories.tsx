@@ -181,13 +181,20 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement) {
       new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
     );
   /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
-  /* Each try waits for the table to answer before the pointer moves on, so a try never moves it off a stack it just found. */
-  const frame = () => new Promise((settle) => requestAnimationFrame(settle));
-  for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
-    const box = count.getBoundingClientRect();
-    pointAt(box.left + box.width / 2, box.bottom + below);
-    await frame();
-    await frame();
+  const settle = async (ms: number) => {
+    const until = performance.now() + ms;
+    while (!tag.hasAttribute('data-hovered') && performance.now() < until) {
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+  };
+  /* A busy runner answers late, so the pointer sweeps down the stack until the table hears it, for up to twenty seconds. */
+  const deadline = performance.now() + 20_000;
+  while (!tag.hasAttribute('data-hovered') && performance.now() < deadline) {
+    for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
+      const box = count.getBoundingClientRect();
+      pointAt(box.left + box.width / 2, box.bottom + below);
+      await settle(400);
+    }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
   await waitFor(() => expect(count).toBeVisible());

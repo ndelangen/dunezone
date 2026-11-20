@@ -786,7 +786,13 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
 /* Opens a piece's menu at a point. */
 const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
 
-function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
+function usePiecePointerEvents({
+  piece,
+  interactionBlocked,
+  canHandleTable,
+  carrying,
+  remoteCarried,
+}: TablePieceMeshProps) {
   const { selectPiece, setHoveredPiece } = useTabletopActions();
   const openPieceMenu = useContext(PieceMenuContext);
   /* A selector, so a change elsewhere in the scene's store does not render every piece again. */
@@ -867,7 +873,8 @@ function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carr
       }
     },
   };
-  return { handlers, pointerOver };
+  /* A piece in someone's hand, or the viewer's own, moves out from under a still pointer, so it shows no hover tag. */
+  return { handlers, hovered: pointerOver && !carrying && !remoteCarried };
 }
 
 const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
@@ -1023,9 +1030,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     peekMarkers,
   } = props;
   const { finishPieceFlip } = useTabletopActions();
-  const { handlers: pointerEvents, pointerOver } = usePiecePointerEvents(props);
-  /* A piece in someone's hand, or the viewer's own, moves out from under a still pointer, so it shows no hover tag. */
-  const hovered = pointerOver && !props.carrying && !remoteCarried;
+  const { handlers: pointerEvents, hovered } = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
