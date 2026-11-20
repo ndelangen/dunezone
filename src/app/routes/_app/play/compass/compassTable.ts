@@ -55,7 +55,7 @@ export type CompassTable = Readonly<{
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
   /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
   seatRequests?: number;
-  /** PROTOTYPE (#2987): whether factions are being dealt and traded (Trading and Setup), when the viewer's own faction is news. */
+  /** Whether factions are being dealt, traded and set up (Trading and Setup), when the viewer's own faction is news (#2987). */
   dealing?: boolean;
 }>;
 

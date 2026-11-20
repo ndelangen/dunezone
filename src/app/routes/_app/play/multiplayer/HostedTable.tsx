@@ -84,8 +84,7 @@ import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
-import { OwnFactionChip, OwnFactionMoment, useOwnFactionCue } from './OwnFaction';
-import { OwnSeatTag } from './OwnSeatTag';
+import { OwnFactionToast } from './OwnFaction';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -862,7 +861,6 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
-  const ownFactionCue = useOwnFactionCue();
   const openOwnFactionInfo = useCallback(() => openWindow(FACTION_INFO), [openWindow]);
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
@@ -886,12 +884,7 @@ function ConnectedTable({
                 stage={stage}
                 mapVisible={setupMapVisible(table.snapshot.setup)}
                 connectionStatus={<ConnectionStatus table={table} />}
-                alliances={
-                  <>
-                    <OwnFactionChip />
-                    <AllianceStrip table={table} />
-                  </>
-                }
+                alliances={<AllianceStrip table={table} />}
                 techTokens={<TechTokenStrip table={table} />}
                 toolbarControl={stageToolbar({
                   client,
@@ -912,7 +905,6 @@ function ConnectedTable({
                   <>
                     {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
                     {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-                    <OwnSeatTag cue={ownFactionCue} snapshot={table.snapshot} viewerSeat={table.viewer.viewerSeat} />
                   </>
                 }
                 gameMenu={
@@ -949,7 +941,7 @@ function ConnectedTable({
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={(inert) => (
                   <>
-                    <OwnFactionMoment onOpenInfo={openOwnFactionInfo} />
+                    <OwnFactionToast inert={inert} onOpen={openOwnFactionInfo} />
                     <TableNotices
                       key={noticeStart?.epoch}
                       table={table}

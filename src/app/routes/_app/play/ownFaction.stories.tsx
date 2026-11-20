@@ -1,62 +1,43 @@
 import preview from '@sb/preview';
+import { finishTransitions } from '@sb/storyWaits';
+import { expect } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
-import { beforeTheDeal, dealFactions, withCue } from './ownFaction.stories.fixture';
+import { beforeTheDeal, dealFactions, VIEWER_FACTION } from './ownFaction.stories.fixture';
+import { holdNotices } from './softNotices.stories.fixture';
 
 /*
- * PROTOTYPE (#2987): how a player learns which faction they are once factions are dealt.
- * Each story opens on the drafting table; two seconds later the deal lands and Trading begins, showing one way of telling.
+ * How a player learns which faction is theirs as factions are dealt (#2987): a toast under the header, and their own token in the bottom bar.
+ * Each story opens on the drafting table, and the deal lands once it shows. What the toast and the token open is in ownFaction.testing.stories.tsx.
  */
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Own faction at start',
+  title: 'Play/Own faction',
   loaders: [
     async () => {
       await import('./multiplayer/HostedTable');
     },
   ],
-  beforeEach: beforeTheDeal,
+  decorators: [...gameMeta.decorators, holdNotices],
+  beforeEach: beforeTheDeal(),
   globals: { motion: 'on' },
 });
 
-/** Today: nothing says which faction is yours. */
-export const Today = meta.story({
-  decorators: [withCue('none')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
+/** The deal lands: a toast under the header says which faction is the viewer's. */
+export const DealtToast = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    const toast = await page.findByRole('button', { name: `You are playing ${VIEWER_FACTION}` }, { timeout: 30_000 });
+    await expect(finishTransitions(toast)).toBeVisible();
+  },
 });
 
-/** A short centred reveal: "You are playing" over your token and faction name. Click or a few seconds dismisses it. */
-export const Reveal = meta.story({
-  decorators: [withCue('reveal')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
-});
-
-/** A "You" tag floats over your own seat on the table, for the whole game. */
-export const TableTag = meta.story({
-  decorators: [withCue('table-tag')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
-});
-
-/** A chip beside the phase in the header: your token, "You" and your faction, for the whole game. */
-export const HeaderChip = meta.story({
-  decorators: [withCue('header')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
-});
-
-/** Your token joins the bottom bar from the deal on (today it only comes with a hand), pulsing as it arrives; it opens Faction info. */
-export const DockToken = meta.story({
-  decorators: [withCue('dock')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
-});
-
-/** A soft notification under the header, like the turn toasts: "You are playing …". Clicking it opens Faction info on you. */
-export const Toast = meta.story({
-  decorators: [withCue('toast')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
-});
-
-/** The Faction info panel opens by itself on your own faction. */
-export const FactionInfoOpens = meta.story({
-  decorators: [withCue('faction-info')],
-  play: async ({ canvasElement }) => dealFactions(canvasElement),
+/** The deal lands: the viewer's own token joins the bottom bar, pulsing as it arrives. */
+export const DealtDockToken = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    await expect(
+      page.findByRole('button', { name: `Faction info, you are playing as ${VIEWER_FACTION}` }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
 });

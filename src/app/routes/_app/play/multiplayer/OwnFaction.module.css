@@ -1,59 +1,8 @@
-/* PROTOTYPE (#2987): the ways a player is told their own faction once factions are dealt. */
-
-/* The reveal sits in the middle of the table, over the header but under the compass panels, like the notices. */
-.revealLayer {
-  position: absolute;
-  inset: 0;
-  z-index: 11;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-}
-
-.revealLayer > * {
-  pointer-events: auto;
-}
-
-.reveal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  align-items: center;
-  min-width: 260px;
-  font: inherit;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.revealToken {
-  display: grid;
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px var(--color-brand);
-}
-
-.revealName {
-  font-size: 1.5rem;
-}
-
-.revealLayer[data-motion] .reveal {
-  animation: reveal-in 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
-  transition: opacity 500ms ease-in;
-}
-
-.revealLayer[data-leaving] .reveal {
-  pointer-events: none;
-  opacity: 0;
-}
-
-@keyframes reveal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-}
-
-/* The toast stands where the turn toasts do, under the phase header. */
-.toastStack {
+/*
+ * The viewer's own faction as it is dealt (#2987): a toast where the turn toasts stand, under the phase header,
+ * above the header (10) but under the compass panels (12 and up), like the soft notices.
+ */
+.stack {
   position: absolute;
   top: calc(var(--play-header-height) + var(--space-xs));
   inset-inline: var(--space-sm);
@@ -63,7 +12,7 @@
   pointer-events: none;
 }
 
-.toastStack > * {
+.stack > * {
   pointer-events: auto;
 }
 
@@ -75,9 +24,11 @@
   max-width: 340px;
   font: inherit;
   color: var(--color-text);
+  text-align: start;
   cursor: pointer;
 }
 
+/* A brand edge, as on the viewer's own turn: this one is about them too. */
 .toast::before {
   position: absolute;
   inset-block: 0;
@@ -89,71 +40,23 @@
   border-end-start-radius: inherit;
 }
 
-.toastStack[data-motion] .toast {
-  animation: toast-in 260ms ease-out backwards;
+.stack[data-motion] .toast {
+  animation: arrive 260ms ease-out backwards;
 }
 
-@keyframes toast-in {
+@keyframes arrive {
   from {
     opacity: 0;
     transform: translateY(-8px);
   }
 }
 
-/* The header chip: the viewer's token and "You" over the faction's name. */
-.chip {
-  gap: var(--space-xs);
-  padding-block: 0.3rem;
-}
-
-.chipText {
-  display: flex;
-  flex-direction: column;
-  font-size: var(--mantine-font-size-sm);
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.chipYou {
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 600;
-  color: var(--color-brand);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-/* The "You" tag over the viewer's own seat on the table. */
-.tableTag {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-}
-
-.tableTagPill {
-  padding: 0.15rem 0.6rem;
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 700;
-  color: var(--color-ink);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: var(--color-brand);
-  border-radius: 999px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 45%);
-}
-
-.tableTagStem {
-  width: 2px;
-  height: 14px;
-  background: var(--color-brand);
-}
-
-/* The dock's own token, pulsing a few times as the faction is dealt. */
+/* The bar's own token pulses a few times as the faction is dealt; with motion off it simply appears. */
 .pulse {
-  animation: own-pulse 1200ms ease-out 3;
+  animation: pulse 1200ms ease-out 3;
 }
 
-@keyframes own-pulse {
+@keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 80%);
   }

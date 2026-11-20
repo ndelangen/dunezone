@@ -5,7 +5,7 @@ import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -15,6 +15,7 @@ import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
+import { NoticeLifetime } from './noticeLifetime';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
@@ -41,12 +42,8 @@ const ICONS: Record<SoftNoticeKind, LucideIcon> = {
 /** The viewer's own turns, which the screen's edge glows for as well. */
 const TURN_KINDS: ReadonlySet<SoftNoticeKind> = new Set(['bid', 'ship', 'battle']);
 
-/** How long a notice shows before it is gone, and how long its fade takes before that. The turn's glow is a CSS animation of its own. */
-const LIFETIME_MS = 6000;
+/** How long a notice's fade takes before its lifetime ends. The turn's glow is a CSS animation of its own. */
 const FADE_MS = 400;
-
-/** How long a notice shows; a story holds its notices with an endless one, so a slow runner never loses them before it looks. */
-export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
