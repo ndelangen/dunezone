@@ -138,16 +138,49 @@ export const Sandbox = meta.story({
  * The pointer rests on a troop stack: its tag shows the count and the name, every other count stays hidden, and leaving the stack hides them again.
  */
 export const HoverShowsNameAndCount = meta.story({
-  play: async ({ canvasElement }) => hoverShowsNameAndCount(canvasElement),
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement);
+  },
+});
+
+/**
+ * A stack carried away from under a still pointer takes no hover tag along, since the table looks again only when the pointer moves.
+ * Where it lands, the stack shows its name and count once the pointer comes back to it.
+ */
+export const HoverTagStaysBehindAMovedStack = meta.story({
+  play: async ({ canvasElement }) => {
+    const { count, tag } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const table = sandbox.table!;
+    const stackId = count.dataset.pieceId!;
+    table.receive({
+      type: 'begin',
+      carryId: 'hover-carry',
+      sourcePieceId: stackId,
+      expectedVersion: shown().versions[stackId]!,
+      pickup: 'whole',
+    });
+    table.receive({
+      type: 'drop',
+      commandId: 'hover-drop',
+      carryId: 'hover-carry',
+      position: [0, 0.4, 1.5],
+      orientation: 0,
+    });
+    await expect(table.refusal).toBeUndefined();
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'), { timeout: 10_000 });
+    await waitFor(() => expect(count).not.toBeVisible());
+  },
 });
 
 /** A spectator, who may not move pieces, sees a hovered stack's name and count too. */
 export const HoverShowsNameAndCountToSpectators = meta.story({
   args: { seat: 'neutral' },
-  play: async ({ canvasElement }) => hoverShowsNameAndCount(canvasElement),
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement);
+  },
 });
 
-async function hoverShowsNameAndCount(canvasElement: HTMLElement) {
+async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true } = {}) {
   await sandboxReady(within(canvasElement.ownerDocument.body));
   const document = canvasElement.ownerDocument;
   await waitForPlayCamera(document);
@@ -206,12 +239,16 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement) {
     await expect(other).not.toBeVisible();
   }
 
+  if (!leave) {
+    return { count, tag };
+  }
   /* Off the stack, in the table's empty corner, no tag shows. */
   const edge = canvas.getBoundingClientRect();
   pointAt(edge.left + 4, edge.top + 4);
   await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
   await waitFor(() => expect(count).not.toBeVisible());
   await expect(name).not.toBeVisible();
+  return { count, tag };
 }
 
 /**
