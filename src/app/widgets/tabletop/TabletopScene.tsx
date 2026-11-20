@@ -628,6 +628,8 @@ export type PieceSceneState = {
   peeked: string | undefined;
   /* The peekers' tokens a card or deck carries in its corner, as the table shows them. */
   peekMarkers: readonly TablePiece[];
+  /* PROTOTYPE (#2988): the pointer rests on this piece. */
+  hovered: boolean;
 };
 
 type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean; arrivalDelay?: number } & PieceSceneState;
@@ -641,9 +643,16 @@ function pieceSceneState(
     remoteCarriedIds,
     plateRiders,
     reservedPieceIds,
+    hoveredPieceId,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
+    | 'state'
+    | 'gestureActivePieceId'
+    | 'canHandleTable'
+    | 'remoteCarriedIds'
+    | 'plateRiders'
+    | 'reservedPieceIds'
+    | 'hoveredPieceId'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -652,6 +661,7 @@ function pieceSceneState(
   const localSource = state.draftMove?.sourcePieceId === piece.id;
   return {
     selected: state.selectedPieceId === piece.id,
+    hovered: hoveredPieceId === piece.id && !state.draftMove,
     stackTargeted: state.draftMove?.targetPieceId === piece.id,
     drafted,
     remoteCarried,
@@ -997,6 +1007,10 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceNamePeeked: styles.pieceNamePeeked,
   pieceCount: styles.pieceCount,
   pieceCountSelected: styles.pieceCountSelected,
+  hoverTip: styles.hoverTip,
+  hoverTipCount: styles.hoverTipCount,
+  hoverTipHint: styles.hoverTipHint,
+  hoverKey: styles.hoverKey,
 };
 
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
@@ -1101,6 +1115,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                   owner={owner}
                   peeked={peeked}
                   selected={selected}
+                  hovered={props.hovered}
                   labelRef={labelRef}
                   badgeRef={badgeRef}
                 />
