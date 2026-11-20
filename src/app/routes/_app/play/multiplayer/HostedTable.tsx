@@ -780,10 +780,14 @@ function showsLiveTable(table: TableProjection, recalling: boolean) {
   return !table.playback && !table.historyPending && !table.reconnecting && !recalling;
 }
 
+/* The stages in which factions are dealt and set up: Trading and Setup. */
+const DEALING_STAGES: ReadonlySet<string> = new Set(['swapping', 'setup']);
+
 /* The viewer's own faction while the live table deals and sets up factions; anything else is not news. */
 function dealtFaction(table: TableProjection, recalling: boolean) {
   const { stage, roster } = table.snapshot;
-  if (!showsLiveTable(table, recalling) || (stage !== 'swapping' && stage !== 'setup')) {
+  const dealing = showsLiveTable(table, recalling) && DEALING_STAGES.has(stage ?? '');
+  if (!dealing) {
     return null;
   }
   return roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null;
