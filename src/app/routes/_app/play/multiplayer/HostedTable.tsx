@@ -775,10 +775,10 @@ function nudgeControls(
   };
 }
 
-/* The viewer's own faction while the live table deals and sets up factions; a past table or a recall showing Trading or Setup is not news. */
+/* The viewer's own faction while the live table deals and sets up factions; a past table, a recall, or a saved table still reconnecting is not news. */
 function dealtFaction(table: TableProjection, recalling: boolean) {
   const { stage, roster } = table.snapshot;
-  const live = !table.playback && !table.historyPending && !recalling;
+  const live = !table.playback && !table.historyPending && !table.reconnecting && !recalling;
   const dealing = live && (stage === 'swapping' || stage === 'setup');
   return dealing ? (roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null) : null;
 }

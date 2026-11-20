@@ -1,6 +1,6 @@
 import { Text, VisuallyHidden } from '@mantine/core';
 import { Surface } from '@ui/surface';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -55,13 +55,20 @@ export function OwnFactionNotice({
   const motion = useMotionAllowed();
   const lifetime = useContext(NoticeLifetime);
   const [dismissed, setDismissed] = useState(0);
+  /* The lifetime counts from when the toast first shows, not from the arrival, so a slow notices chunk does not use it up unseen. */
+  const [seenSince, setSeenSince] = useState<Readonly<{ arrival: number; at: number }> | null>(null);
+  const markSeen = useCallback(
+    () => setSeenSince((before) => (before?.arrival === arrival ? before : { arrival, at: performance.now() })),
+    [arrival]
+  );
+  const since = seenSince?.arrival === arrival ? seenSince.at : null;
   useEffect(() => {
-    if (!arrival || !Number.isFinite(lifetime)) {
+    if (since === null || !Number.isFinite(lifetime)) {
       return;
     }
-    const gone = window.setTimeout(() => setDismissed(arrival), lifetime);
+    const gone = window.setTimeout(() => setDismissed(arrival), Math.max(0, since + lifetime - performance.now()));
     return () => window.clearTimeout(gone);
-  }, [arrival, lifetime]);
+  }, [arrival, since, lifetime]);
   const announced = arrival > 0 ? player : undefined;
   const shown = dismissed === arrival ? undefined : announced;
   const toast = shown && (
@@ -83,6 +90,7 @@ export function OwnFactionNotice({
         />
       )}
     >
+      <SeenMark onSeen={markSeen} />
       <PlayerToken player={shown} size={28} />
       <Text size="sm">You are playing {shown.factionName}</Text>
     </Surface>
@@ -93,6 +101,12 @@ export function OwnFactionNotice({
       {children(toast)}
     </>
   );
+}
+
+/* Tells its owner once it is in the page. */
+function SeenMark({ onSeen }: Readonly<{ onSeen: () => void }>) {
+  useEffect(onSeen, [onSeen]);
+  return null;
 }
 
 /* A live region announces only a change after it is in the page, so it mounts empty and takes its text a moment later. */
