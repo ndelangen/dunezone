@@ -45,3 +45,10 @@ export function tradeWithSeatOne() {
   deliver(snapshot);
   return viewer.faction!.name;
 }
+
+/** Trading ends and Setup begins, with every seat keeping its faction. */
+export function startSetup() {
+  const snapshot = structuredClone(live!.snapshot);
+  snapshot.stage = 'setup';
+  deliver(snapshot);
+}

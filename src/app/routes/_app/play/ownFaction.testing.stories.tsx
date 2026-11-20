@@ -4,7 +4,13 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { openFactionInfo, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
-import { beforeTheDeal, dealFactions, tradeWithSeatOne, VIEWER_FACTION } from './ownFaction.stories.fixture';
+import {
+  beforeTheDeal,
+  dealFactions,
+  startSetup,
+  tradeWithSeatOne,
+  VIEWER_FACTION,
+} from './ownFaction.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 import { changeTable, holdNotices, noticeLog, noticeSetup, payViewer } from './softNotices.stories.fixture';
 
@@ -149,5 +155,19 @@ export const NoticeQueuesUnderToast = meta.story({
     const ownBox = finishTransitions(own).getBoundingClientRect();
     const paidBox = finishTransitions(paid).getBoundingClientRect();
     await expect(paidBox.top).toBeGreaterThanOrEqual(ownBox.bottom);
+  },
+});
+
+/* A toast dismissed during Trading stays dismissed as Setup begins, since the faction has not changed. */
+export const DismissedStaysDismissedIntoSetup = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    const name = `You are playing ${VIEWER_FACTION}`;
+    await page.findByLabelText('Trading time remaining', undefined, WAIT);
+    await userEvent.click(await page.findByRole('button', { name }, WAIT));
+    await waitFor(() => expect(page.queryByRole('button', { name })).toBeNull(), WAIT);
+    startSetup();
+    await waitFor(() => expect(page.queryByLabelText('Trading time remaining')).toBeNull(), WAIT);
+    await expect(page.queryByRole('button', { name })).toBeNull();
   },
 });

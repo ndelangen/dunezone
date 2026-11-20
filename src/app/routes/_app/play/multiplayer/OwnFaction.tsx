@@ -1,6 +1,7 @@
 import { Text, VisuallyHidden } from '@mantine/core';
 import { Surface } from '@ui/surface';
 import { useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -34,16 +35,22 @@ export function useOwnFactionArrival(): Readonly<{ player?: CompassPlayer; arriv
 }
 
 /**
- * Callers own opening Faction info on a seat, whether a board gesture holds the pointer, and where the toast stands;
- * this owns the toast that says the viewer's dealt faction, its lifetime, and its announcement.
+ * Callers own opening Faction info on a seat, whether a board gesture holds the pointer, and where the toast stands (`children` places it);
+ * this owns the toast that says the viewer's dealt faction, its lifetime, its dismissal, and its announcement.
  * The soft notices stand it at the top of their stack under the phase header, so a notice arriving meanwhile queues below it instead of covering it.
+ * The state lives here rather than in the placed toast, so the notices starting afresh as Trading moves to Setup neither bring back a dismissed toast nor announce it again.
  * Clicking it asks for Faction info on the viewer's own seat.
  * A polite live region stays mounted beside it and is filled only after it mounts, so a screen reader hears the faction even for a player who joins mid-deal.
  */
-export function OwnFactionToast({
+export function OwnFactionNotice({
   inert,
   onOpenFactionInfo,
-}: Readonly<{ inert: boolean; onOpenFactionInfo: (seat: string) => void }>) {
+  children,
+}: Readonly<{
+  inert: boolean;
+  onOpenFactionInfo: (seat: string) => void;
+  children: (toast: ReactNode) => ReactNode;
+}>) {
   const { player, arrival } = useOwnFactionArrival();
   const motion = useMotionAllowed();
   const lifetime = useContext(NoticeLifetime);
@@ -57,32 +64,33 @@ export function OwnFactionToast({
   }, [arrival, lifetime]);
   const announced = arrival > 0 ? player : undefined;
   const shown = dismissed === arrival ? undefined : announced;
+  const toast = shown && (
+    <Surface
+      key={arrival}
+      padding="sm"
+      interactive
+      className={styles.toast}
+      data-motion={motion || undefined}
+      renderRoot={(props) => (
+        <button
+          type="button"
+          {...props}
+          disabled={inert}
+          onClick={() => {
+            setDismissed(arrival);
+            onOpenFactionInfo(shown.seat);
+          }}
+        />
+      )}
+    >
+      <PlayerToken player={shown} size={28} />
+      <Text size="sm">You are playing {shown.factionName}</Text>
+    </Surface>
+  );
   return (
     <>
       <Announcement text={announced ? `You are playing ${announced.factionName}` : ''} />
-      {shown && (
-        <Surface
-          key={arrival}
-          padding="sm"
-          interactive
-          className={styles.toast}
-          data-motion={motion || undefined}
-          renderRoot={(props) => (
-            <button
-              type="button"
-              {...props}
-              disabled={inert}
-              onClick={() => {
-                setDismissed(arrival);
-                onOpenFactionInfo(shown.seat);
-              }}
-            />
-          )}
-        >
-          <PlayerToken player={shown} size={28} />
-          <Text size="sm">You are playing {shown.factionName}</Text>
-        </Surface>
-      )}
+      {children(toast)}
     </>
   );
 }

@@ -84,7 +84,7 @@ import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
-import { OwnFactionToast } from './OwnFaction';
+import { OwnFactionNotice } from './OwnFaction';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -144,16 +144,19 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
 }
 
 /*
- * The soft notices with the viewer's dealt faction at the top of their stack, all starting afresh with each notice epoch, so a tutorial reset can tell the faction again.
+ * The soft notices with the viewer's dealt faction at the top of their stack.
+ * The notices start afresh with each notice start, while the faction notice keeps its state until a tutorial run starts over, so a Reset can tell the faction again.
  * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
  */
 function PlayNotices(
   props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
 ) {
-  const lead = (
-    <OwnFactionToast inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)} />
+  const epoch = useContext(CompassEpochContext);
+  return (
+    <OwnFactionNotice key={epoch} inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)}>
+      {(toast) => <TableNotices key={props.start?.epoch} {...props} lead={toast} />}
+    </OwnFactionNotice>
   );
-  return <TableNotices key={props.start?.epoch} {...props} lead={lead} />;
 }
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
