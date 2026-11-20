@@ -85,13 +85,25 @@ export const TradeTellsAgain = meta.story({
   },
 });
 
-/* With motion off the token appears in the bar without pulsing. */
+/* With motion on, a ring round the token pulses as the faction arrives. */
+export const TokenPulsesOnArrival = meta.story({
+  globals: { motion: 'on' },
+  play: async ({ canvasElement }) => {
+    const page = await dealFactions(canvasElement);
+    const token = await page.findByRole('button', { name: /^Faction info, you are playing as/ }, WAIT);
+    const ring = token.querySelector<HTMLElement>('[data-own-pulse]');
+    await expect(ring).not.toBeNull();
+    await expect(getComputedStyle(ring!).animationName).not.toBe('none');
+  },
+});
+
+/* With motion off the token appears in the bar without the ring. */
 export const TokenStillWithoutMotion = meta.story({
   globals: { motion: 'reduce' },
   play: async ({ canvasElement }) => {
     const page = await dealFactions(canvasElement);
     const token = await page.findByRole('button', { name: /^Faction info, you are playing as/ }, WAIT);
-    await expect(getComputedStyle(token).animationName).toBe('none');
+    await expect(token.querySelector('[data-own-pulse]')).toBeNull();
   },
 });
 

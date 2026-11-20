@@ -55,8 +55,8 @@ export type CompassTable = Readonly<{
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
   /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
   seatRequests?: number;
-  /** Whether factions are being dealt, traded and set up (Trading and Setup), when the viewer's own faction is news (#2987). */
-  dealing?: boolean;
+  /** The viewer's own faction while the live table deals, trades and sets up factions (Trading and Setup), when it is news (#2987); null otherwise. */
+  dealt?: string | null;
 }>;
 
 export const CompassTableContext = createContext<CompassTable | null>(null);

@@ -759,6 +759,14 @@ function nudgeControls(
   };
 }
 
+/* The viewer's own faction while the live table deals and sets up factions; a past table or a recall showing Trading or Setup is not news. */
+function dealtFaction(table: TableProjection, recalling: boolean) {
+  const { stage, roster } = table.snapshot;
+  const live = !table.playback && !table.historyPending && !recalling;
+  const dealing = live && (stage === 'swapping' || stage === 'setup');
+  return dealing ? (roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null) : null;
+}
+
 function useHostedControls(
   client: TableSession,
   table: TableProjection,
@@ -782,12 +790,7 @@ function useHostedControls(
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
-    /* Only the live table deals: a past table or a recall showing Trading or Setup is not news. */
-    dealing:
-      !table.playback &&
-      !table.historyPending &&
-      !recall &&
-      (table.snapshot.stage === 'swapping' || table.snapshot.stage === 'setup'),
+    dealt: dealtFaction(table, Boolean(recall)),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -867,9 +870,6 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
-  const ownSeat = table.viewer.viewerSeat;
-  /* Faction info set on the viewer's own seat, even where it is already open on another. */
-  const openOwnFactionInfo = useCallback(() => openWindow(FACTION_INFO, ownSeat), [openWindow, ownSeat]);
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
     () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
@@ -949,7 +949,7 @@ function ConnectedTable({
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={(inert) => (
                   <>
-                    <OwnFactionToast inert={inert} onOpen={openOwnFactionInfo} />
+                    <OwnFactionToast inert={inert} onOpenFactionInfo={(seat) => openWindow(FACTION_INFO, seat)} />
                     <TableNotices
                       key={noticeStart?.epoch}
                       table={table}

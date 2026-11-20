@@ -1,6 +1,6 @@
 /*
- * The viewer's own faction as it is dealt (#2987): a toast where the turn toasts stand, under the phase header,
- * above the header (10) but under the compass panels (12 and up), like the soft notices.
+ * The viewer's own faction as it is dealt (#2987): a toast where the turn toasts stand, under the phase header.
+ * It sits above the header (10) but under the compass panels (12 and up), like the soft notices.
  */
 .stack {
   position: absolute;
@@ -48,24 +48,5 @@
   from {
     opacity: 0;
     transform: translateY(-8px);
-  }
-}
-
-/* A ring round the bar's own token pulses a few times as the faction is dealt; with motion off the token appears without it. */
-.pulse {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  animation: pulse 1200ms ease-out 3 forwards;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgb(from var(--color-brand) r g b / 80%);
-  }
-
-  100% {
-    box-shadow: 0 0 0 14px rgb(from var(--color-brand) r g b / 0%);
   }
 }

@@ -7,7 +7,6 @@ import { useContext } from 'react';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { useOwnFactionArrival } from '../multiplayer/OwnFaction';
-import ownFaction from '../multiplayer/OwnFaction.module.css';
 import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
@@ -130,7 +129,7 @@ function OwnToken({
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
-        {pulse > 0 && <span key={pulse} className={ownFaction.pulse} data-own-pulse aria-hidden />}
+        {pulse > 0 && <span key={pulse} className={styles.pulse} data-own-pulse aria-hidden />}
       </button>
     </Tooltip>
   );

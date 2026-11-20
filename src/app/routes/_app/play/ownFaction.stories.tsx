@@ -20,18 +20,15 @@ const meta = preview.meta({
   ],
   decorators: [...gameMeta.decorators, holdNotices],
   beforeEach: beforeTheDeal(),
-  globals: { motion: 'on' },
 });
 
-/** The deal lands: a toast under the header says which faction is the viewer's, and their own token joins the bottom bar, pulsing as it arrives. */
+/** The deal lands: a toast under the header says which faction is the viewer's, and their own token joins the bottom bar. */
 export const Dealt = meta.story({
   play: async ({ canvasElement }) => {
     const page = await dealFactions(canvasElement);
     const toast = await page.findByRole('button', { name: `You are playing ${VIEWER_FACTION}` }, { timeout: 30_000 });
     await expect(finishTransitions(toast)).toBeVisible();
     const token = page.getByRole('button', { name: `Faction info, you are playing as ${VIEWER_FACTION}` });
-    /* The capture shows the token after its pulse, not a moment of it. */
-    token.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
     await expect(token).toBeVisible();
   },
 });
