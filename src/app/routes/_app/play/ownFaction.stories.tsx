@@ -23,21 +23,14 @@ const meta = preview.meta({
   globals: { motion: 'on' },
 });
 
-/** The deal lands: a toast under the header says which faction is the viewer's. */
-export const DealtToast = meta.story({
+/** The deal lands: a toast under the header says which faction is the viewer's, and their own token joins the bottom bar, pulsing as it arrives. */
+export const Dealt = meta.story({
   play: async ({ canvasElement }) => {
     const page = await dealFactions(canvasElement);
     const toast = await page.findByRole('button', { name: `You are playing ${VIEWER_FACTION}` }, { timeout: 30_000 });
     await expect(finishTransitions(toast)).toBeVisible();
-  },
-});
-
-/** The deal lands: the viewer's own token joins the bottom bar, pulsing as it arrives. */
-export const DealtDockToken = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await dealFactions(canvasElement);
     await expect(
-      page.findByRole('button', { name: `Faction info, you are playing as ${VIEWER_FACTION}` }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
+      page.getByRole('button', { name: `Faction info, you are playing as ${VIEWER_FACTION}` })
+    ).toBeVisible();
   },
 });
