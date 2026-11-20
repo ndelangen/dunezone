@@ -110,6 +110,8 @@ export type TableProjection = {
   gestureActivePieceId: string | null;
   hoveredPieceId: string | null;
   flippingPieceIds: ReadonlyMap<string, number>;
+  /* Pieces this page asked the room to turn over, still unanswered. */
+  pendingFlipPieceIds: ReadonlySet<string>;
   /* Only a derived table reads server time, because the view that derived it anchored the clock. */
   serverNow: () => number;
 };
@@ -213,7 +215,7 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 }
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
-const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
+const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds', 'pendingFlipPieceIds'] as const;
 const PANEL_CONTROLS = [
   'spiceReserveControls',
   'spiceBlowControls',
@@ -291,6 +293,7 @@ export function storedProjection({ viewer, snapshot, serverNow }: StoredTable): 
     gestureActivePieceId: null,
     hoveredPieceId: null,
     flippingPieceIds: new Map(),
+    pendingFlipPieceIds: new Set(),
     serverNow: () => serverNow,
   };
 }

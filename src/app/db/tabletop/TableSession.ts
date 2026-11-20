@@ -631,6 +631,7 @@ export class TableSession {
       gestureActivePieceId: null,
       hoveredPieceId: null,
       flippingPieceIds: new Map(),
+      pendingFlipPieceIds: new Set(),
       serverNow,
     };
   }
@@ -710,6 +711,7 @@ export class TableSession {
       gestureActivePieceId: local.gestureActivePieceId,
       hoveredPieceId: this.hoveredId,
       flippingPieceIds: local.flippingPieceIds,
+      pendingFlipPieceIds: local.pendingFlipPieceIds,
       serverNow: this.clockForView(),
     };
   }
@@ -996,6 +998,7 @@ export class TableSession {
           (id) => [id, this.snapshot.table.pieces.find((piece) => piece.id === id)?.flipRevision ?? 0] as const
         ),
       ]),
+      pendingFlipPieceIds: new Set(this.pendingFlips.values()),
     };
   }
   /* The pending turns this page has on a piece, held and sent alike. */

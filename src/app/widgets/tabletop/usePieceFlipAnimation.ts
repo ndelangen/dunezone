@@ -3,12 +3,15 @@ import type { TablePiece } from '@shared/play/model';
 import {
   canAnimatePieceChange,
   createPieceFlipMotion,
+  markPieceFlipPending,
   pieceFlipFrame,
   releasePieceFlipMotion,
   retargetPieceFlipMotion,
 } from '@shared/play/pieceFlip';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { Group } from 'three';
+
+import { flipStyle, playFlipSound } from './deckFlipTrial';
 
 type FlipFrameTargets = {
   pivot: Group | null;
@@ -33,12 +36,14 @@ function applyFlipFrame(frame: ReturnType<typeof pieceFlipFrame>, { pivot, label
  * Turns a piece over when its flip revision moves on by one.
  * `faceReady` says whether the art of the face it turns up is loaded;
  * until it is, the flip holds on the old face rather than turning up a placeholder.
+ * `pending` says this page's own flip of it is on its way to the room, which already shows the waiting pose.
  */
 export function usePieceFlipAnimation(
   piece: TablePiece,
   interrupted: boolean,
   onFinish: (pieceId: string, revision: number) => void,
-  faceReady = true
+  faceReady = true,
+  pending = false
 ) {
   const pivotRef = useRef<Group>(null);
   const labelRef = useRef<Group>(null);
@@ -54,7 +59,7 @@ export function usePieceFlipAnimation(
 
   const applyPose = useCallback(
     (now: number) => {
-      const frame = pieceFlipFrame(motion.current, piece, now);
+      const frame = pieceFlipFrame(motion.current, piece, now, flipStyle());
       applyFlipFrame(frame, {
         pivot: pivotRef.current,
         label: labelRef.current,
@@ -72,20 +77,27 @@ export function usePieceFlipAnimation(
   useLayoutEffect(() => {
     const now = performance.now();
     const revision = piece.flipRevision ?? 0;
+    const startedBefore = motion.current.startedAt;
     motion.current =
       interrupted || !canAnimatePieceChange(previousPiece.current, piece)
         ? createPieceFlipMotion(revision)
-        : retargetPieceFlipMotion(motion.current, revision, now, faceReadyRef.current);
+        : markPieceFlipPending(
+            retargetPieceFlipMotion(motion.current, revision, now, faceReadyRef.current, flipStyle()),
+            pending,
+            now
+          );
     previousPiece.current = piece;
+    soundOnStart(startedBefore, motion.current.startedAt);
     /* Compensate for the new canonical faces before the first rendered frame. */
     applyPose(now);
     invalidate();
-  }, [applyPose, interrupted, invalidate, piece]);
+  }, [applyPose, interrupted, invalidate, piece, pending]);
 
   useLayoutEffect(() => {
     if (faceReady && motion.current.heldSince !== null) {
       const now = performance.now();
-      motion.current = releasePieceFlipMotion(motion.current, now, true);
+      motion.current = releasePieceFlipMotion(motion.current, now, true, flipStyle());
+      soundOnStart(null, motion.current.startedAt);
       applyPose(now);
       invalidate();
     }
@@ -101,11 +113,17 @@ export function usePieceFlipAnimation(
   );
 
   useFrame(() => {
-    if (motion.current.startedAt === null && motion.current.heldSince === null) {
+    if (
+      motion.current.startedAt === null &&
+      motion.current.heldSince === null &&
+      motion.current.waitingSince === undefined
+    ) {
       return;
     }
     const now = performance.now();
-    motion.current = releasePieceFlipMotion(motion.current, now, faceReadyRef.current);
+    const startedBefore = motion.current.startedAt;
+    motion.current = releasePieceFlipMotion(motion.current, now, faceReadyRef.current, flipStyle());
+    soundOnStart(startedBefore, motion.current.startedAt);
     if (applyPose(now)) {
       invalidate();
     } else {
@@ -114,4 +132,11 @@ export function usePieceFlipAnimation(
   });
 
   return { pivotRef, labelRef, shadowRef, badgeRef };
+}
+
+/* The turn's flick, once, as it begins. */
+function soundOnStart(before: number | null, after: number | null) {
+  if (before === null && after !== null) {
+    playFlipSound();
+  }
 }

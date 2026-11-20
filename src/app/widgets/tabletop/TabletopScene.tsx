@@ -628,6 +628,8 @@ export type PieceSceneState = {
   peeked: string | undefined;
   /* The peekers' tokens a card or deck carries in its corner, as the table shows them. */
   peekMarkers: readonly TablePiece[];
+  /* This page's own flip of the piece is on its way to the room. */
+  flipPending: boolean;
 };
 
 type TablePieceMeshProps = { piece: TablePiece; showLabels?: boolean; arrivalDelay?: number } & PieceSceneState;
@@ -641,9 +643,16 @@ function pieceSceneState(
     remoteCarriedIds,
     plateRiders,
     reservedPieceIds,
+    pendingFlipPieceIds,
   }: Pick<
     TabletopContextValue,
-    'state' | 'gestureActivePieceId' | 'canHandleTable' | 'remoteCarriedIds' | 'plateRiders' | 'reservedPieceIds'
+    | 'state'
+    | 'gestureActivePieceId'
+    | 'canHandleTable'
+    | 'remoteCarriedIds'
+    | 'plateRiders'
+    | 'reservedPieceIds'
+    | 'pendingFlipPieceIds'
   >
 ): PieceSceneState {
   const drafted = state.draftMove?.pieceId === piece.id;
@@ -664,6 +673,7 @@ function pieceSceneState(
     owner: pieceOwnerName(piece, state),
     peeked: peekedLine(piece, state),
     peekMarkers: peekMarkerList(piece, state.pieces),
+    flipPending: pendingFlipPieceIds.has(piece.id),
   };
 }
 
@@ -1013,6 +1023,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     owner,
     peeked,
     peekMarkers,
+    flipPending,
   } = props;
   const { finishPieceFlip } = useTabletopActions();
   const pointerEvents = usePiecePointerEvents(props);
@@ -1029,7 +1040,8 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     piece,
     emptyProjection,
     finishPieceFlip,
-    faceReady
+    faceReady,
+    flipPending
   );
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);

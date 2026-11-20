@@ -125,7 +125,14 @@ function describeSandbox() {
  */
 export function sandboxTransport(
   place: SandboxStart,
-  { treacheryDeck = null }: Readonly<{ treacheryDeck?: TreacheryDeckCard[] | null }> = {}
+  {
+    treacheryDeck = null,
+    latencyMs = 0,
+  }: Readonly<{
+    treacheryDeck?: TreacheryDeckCard[] | null;
+    /** How long each answer takes to come back, as a room across the internet would. */
+    latencyMs?: number;
+  }> = {}
 ) {
   if (sandbox.transport?.connected()) {
     const table = sandbox.table!;
@@ -150,7 +157,14 @@ export function sandboxTransport(
     receive: (message) => sandbox.table!.receive(message as TableMessage),
   });
   /* Answers leave after the message that caused them, as they do from a socket. */
-  table.deliver = (message) => queueMicrotask(() => transport.connected() && transport.deliver(message));
+  table.deliver = (message) => {
+    const send = () => transport.connected() && transport.deliver(message);
+    if (latencyMs > 0) {
+      setTimeout(send, latencyMs);
+    } else {
+      queueMicrotask(send);
+    }
+  };
   const dispose = transport.dispose;
   sandbox.transport = {
     ...transport,
