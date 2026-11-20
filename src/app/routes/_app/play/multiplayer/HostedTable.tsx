@@ -143,6 +143,18 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
   );
 }
 
+/* The viewer's dealt faction above the soft notices, which start afresh with each notice epoch; the faction toast asks the notices' panel opener for Faction info on the viewer's seat. */
+function PlayNotices(
+  props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
+) {
+  return (
+    <>
+      <OwnFactionToast inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)} />
+      <TableNotices key={props.start?.epoch} {...props} />
+    </>
+  );
+}
+
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
   const faction = viewerFaction(table);
@@ -269,13 +281,13 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
 /* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
-function useNoticePanelOpener(client: TableSession, openWindow: (key: string) => void) {
+function useNoticePanelOpener(client: TableSession, openWindow: (key: string, seat?: string) => void) {
   return useCallback(
-    (key: string) => {
+    (key: string, seat?: string) => {
       if (key === 'transfers') {
         client.readSpiceHistory();
       }
-      openWindow(key);
+      openWindow(key, seat);
     },
     [client, openWindow]
   );
@@ -948,17 +960,13 @@ function ConnectedTable({
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={(inert) => (
-                  <>
-                    <OwnFactionToast inert={inert} onOpenFactionInfo={(seat) => openWindow(FACTION_INFO, seat)} />
-                    <TableNotices
-                      key={noticeStart?.epoch}
-                      table={table}
-                      start={noticeStart}
-                      inert={inert}
-                      openPanel={openNoticePanel}
-                      openBattlePlan={noticeBattleOpener}
-                    />
-                  </>
+                  <PlayNotices
+                    table={table}
+                    start={noticeStart}
+                    inert={inert}
+                    openPanel={openNoticePanel}
+                    openBattlePlan={noticeBattleOpener}
+                  />
                 )}
               />
             </CompassTableContext>
