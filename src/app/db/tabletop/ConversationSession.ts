@@ -54,12 +54,21 @@ export class ConversationSession {
   private readonly clears = new Map<string, { peerId: string; through: number }>();
   /* Clears the room has not taken yet, by conversation: refused while the table resynced, or lost with a connection; sent again until it confirms them. */
   private readonly unsent = new Map<string, number>();
+  /* Who hears each message another faction writes as it arrives, and the newest heard in each conversation, so one is told once. */
+  private readonly messageListeners = new Set<(peerId: string, message: ConversationMessage) => void>();
+  private readonly heard = new Map<string, number>();
 
   constructor(
     private readonly send: (request: Request) => boolean,
     private readonly changed: () => void,
     private readonly monotonicNow: () => number
   ) {}
+
+  /** Each message another faction writes to the viewer's faction as it arrives live; nothing is replayed, so a listener hears only what comes after it subscribes. */
+  subscribeMessages = (listener: (peerId: string, message: ConversationMessage) => void) => {
+    this.messageListeners.add(listener);
+    return () => this.messageListeners.delete(listener);
+  };
 
   view(): ConversationView {
     return {
@@ -162,6 +171,7 @@ export class ConversationSession {
     this.reads.clear();
     this.clears.clear();
     this.unsent.clear();
+    this.heard.clear();
   }
 
   receive(message: ServerMessage): boolean {
@@ -244,6 +254,7 @@ export class ConversationSession {
       this.reads.clear();
       this.clears.clear();
       this.unsent.clear();
+      this.heard.clear();
     }
     this.generation = message.generation;
     this.summaries = message.entries.filter(
@@ -300,6 +311,13 @@ export class ConversationSession {
     }
     if (message.message.senderFactionId === this.context!.factionId) {
       this.pending = this.pending.filter((entry) => entry.request.requestId !== message.message.requestId);
+      return;
+    }
+    if (message.message.sequence > (this.heard.get(message.peerId) ?? 0)) {
+      this.heard.set(message.peerId, message.message.sequence);
+      for (const listener of this.messageListeners) {
+        listener(message.peerId, message.message);
+      }
     }
   }
 

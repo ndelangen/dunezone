@@ -943,6 +943,7 @@ function ConnectedTable({
                     inert={inert}
                     openPanel={openNoticePanel}
                     openBattlePlan={noticeBattleOpener}
+                    subscribeMessages={client.conversations.subscribeMessages}
                   />
                 )}
               />

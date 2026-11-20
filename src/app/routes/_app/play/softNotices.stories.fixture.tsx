@@ -1,8 +1,11 @@
 import { idleBidding } from '@shared/play/bidding';
+import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
 import { within } from 'storybook/test';
+
+import { STORYBOOK_NOW } from '@db/storybook';
 
 import { install } from './game.stories.fixture';
 import { NoticeLifetime } from './multiplayer/SoftNotices';
@@ -99,4 +102,39 @@ export function holdGlowLit(glow: HTMLElement) {
     animation.pause();
     animation.currentTime = 1000;
   }
+}
+
+let chatSequence = 0;
+
+/**
+ * Another faction writes in a conversation the viewer's faction is part of, as the room delivers it live: the table chat when `peerId` is '@table', else a private chat (named by its writer, as the viewer sees it).
+ */
+export function writeToViewer(senderFactionId: string, text: string, peerId = TABLE_CONVERSATION) {
+  const { snapshot, transport } = live!;
+  chatSequence += 1;
+  transport.deliver({
+    type: 'conversation-message',
+    factionId: ownFaction(snapshot).id,
+    peerId: peerId === TABLE_CONVERSATION ? peerId : senderFactionId,
+    message: {
+      sequence: chatSequence,
+      requestId: `story-chat-${chatSequence}`,
+      senderFactionId,
+      author: 'Story player',
+      text,
+      savedAt: STORYBOOK_NOW,
+    },
+  });
+}
+
+/** Every other seat's faction at the story table. */
+export function otherFactions(snapshot: GameSnapshot) {
+  return snapshot
+    .roster!.seats.filter((seat) => seat.id !== NOTICE_VIEWER && seat.faction)
+    .map((seat) => seat.faction!);
+}
+
+/** The live story table, for a story that reads it after setup. */
+export function liveSnapshot() {
+  return live!.snapshot;
 }
