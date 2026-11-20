@@ -59,8 +59,9 @@ export function usePiecePointerEvents({
   /*
    * Held as where the piece lay when the pointer reached it: a piece that moves away under a still pointer hears no leave,
    * as the table looks again only when the pointer moves, so a moved piece shows no tag until the pointer comes back to it.
+   * A turned card can swing out from under the pointer too, so its turn counts as a move.
    */
-  const pose = piece.position.join();
+  const pose = `${piece.position.join()}@${piece.orientation}`;
   const [pointerOverAt, setPointerOverAt] = useState<string | null>(null);
   useEffect(
     () => () => {

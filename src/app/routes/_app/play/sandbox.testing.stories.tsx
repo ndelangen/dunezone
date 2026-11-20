@@ -208,6 +208,7 @@ export const HoverSurvivesAWheelZoom = meta.story({
       (candidate) => candidate !== count && inView(candidate)
     )!;
     const spot = other.getBoundingClientRect();
+    const before = where(count);
     canvas.dispatchEvent(
       new WheelEvent('wheel', {
         bubbles: true,
@@ -217,7 +218,9 @@ export const HoverSurvivesAWheelZoom = meta.story({
         clientY: spot.bottom + 12,
       })
     );
-    await new Promise((next) => setTimeout(next, 1000));
+    /* The zoom eases over several frames: wait until the camera has moved, then until it has come to rest. */
+    await waitFor(() => expect(where(count)).not.toBe(before), { timeout: 10_000 });
+    await cameraAtRest(count);
     await expect(document.querySelectorAll('.scene-piece-tag[data-hovered]').length).toBeLessThanOrEqual(1);
     canvas.dispatchEvent(
       new PointerEvent('pointermove', {
@@ -231,6 +234,28 @@ export const HoverSurvivesAWheelZoom = meta.story({
     await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
   },
 });
+
+/** Where a badge sits on screen, to see the camera move. */
+function where(element: HTMLElement) {
+  const box = element.getBoundingClientRect();
+  return `${Math.round(box.left)},${Math.round(box.top)}`;
+}
+
+/** Resolves once a badge has held still for three looks in a row, a quarter second apart. */
+async function cameraAtRest(element: HTMLElement) {
+  const deadline = Date.now() + 15_000;
+  let last = where(element);
+  let still = 0;
+  while (still < 3) {
+    if (Date.now() > deadline) {
+      throw new Error('The camera did not come to rest.');
+    }
+    await new Promise((next) => setTimeout(next, 250));
+    const now = where(element);
+    still = now === last ? still + 1 : 0;
+    last = now;
+  }
+}
 
 /** A spectator, who may not move pieces, sees a hovered stack's name and count too. */
 export const HoverShowsNameAndCountToSpectators = meta.story({
