@@ -51,7 +51,7 @@
   }
 }
 
-/* The bar's own token pulses a few times as the faction is dealt; with motion off it simply appears. */
+/* The bar's own token pulses a few times as the faction is dealt; with motion off it appears without the pulse. */
 .pulse {
   animation: pulse 1200ms ease-out 3;
 }
