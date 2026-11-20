@@ -72,23 +72,9 @@
   min-width: 0;
 }
 
-/* A message quoted on the notice's own line stops at its end. */
-.single {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* A chat message's words under the notice's line, quieter than it. */
 .quote {
   color: var(--color-muted);
-}
-
-/* The viewer's own name in the quoted words. */
-.own {
-  font-weight: 600;
-  color: var(--color-text);
-  background: none;
 }
 
 .icon {

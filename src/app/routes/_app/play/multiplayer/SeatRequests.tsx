@@ -41,6 +41,7 @@ import { setTableVolume, TABLE_VOLUME_MAX, useTableVolume } from '../../../../wi
 import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
+import { setChatNotices, useChatNotices } from './chatNotices';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
 
@@ -411,6 +412,11 @@ function AutoClearChatsItem() {
   return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
 }
 
+/* Chat messages that mention the viewer, or write to them privately, toast under the header; on unless turned off (#2981). */
+function ChatNoticesItem() {
+  return <ViewerToggleItem label="Chat notifications" on={useChatNotices()} set={setChatNotices} />;
+}
+
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
 function TableLabelItems() {
   const labels = useTableLabels();
@@ -487,6 +493,7 @@ export function GameMenu({
         {!isSpectator(table) && (
           <>
             <Menu.Divider />
+            <ChatNoticesItem />
             <AutoClearChatsItem />
           </>
         )}

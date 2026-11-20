@@ -3,8 +3,13 @@ import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
+import { setChatNotices } from './multiplayer/chatNotices';
 import {
+  askViewer,
   biddingReachesViewer,
+  liveSnapshot,
+  otherFactions,
+  writeToViewer,
   changeTable,
   holdNotices,
   noticeLog,
@@ -141,5 +146,56 @@ export const OpponentCompletesBattle = meta.story({
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() => log.getByRole('button', { name: 'Your battle in Arrakeen is up' }));
     await expect(finishTransitions(toast)).toBeVisible();
+  },
+});
+
+/* A mention's toast opens the table chat, where the message is answered. */
+export const MentionOpensTableChat = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const snapshot = liveSnapshot();
+    const [asker] = otherFactions(snapshot);
+    await writeToViewer(asker!.id, askViewer(snapshot));
+    const { log } = noticeLog(page);
+    await userEvent.click(
+      await waitForFrame(() => log.getByRole('button', { name: new RegExp(`${asker!.name} mentioned you`) }))
+    );
+    await expect(await page.findByRole('textbox', { name: 'Message' })).toBeVisible();
+  },
+});
+
+/* A table chat message that names another faction is not about the viewer, so it raises nothing; a payment after it shows notices still arrive. */
+export const OtherMentionRaisesNothing = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const [asker, other] = otherFactions(liveSnapshot());
+    await writeToViewer(asker!.id, `@${other!.name} your turn to pay up.`);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /mentioned you/ })).toBeNull();
+  },
+});
+
+/* With chat notifications turned off in the game menu, a private message raises nothing; a payment after it shows notices still arrive. */
+export const ChatNotificationsOff = meta.story({
+  beforeEach: () => {
+    setChatNotices(false);
+    return () => setChatNotices(true);
+  },
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const [, writer] = otherFactions(liveSnapshot());
+    await writeToViewer(writer!.id, 'Want to team up against the Emperor this turn?', writer!.id);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
   },
 });

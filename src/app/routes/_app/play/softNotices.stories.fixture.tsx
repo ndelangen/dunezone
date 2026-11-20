@@ -1,5 +1,6 @@
 import { idleBidding } from '@shared/play/bidding';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import type { Vector3Tuple } from '@shared/play/model';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { Decorator } from '@storybook/tanstack-react';
@@ -109,8 +110,10 @@ let chatSequence = 0;
 /**
  * Another faction writes in a conversation the viewer's faction is part of, as the room delivers it live: the table chat when `peerId` is '@table', else a private chat (named by its writer, as the viewer sees it).
  */
-export function writeToViewer(senderFactionId: string, text: string, peerId = TABLE_CONVERSATION) {
+export async function writeToViewer(senderFactionId: string, text: string, peerId = TABLE_CONVERSATION) {
   const { snapshot, transport } = live!;
+  /* The notices hear messages from the frame after they show; a message before that is one nobody was there to hear. */
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   chatSequence += 1;
   transport.deliver({
     type: 'conversation-message',
@@ -134,7 +137,40 @@ export function otherFactions(snapshot: GameSnapshot) {
     .map((seat) => seat.faction!);
 }
 
+/** A favour asked in the table chat, naming the viewer's faction after an @. */
+export function askViewer(snapshot: GameSnapshot) {
+  return `@${ownFaction(snapshot).name} can you spare 3 spice for my shipment to Arrakeen? I will pay you back next turn.`;
+}
+
 /** The live story table, for a story that reads it after setup. */
 export function liveSnapshot() {
   return live!.snapshot;
+}
+
+/** A spot on the board where the viewer's own pieces lie, in a territory where there is one. */
+export function ownPiecesSpot(snapshot: GameSnapshot): Vector3Tuple {
+  const own = ownFaction(snapshot).id;
+  const pieces = snapshot.table.pieces.filter((piece) => piece.owner === own);
+  const piece = pieces.find((candidate) => candidate.zoneId) ?? pieces[0];
+  if (!piece) {
+    throw new Error('The viewer has no pieces on the story table.');
+  }
+  return piece.position;
+}
+
+/** Another seat's player pings the table at `position`, as the room relays a ping to everyone. */
+export function pingFromOtherSeat(position: Vector3Tuple) {
+  const { snapshot, transport } = live!;
+  const seat = snapshot.roster!.seats.find((entry) => entry.id !== NOTICE_VIEWER && entry.faction)!;
+  transport.deliver({
+    type: 'ping',
+    ping: {
+      connectionId: 'story-pinger',
+      viewerSeat: seat.id,
+      displayName: 'Story pinger',
+      color: '#5fa8d3',
+      position,
+    },
+  });
+  return seat.faction!.name;
 }

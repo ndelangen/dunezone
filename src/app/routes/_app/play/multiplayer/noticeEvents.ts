@@ -4,7 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { stormOrder } from '@shared/play/stormSector';
 
 /** What happened to the viewer: their turn came up, they got paid or bribed, were offered an alliance, named in the table chat or written to (#2981). */
-export type SoftNoticeKind = 'bid' | 'ship' | 'battle' | 'spice' | 'alliance' | 'mention' | 'message';
+export type SoftNoticeKind = 'bid' | 'ship' | 'battle' | 'spice' | 'alliance' | 'mention' | 'message' | 'ping';
 
 /** A soft notice the table's change raised for the viewer, before the page stamps when it arrived. */
 export type NoticeDraft = Readonly<{
