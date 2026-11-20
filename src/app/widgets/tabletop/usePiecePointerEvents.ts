@@ -135,17 +135,21 @@ export function usePiecePointerEvents({
 export function useHoverFollowsCamera() {
   const { camera, renderer } = useThree();
   const events = useThree((state) => state.events);
-  const over = useRef(false);
+  /*
+   * The pointer's own last move, replayed as it was: the table's remembered event can be a wheel turn, which carries no pointer id
+   * and would hover a second piece for a pointer that is not there.
+   */
+  const lastMove = useRef<PointerEvent | null>(null);
   const seen = useRef(new Matrix4());
   useEffect(() => {
     const canvas = renderer.domElement;
-    const enter = () => (over.current = true);
-    const leave = () => (over.current = false);
-    canvas.addEventListener('pointermove', enter);
+    const move = (event: PointerEvent) => (lastMove.current = event);
+    const leave = () => (lastMove.current = null);
+    canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerleave', leave);
     window.addEventListener('blur', leave);
     return () => {
-      canvas.removeEventListener('pointermove', enter);
+      canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerleave', leave);
       window.removeEventListener('blur', leave);
     };
@@ -155,8 +159,8 @@ export function useHoverFollowsCamera() {
       return;
     }
     seen.current.copy(camera.matrixWorld);
-    if (over.current) {
-      events.update?.();
+    if (lastMove.current) {
+      events.handlers?.onPointerMove?.(lastMove.current);
     }
   });
 }

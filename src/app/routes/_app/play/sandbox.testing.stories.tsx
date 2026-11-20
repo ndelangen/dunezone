@@ -185,6 +185,53 @@ export const HoverFollowsTheCamera = meta.story({
   },
 });
 
+/**
+ * A wheel zoom looks again with the pointer's own last move, so no second piece stays hovered.
+ * The wheel turns over another stack, and once the pointer moves off the pieces no tag stays shown.
+ */
+export const HoverSurvivesAWheelZoom = meta.story({
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const { count } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const canvas = document.querySelector('canvas')!;
+    const edge = canvas.getBoundingClientRect();
+    const inView = (candidate: HTMLElement) => {
+      const box = candidate.getBoundingClientRect();
+      return (
+        box.top > edge.top + 120 &&
+        box.bottom < edge.bottom - 120 &&
+        box.left > edge.left + 80 &&
+        box.right < edge.right - 80
+      );
+    };
+    const other = Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-count')).find(
+      (candidate) => candidate !== count && inView(candidate)
+    )!;
+    const spot = other.getBoundingClientRect();
+    canvas.dispatchEvent(
+      new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaY: -240,
+        clientX: spot.left + spot.width / 2,
+        clientY: spot.bottom + 12,
+      })
+    );
+    await new Promise((next) => setTimeout(next, 1000));
+    await expect(document.querySelectorAll('.scene-piece-tag[data-hovered]').length).toBeLessThanOrEqual(1);
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: edge.left + 4,
+        clientY: edge.top + 4,
+      })
+    );
+    await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
+  },
+});
+
 /** A spectator, who may not move pieces, sees a hovered stack's name and count too. */
 export const HoverShowsNameAndCountToSpectators = meta.story({
   args: { seat: 'neutral' },
