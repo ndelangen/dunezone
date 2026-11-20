@@ -75,11 +75,13 @@ export const DockTokenOpensOwnFactionInfo = meta.story({
   },
 });
 
-/* A trade hands the viewer another faction, and the toast says so again. */
+/* After the first toast is dismissed, a trade hands the viewer another faction and a new toast says so. */
 export const TradeTellsAgain = meta.story({
   play: async ({ canvasElement }) => {
     const page = await dealFactions(canvasElement);
-    await page.findByRole('button', { name: `You are playing ${VIEWER_FACTION}` }, WAIT);
+    const first = `You are playing ${VIEWER_FACTION}`;
+    await userEvent.click(await page.findByRole('button', { name: first }, WAIT));
+    await waitFor(() => expect(page.queryByRole('button', { name: first })).toBeNull(), WAIT);
     const traded = tradeWithSeatOne();
     await expect(page.findByRole('button', { name: `You are playing ${traded}` }, WAIT)).resolves.toBeVisible();
   },
