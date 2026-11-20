@@ -4,6 +4,10 @@ import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
 import { useContext } from 'react';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
+import { useOwnFactionArrival, useOwnFactionCue } from '../multiplayer/OwnFaction';
+import cue from '../multiplayer/OwnFaction.module.css';
 import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
@@ -46,17 +50,24 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const chatLabel = recall ? 'Recall chat' : 'Table chat';
   const own = table?.players.find((player) => player.own);
   const shortcutsButton = useShortcutsButton();
+  /* PROTOTYPE (#2987): the dock shows the viewer's token from the deal on, pulsing as it arrives; before a hand it opens Faction info. */
+  const dockCue = useOwnFactionCue() === 'dock';
+  const { arrival } = useOwnFactionArrival();
+  const motion = useMotionAllowed();
+  const ownTokenShown = (hasHand || dockCue) && own?.factionName;
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
-      {hasHand && own?.factionName && (
+      {ownTokenShown && (
         <OwnToken
+          key={dockCue ? arrival : undefined}
           player={own}
-          label={recall ? 'Your recalled hand' : 'Hand & spice'}
-          open={isOpen('hand')}
-          onOpen={() => onShow('hand')}
+          label={hasHand ? (recall ? 'Your recalled hand' : 'Hand & spice') : 'Faction info'}
+          open={hasHand ? isOpen('hand') : isOpen(FACTION_INFO, own.seat)}
+          onOpen={() => (hasHand ? onShow('hand') : onShow(FACTION_INFO, own.seat))}
+          pulse={dockCue && motion && arrival > 0}
         />
       )}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
@@ -98,12 +109,13 @@ function OwnToken({
   label,
   open,
   onOpen,
-}: Readonly<{ player: CompassPlayer; label: string; open: boolean; onOpen: () => void }>) {
+  pulse = false,
+}: Readonly<{ player: CompassPlayer; label: string; open: boolean; onOpen: () => void; pulse?: boolean }>) {
   return (
     <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
         type="button"
-        className={clsx(styles.chat, styles.own)}
+        className={clsx(styles.chat, styles.own, pulse && cue.pulse)}
         aria-pressed={open}
         aria-label={`${label}, you are playing as ${player.factionName}`}
         data-own-token

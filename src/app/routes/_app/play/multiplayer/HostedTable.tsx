@@ -46,6 +46,7 @@ import { BrowserDiagnostics } from '../browserDiagnostics';
 import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
+import { FACTION_INFO } from '../compass/windows';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -83,6 +84,8 @@ import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
+import { OwnFactionChip, OwnFactionMoment, useOwnFactionCue } from './OwnFaction';
+import { OwnSeatTag } from './OwnSeatTag';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -779,6 +782,7 @@ function useHostedControls(
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
+    dealing: table.snapshot.stage === 'swapping' || table.snapshot.stage === 'setup',
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -858,6 +862,8 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
+  const ownFactionCue = useOwnFactionCue();
+  const openOwnFactionInfo = useCallback(() => openWindow(FACTION_INFO), [openWindow]);
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
     () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
@@ -880,7 +886,12 @@ function ConnectedTable({
                 stage={stage}
                 mapVisible={setupMapVisible(table.snapshot.setup)}
                 connectionStatus={<ConnectionStatus table={table} />}
-                alliances={<AllianceStrip table={table} />}
+                alliances={
+                  <>
+                    <OwnFactionChip />
+                    <AllianceStrip table={table} />
+                  </>
+                }
                 techTokens={<TechTokenStrip table={table} />}
                 toolbarControl={stageToolbar({
                   client,
@@ -901,6 +912,7 @@ function ConnectedTable({
                   <>
                     {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
                     {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                    <OwnSeatTag cue={ownFactionCue} snapshot={table.snapshot} viewerSeat={table.viewer.viewerSeat} />
                   </>
                 }
                 gameMenu={
@@ -936,14 +948,17 @@ function ConnectedTable({
                 tableGuidance={phaseGuidance(table)}
                 tableControls={phaseTabControls({ client, table, error, progress })}
                 notices={(inert) => (
-                  <TableNotices
-                    key={noticeStart?.epoch}
-                    table={table}
-                    start={noticeStart}
-                    inert={inert}
-                    openPanel={openNoticePanel}
-                    openBattlePlan={noticeBattleOpener}
-                  />
+                  <>
+                    <OwnFactionMoment onOpenInfo={openOwnFactionInfo} />
+                    <TableNotices
+                      key={noticeStart?.epoch}
+                      table={table}
+                      start={noticeStart}
+                      inert={inert}
+                      openPanel={openNoticePanel}
+                      openBattlePlan={noticeBattleOpener}
+                    />
+                  </>
                 )}
               />
             </CompassTableContext>
