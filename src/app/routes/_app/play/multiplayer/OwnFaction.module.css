@@ -1,21 +1,6 @@
 /*
- * The viewer's own faction as it is dealt (#2987): a toast where the turn toasts stand, under the phase header.
- * It sits above the header (10) but under the compass panels (12 and up), like the soft notices.
+ * The viewer's own faction as it is dealt (#2987): a toast at the top of the soft notices' stack, under the phase header.
  */
-.stack {
-  position: absolute;
-  top: calc(var(--play-header-height) + var(--space-xs));
-  inset-inline: var(--space-sm);
-  z-index: 11;
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.stack > * {
-  pointer-events: auto;
-}
-
 .toast {
   position: relative;
   display: flex;
@@ -40,7 +25,7 @@
   border-end-start-radius: inherit;
 }
 
-.stack[data-motion] .toast {
+.toast[data-motion] {
   animation: arrive 260ms ease-out backwards;
 }
 

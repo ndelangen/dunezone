@@ -27,6 +27,16 @@
   pointer-events: auto;
 }
 
+/* The lead adds no box of its own, so an empty one leaves no gap; its toast takes the pointer like a slot's. */
+.lead {
+  display: contents;
+  pointer-events: auto;
+}
+
+.stack[data-gesture] .lead {
+  pointer-events: none;
+}
+
 /* While a board gesture holds the pointer no toast may be opened, but each stays readable, so the log still announces it. */
 .stack[data-gesture] .slot {
   pointer-events: none;

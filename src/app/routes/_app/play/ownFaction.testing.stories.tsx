@@ -1,11 +1,12 @@
 import { testingPreview } from '@sb/preview';
+import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { openFactionInfo, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { beforeTheDeal, dealFactions, tradeWithSeatOne, VIEWER_FACTION } from './ownFaction.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
-import { holdNotices } from './softNotices.stories.fixture';
+import { changeTable, holdNotices, noticeLog, noticeSetup, payViewer } from './softNotices.stories.fixture';
 
 /* What the viewer's own faction cues open, and when they come (#2987). */
 const meta = testingPreview.meta({
@@ -128,5 +129,25 @@ export const NoToastOncePlaying = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('button', { name: /^Hand & spice, you are playing as/ }, WAIT)).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: /^You are playing/ })).toBeNull();
+  },
+});
+
+/* A spice payment during setup queues under the faction toast instead of covering it, so both stay readable and clickable. */
+export const NoticeQueuesUnderToast = meta.story({
+  beforeEach: noticeSetup((snapshot) => {
+    snapshot.stage = 'setup';
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const own = await page.findByRole('button', { name: /^You are playing / }, WAIT);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    const paid = await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    const ownBox = finishTransitions(own).getBoundingClientRect();
+    const paidBox = finishTransitions(paid).getBoundingClientRect();
+    await expect(paidBox.top).toBeGreaterThanOrEqual(ownBox.bottom);
   },
 });

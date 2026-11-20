@@ -34,10 +34,11 @@ export function useOwnFactionArrival(): Readonly<{ player?: CompassPlayer; arriv
 }
 
 /**
- * Callers own opening Faction info on a seat and whether a board gesture holds the pointer;
+ * Callers own opening Faction info on a seat, whether a board gesture holds the pointer, and where the toast stands;
  * this owns the toast that says the viewer's dealt faction, its lifetime, and its announcement.
- * The toast stands under the phase header, and clicking it asks for Faction info on the viewer's own seat.
- * A polite live region stays mounted beside it, so a screen reader hears the faction even though the toast comes and goes.
+ * The soft notices stand it at the top of their stack under the phase header, so a notice arriving meanwhile queues below it instead of covering it.
+ * Clicking it asks for Faction info on the viewer's own seat.
+ * A polite live region stays mounted beside it and is filled only after it mounts, so a screen reader hears the faction even for a player who joins mid-deal.
  */
 export function OwnFactionToast({
   inert,
@@ -58,33 +59,44 @@ export function OwnFactionToast({
   const shown = dismissed === arrival ? undefined : announced;
   return (
     <>
-      <VisuallyHidden role="status" aria-live="polite">
-        {announced ? `You are playing ${announced.factionName}` : ''}
-      </VisuallyHidden>
+      <Announcement text={announced ? `You are playing ${announced.factionName}` : ''} />
       {shown && (
-        <div className={styles.stack} data-motion={motion || undefined}>
-          <Surface
-            key={arrival}
-            padding="sm"
-            interactive
-            className={styles.toast}
-            renderRoot={(props) => (
-              <button
-                type="button"
-                {...props}
-                disabled={inert}
-                onClick={() => {
-                  setDismissed(arrival);
-                  onOpenFactionInfo(shown.seat);
-                }}
-              />
-            )}
-          >
-            <PlayerToken player={shown} size={28} />
-            <Text size="sm">You are playing {shown.factionName}</Text>
-          </Surface>
-        </div>
+        <Surface
+          key={arrival}
+          padding="sm"
+          interactive
+          className={styles.toast}
+          data-motion={motion || undefined}
+          renderRoot={(props) => (
+            <button
+              type="button"
+              {...props}
+              disabled={inert}
+              onClick={() => {
+                setDismissed(arrival);
+                onOpenFactionInfo(shown.seat);
+              }}
+            />
+          )}
+        >
+          <PlayerToken player={shown} size={28} />
+          <Text size="sm">You are playing {shown.factionName}</Text>
+        </Surface>
       )}
     </>
+  );
+}
+
+/* A live region announces only a change after it is in the page, so it mounts empty and takes its text a moment later. */
+function Announcement({ text }: Readonly<{ text: string }>) {
+  const [spoken, setSpoken] = useState('');
+  useEffect(() => {
+    const later = window.setTimeout(() => setSpoken(text), 0);
+    return () => window.clearTimeout(later);
+  }, [text]);
+  return (
+    <VisuallyHidden role="status" aria-live="polite">
+      {spoken}
+    </VisuallyHidden>
   );
 }

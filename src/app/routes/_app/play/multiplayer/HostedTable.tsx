@@ -143,16 +143,17 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
   );
 }
 
-/* The viewer's dealt faction above the soft notices, which start afresh with each notice epoch; the faction toast asks the notices' panel opener for Faction info on the viewer's seat. */
+/*
+ * The soft notices with the viewer's dealt faction at the top of their stack, all starting afresh with each notice epoch, so a tutorial reset can tell the faction again.
+ * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
+ */
 function PlayNotices(
   props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
 ) {
-  return (
-    <>
-      <OwnFactionToast inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)} />
-      <TableNotices key={props.start?.epoch} {...props} />
-    </>
+  const lead = (
+    <OwnFactionToast inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)} />
   );
+  return <TableNotices key={props.start?.epoch} {...props} lead={lead} />;
 }
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
