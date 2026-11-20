@@ -1,5 +1,6 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
@@ -219,7 +220,7 @@ export const HoverSurvivesAWheelZoom = meta.story({
       })
     );
     /* The zoom eases over several frames: wait until the camera has moved, then until it has come to rest. */
-    await waitFor(() => expect(where(count)).not.toBe(before), { timeout: 10_000 });
+    await waitForFrame(() => expect(where(count)).not.toBe(before));
     await cameraAtRest(count);
     await expect(document.querySelectorAll('.scene-piece-tag[data-hovered]').length).toBeLessThanOrEqual(1);
     canvas.dispatchEvent(
@@ -241,16 +242,19 @@ function where(element: HTMLElement) {
   return `${Math.round(box.left)},${Math.round(box.top)}`;
 }
 
-/** Resolves once a badge has held still for three looks in a row, a quarter second apart. */
+/**
+ * Resolves once a badge has held still for ten drawn frames in a row.
+ * Counted in animation frames, not time, so a runner that draws no frames cannot pass it early.
+ */
 async function cameraAtRest(element: HTMLElement) {
-  const deadline = Date.now() + 15_000;
+  const deadline = Date.now() + 30_000;
   let last = where(element);
   let still = 0;
-  while (still < 3) {
+  while (still < 10) {
     if (Date.now() > deadline) {
       throw new Error('The camera did not come to rest.');
     }
-    await new Promise((next) => setTimeout(next, 250));
+    await new Promise((next) => requestAnimationFrame(next));
     const now = where(element);
     still = now === last ? still + 1 : 0;
     last = now;
