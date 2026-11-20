@@ -1,8 +1,9 @@
-import { useThree } from '@react-three/fiber/webgpu';
+import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Matrix4 } from 'three';
 
 import { pieceHasMenu } from './pieceMenu';
 import { usePointerSession } from './PointerSessionContext';
@@ -112,6 +113,8 @@ export function usePiecePointerEvents({
         );
       }
     },
+    /* The table keeps a hovered piece hovered without a new enter, so a stack nudged under the pointer takes its new place here. */
+    onPointerMove: () => setPointerOverAt(pose),
     onPointerLeave: () => {
       setPointerOverAt(null);
       hovered.current = false;
@@ -123,4 +126,37 @@ export function usePiecePointerEvents({
   };
   /* A piece in someone's hand, or the viewer's own, moves out from under a still pointer, so it shows no hover tag. */
   return { handlers, hovered: pointerOverAt === pose && !carrying && !remoteCarried };
+}
+
+/*
+ * The table looks for the piece under the pointer only when the pointer moves, so a camera that pans under a still pointer
+ * would leave the hover on a piece that has slid away; while the pointer is over the table, a moved camera looks again.
+ */
+export function useHoverFollowsCamera() {
+  const { camera, renderer } = useThree();
+  const events = useThree((state) => state.events);
+  const over = useRef(false);
+  const seen = useRef(new Matrix4());
+  useEffect(() => {
+    const canvas = renderer.domElement;
+    const enter = () => (over.current = true);
+    const leave = () => (over.current = false);
+    canvas.addEventListener('pointermove', enter);
+    canvas.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', leave);
+    return () => {
+      canvas.removeEventListener('pointermove', enter);
+      canvas.removeEventListener('pointerleave', leave);
+      window.removeEventListener('blur', leave);
+    };
+  }, [renderer]);
+  useFrame(() => {
+    if (seen.current.equals(camera.matrixWorld)) {
+      return;
+    }
+    seen.current.copy(camera.matrixWorld);
+    if (over.current) {
+      events.update?.();
+    }
+  });
 }

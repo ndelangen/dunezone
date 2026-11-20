@@ -172,6 +172,19 @@ export const HoverTagStaysBehindAMovedStack = meta.story({
   },
 });
 
+/**
+ * A camera that moves under a still pointer takes the hover with it: the stack that slides away loses its tag.
+ * The view changes from the camera dial without a pointer event on the table, as a pan key would.
+ */
+export const HoverFollowsTheCamera = meta.story({
+  play: async ({ canvasElement }) => {
+    const { tag } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const dial = within(within(canvasElement.ownerDocument.body).getByRole('group', { name: 'Table view' }));
+    dial.getByRole('button', { name: /^Focus on left/ }).click();
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'), { timeout: 10_000 });
+  },
+});
+
 /** A spectator, who may not move pieces, sees a hovered stack's name and count too. */
 export const HoverShowsNameAndCountToSpectators = meta.story({
   args: { seat: 'neutral' },

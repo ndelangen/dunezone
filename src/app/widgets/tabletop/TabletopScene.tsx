@@ -102,7 +102,7 @@ import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrus
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { PieceMenuContext, usePiecePointerEvents } from './usePiecePointerEvents';
+import { PieceMenuContext, useHoverFollowsCamera, usePiecePointerEvents } from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { useTablePointerRay } from './useTablePointerRay';
@@ -1087,6 +1087,7 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
+  useHoverFollowsCamera();
   useCanvasName();
 
   return (
