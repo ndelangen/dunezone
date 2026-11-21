@@ -5,7 +5,7 @@ import type { Decorator } from '@storybook/tanstack-react';
 import { within } from 'storybook/test';
 
 import { install } from './game.stories.fixture';
-import { NoticeLifetime } from './multiplayer/SoftNotices';
+import { NoticeLifetime } from './multiplayer/noticeLifetime';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 /** The seat the soft notification stories watch from. */

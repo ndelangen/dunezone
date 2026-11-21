@@ -4,6 +4,9 @@ import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
 import { useContext } from 'react';
 
+import { useMotionAllowed } from '@app/styles/motion';
+
+import { useOwnFactionArrival } from '../multiplayer/OwnFaction';
 import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
@@ -20,7 +23,7 @@ import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 type ChatBarProps = Readonly<{
   inert: boolean;
-  /** Whether the table has a Hand & spice window yet, which the own token opens. */
+  /** Whether the table has a Hand & spice window yet, which the own token opens; before it, the token opens the viewer's Faction info. */
   hasHand: boolean;
   /** Shows or hides the keyboard shortcuts cheat sheet; absent when the table has none, and the key button with it. */
   onToggleShortcuts?: (() => void) | undefined;
@@ -46,17 +49,25 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const chatLabel = recall ? 'Recall chat' : 'Table chat';
   const own = table?.players.find((player) => player.own);
   const shortcutsButton = useShortcutsButton();
+  /*
+   * The viewer's token stands in the bar from the deal on, pulsing as a faction is dealt to them (#2987).
+   * Before there is a hand it opens their Faction info; a recall has no Faction info, so there it waits for the recalled hand as before.
+   */
+  const { arrival } = useOwnFactionArrival();
+  const motion = useMotionAllowed();
+  const ownToken = own?.factionName && (hasHand || !recall) ? own : undefined;
   return (
     <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
-      {hasHand && own?.factionName && (
+      {ownToken && (
         <OwnToken
-          player={own}
-          label={recall ? 'Your recalled hand' : 'Hand & spice'}
-          open={isOpen('hand')}
-          onOpen={() => onShow('hand')}
+          player={ownToken}
+          label={hasHand ? (recall ? 'Your recalled hand' : 'Hand & spice') : 'Faction info'}
+          open={hasHand ? isOpen('hand') : isOpen(FACTION_INFO, ownToken.seat)}
+          onOpen={() => (hasHand ? onShow('hand') : onShow(FACTION_INFO, ownToken.seat))}
+          pulse={motion ? arrival : 0}
         />
       )}
       <button type="button" className={styles.launcher} data-compass-launcher onClick={onOpenCompass}>
@@ -98,7 +109,15 @@ function OwnToken({
   label,
   open,
   onOpen,
-}: Readonly<{ player: CompassPlayer; label: string; open: boolean; onOpen: () => void }>) {
+  pulse = 0,
+}: Readonly<{
+  player: CompassPlayer;
+  label: string;
+  open: boolean;
+  onOpen: () => void;
+  /** Which faction arrival the ring pulses for; 0 for none. A new one restarts the ring, never the button, so focus stays. */
+  pulse?: number;
+}>) {
   return (
     <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
@@ -110,6 +129,7 @@ function OwnToken({
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
+        {pulse > 0 && <span key={pulse} className={styles.pulse} data-own-pulse aria-hidden />}
       </button>
     </Tooltip>
   );
