@@ -221,7 +221,7 @@ export const HoverSurvivesAWheelZoom = meta.story({
     );
     /* The zoom eases over several frames: wait until the camera has moved, then until it has come to rest. */
     await waitForFrame(() => expect(where(count)).not.toBe(before));
-    await cameraAtRest(count);
+    await waitForFrame(() => cameraAtRest(count), { timeout: 30_000 });
     await expect(document.querySelectorAll('.scene-piece-tag[data-hovered]').length).toBeLessThanOrEqual(1);
     canvas.dispatchEvent(
       new PointerEvent('pointermove', {
@@ -245,15 +245,12 @@ function where(element: HTMLElement) {
 /**
  * Resolves once a badge has held still for ten drawn frames in a row.
  * Counted in animation frames, not time, so a runner that draws no frames cannot pass it early.
+ * Run inside `waitForFrame`, which keeps frames coming and bounds the wait.
  */
 async function cameraAtRest(element: HTMLElement) {
-  const deadline = Date.now() + 30_000;
   let last = where(element);
   let still = 0;
   while (still < 10) {
-    if (Date.now() > deadline) {
-      throw new Error('The camera did not come to rest.');
-    }
     await new Promise((next) => requestAnimationFrame(next));
     const now = where(element);
     still = now === last ? still + 1 : 0;
