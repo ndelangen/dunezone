@@ -104,7 +104,7 @@ type GameTableProps = {
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
   panels?: readonly TablePanel[];
   /** A window to open once per token, as a battle opens on the viewer's side; the player can close it and it stays closed. */
-  focus?: Readonly<{ key: string; token: string }> | null;
+  focus?: Readonly<{ key: string; token: string; placement?: 'centre'; seat?: string }> | null;
   /** Hears which windows are open, by key, as that changes. */
   onOpenWindows?: (keys: readonly string[]) => void;
   /** Sections the host adds to the Table panel, above the fixture's trackers. */

@@ -5,7 +5,8 @@ import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -15,6 +16,7 @@ import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
+import { NoticeLifetime } from './noticeLifetime';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
@@ -41,12 +43,8 @@ const ICONS: Record<SoftNoticeKind, LucideIcon> = {
 /** The viewer's own turns, which the screen's edge glows for as well. */
 const TURN_KINDS: ReadonlySet<SoftNoticeKind> = new Set(['bid', 'ship', 'battle']);
 
-/** How long a notice shows before it is gone, and how long its fade takes before that. The turn's glow is a CSS animation of its own. */
-const LIFETIME_MS = 6000;
+/** How long a notice's fade takes before its lifetime ends. The turn's glow is a CSS animation of its own. */
 const FADE_MS = 400;
-
-/** How long a notice shows; a story holds its notices with an endless one, so a slow runner never loses them before it looks. */
-export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
@@ -144,7 +142,13 @@ function SoftNotices({
   notices,
   inert,
   onOpen,
-}: Readonly<{ notices: readonly SoftNotice[]; inert: boolean; onOpen?: (notice: SoftNotice) => void }>) {
+  lead,
+}: Readonly<{
+  notices: readonly SoftNotice[];
+  inert: boolean;
+  onOpen?: (notice: SoftNotice) => void;
+  lead?: ReactNode;
+}>) {
   const motion = useMotionAllowed();
   const lifetime = useContext(NoticeLifetime);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
@@ -192,6 +196,12 @@ function SoftNotices({
       {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
       {/* A board gesture only takes the pointer from the toasts; they stay in the accessibility tree, so the log still announces what arrives meanwhile. */}
       <div className={styles.stack} data-gesture={inert || undefined}>
+        {/* The lead stands first and speaks through its own live region, so the log does not announce it a second time. */}
+        {lead && (
+          <div className={styles.lead} aria-live="off">
+            {lead}
+          </div>
+        )}
         {live.slice(0, 4).map((notice) => (
           <div
             key={notice.id}
@@ -246,9 +256,12 @@ export function TableSoftNotices({
   inert,
   openPanel,
   openBattlePlan,
+  lead,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
+  /** A toast that stands above the notices, such as the viewer's dealt faction. */
+  lead?: ReactNode;
   /** Whether a board gesture holds the pointer, when no notice may be opened. */
   inert: boolean;
   openPanel: (key: string) => void;
@@ -262,5 +275,5 @@ export function TableSoftNotices({
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} />;
+  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} lead={lead} />;
 }
