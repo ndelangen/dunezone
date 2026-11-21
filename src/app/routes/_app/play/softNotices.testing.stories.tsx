@@ -8,7 +8,9 @@ import {
   askViewer,
   biddingReachesViewer,
   liveSnapshot,
+  movementReachesViewer,
   otherFactions,
+  pingFromOtherSeat,
   writeToViewer,
   changeTable,
   holdNotices,
@@ -197,5 +199,32 @@ export const ChatNotificationsOff = meta.story({
     const { log } = noticeLog(page);
     await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
     await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
+  },
+});
+
+/* A ping away from the viewer's pieces is not about them, so it raises nothing; a payment after it shows notices still arrive. */
+export const PingElsewhereRaisesNothing = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    /* The polar sink, in the board's middle, where the story table has no pieces of the viewer's. */
+    pingFromOtherSeat([0, 0.02, 0]);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /pinged/ })).toBeNull();
+  },
+});
+
+/* The turn to ship and move toasts, and clicking it takes the toast away as the camera goes to the viewer's faction token. */
+export const ShipToastLooksAtToken = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    changeTable(movementReachesViewer);
+    const { log } = noticeLog(page);
+    await userEvent.click(await waitForFrame(() => log.getByRole('button', { name: /Your turn to ship and move/ })));
+    await waitForFrame(() => expect(log.queryByRole('button', { name: /Your turn to ship and move/ })).toBeNull());
   },
 });

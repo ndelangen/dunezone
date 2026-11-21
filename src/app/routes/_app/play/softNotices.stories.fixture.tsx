@@ -10,7 +10,7 @@ import { within } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { install } from './game.stories.fixture';
-import { NoticeLifetime } from './multiplayer/SoftNotices';
+import { NoticeLifetime } from './multiplayer/noticeLifetime';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 /** The seat the soft notification stories watch from. */

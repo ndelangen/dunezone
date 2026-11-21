@@ -12,6 +12,7 @@ import {
   cameraPoseFor as cameraPoseForCloseLook,
   cameraZoomAfterPanMotion,
   cameraZoomAfterWheelAt,
+  cameraZoomLookingAt,
   cameraTiltForZoom,
   tablePointUnder,
   zoomedCameraPose,
@@ -524,6 +525,17 @@ describe('close look', () => {
   };
   const pointUnderSpot = (zoom: typeof NO_CAMERA_ZOOM) =>
     tablePointUnder(zoomedCameraPose(poseAt(cameraTiltForZoom(zoom)), zoom), 1.6, spot.ndcX, spot.ndcY, spot.height)!;
+
+  test('a look at a spot centres the camera on it and comes closer, but never backs out of a closer look', () => {
+    const at: [number, number, number] = [1.2, 0.18, -0.8];
+    const look = cameraZoomLookingAt(NO_CAMERA_ZOOM, poseAt, at);
+    const target = zoomedCameraPose(poseAt(cameraTiltForZoom(look)), look).target;
+    expect(look.scale).toBeLessThan(1);
+    expect(target[0]).toBeCloseTo(at[0], 5);
+    expect(target[2]).toBeCloseTo(at[2], 5);
+    const closer = zoomIn(20);
+    expect(cameraZoomLookingAt(closer, poseAt, at).scale).toBe(closer.scale);
+  });
 
   test('the closest look of every view stays farther out than the controls allow, so its glide arrives', () => {
     for (const view of ['map', 'left', 'right', 'bottom'] as const) {

@@ -26,7 +26,6 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -36,7 +35,6 @@ import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
-import type { TableView } from '@app/widgets/tabletop/playView';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -49,6 +47,7 @@ import { BrowserDiagnostics } from '../browserDiagnostics';
 import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
+import { FACTION_INFO } from '../compass/windows';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
@@ -86,6 +85,7 @@ import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
+import { OwnFactionNotice } from './OwnFaction';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -145,24 +145,19 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
 }
 
 /*
- * The camera view the page last asked for: the bottom view once the Traitor pile is gathered under the Tanks (#1635),
- * or the Map view a notice asks for. Each request takes a revision of its own, so asking again moves the camera again.
+ * The soft notices with the viewer's dealt faction at the top of their stack.
+ * The notices start afresh with each notice start, while the faction notice keeps its state until a tutorial run starts over, so a Reset can tell the faction again.
+ * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
  */
-function useAskedTableView(traitorsGathered: number | undefined) {
-  const gathered = traitorsGathered ? { view: 'bottom' as TableView, revision: traitorsGathered } : undefined;
-  const [asked, setAsked] = useState(gathered);
-  const [seenGathered, setSeenGathered] = useState(traitorsGathered);
-  if (seenGathered !== traitorsGathered) {
-    setSeenGathered(traitorsGathered);
-    setAsked(gathered);
-  }
-  /* A notice's requests count down from -1, so they never meet a table revision. */
-  const asks = useRef(0);
-  const ask = useCallback((view: TableView) => {
-    asks.current += 1;
-    setAsked({ view, revision: -asks.current });
-  }, []);
-  return [asked, ask] as const;
+function PlayNotices(
+  props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
+) {
+  const epoch = useContext(CompassEpochContext);
+  return (
+    <OwnFactionNotice key={epoch} inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)}>
+      {(toast) => <TableNotices key={props.start?.epoch} {...props} lead={toast} />}
+    </OwnFactionNotice>
+  );
 }
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
@@ -291,13 +286,13 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
 /* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
-function useNoticePanelOpener(client: TableSession, openWindow: (key: string) => void) {
+function useNoticePanelOpener(client: TableSession, openWindow: (key: string, seat?: string) => void) {
   return useCallback(
-    (key: string) => {
+    (key: string, seat?: string) => {
       if (key === 'transfers') {
         client.readSpiceHistory();
       }
-      openWindow(key);
+      openWindow(key, seat);
     },
     [client, openWindow]
   );
@@ -306,14 +301,15 @@ function useNoticePanelOpener(client: TableSession, openWindow: (key: string) =>
 function useAskedWindow(focus: WindowFocus) {
   /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
-  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre'; seat?: string } | null>(null);
   const [followed, setFollowed] = useState({ token: focus?.token, epoch });
   if (focus?.token !== followed.token || epoch !== followed.epoch) {
     setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
   const open = useCallback(
-    (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' }),
+    (key: string, seat?: string) =>
+      setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre', ...(seat ? { seat } : {}) }),
     []
   );
   return [asked ?? focus, open] as const;
@@ -780,6 +776,24 @@ function nudgeControls(
   };
 }
 
+/* A table the server has confirmed and is showing as it is now: not a past table, a recall, or a saved table still reconnecting. */
+function showsLiveTable(table: TableProjection, recalling: boolean) {
+  return !table.playback && !table.historyPending && !table.reconnecting && !recalling;
+}
+
+/* The stages in which factions are dealt and set up: Trading and Setup. */
+const DEALING_STAGES: ReadonlySet<string> = new Set(['swapping', 'setup']);
+
+/* The viewer's own faction while the live table deals and sets up factions; anything else is not news. */
+function dealtFaction(table: TableProjection, recalling: boolean) {
+  const { stage, roster } = table.snapshot;
+  const dealing = showsLiveTable(table, recalling) && DEALING_STAGES.has(stage ?? '');
+  if (!dealing) {
+    return null;
+  }
+  return roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null;
+}
+
 function useHostedControls(
   client: TableSession,
   table: TableProjection,
@@ -803,6 +817,7 @@ function useHostedControls(
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
+    dealt: dealtFaction(table, Boolean(recall)),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -869,7 +884,6 @@ function ConnectedTable({
   const noticeStart = useNoticeStart(table);
   /* A notice about a spot on the table, such as a ping, has the camera look there. */
   const [cameraLook] = useState(createCameraLook);
-  const [askedView, askView] = useAskedTableView(table.traitorsGathered);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -920,7 +934,9 @@ function ConnectedTable({
                     onOpenAlliances: () => openWindow('alliances'),
                   })}
                   /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-                  requestedView={askedView}
+                  requestedView={
+                    table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined
+                  }
                   showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
                   highlightTerritory={markerTerritory}
                   sceneContent={
@@ -962,8 +978,7 @@ function ConnectedTable({
                   tableGuidance={phaseGuidance(table)}
                   tableControls={phaseTabControls({ client, table, error, progress })}
                   notices={(inert) => (
-                    <TableNotices
-                      key={noticeStart?.epoch}
+                    <PlayNotices
                       table={table}
                       start={noticeStart}
                       inert={inert}
@@ -972,7 +987,6 @@ function ConnectedTable({
                       subscribeMessages={client.conversations.subscribeMessages}
                       subscribePings={client.subscribePings}
                       lookAt={cameraLook.lookAt}
-                      showMapView={() => askView('map')}
                     />
                   )}
                 />

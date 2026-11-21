@@ -41,7 +41,8 @@ export type CompassControlsProps = Readonly<{
   /** Moves the camera, as the dial does. */
   onView: (view: TableView) => void;
   /** The window an event asks for (a battle, the end of the game, a phase with a panel of its own), once per token. */
-  focus?: Readonly<{ key: string; token: string; placement?: 'centre' }> | null;
+  /** A window to open once per token; `seat` sets a seat's window (Faction info) on that seat. */
+  focus?: Readonly<{ key: string; token: string; placement?: 'centre'; seat?: string }> | null;
   /** Hears which windows are open, as their keys, whenever that changes: the table hints at a closed window it needs. */
   onOpenWindows?: (keys: readonly string[]) => void;
 }>;
@@ -115,14 +116,14 @@ function RecallControls({ table, onView }: Readonly<{ table: CompassTable; onVie
 function useFocusedWindow(
   focus: CompassControlsProps['focus'],
   windows: readonly TableWindow[],
-  reveal: (key: string) => void,
+  reveal: (key: string, seat?: string) => void,
   active: boolean
 ) {
   const [followed, setFollowed] = useState<string | null>(null);
   const key = focus?.key === 'spice' ? 'hand' : focus?.key;
   if (active && focus && key && focus.token !== followed && windows.some((entry) => entry.key === key)) {
     setFollowed(focus.token);
-    reveal(key);
+    reveal(key, focus.seat);
   }
 }
 
@@ -164,7 +165,8 @@ function Controls({
     active
   );
   /* A centre focus opens a closed window in the centre and brings one already open forward, never closing it. */
-  const centre = (key: string) => (opened.isOpen(key) ? opened.reveal(key) : opened.show(key));
+  const centre = (key: string, seat?: string) =>
+    opened.isOpen(key) ? opened.reveal(key, seat) : opened.show(key, seat);
   useFocusedWindow(focus, windows, focus?.placement === 'centre' ? centre : opened.reveal, active);
   useOpenWindowsReport(windows, opened.isOpen, active ? onOpenWindows : undefined);
   /* The cheat sheet goes away as it came, by ? or the bar's button, from the centre or a slot alike. */

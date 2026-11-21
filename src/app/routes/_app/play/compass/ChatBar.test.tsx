@@ -9,7 +9,7 @@ import { ChatBar } from './ChatBar';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer, CompassTable } from './compassTable';
 import { setShortcutsButton } from './shortcutsButton';
-import { KEYBOARD_SHORTCUTS } from './windows';
+import { FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 /* jsdom has no matchMedia, which Mantine asks for. */
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -125,9 +125,10 @@ test('a spectator has no own token', () => {
   expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
 });
 
-test('before the table has a Hand & spice window there is no own token to open it', () => {
-  renderBar([player('seat-1', true)], false);
-  expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
+test('before the table has a Hand & spice window the own token opens their own Faction info (#2987)', () => {
+  const onShow = renderBar([player('seat-1', true)], false);
+  fireEvent.click(screen.getByRole('button', { name: /^Faction info, you are playing as/ }));
+  expect(onShow).toHaveBeenCalledWith(FACTION_INFO, 'seat-1');
 });
 
 /* jsdom has no layout with which to keep an anchored tooltip attached. */

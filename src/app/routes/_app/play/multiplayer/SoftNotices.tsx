@@ -2,16 +2,17 @@ import { Text } from '@mantine/core';
 import { TABLE_CONVERSATION } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { isFactionToken } from '@shared/play/factionToken';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TablePing } from '@shared/play/protocol';
 import { territoryAtTable } from '@shared/play/territoryPlacement';
-import { troopReserveKeys, troopReserveSpots } from '@shared/play/troopReserves';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { AtSign, Coins, Gavel, Handshake, MapPin, MessageCircle, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { createContext, useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -25,6 +26,7 @@ import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
 import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
+import { NoticeLifetime } from './noticeLifetime';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
 import { stageInPlay } from './tableFactions';
@@ -46,37 +48,10 @@ type SoftNotice = Readonly<{
   spot?: Vector3Tuple;
 }>;
 
-/**
- * PROTOTYPE (#2981 follow-up): which pings notify, while the owner picks.
- * `off` none, as today;
- * `pieces` a ping on the viewer's own pieces;
- * `place` that, naming the territory;
- * `every` any other player's ping.
- */
-export type PingNoticeStyle = 'off' | 'pieces' | 'place' | 'every';
-export const PingNoticeStyleContext = createContext<PingNoticeStyle>('place');
-
-/**
- * PROTOTYPE (#2981 follow-up): what the "Your turn to ship and move" toast does when clicked, while the owner picks.
- * `close` only closes it, as today;
- * `map` returns the camera to the Map view;
- * `reserves` has the camera glide to the viewer's reserves behind their seat.
- */
-export type ShipToastStyle = 'close' | 'map' | 'reserves';
-export const ShipToastStyleContext = createContext<ShipToastStyle>('reserves');
-
-/* Where the viewer's troop reserves stand behind their seat: the middle of them, or nothing for a faction with none. */
-function reservesSpot(table: TableProjection, own: string): Vector3Tuple | undefined {
+/* Where the viewer's faction token lies on the table, or nothing for a table without one. */
+function factionTokenSpot(table: TableProjection, own: string): Vector3Tuple | undefined {
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
-  const spots = troopReserveSpots(snapshot.roster, own, troopReserveKeys(snapshot.table.pieces, own));
-  if (!spots?.length) {
-    return undefined;
-  }
-  const sum = spots.reduce<Vector3Tuple>(
-    (total, { position }) => [total[0] + position[0], total[1] + position[1], total[2] + position[2]],
-    [0, 0, 0]
-  );
-  return [sum[0] / spots.length, sum[1] / spots.length, sum[2] / spots.length];
+  return snapshot.table.pieces.find((piece) => piece.owner === own && isFactionToken(piece))?.position;
 }
 
 /* How near one of the viewer's pieces a ping lands to be about them, in table units: about a troop stack's width. */
@@ -96,12 +71,8 @@ const ICONS: Record<SoftNoticeKind, LucideIcon> = {
 /** The viewer's own turns, which the screen's edge glows for as well. */
 const TURN_KINDS: ReadonlySet<SoftNoticeKind> = new Set(['bid', 'ship', 'battle']);
 
-/** How long a notice shows before it is gone, and how long its fade takes before that. The turn's glow is a CSS animation of its own. */
-const LIFETIME_MS = 6000;
+/** How long a notice's fade takes before its lifetime ends. The turn's glow is a CSS animation of its own. */
 const FADE_MS = 400;
-
-/** How long a notice shows; a story holds its notices with an endless one, so a slow runner never loses them before it looks. */
-export const NoticeLifetime = createContext(LIFETIME_MS);
 /** The most notices kept at once; older ones have long gone. */
 const KEPT = 12;
 
@@ -278,35 +249,30 @@ function useChatMessageNotices(
   return notices;
 }
 
-/* The notice another player's ping raises for the viewer, if the style counts it. */
-function pingNotice(table: TableProjection, ping: TablePing, style: PingNoticeStyle, at: number): SoftNotice | null {
+/*
+ * The notice another player's ping raises for the viewer: only one that lands on their own pieces, naming the territory there (Norbert, 2026-11-21).
+ * Other pings show as they always have, by their ripple and the edge arrow.
+ */
+function pingNotice(table: TableProjection, ping: TablePing, at: number): SoftNotice | null {
   const snapshot = table.confirmedSnapshot ?? table.snapshot;
   const own = table.viewer.viewerSeat ? seatFactionId(snapshot, table.viewer.viewerSeat) : undefined;
   const pinger = seatFactionId(snapshot, ping.viewerSeat);
-  if (style === 'off' || !own || !pinger || pinger === own) {
+  if (!own || !pinger || pinger === own) {
     return null;
   }
   const [x, , z] = ping.position;
   const onOwn = snapshot.table.pieces.some(
     (piece) => piece.owner === own && Math.hypot(piece.position[0] - x, piece.position[2] - z) <= PING_NEAR
   );
-  if (style !== 'every' && !onOwn) {
+  if (!onOwn) {
     return null;
   }
   const names = snapshotFactionLabels(snapshot);
   const place = territoryAtTable({ board: snapshot.board?.definition }, ping.position)?.name;
-  const what =
-    style === 'pieces'
-      ? 'your pieces'
-      : style === 'place'
-        ? `your pieces${place ? ` in ${place}` : ''}`
-        : onOwn
-          ? `your pieces${place ? ` in ${place}` : ''}`
-          : (place ?? 'the table');
   return {
     id: `ping-${pinger}-${at}`,
     kind: 'ping',
-    text: `${names[pinger] ?? pinger} pinged ${what}`,
+    text: `${names[pinger] ?? pinger} pinged your pieces${place ? ` in ${place}` : ''}`,
     from: snapshotFactionToken(snapshot, pinger, names),
     at,
     spot: ping.position,
@@ -322,7 +288,6 @@ function usePingNotices(
   subscribePings: SubscribePings | undefined,
   own: string | undefined
 ): readonly SoftNotice[] {
-  const style = useContext(PingNoticeStyleContext);
   const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
   const [shownFor, setShownFor] = useState(own);
   if (shownFor !== own) {
@@ -333,7 +298,7 @@ function usePingNotices(
     if (ping.connectionId === table.viewer.connectionId) {
       return;
     }
-    const notice = pingNotice(table, ping, style, performance.now());
+    const notice = pingNotice(table, ping, performance.now());
     if (notice) {
       const sameSender = (kept: SoftNotice) => kept.from?.id === notice.from?.id;
       setNotices((all) => [...all.filter((kept) => !sameSender(kept)), notice].slice(-KEPT));
@@ -361,7 +326,13 @@ function SoftNotices({
   notices,
   inert,
   onOpen,
-}: Readonly<{ notices: readonly SoftNotice[]; inert: boolean; onOpen?: (notice: SoftNotice) => void }>) {
+  lead,
+}: Readonly<{
+  notices: readonly SoftNotice[];
+  inert: boolean;
+  onOpen?: (notice: SoftNotice) => void;
+  lead?: ReactNode;
+}>) {
   const motion = useMotionAllowed();
   const lifetime = useContext(NoticeLifetime);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
@@ -409,6 +380,12 @@ function SoftNotices({
       {turn && <div key={turn.id} className={styles.glow} data-glow aria-hidden />}
       {/* A board gesture only takes the pointer from the toasts; they stay in the accessibility tree, so the log still announces what arrives meanwhile. */}
       <div className={styles.stack} data-gesture={inert || undefined}>
+        {/* The lead stands first and speaks through its own live region, so the log does not announce it a second time. */}
+        {lead && (
+          <div className={styles.lead} aria-live="off">
+            {lead}
+          </div>
+        )}
         {live.slice(0, 4).map((notice) => (
           <div
             key={notice.id}
@@ -480,13 +457,15 @@ export function TableSoftNotices({
   inert,
   openPanel,
   openBattlePlan,
+  lead,
   subscribeMessages,
   subscribePings,
   lookAt,
-  showMapView,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
+  /** A toast that stands above the notices, such as the viewer's dealt faction. */
+  lead?: ReactNode;
   /** Each chat message another faction writes to the viewer, as it arrives. */
   subscribeMessages?: SubscribeMessages;
   /** Each ping at the table, as it lands. */
@@ -497,21 +476,13 @@ export function TableSoftNotices({
   inert: boolean;
   openPanel: (key: string) => void;
   openBattlePlan: (() => void) | null;
-  /** Returns the camera to the Map view. */
-  showMapView?: () => void;
 }>) {
-  const shipStyle = useContext(ShipToastStyleContext);
   const open = (notice: SoftNotice) => {
     const panel = notice.opens ?? PANELS[notice.kind];
-    if (notice.kind === 'ship') {
-      const reserves = start?.own && shipStyle === 'reserves' ? reservesSpot(table, start.own) : undefined;
-      if (reserves) {
-        lookAt?.(reserves);
-      } else if (shipStyle === 'map') {
-        showMapView?.();
-      }
-    } else if (notice.spot) {
-      lookAt?.(notice.spot);
+    /* The turn to ship and move is played on the table: the camera goes to the viewer's faction token, where their shipment starts (Norbert, 2026-11-21). */
+    const spot = notice.kind === 'ship' && start?.own ? factionTokenSpot(table, start.own) : notice.spot;
+    if (spot) {
+      lookAt?.(spot);
     } else if (panel) {
       openPanel(panel);
     } else if (notice.kind === 'battle') {
@@ -525,5 +496,5 @@ export function TableSoftNotices({
     fromChat.length || fromPings.length
       ? [...fromTable, ...fromChat, ...fromPings].toSorted((a, b) => a.at - b.at)
       : fromTable;
-  return <SoftNotices notices={notices} inert={inert} onOpen={open} />;
+  return <SoftNotices notices={notices} inert={inert} onOpen={open} lead={lead} />;
 }
