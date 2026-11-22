@@ -180,3 +180,48 @@ test('a first page cut short by a required split hands over to pagination and ke
     await client.close();
   }
 });
+
+test('pagination splitting its own first page keeps the whole answer on screen and still asks for the next page once', async () => {
+  const { subscribed, answer, result, unmount, client } = renderDetail();
+  try {
+    answer(firstArgs('atreides'), page({ detail: 'Atreides', items: ['q1', 'q2'] }));
+    act(() => result.current.loadMore(12));
+    const [paginatedFirst] = paginatedReads(subscribed);
+    answer(paginatedFirst!, {
+      ...page({ detail: 'Atreides', items: ['q1'] }),
+      pageStatus: 'SplitRequired',
+      splitCursor: 'mid',
+    });
+    expect(result.current.status).toBe('LoadingMore');
+    expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
+
+    const halves = [
+      ...new Map(
+        paginatedReads(subscribed)
+          .filter((args) => 'endCursor' in args.paginationOpts)
+          .map((args) => [keyOf(args), args])
+      ).values(),
+    ];
+    expect(halves).toHaveLength(2);
+    for (const [index, half] of halves.entries()) {
+      answer(half, {
+        page: [{ detail: index === 0 ? 'Atreides' : null, items: [`q${index + 1}`] }],
+        isDone: false,
+        continueCursor: index === 0 ? 'mid' : 'next',
+      });
+    }
+    const following = paginatedReads(subscribed).filter(
+      (args) => args.paginationOpts.cursor === 'next' && !('endCursor' in args.paginationOpts)
+    );
+    expect(new Set(following.map(keyOf)).size).toBe(1);
+    expect(following[0]?.paginationOpts).toMatchObject({ numItems: 12 });
+    expect(result.current.status).toBe('LoadingMore');
+
+    answer(following[0]!, page({ detail: null, items: ['q3'] }, true));
+    expect(result.current.status).toBe('Exhausted');
+    expect(result.current.results.flatMap((chunk) => chunk.items)).toEqual(['q1', 'q2', 'q3']);
+  } finally {
+    unmount();
+    await client.close();
+  }
+});

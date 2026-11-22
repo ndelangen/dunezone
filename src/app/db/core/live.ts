@@ -3,7 +3,7 @@ import type { PaginatedQueryArgs, PaginatedQueryReference, UsePaginatedQueryRetu
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { convexToJson, jsonToConvex } from 'convex/values';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { keepWarm, PAGE_HOLD_MS } from './warm';
 
@@ -124,17 +124,21 @@ export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
   const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems });
   const paginating = expanded && paginated.status !== 'LoadingFirstPage';
   /*
-   * The page the "load more" asked for follows once pagination has its own first page, and only then:
-   * a handover with one range loaded and more to load is the one state that asks for it.
+   * The page the "load more" asked for follows once pagination has its own first page, and only once per handover.
+   * A first range that pagination had to split arrives as two ranges, so the request keys on the handover, not on a range count.
    */
-  const more = expanded ? (expansion?.more ?? null) : null;
-  const awaitingMore = more !== null && paginated.status === 'CanLoadMore' && paginated.results.length === 1;
+  const handover = expanded && expansion?.more != null ? expansion : null;
+  const status = paginated.status;
   const loadPaginated = paginated.loadMore;
+  const requested = useRef<unknown>(null);
   useEffect(() => {
-    if (awaitingMore && more !== null) {
-      loadPaginated(more);
+    if (handover?.more != null && status === 'CanLoadMore' && requested.current !== handover) {
+      requested.current = handover;
+      loadPaginated(handover.more);
     }
-  }, [awaitingMore, more, loadPaginated]);
+  }, [handover, status, loadPaginated]);
+  /* Until that request lands, the lone first range reads as still loading more. */
+  const awaitingMore = handover !== null && status === 'CanLoadMore' && paginated.results.length === 1;
   const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as Result | undefined;
   /*
    * Defensive: a first page that grew past what one read may scan could come back cut short and ask to be split.
@@ -150,6 +154,11 @@ export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
     setExpansion({ key, more: null });
   }
   if (paginating) {
+    /* Pagination splitting its own first range has nothing to show yet, so the last whole answer stays. */
+    if (status === 'LoadingMore' && paginated.results.length === 0 && whole?.key === key) {
+      const results = whole.data.page as UsePaginatedQueryReturnType<Query>['results'];
+      return { results, loadMore: paginated.loadMore, status: 'LoadingMore', isLoading: true };
+    }
     return awaitingMore ? { ...paginated, status: 'LoadingMore', isLoading: true } : paginated;
   }
   const shown = splitRequired ? (whole?.key === key ? whole.data : undefined) : first;
