@@ -444,10 +444,15 @@ async function hoverShowsNameAndCount(
   };
   /* A busy runner answers late, so the pointer sweeps down the stack until the table hears it, for up to twenty seconds. */
   const deadline = performance.now() + 20_000;
+  let hit = 6;
+  const pointAtStack = (below: number) => {
+    const box = count.getBoundingClientRect();
+    pointAt(box.left + box.width / 2, box.bottom + below);
+  };
   while (!tag.hasAttribute('data-hovered') && performance.now() < deadline) {
     for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
-      const box = count.getBoundingClientRect();
-      pointAt(box.left + box.width / 2, box.bottom + below);
+      hit = below;
+      pointAtStack(below);
       await settle(400);
     }
   }
@@ -457,11 +462,11 @@ async function hoverShowsNameAndCount(
   await expect(count).not.toBeVisible();
   const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
   const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
-  /* A slow runner can move the camera from under the resting pointer, so the pointer comes back to the stack until the label reads. */
+  /* A slow runner can move the camera from under the resting pointer, so the pointer follows the stack to where it is now until the label reads. */
   await waitFor(
     async () => {
       if (!tag.hasAttribute('data-hovered')) {
-        pointAt(spot.x, spot.y);
+        pointAtStack(hit);
       }
       await expect(shownLabel.innerText.trim()).toBe(
         target === 'faction-token' ? label : `${count.textContent} ${label}`
