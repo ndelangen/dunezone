@@ -918,6 +918,15 @@ type ConnectedTableProps = ConnectionControlsProps &
     reportsEnabled: boolean;
   }>;
 
+/* Each faction's emblem, which the prediction shows. */
+function usePredictionEmblems(table: TableProjection) {
+  const factionArtwork = table.snapshot.factionArtwork;
+  return useMemo(
+    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
+    [factionArtwork]
+  );
+}
+
 function ConnectedTable({
   client,
   table,
@@ -958,11 +967,7 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
-  const factionArtwork = table.snapshot.factionArtwork;
-  const predictionEmblems = useMemo(
-    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
-    [factionArtwork]
-  );
+  const predictionEmblems = usePredictionEmblems(table);
   return (
     <PredictionEmblemsContext value={predictionEmblems}>
       <BattlePlanOpenerContext value={battlePlanOpener}>
