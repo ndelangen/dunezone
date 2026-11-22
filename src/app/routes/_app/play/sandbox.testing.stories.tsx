@@ -305,52 +305,12 @@ export const HoverTagHoldsThroughASlip = meta.story({
 });
 
 /**
- * Holding the button down on a stack picks it up, and its tooltip stays for as long as the button is held.
- * Set down under the still pointer, it keeps its tooltip.
+ * Pressing the button on a stack hides its tooltip at once, and none shows for as long as the button is held, so the tooltip never sits in the way of a stack being moved (Norbert, 2026-11-22).
+ * Let go, the tooltip comes back when the pointer moves again.
  */
-export const HoverTagStaysWhileHeld = meta.story({
+export const HoverTagHidesOnPress = meta.story({
   play: async ({ canvasElement }) => {
     const { tag, spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
-    const document = canvasElement.ownerDocument;
-    const canvas = document.querySelector('canvas')!;
-    const label = tag.querySelector<HTMLElement>('.scene-piece-name__label')!.innerText.trim();
-    const shownTags = () => Array.from(document.querySelectorAll('.scene-piece-tag[data-hovered]'));
-    const shownLabels = () =>
-      Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-tag[data-hovered] .scene-piece-name__label')).map(
-        (shown) => shown.innerText.trim()
-      );
-    const press = (type: 'pointerdown' | 'pointerup') =>
-      canvas.dispatchEvent(
-        new PointerEvent(type, {
-          bubbles: true,
-          pointerId: 1,
-          pointerType: 'mouse',
-          button: 0,
-          buttons: type === 'pointerdown' ? 1 : 0,
-          clientX: spot.x,
-          clientY: spot.y,
-        })
-      );
-    press('pointerdown');
-    /* Held still past the hold time, the stack is lifted; it keeps its tooltip for every frame it is held. */
-    await waitFor(() => expect(canvas.style.cursor).toBe('grabbing'));
-    for (let frame = 0; frame < 30; frame++) {
-      await new Promise((next) => requestAnimationFrame(next));
-      await expect(shownTags()).toEqual([tag]);
-    }
-    /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
-    await waitFor(() => expect(shownLabels()).toEqual([label]));
-    press('pointerup');
-    /* Set down under the still pointer. */
-    await waitFor(() => expect(canvas.style.cursor).not.toBe('grabbing'));
-    await waitFor(() => expect(shownLabels()).toEqual([label]));
-  },
-});
-
-/** A held stack that is dragged shows no tooltip while it moves. */
-export const HoverTagHidesWhileDragging = meta.story({
-  play: async ({ canvasElement }) => {
-    const { spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
     const document = canvasElement.ownerDocument;
     const canvas = document.querySelector('canvas')!;
     const shownTags = () => document.querySelectorAll('.scene-piece-tag[data-hovered]').length;
@@ -368,20 +328,25 @@ export const HoverTagHidesWhileDragging = meta.story({
       );
     const frame = () => new Promise((next) => requestAnimationFrame(next));
     pointer('pointerdown', spot.x, spot.y);
-    await waitFor(() => expect(shownTags()).toBe(1));
-    /* A tremor under the drag threshold is no drag: the tooltip stays. */
-    pointer('pointermove', spot.x + 3, spot.y);
-    await frame();
-    await expect(shownTags()).toBe(1);
-    /* Past the threshold the stack is dragged, and no tooltip shows for any step of the drag. */
-    pointer('pointermove', spot.x + 6, spot.y);
     await waitFor(() => expect(shownTags()).toBe(0));
-    for (let step = 3; step <= 20; step++) {
+    /* Held still past the hold time, the stack is lifted, and still shows no tooltip. */
+    await waitFor(() => expect(canvas.style.cursor).toBe('grabbing'));
+    for (let step = 0; step < 30; step++) {
+      await frame();
+      await expect(shownTags()).toBe(0);
+    }
+    /* Dragged, it shows none for any step of the drag. */
+    for (let step = 1; step <= 20; step++) {
       pointer('pointermove', spot.x + step * 3, spot.y);
       await frame();
       await expect(shownTags()).toBe(0);
     }
-    pointer('pointerup', spot.x + 60, spot.y);
+    /* Carried back and set down under the pointer, its tooltip comes back once the pointer moves. */
+    pointer('pointermove', spot.x, spot.y);
+    pointer('pointerup', spot.x, spot.y);
+    await waitFor(() => expect(canvas.style.cursor).not.toBe('grabbing'));
+    pointer('pointermove', spot.x + 1, spot.y);
+    await waitFor(() => expect(tag).toHaveAttribute('data-hovered'));
   },
 });
 

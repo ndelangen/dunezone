@@ -76,3 +76,17 @@ test('a tag on its way out that is cleared or dropped still takes what ends with
   expect(cleared).toHaveBeenCalledOnce();
   expect(dropped).toHaveBeenCalledOnce();
 });
+
+test('a pressed button hides the tag at once and keeps every tag hidden until it is let go', () => {
+  const tag = createHoverTag();
+  tag.show('stack');
+  tag.press();
+  expect(tag.shows('stack')).toBe(false);
+  tag.show('stack');
+  tag.show('other');
+  expect(tag.shows('stack')).toBe(false);
+  expect(tag.shows('other')).toBe(false);
+  tag.release();
+  tag.show('stack');
+  expect(tag.shows('stack')).toBe(true);
+});
