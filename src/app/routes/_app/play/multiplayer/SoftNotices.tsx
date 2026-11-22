@@ -1,8 +1,7 @@
 import { Text } from '@mantine/core';
-import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import { TABLE_CONVERSATION, conversationsAvailable } from '@shared/play/conversations';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
-import { isFactionToken } from '@shared/play/factionToken';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import type { TablePing } from '@shared/play/protocol';
@@ -18,18 +17,17 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { ownStep } from '../../../../db/tabletop/OwnChanges';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import { splitMentions } from '../panels/chat/mentions';
-import type { Mention } from '../panels/chat/mentions';
+import { splitMentions, tableMentions } from '../panels/chat/mentions';
 import { isViewingConversation } from '../panels/chat/viewingConversations';
 import { useChatNotices } from './chatNotices';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
+import { factionTokenSpot, noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import { NoticeLifetime } from './noticeLifetime';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
-import { stageInPlay } from './tableFactions';
+import { actingFaction, stageInPlay } from './tableFactions';
 
 type SoftNotice = Readonly<{
   id: string;
@@ -47,12 +45,6 @@ type SoftNotice = Readonly<{
   /** The spot on the table it is about, which the camera looks at when it is opened: where a ping landed. */
   spot?: Vector3Tuple;
 }>;
-
-/* Where the viewer's faction token lies on the table, or nothing for a table without one. */
-function factionTokenSpot(table: TableProjection, own: string): Vector3Tuple | undefined {
-  const snapshot = table.confirmedSnapshot ?? table.snapshot;
-  return snapshot.table.pieces.find((piece) => piece.owner === own && isFactionToken(piece))?.position;
-}
 
 /* How near one of the viewer's pieces a ping lands to be about them, in table units: about a troop stack's width. */
 const PING_NEAR = 0.25;
@@ -161,24 +153,6 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
   return notices;
 }
 
-/* Every seat at the table as a chat names it, its faction's name after an @; the viewer's own marked. */
-function seatMentions(table: TableProjection): Mention[] {
-  const viewerSeat = table.viewer.viewerSeat;
-  return (table.snapshot.roster?.seats ?? []).flatMap((seat) =>
-    seat.faction
-      ? [
-          {
-            id: seat.id,
-            label: seat.faction.name,
-            detail: null,
-            token: { id: seat.faction.id, name: seat.faction.name },
-            own: seat.id === viewerSeat,
-          },
-        ]
-      : []
-  );
-}
-
 /* The notice a chat message raises for the viewer, if any: the table chat when it names their seat after an @, and any message in a private chat (Norbert, 2026-11-21). */
 function chatNotice(
   table: TableProjection,
@@ -192,7 +166,7 @@ function chatNotice(
   const from = snapshotFactionToken(snapshot, message.senderFactionId, names);
   const id = `chat-${peerId}-${message.sequence}`;
   if (peerId === TABLE_CONVERSATION) {
-    const segments = splitMentions(message.text, seatMentions(table));
+    const segments = splitMentions(message.text, tableMentions(table, {}));
     if (!segments.some((segment) => segment.seats?.some((seat) => seat.own))) {
       return null;
     }
@@ -480,7 +454,10 @@ export function TableSoftNotices({
   const open = (notice: SoftNotice) => {
     const panel = notice.opens ?? PANELS[notice.kind];
     /* The turn to ship and move is played on the table: the camera goes to the viewer's faction token, where their shipment starts (Norbert, 2026-11-21). */
-    const spot = notice.kind === 'ship' && start?.own ? factionTokenSpot(table, start.own) : notice.spot;
+    const spot =
+      notice.kind === 'ship' && start?.own
+        ? factionTokenSpot(table.confirmedSnapshot ?? table.snapshot, start.own)
+        : notice.spot;
     if (spot) {
       lookAt?.(spot);
     } else if (panel) {
@@ -490,7 +467,10 @@ export function TableSoftNotices({
     }
   };
   const fromTable = useSoftNotices(table, start);
-  const fromChat = useChatMessageNotices(table, subscribeMessages, start?.own);
+  /* Chats stay open after play ends, so their notices follow the faction the viewer chats as, not the table's turns. */
+  const chatting =
+    conversationsAvailable(table.snapshot.stage) && !table.reconnecting ? actingFaction(table) : undefined;
+  const fromChat = useChatMessageNotices(table, subscribeMessages, chatting);
   const fromPings = usePingNotices(table, subscribePings, start?.own);
   const notices =
     fromChat.length || fromPings.length

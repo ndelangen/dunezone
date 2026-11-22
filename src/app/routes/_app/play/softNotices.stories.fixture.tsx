@@ -113,8 +113,7 @@ let chatSequence = 0;
  */
 export async function writeToViewer(senderFactionId: string, text: string, peerId = TABLE_CONVERSATION) {
   const { snapshot, transport } = live!;
-  /* The notices hear messages from the frame after they show; a message before that is one nobody was there to hear. */
-  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await noticesListening();
   chatSequence += 1;
   transport.deliver({
     type: 'conversation-message',
@@ -159,9 +158,15 @@ export function ownPiecesSpot(snapshot: GameSnapshot): Vector3Tuple {
   return piece.position;
 }
 
+/* The notices hear chat messages and pings from the frame after they show; one sent before that is one nobody was there to hear. */
+function noticesListening() {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
 /** Another seat's player pings the table at `position`, as the room relays a ping to everyone. */
-export function pingFromOtherSeat(position: Vector3Tuple) {
+export async function pingFromOtherSeat(position: Vector3Tuple) {
   const { snapshot, transport } = live!;
+  await noticesListening();
   const seat = snapshot.roster!.seats.find((entry) => entry.id !== NOTICE_VIEWER && entry.faction)!;
   transport.deliver({
     type: 'ping',

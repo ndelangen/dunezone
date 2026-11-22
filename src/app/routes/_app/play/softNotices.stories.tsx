@@ -7,10 +7,7 @@ import {
   askViewer,
   biddingReachesViewer,
   liveSnapshot,
-  movementReachesViewer,
   otherFactions,
-  ownPiecesSpot,
-  pingFromOtherSeat,
   writeToViewer,
   changeTable,
   holdGlowLit,
@@ -69,44 +66,6 @@ export const MentionedInTableChat = meta.story({
     const toast = await waitForFrame(() =>
       log.getByRole('button', { name: new RegExp(`${asker!.name} mentioned you`) })
     );
-    await expect(finishTransitions(toast)).toBeVisible();
-  },
-});
-
-/* Another faction writes to the viewer in their private chat: a toast says who, with the message under it. */
-export const PrivateMessage = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await tableShown(canvasElement);
-    const [, writer] = otherFactions(liveSnapshot());
-    await writeToViewer(writer!.id, 'Want to team up against the Emperor this turn?', writer!.id);
-    const { log } = noticeLog(page);
-    const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${writer!.name} wrote to you`) })
-    );
-    await expect(finishTransitions(toast)).toBeVisible();
-  },
-});
-
-/* Another player pings the viewer's own pieces: a toast names who, and the territory; clicking it has the camera glide there. */
-export const PingOnYourPieces = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await tableShown(canvasElement);
-    const pinger = pingFromOtherSeat(ownPiecesSpot(liveSnapshot()));
-    const { log } = noticeLog(page);
-    const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${pinger} pinged your pieces`) })
-    );
-    await expect(finishTransitions(toast)).toBeVisible();
-  },
-});
-
-/* Shipment and Movement reaches the viewer: a toast says it is their turn; clicking it has the camera glide to their faction token. */
-export const YourTurnToShip = meta.story({
-  play: async ({ canvasElement }) => {
-    const page = await tableShown(canvasElement);
-    changeTable(movementReachesViewer);
-    const { log } = noticeLog(page);
-    const toast = await waitForFrame(() => log.getByRole('button', { name: /Your turn to ship and move/ }));
     await expect(finishTransitions(toast)).toBeVisible();
   },
 });

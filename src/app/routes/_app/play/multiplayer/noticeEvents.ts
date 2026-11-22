@@ -1,3 +1,5 @@
+import { isFactionToken } from '@shared/play/factionToken';
+import type { Vector3Tuple } from '@shared/play/model';
 import { MOVEMENT_PHASE_ID, movementOrder, nextToMove } from '@shared/play/movement';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -223,4 +225,9 @@ export function noticeStillHolds(
     default:
       return true;
   }
+}
+
+/** Where faction `own`'s token lies on the table, where the turn to ship and move takes the camera; nothing for a table without one. */
+export function factionTokenSpot(snapshot: GameSnapshot, own: string): Vector3Tuple | undefined {
+  return snapshot.table.pieces.find((piece) => piece.owner === own && isFactionToken(piece))?.position;
 }
