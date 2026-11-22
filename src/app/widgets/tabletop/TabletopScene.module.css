@@ -174,8 +174,11 @@
   outline-offset: 2px;
 }
 
-/* A piece's projected tag: its count, with its name hung above so the count keeps its place. */
+/* A piece's projected tag: its count, with its name hung above so the count keeps its place. Both wear the table's tooltip surface (the --tip- tokens), so the table and its panels show one kind of tooltip. */
 .pieceTag {
+  /* Half the smallest step, the same inset as the UI's tooltips, so table tags and UI tooltips are one style. */
+  --piece-tip-padding-block: calc(var(--space-xs) / 2);
+
   position: relative;
   display: inline-block;
 }
@@ -192,21 +195,19 @@
   user-select: none;
   white-space: nowrap;
   visibility: hidden;
-  padding: 0.2rem 0.45rem;
-  border: 1px solid rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
-  border-radius: 0.4rem;
+  padding: var(--piece-tip-padding-block) var(--space-xs);
+  border-radius: var(--mantine-radius-sm);
   color: var(--color-text);
-  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
-  box-shadow: 0 5px 14px rgb(from var(--play-black) r g b / 0.28);
-  font-size: 0.65rem;
-  font-weight: 800;
-  line-height: 1.2;
+  background: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
+  box-shadow: var(--tip-ring, 0 5px 14px rgb(from var(--play-black) r g b / 0.28));
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.3;
   text-align: center;
 }
 
 .pieceNameOwner {
   color: var(--color-brand);
-  font-size: 0.58rem;
+  font-size: var(--mantine-font-size-xs);
   font-weight: 700;
 }
 
@@ -220,22 +221,61 @@
   user-select: none;
   white-space: nowrap;
   visibility: hidden;
-  min-width: 1.6rem;
-  padding: 0.24rem 0.38rem;
-  border: 1px solid rgb(from var(--input-border-strong) r g b / var(--input-border-strong-alpha));
+  min-width: 2rem;
+  padding: var(--piece-tip-padding-block) var(--space-xs);
   border-radius: 999px;
   color: var(--color-text);
-  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
-  box-shadow: 0 5px 14px rgb(from var(--play-black) r g b / 0.28);
-  font-size: 0.65rem;
-  font-weight: 900;
+  background: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
+  box-shadow: var(--tip-ring, 0 5px 14px rgb(from var(--play-black) r g b / 0.28));
+  font-size: var(--mantine-font-size-sm);
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
 :global([data-show-counts="true"]) .pieceCount,
-.pieceTag[data-hovered] .pieceCount,
 .pieceTag[data-hovered] .pieceName {
   visibility: visible;
+}
+
+/* A faction token is one of a kind: it never shows a number. */
+.pieceTag .pieceCount[data-uncounted] {
+  visibility: hidden;
+}
+
+/*
+ * Name and count together read as one tooltip at the count's place, "10 Harkonnen troops": on the piece under the pointer, or with both keys held.
+ * A faction token shows no count, so its name always takes the count's place.
+ */
+.pieceNameCount {
+  display: none;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceNameCount,
+.pieceTag[data-hovered] .pieceNameCount {
+  display: inline;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceName,
+.pieceTag[data-hovered] .pieceName,
+.pieceTag[data-uncounted] .pieceName {
+  bottom: 0;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceCount,
+.pieceTag[data-hovered] .pieceCount {
+  visibility: hidden;
+}
+
+/* The selected stack's tooltip keeps the selected count's colours when it carries the count. */
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag[data-selected] .pieceName,
+.pieceTag[data-hovered][data-selected] .pieceName {
+  color: var(--color-ink);
+  background: var(--color-brand-strong);
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag[data-selected] .pieceName > *,
+.pieceTag[data-hovered][data-selected] .pieceName > * {
+  color: inherit;
 }
 
 .pieceCountSelected {
@@ -246,7 +286,7 @@
 /* Who peeked at a piece, under its name. */
 .pieceNamePeeked {
   color: var(--play-peeked-tag);
-  font-size: 0.58rem;
+  font-size: var(--mantine-font-size-xs);
   font-style: italic;
   font-weight: 700;
 }

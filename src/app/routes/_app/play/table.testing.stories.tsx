@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { isFactionToken } from '@shared/play/factionToken';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
@@ -108,14 +109,28 @@ export const Controls = meta.story({
     await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
 
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
-    await expect(counters.length).toBeGreaterThan(0);
+    /* Faction tokens are one of a kind, so they never show a count, not even with Alt held. */
+    const uncounted = counters.filter((counter) => counter.hasAttribute('data-uncounted'));
+    const factionTokenIds = playingSnapshot()
+      .table.pieces.filter((piece) => isFactionToken(piece))
+      .map((piece) => piece.id)
+      .sort((a, b) => a.localeCompare(b));
+    await expect(factionTokenIds.length).toBeGreaterThan(0);
+    await expect(uncounted.map((counter) => counter.dataset.pieceId ?? '').sort((a, b) => a.localeCompare(b))).toEqual(
+      factionTokenIds
+    );
+    await expect(counters.length).toBeGreaterThan(uncounted.length);
     for (const counter of counters) {
       await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{Alt>}');
     await expect(shell).toHaveAttribute('data-show-counts', 'true');
     for (const counter of counters) {
-      await expect(counter).toBeVisible();
+      if (uncounted.includes(counter)) {
+        await expect(counter).not.toBeVisible();
+      } else {
+        await expect(counter).toBeVisible();
+      }
     }
     window.dispatchEvent(new Event('blur'));
     await waitFor(() => expect(shell).toHaveAttribute('data-show-counts', 'false'));
@@ -173,7 +188,7 @@ export const PieceNames = meta.story({
     const troop = playingSnapshot().table.pieces.find((entry) => entry.id === troopId)!;
     const troopName = nameOf(troopId);
     const deckName = nameOf('treachery-deck');
-    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
+    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count:not([data-uncounted])'));
 
     await expect(troopName).not.toBeVisible();
     await user.keyboard('{Control>}');
@@ -184,16 +199,23 @@ export const PieceNames = meta.story({
     await expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
     await expect(deckName).toBeVisible();
     await expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
-    /* Control shows names only: the counts wait for Alt, and holding both shows both. */
+    /* Control shows names only: the counts wait for Alt, and holding both shows them as one tooltip, "10 Harkonnen troops". */
+    const troopLabel = troopName.querySelector<HTMLElement>('.scene-piece-name__label')!;
     for (const counter of counters) {
       await expect(counter).not.toBeVisible();
     }
+    await expect(troopLabel.innerText.trim()).toBe(troop.label);
     await user.keyboard('{Alt>}');
     await expect(shell).toHaveAttribute('data-show-counts', 'true');
     await expect(troopName).toBeVisible();
-    await expect(counters[0]).toBeVisible();
+    for (const counter of counters) {
+      await expect(counter).not.toBeVisible();
+    }
+    await expect(troopLabel.innerText.trim()).toBe(
+      troop.items.length > 1 ? `${troop.items.length} ${troop.label}` : troop.label
+    );
     await user.keyboard('{/Alt}');
-    await expect(counters[0]).not.toBeVisible();
+    await expect(troopLabel.innerText.trim()).toBe(troop.label);
     await expect(troopName).toBeVisible();
 
     await user.keyboard('{/Control}');

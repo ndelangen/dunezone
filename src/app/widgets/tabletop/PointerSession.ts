@@ -94,6 +94,22 @@ export class PointerSession {
     }
   }
 
+  /**
+   * Whether the held piece has moved away from where it was pressed.
+   * A piece carried out of a panel always has, and one lifted by holding still has once past the drag threshold.
+   */
+  movedFromPress() {
+    const active = this.active;
+    if (!active?.dragging) {
+      return false;
+    }
+    if (active.origin === 'panel') {
+      return true;
+    }
+    const last = active.last ?? active.input;
+    return Math.hypot(last.clientX - active.input.clientX, last.clientY - active.input.clientY) >= DRAG_THRESHOLD_PX;
+  }
+
   isDragging(pieceId: string) {
     return this.active?.pieceId === pieceId && this.active.dragging;
   }

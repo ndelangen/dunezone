@@ -129,6 +129,27 @@ test('a quick move delivered after the hold timer cancels the pending lift frame
   expect(controls.beginGesture).toHaveBeenCalledExactlyOnceWith(piece.id, 'top');
 });
 
+test('a held stack counts as moved only once the pointer travels past the drag threshold', () => {
+  vi.useFakeTimers();
+  const { session, piece } = table();
+  expect(session.movedFromPress()).toBe(false);
+  session.press(pointer('pointerdown'), piece.id);
+  vi.advanceTimersByTime(320);
+  vi.advanceTimersToNextFrame();
+  expect(session.isDragging(piece.id)).toBe(true);
+  expect(session.movedFromPress()).toBe(false);
+  window.dispatchEvent(pointer('pointermove', 13, 1, 400));
+  expect(session.movedFromPress()).toBe(false);
+  window.dispatchEvent(pointer('pointermove', 16, 1, 420));
+  expect(session.movedFromPress()).toBe(true);
+});
+
+test('a panel carry counts as moved from the start', () => {
+  const { session, piece } = table();
+  session.carry(pointer('pointerdown', 20), piece.id, 'top');
+  expect(session.movedFromPress()).toBe(true);
+});
+
 test('other pointers cannot cancel, replace, move or drop the active carry', () => {
   const { session, controls, piece } = table();
   session.press(pointer('pointerdown'), piece.id);

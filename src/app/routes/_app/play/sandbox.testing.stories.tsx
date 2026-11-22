@@ -1,7 +1,7 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { factionTokenOf } from '@shared/play/factionToken';
+import { factionTokenOf, isFactionToken } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
 import { SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
@@ -266,7 +266,136 @@ export const HoverShowsNameAndCountToSpectators = meta.story({
   },
 });
 
-async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true } = {}) {
+/**
+ * A pointer that slips off a stack for a moment, across a seam between its layers or the gap to a neighbour, keeps the tag up.
+ * The tag stays through the slip and never blinks.
+ */
+export const HoverTagHoldsThroughASlip = meta.story({
+  play: async ({ canvasElement }) => {
+    const { tag, spot: onStack } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const blinks: string[] = [];
+    /* Records arrive after the events that made them, so a tag taken off and put back in one go shows only in the records. */
+    const watch = new MutationObserver((records) => {
+      if (records.some((record) => record.oldValue === null) || tag.dataset.hovered === undefined) {
+        blinks.push('hidden');
+      }
+    });
+    watch.observe(tag, { attributes: true, attributeFilter: ['data-hovered'], attributeOldValue: true });
+    const edge = canvas.getBoundingClientRect();
+    const pointAt = (clientX: number, clientY: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
+      );
+    /* Off and straight back, with no wait between: the grace is longer than any gap, however slow the runner (createHoverTag's tests time it). */
+    for (let slip = 0; slip < 5; slip++) {
+      pointAt(edge.left + 4, edge.top + 4);
+      pointAt(onStack.x, onStack.y);
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+    watch.disconnect();
+    await expect(blinks).toEqual([]);
+    /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
+    await waitFor(() => expect(tag.querySelector('.scene-piece-name')).toBeVisible());
+    /* Off the stack for good, the tag goes after its moment. */
+    pointAt(edge.left + 4, edge.top + 4);
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'));
+  },
+});
+
+/**
+ * Holding the button down on a stack picks it up, and its tooltip stays for as long as the button is held.
+ * Set down under the still pointer, it keeps its tooltip.
+ */
+export const HoverTagStaysWhileHeld = meta.story({
+  play: async ({ canvasElement }) => {
+    const { tag, spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const label = tag.querySelector<HTMLElement>('.scene-piece-name__label')!.innerText.trim();
+    const shownTags = () => Array.from(document.querySelectorAll('.scene-piece-tag[data-hovered]'));
+    const shownLabels = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-tag[data-hovered] .scene-piece-name__label')).map(
+        (shown) => shown.innerText.trim()
+      );
+    const press = (type: 'pointerdown' | 'pointerup') =>
+      canvas.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: type === 'pointerdown' ? 1 : 0,
+          clientX: spot.x,
+          clientY: spot.y,
+        })
+      );
+    press('pointerdown');
+    /* Held still past the hold time, the stack is lifted; it keeps its tooltip for every frame it is held. */
+    await waitFor(() => expect(canvas.style.cursor).toBe('grabbing'));
+    for (let frame = 0; frame < 30; frame++) {
+      await new Promise((next) => requestAnimationFrame(next));
+      await expect(shownTags()).toEqual([tag]);
+    }
+    /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
+    await waitFor(() => expect(shownLabels()).toEqual([label]));
+    press('pointerup');
+    /* Set down under the still pointer. */
+    await waitFor(() => expect(canvas.style.cursor).not.toBe('grabbing'));
+    await waitFor(() => expect(shownLabels()).toEqual([label]));
+  },
+});
+
+/** A held stack that is dragged shows no tooltip while it moves. */
+export const HoverTagHidesWhileDragging = meta.story({
+  play: async ({ canvasElement }) => {
+    const { spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const shownTags = () => document.querySelectorAll('.scene-piece-tag[data-hovered]').length;
+    const pointer = (type: 'pointerdown' | 'pointermove' | 'pointerup', x: number, y: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          clientX: x,
+          clientY: y,
+        })
+      );
+    const frame = () => new Promise((next) => requestAnimationFrame(next));
+    pointer('pointerdown', spot.x, spot.y);
+    await waitFor(() => expect(shownTags()).toBe(1));
+    /* A tremor under the drag threshold is no drag: the tooltip stays. */
+    pointer('pointermove', spot.x + 3, spot.y);
+    await frame();
+    await expect(shownTags()).toBe(1);
+    /* Past the threshold the stack is dragged, and no tooltip shows for any step of the drag. */
+    pointer('pointermove', spot.x + 6, spot.y);
+    await waitFor(() => expect(shownTags()).toBe(0));
+    for (let step = 3; step <= 20; step++) {
+      pointer('pointermove', spot.x + step * 3, spot.y);
+      await frame();
+      await expect(shownTags()).toBe(0);
+    }
+    pointer('pointerup', spot.x + 60, spot.y);
+  },
+});
+
+/** A faction token is one of a kind: hovered, it shows its name, but no count. */
+export const HoverFactionTokenShowsNoCount = meta.story({
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement, { target: 'faction-token' });
+  },
+});
+
+async function hoverShowsNameAndCount(
+  canvasElement: HTMLElement,
+  { leave = true, target = 'troops' }: { leave?: boolean; target?: 'troops' | 'faction-token' } = {}
+) {
   await sandboxReady(within(canvasElement.ownerDocument.body));
   const document = canvasElement.ownerDocument;
   await waitForPlayCamera(document);
@@ -278,13 +407,17 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true
     const box = count.getBoundingClientRect();
     return box.top > 120 && box.bottom < view.innerHeight - 120 && box.left > 80 && box.right < view.innerWidth - 80;
   };
-  const troopIds = new Set(
+  const targetIds = new Set(
     shown()
-      .table.pieces.filter((candidate) => candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1)
+      .table.pieces.filter((candidate) =>
+        target === 'faction-token'
+          ? isFactionToken(candidate)
+          : candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1
+      )
       .map((candidate) => candidate.id)
   );
   const count = await waitFor(async () => {
-    const found = counts().find((candidate) => troopIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
+    const found = counts().find((candidate) => targetIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
     await expect(found).toBeDefined();
     return found!;
   });
@@ -295,10 +428,13 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true
 
   /* The table hears the pointer on its canvas, whatever page chrome lies over the spot. */
   const canvas = document.querySelector('canvas')!;
-  const pointAt = (clientX: number, clientY: number) =>
+  let spot = { x: 0, y: 0 };
+  const pointAt = (clientX: number, clientY: number) => {
+    spot = { x: clientX, y: clientY };
     canvas.dispatchEvent(
       new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
     );
+  };
   /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
   const settle = async (ms: number) => {
     const until = performance.now() + ms;
@@ -308,33 +444,50 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true
   };
   /* A busy runner answers late, so the pointer sweeps down the stack until the table hears it, for up to twenty seconds. */
   const deadline = performance.now() + 20_000;
+  let hit = 6;
+  const pointAtStack = (below: number) => {
+    const box = count.getBoundingClientRect();
+    pointAt(box.left + box.width / 2, box.bottom + below);
+  };
   while (!tag.hasAttribute('data-hovered') && performance.now() < deadline) {
     for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
-      const box = count.getBoundingClientRect();
-      pointAt(box.left + box.width / 2, box.bottom + below);
+      hit = below;
+      pointAtStack(below);
       await settle(400);
     }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
-  await waitFor(() => expect(count).toBeVisible());
-  await expect(name).toBeVisible();
-  await expect(name).toHaveTextContent(
-    shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label
+  /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
+  await waitFor(() => expect(name).toBeVisible());
+  await expect(count).not.toBeVisible();
+  const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
+  const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
+  /* A slow runner can move the camera from under the resting pointer, so the pointer follows the stack to where it is now until the label reads. */
+  await waitFor(
+    async () => {
+      if (!tag.hasAttribute('data-hovered')) {
+        pointAtStack(hit);
+      }
+      await expect(shownLabel.innerText.trim()).toBe(
+        target === 'faction-token' ? label : `${count.textContent} ${label}`
+      );
+    },
+    { timeout: 10_000 }
   );
   for (const other of counts().filter((candidate) => candidate !== count)) {
     await expect(other).not.toBeVisible();
   }
 
   if (!leave) {
-    return { count, tag };
+    return { count, tag, spot };
   }
   /* Off the stack, in the table's empty corner, no tag shows. */
   const edge = canvas.getBoundingClientRect();
   pointAt(edge.left + 4, edge.top + 4);
   await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
-  await waitFor(() => expect(count).not.toBeVisible());
-  await expect(name).not.toBeVisible();
-  return { count, tag };
+  await waitFor(() => expect(name).not.toBeVisible());
+  await expect(count).not.toBeVisible();
+  return { count, tag, spot };
 }
 
 /**

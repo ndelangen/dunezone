@@ -71,6 +71,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { tableCardFaceKey } from './cardFaceTexture';
 import { TABLE_FOCUS_ATTRIBUTE } from './focusTable';
+import { createHoverTag, HoverTagContext } from './hoverTag';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekMarkerList } from './peekMarkers';
@@ -102,7 +103,7 @@ import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrus
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { PieceMenuContext, useHoverFollowsCamera, usePiecePointerEvents } from './usePiecePointerEvents';
+import { PieceMenuContext, useHoverFollowsTable, usePiecePointerEvents } from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { useTablePointerRay } from './useTablePointerRay';
@@ -910,6 +911,7 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceName: styles.pieceName,
   pieceNameOwner: styles.pieceNameOwner,
   pieceNamePeeked: styles.pieceNamePeeked,
+  pieceNameCount: styles.pieceNameCount,
   pieceCount: styles.pieceCount,
   pieceCountSelected: styles.pieceCountSelected,
 };
@@ -1087,11 +1089,13 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
-  useHoverFollowsCamera();
+  /* Each table keeps its own hover tag, so two tables on one page never share one. */
+  const [hoverTag] = useState(createHoverTag);
+  useHoverFollowsTable(hoverTag);
   useCanvasName();
 
   return (
-    <>
+    <HoverTagContext.Provider value={hoverTag}>
       {presentation !== 'preview' && (
         <>
           <color attach="background" args={[palette.ground]} />
@@ -1144,7 +1148,7 @@ function SceneContents({
         </Suspense>
       )}
       <SelectionRingWarmup />
-    </>
+    </HoverTagContext.Provider>
   );
 }
 
