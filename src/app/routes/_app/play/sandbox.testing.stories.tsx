@@ -351,8 +351,8 @@ async function hoverShowsNameAndCount(
   const edge = canvas.getBoundingClientRect();
   pointAt(edge.left + 4, edge.top + 4);
   await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
-  await waitFor(() => expect(count).not.toBeVisible());
-  await expect(name).not.toBeVisible();
+  await waitFor(() => expect(name).not.toBeVisible());
+  await expect(count).not.toBeVisible();
   return { count, tag };
 }
 
