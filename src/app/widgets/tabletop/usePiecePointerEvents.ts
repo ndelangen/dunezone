@@ -5,6 +5,8 @@ import type { TablePiece } from '@shared/play/model';
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Matrix4 } from 'three';
 
+import { HoverTagContext } from './hoverTag';
+import type { HoverTag } from './hoverTag';
 import { pieceHasMenu } from './pieceMenu';
 import { usePointerSession } from './PointerSessionContext';
 import { useTabletopActions, useTabletopSelector } from './TabletopContext';
@@ -20,68 +22,6 @@ function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, ges
   }
   return gestureBlocked ? 'not-allowed' : 'grab';
 }
-
-/* How long a tag stays after the pointer slips off its piece, so a pointer crossing a seam between a stack's layers, or brushing a neighbour, does not blink it. */
-const HOVER_TAG_GRACE_MS = 160;
-
-/* Which piece shows its hover tag: one at a time, so two stacks never show tags together. */
-export function createHoverTag() {
-  let current: string | null = null;
-  let hide: ReturnType<typeof setTimeout> | undefined;
-  const listeners = new Set<() => void>();
-  const set = (next: typeof current) => {
-    if (current === next) {
-      return;
-    }
-    current = next;
-    for (const listener of listeners) {
-      listener();
-    }
-  };
-  const cancelHide = () => {
-    clearTimeout(hide);
-    hide = undefined;
-  };
-  return {
-    subscribe: (listener: () => void) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    shows: (pieceId: string) => current === pieceId,
-    show(pieceId: string) {
-      cancelHide();
-      set(pieceId);
-    },
-    /*
-     * The pointer left the piece: its tag goes after a moment, unless the pointer comes back or reaches another piece first.
-     * What else ends with the hover, such as the hand cursor, goes with the tag, so it does not blink either.
-     */
-    leave(pieceId: string, gone: () => void) {
-      if (current !== pieceId) {
-        return;
-      }
-      cancelHide();
-      hide = setTimeout(() => {
-        hide = undefined;
-        if (current === pieceId) {
-          set(null);
-          gone();
-        }
-      }, HOVER_TAG_GRACE_MS);
-    },
-    /* The piece is gone from the table: its tag goes at once. */
-    drop(pieceId: string) {
-      if (current === pieceId) {
-        cancelHide();
-        set(null);
-      }
-    },
-  };
-}
-
-export const HoverTagContext = createContext(createHoverTag());
 
 /* Opens a piece's menu at a point. */
 export const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
@@ -133,11 +73,12 @@ export function usePiecePointerEvents({
   );
   useEffect(
     () => () => {
-      if (hovered.current) {
+      /* Only while its tag is still up: once another piece took the tag, the keys are aimed at that one. */
+      if (hovered.current && hoverTag.shows(piece.id)) {
         setHoveredPiece(null);
       }
     },
-    [setHoveredPiece]
+    [setHoveredPiece, hoverTag, piece.id]
   );
 
   const handlers = {
@@ -181,10 +122,13 @@ export function usePiecePointerEvents({
     },
     /* The table keeps a hovered piece hovered without a new enter, so the pointer coming back within the grace keeps its tag. */
     onPointerMove: () => hoverTag.show(piece.id),
+    /* The keys stay aimed at the piece for as long as its tag stays up, so they act on the piece the tag names. */
     onPointerLeave: () => {
-      hovered.current = false;
-      setHoveredPiece(null);
       hoverTag.leave(piece.id, () => {
+        if (hovered.current) {
+          hovered.current = false;
+          setHoveredPiece(null);
+        }
         /* Only the cursor this piece put up: something the pointer reached meanwhile, such as the spice bank, keeps its own. */
         const canvas = get().renderer.domElement;
         if (!pointerSession.busy && canvas.style.cursor === shownCursor.current) {
@@ -193,7 +137,7 @@ export function usePiecePointerEvents({
       });
     },
   };
-  const dragged = useDraggedFar(locallyCarried);
+  const dragged = useDragged(locallyCarried, pointerSession);
   /*
    * The piece the viewer holds keeps its tag while the button is down, until it is dragged: a moving piece shows none.
    * While something is held, the pieces it passes over show none, and a piece in someone else's hand shows none either.
@@ -201,30 +145,28 @@ export function usePiecePointerEvents({
   return { handlers, hovered: locallyCarried ? !dragged : tagged && !carrying && !remoteCarried };
 }
 
-/* How far, in screen pixels, a held piece moves before it counts as dragged. */
-const DRAG_TAG_SLOP_PX = 4;
-
-/* Whether the pointer has moved a held piece further than a hand's tremor since it was picked up. */
-function useDraggedFar(held: boolean) {
-  const [dragged, setDragged] = useState(false);
+/*
+ * Whether the held piece is being dragged: moved past the drag threshold from where it was pressed, or carried out of a panel.
+ * Read on every pointer move while held, and again whenever the hold begins.
+ */
+function useDragged(held: boolean, pointerSession: ReturnType<typeof usePointerSession>) {
+  const [moved, setMoved] = useState(false);
   useEffect(() => {
     if (!held) {
       return;
     }
-    let origin: { x: number; y: number } | null = null;
-    const move = (event: PointerEvent) => {
-      origin ??= { x: event.clientX, y: event.clientY };
-      if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_TAG_SLOP_PX) {
-        setDragged(true);
+    const move = () => {
+      if (pointerSession.movedFromPress()) {
+        setMoved(true);
       }
     };
     window.addEventListener('pointermove', move);
     return () => {
       window.removeEventListener('pointermove', move);
-      setDragged(false);
+      setMoved(false);
     };
-  }, [held]);
-  return held && dragged;
+  }, [held, pointerSession]);
+  return held && (moved || pointerSession.movedFromPress());
 }
 
 /* How long the table keeps looking under a still pointer after its pieces change, while a moved piece glides to its place. */
@@ -236,7 +178,7 @@ const PIECE_GLIDE_MS = 1000;
  * on every frame the camera moved, and for a moment after the pieces changed: a stack set down under the pointer keeps its tag,
  * and one that slides away loses it.
  */
-export function useHoverFollowsTable() {
+export function useHoverFollowsTable(hoverTag: HoverTag) {
   const { camera, renderer } = useThree();
   const events = useThree((state) => state.events);
   /*
@@ -245,11 +187,14 @@ export function useHoverFollowsTable() {
    */
   const lastMove = useRef<PointerEvent | null>(null);
   const seen = useRef(new Matrix4());
-  const pieces = useTabletopSelector((table) => table.renderedPieces);
+  /* Only where pieces lie counts: the table emits new pieces for changes, such as a hover, that move nothing. */
+  const poses = useTabletopSelector((table) =>
+    table.renderedPieces.map((piece) => `${piece.id}@${piece.position.join()}@${piece.orientation}`).join('|')
+  );
   const lookUntil = useRef(0);
   useEffect(() => {
     lookUntil.current = performance.now() + PIECE_GLIDE_MS;
-  }, [pieces]);
+  }, [poses]);
   useEffect(() => {
     const canvas = renderer.domElement;
     const move = (event: PointerEvent) => (lastMove.current = event);
@@ -271,6 +216,9 @@ export function useHoverFollowsTable() {
     seen.current.copy(camera.matrixWorld);
     if (lastMove.current) {
       events.handlers?.onPointerMove?.(lastMove.current);
+    } else {
+      /* No pointer the table can look with: a tag left up would ride its piece wherever it goes. */
+      hoverTag.clear();
     }
   });
 }

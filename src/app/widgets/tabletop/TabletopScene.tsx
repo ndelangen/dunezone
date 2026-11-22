@@ -71,6 +71,7 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { tableCardFaceKey } from './cardFaceTexture';
 import { TABLE_FOCUS_ATTRIBUTE } from './focusTable';
+import { createHoverTag, HoverTagContext } from './hoverTag';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekMarkerList } from './peekMarkers';
@@ -102,13 +103,7 @@ import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrus
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import {
-  createHoverTag,
-  HoverTagContext,
-  PieceMenuContext,
-  useHoverFollowsTable,
-  usePiecePointerEvents,
-} from './usePiecePointerEvents';
+import { PieceMenuContext, useHoverFollowsTable, usePiecePointerEvents } from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { useTablePointerRay } from './useTablePointerRay';
@@ -1094,10 +1089,10 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
-  useHoverFollowsTable();
-  useCanvasName();
   /* Each table keeps its own hover tag, so two tables on one page never share one. */
   const [hoverTag] = useState(createHoverTag);
+  useHoverFollowsTable(hoverTag);
+  useCanvasName();
 
   return (
     <HoverTagContext.Provider value={hoverTag}>

@@ -263,6 +263,18 @@
   visibility: hidden;
 }
 
+/* The selected stack's tooltip keeps the selected count's colours when it carries the count. */
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag[data-selected] .pieceName,
+.pieceTag[data-hovered][data-selected] .pieceName {
+  color: var(--color-ink);
+  background: var(--color-brand-strong);
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag[data-selected] .pieceName > *,
+.pieceTag[data-hovered][data-selected] .pieceName > * {
+  color: inherit;
+}
+
 .pieceCountSelected {
   color: var(--color-ink);
   background: var(--color-brand-strong);

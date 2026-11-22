@@ -38,6 +38,7 @@ export function PieceBadge({
           className={`scene-piece-tag ${classNames.pieceTag}`}
           data-hovered={hovered || undefined}
           data-uncounted={uncounted || undefined}
+          data-selected={selected || undefined}
         >
           <span className={`scene-piece-name ${classNames.pieceName}`}>
             <span className="scene-piece-name__label">

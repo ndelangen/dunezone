@@ -287,9 +287,9 @@ export const HoverTagHoldsThroughASlip = meta.story({
       canvas.dispatchEvent(
         new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
       );
+    /* Off and straight back, with no wait between: the grace is longer than any gap, however slow the runner (createHoverTag's tests time it). */
     for (let slip = 0; slip < 5; slip++) {
       pointAt(edge.left + 4, edge.top + 4);
-      await new Promise((next) => requestAnimationFrame(next));
       pointAt(onStack.x, onStack.y);
       await new Promise((next) => requestAnimationFrame(next));
     }
@@ -329,16 +329,13 @@ export const HoverTagStaysWhileHeld = meta.story({
         })
       );
     press('pointerdown');
-    const heldUntil = performance.now() + 1500;
-    while (performance.now() < heldUntil) {
+    /* Held still past the hold time, the stack is lifted; it keeps its tooltip for every frame it is held. */
+    await waitFor(() => expect(canvas.style.cursor).toBe('grabbing'));
+    for (let frame = 0; frame < 30; frame++) {
       await new Promise((next) => requestAnimationFrame(next));
       await expect(shownLabels()).toEqual([label]);
     }
     press('pointerup');
-    const restUntil = performance.now() + 1500;
-    while (performance.now() < restUntil) {
-      await new Promise((next) => requestAnimationFrame(next));
-    }
     await waitFor(() => expect(shownLabels()).toEqual([label]));
   },
 });
