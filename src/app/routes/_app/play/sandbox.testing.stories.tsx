@@ -457,8 +457,17 @@ async function hoverShowsNameAndCount(
   await expect(count).not.toBeVisible();
   const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
   const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
-  await waitFor(() =>
-    expect(shownLabel.innerText.trim()).toBe(target === 'faction-token' ? label : `${count.textContent} ${label}`)
+  /* A slow runner can move the camera from under the resting pointer, so the pointer comes back to the stack until the label reads. */
+  await waitFor(
+    async () => {
+      if (!tag.hasAttribute('data-hovered')) {
+        pointAt(spot.x, spot.y);
+      }
+      await expect(shownLabel.innerText.trim()).toBe(
+        target === 'faction-token' ? label : `${count.textContent} ${label}`
+      );
+    },
+    { timeout: 10_000 }
   );
   for (const other of counts().filter((candidate) => candidate !== count)) {
     await expect(other).not.toBeVisible();
