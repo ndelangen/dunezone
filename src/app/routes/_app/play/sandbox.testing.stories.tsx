@@ -17,6 +17,7 @@ import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
+import { countedLabel } from '../../../widgets/tabletop/countedLabel';
 import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
@@ -457,10 +458,10 @@ async function hoverShowsNameAndCount(
     }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
-  /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
+  /* Name and count read as one tooltip, "10 Harkonnen Troops"; a faction token, one of a kind, shows its name alone. */
   await waitFor(() => expect(name).toBeVisible());
   await expect(count).not.toBeVisible();
-  const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
+  const piece = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!;
   const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
   /* A slow runner can move the camera from under the resting pointer, so the pointer follows the stack to where it is now until the label reads. */
   await waitFor(
@@ -469,7 +470,7 @@ async function hoverShowsNameAndCount(
         pointAtStack(hit);
       }
       await expect(shownLabel.innerText.trim()).toBe(
-        target === 'faction-token' ? label : `${count.textContent} ${label}`
+        target === 'faction-token' ? piece.label : countedLabel(piece, Number(count.textContent))
       );
     },
     { timeout: 10_000 }

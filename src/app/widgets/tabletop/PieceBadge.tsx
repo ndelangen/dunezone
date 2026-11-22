@@ -5,6 +5,7 @@ import { pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { pieceLabelHeight } from '@shared/play/tableGeometry';
 
+import { countedLabel } from './countedLabel';
 import type { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 export function PieceBadge({
@@ -25,6 +26,7 @@ export function PieceBadge({
 } & Pick<ReturnType<typeof usePieceFlipAnimation>, 'labelRef' | 'badgeRef'> & { classNames: Record<string, string> }) {
   const count = pieceCount(piece);
   const uncounted = isFactionToken(piece);
+  const counted = count > 1 && !uncounted ? countedLabel(piece, count) : null;
   return (
     <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
       <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
@@ -41,11 +43,16 @@ export function PieceBadge({
           data-selected={selected || undefined}
         >
           <span className={`scene-piece-name ${classNames.pieceName}`}>
+            {/* The name alone while only names show; with the count it reads as one line, "10 Harkonnen Troops". */}
             <span className="scene-piece-name__label">
-              {count > 1 && !uncounted ? (
-                <span className={`scene-piece-name__count ${classNames.pieceNameCount}`}>{count} </span>
-              ) : null}
-              {piece.label}
+              {counted ? (
+                <>
+                  <span className={`scene-piece-name__alone ${classNames.pieceNameAlone}`}>{piece.label}</span>
+                  <span className={`scene-piece-name__count ${classNames.pieceNameCount}`}>{counted}</span>
+                </>
+              ) : (
+                piece.label
+              )}
             </span>
             {owner ? <span className={`scene-piece-name__owner ${classNames.pieceNameOwner}`}>{owner}</span> : null}
             {peeked ? <span className={`scene-piece-name__peeked ${classNames.pieceNamePeeked}`}>{peeked}</span> : null}

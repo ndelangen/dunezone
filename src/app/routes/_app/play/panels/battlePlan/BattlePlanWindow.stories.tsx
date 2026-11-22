@@ -10,7 +10,7 @@ import type { Scenario, SlotSize } from './battlePlan.stories.fixture';
 type Args = { scenario: Scenario; size: SlotSize };
 
 const meta = preview.meta({
-  title: 'Play/Explorations/Battle plan window',
+  title: 'Play/Explorations/Battle plan panel',
   globals: { motion: 'on' },
   parameters: { layout: 'centered', chromatic: { disableSnapshot: true } },
   tags: ['!test'],
