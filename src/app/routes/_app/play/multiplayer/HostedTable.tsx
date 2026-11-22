@@ -34,7 +34,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
-import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
+import { CameraLookContext } from '@app/widgets/tabletop/cameraLook';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -83,6 +83,7 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
+import { useNoticeFeeds } from './noticeFeed';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
 import { OwnFactionNotice } from './OwnFaction';
@@ -883,7 +884,7 @@ function ConnectedTable({
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
   /* A notice about a spot on the table, such as a ping, has the camera look there. */
-  const [cameraLook] = useState(createCameraLook);
+  const feeds = useNoticeFeeds(client, useContext(CameraLookContext));
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -911,7 +912,7 @@ function ConnectedTable({
           {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
           <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
             {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-            <CameraLookContext value={cameraLook}>
+            <CameraLookContext value={feeds.cameraLook}>
               <CompassTableContext value={compassTable}>
                 <GameTable
                   readOnly={readOnly}
@@ -984,9 +985,9 @@ function ConnectedTable({
                       inert={inert}
                       openPanel={openNoticePanel}
                       openBattlePlan={noticeBattleOpener}
-                      subscribeMessages={client.conversations.subscribeMessages}
-                      subscribePings={client.subscribePings}
-                      lookAt={cameraLook.lookAt}
+                      subscribeMessages={feeds.messages.subscribe}
+                      subscribePings={feeds.pings.subscribe}
+                      onLookAt={feeds.cameraLook.lookAt}
                     />
                   )}
                 />

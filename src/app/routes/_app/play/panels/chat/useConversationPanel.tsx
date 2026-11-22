@@ -8,10 +8,10 @@ import type { TableProjection, TableSession } from '../../../../../db/tabletop/T
 import { CompassWindowsContext } from '../../compass/compassWindows';
 import { snapshotFactionToken } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import { tableMentions } from '../../multiplayer/mentions';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
-import { tableMentions } from './mentions';
 
 export { tableMentions };
 

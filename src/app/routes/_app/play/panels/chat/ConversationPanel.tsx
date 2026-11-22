@@ -10,11 +10,11 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 're
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import type { Mention } from '../../multiplayer/mentions';
 import { CONVERSATION_HELP } from '../../multiplayer/panelGuidance';
 import { useServerNowAs } from '../../multiplayer/useServerNow';
 import { ChatComposer } from './ChatComposer';
 import styles from './ConversationPanel.module.css';
-import type { Mention } from './mentions';
 import { MentionCard, MentionText } from './MentionText';
 import type { MentionActions } from './MentionText';
 import { useViewingConversation } from './viewingConversations';

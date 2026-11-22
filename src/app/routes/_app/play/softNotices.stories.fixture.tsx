@@ -4,10 +4,13 @@ import type { Vector3Tuple } from '@shared/play/model';
 import { MOVEMENT_PHASE_ID } from '@shared/play/movement';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
 import type { Decorator } from '@storybook/tanstack-react';
+import { useState } from 'react';
 import { within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
+import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
 
 import { install } from './game.stories.fixture';
 import { NoticeLifetime } from './multiplayer/noticeLifetime';
@@ -186,4 +189,45 @@ export function movementReachesViewer(snapshot: GameSnapshot) {
   const own = ownFaction(snapshot).id;
   snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === MOVEMENT_PHASE_ID);
   snapshot.movement = { done: [], order: [own, ...otherFactions(snapshot).map((faction) => faction.id)] };
+}
+
+/* Where the stories' table was asked to look, newest last. */
+let looks: Vector3Tuple[] = [];
+
+/** Stands in for the table's camera look, so a story can see where a notice asked it to look; the table's own camera still follows. */
+export const recordLooks: Decorator = (Story) => {
+  const [look] = useState(() => {
+    const own = createCameraLook();
+    looks = [];
+    return {
+      lookAt: (spot: Vector3Tuple) => {
+        looks.push(spot);
+        own.lookAt(spot);
+      },
+      subscribe: own.subscribe,
+    };
+  });
+  return (
+    <CameraLookContext value={look}>
+      <Story />
+    </CameraLookContext>
+  );
+};
+
+/** Where the stories' table was last asked to look. */
+export const lastLook = () => looks.at(-1);
+
+/** The territory the viewer's pieces lie in on the story table, as a ping there names it. */
+export function ownPiecesTerritory(snapshot: GameSnapshot) {
+  const name = territoryAtTable({ board: snapshot.board?.definition }, ownPiecesSpot(snapshot))?.name;
+  if (!name) {
+    throw new Error("The viewer's pieces lie in no territory on the story table.");
+  }
+  return name;
+}
+
+/** A toast's accessible name: its line, then the words quoted under it, matched whole. */
+export function toastName(line: string, quote?: string) {
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escape(line)}${quote === undefined ? '' : `\\s*${escape(quote)}`}$`);
 }

@@ -8,6 +8,7 @@ import {
   biddingReachesViewer,
   liveSnapshot,
   otherFactions,
+  toastName,
   writeToViewer,
   changeTable,
   holdGlowLit,
@@ -64,7 +65,7 @@ export const MentionedInTableChat = meta.story({
     await writeToViewer(asker!.id, askViewer(snapshot));
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${asker!.name} mentioned you`) })
+      log.getByRole('button', { name: toastName(`${asker!.name} mentioned you`, askViewer(snapshot)) })
     );
     await expect(finishTransitions(toast)).toBeVisible();
   },

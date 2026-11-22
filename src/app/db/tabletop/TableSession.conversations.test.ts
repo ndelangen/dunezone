@@ -431,7 +431,7 @@ test('a clear lost with the connection goes out again once the summaries are bac
   expect(client.conversations.clearedThrough('two')).toBe(2);
 });
 
-test('another faction’s message is heard once as it arrives; the viewer’s own messages are not', async () => {
+test("another faction's message is heard once as it arrives, in any order; the viewer's own messages are not", async () => {
   const client = await connect();
   const heard: [string, string][] = [];
   client.conversations.subscribeMessages((peerId, message) => heard.push([peerId, message.text]));

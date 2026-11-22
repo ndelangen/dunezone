@@ -17,11 +17,11 @@ import { useMotionAllowed } from '@app/styles/motion';
 
 import { ownStep } from '../../../../db/tabletop/OwnChanges';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
-import { splitMentions, tableMentions } from '../panels/chat/mentions';
 import { isViewingConversation } from '../panels/chat/viewingConversations';
 import { useChatNotices } from './chatNotices';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
+import { splitMentions, tableMentions } from './mentions';
 import { factionTokenSpot, noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import { NoticeLifetime } from './noticeLifetime';
@@ -396,7 +396,7 @@ function Toast({
   );
 }
 
-/* A notice's line, with a chat message's words quieter under it, up to two lines. */
+/* A toast's words: the caller owns the notice; this owns laying out its line, with a chat message's words quieter under it, up to two lines. */
 function NoticeWords({ notice }: Readonly<{ notice: SoftNotice }>) {
   if (!notice.quote) {
     return (
@@ -434,7 +434,7 @@ export function TableSoftNotices({
   lead,
   subscribeMessages,
   subscribePings,
-  lookAt,
+  onLookAt,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
@@ -444,8 +444,8 @@ export function TableSoftNotices({
   subscribeMessages?: SubscribeMessages;
   /** Each ping at the table, as it lands. */
   subscribePings?: SubscribePings;
-  /** Has the table's camera look at a spot, for a notice about one. */
-  lookAt?: (spot: Vector3Tuple) => void;
+  /** The viewer opened a notice about a spot on the table; the caller decides what looking there means. */
+  onLookAt?: (spot: Vector3Tuple) => void;
   /** Whether a board gesture holds the pointer, when no notice may be opened. */
   inert: boolean;
   openPanel: (key: string) => void;
@@ -459,7 +459,7 @@ export function TableSoftNotices({
         ? factionTokenSpot(table.confirmedSnapshot ?? table.snapshot, start.own)
         : notice.spot;
     if (spot) {
-      lookAt?.(spot);
+      onLookAt?.(spot);
     } else if (panel) {
       openPanel(panel);
     } else if (notice.kind === 'battle') {

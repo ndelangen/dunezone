@@ -1,5 +1,5 @@
-import type { TableProjection } from '../../../../../db/tabletop/TableSession';
-import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import type { FactionToken } from './FactionTokenFace';
 
 /** A seat a table chat message can name after an @: found by its faction's or its player's name, and always written as the faction's. */
 export type Mention = Readonly<{

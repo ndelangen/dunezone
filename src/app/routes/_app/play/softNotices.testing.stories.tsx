@@ -4,13 +4,18 @@ import { expect, userEvent, within } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
 import { setChatNotices } from './multiplayer/chatNotices';
+import { factionTokenSpot } from './multiplayer/noticeEvents';
 import {
   askViewer,
   biddingReachesViewer,
   liveSnapshot,
   movementReachesViewer,
-  ownPiecesSpot,
   otherFactions,
+  ownPiecesSpot,
+  ownPiecesTerritory,
+  recordLooks,
+  lastLook,
+  toastName,
   pingFromOtherSeat,
   writeToViewer,
   changeTable,
@@ -219,41 +224,50 @@ export const PingElsewhereRaisesNothing = meta.story({
   },
 });
 
-/* Another faction writes to the viewer in their private chat: a toast says who, with the message under it. */
+/* Another faction writes to the viewer in their private chat: a toast says who, with the message under it, and opens that chat. */
 export const PrivateMessage = meta.story({
   play: async ({ canvasElement }) => {
     const page = await tableShown(canvasElement);
     const [, writer] = otherFactions(liveSnapshot());
-    await writeToViewer(writer!.id, 'Want to team up against the Emperor this turn?', writer!.id);
+    const words = 'Want to team up against the Emperor this turn?';
+    await writeToViewer(writer!.id, words, writer!.id);
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${writer!.name} wrote to you`) })
+      log.getByRole('button', { name: toastName(`${writer!.name} wrote to you`, words) })
     );
-    await expect(finishTransitions(toast)).toBeVisible();
+    await userEvent.click(toast);
+    await expect(await page.findByRole('textbox', { name: 'Message' })).toBeVisible();
   },
 });
 
-/* Another player pings the viewer's own pieces: a toast names who, and the territory; clicking it has the camera glide there. */
+/* Another player pings the viewer's own pieces: a toast names who, and the territory; clicking it asks the camera to look where the ping landed. */
 export const PingOnYourPieces = meta.story({
+  decorators: [recordLooks],
   play: async ({ canvasElement }) => {
     const page = await tableShown(canvasElement);
-    const pinger = await pingFromOtherSeat(ownPiecesSpot(liveSnapshot()));
+    const snapshot = liveSnapshot();
+    const spot = ownPiecesSpot(snapshot);
+    const pinger = await pingFromOtherSeat(spot);
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${pinger} pinged your pieces`) })
+      log.getByRole('button', { name: toastName(`${pinger} pinged your pieces in ${ownPiecesTerritory(snapshot)}`) })
     );
-    await expect(finishTransitions(toast)).toBeVisible();
+    await userEvent.click(toast);
+    await expect(lastLook()).toEqual(spot);
   },
 });
 
-/* Shipment and Movement reaches the viewer: a toast says it is their turn. Where clicking it looks is factionTokenSpot, unit tested in noticeEvents.test.ts. */
-export const YourTurnToShip = meta.story({
+/* Shipment and Movement reaches the viewer: clicking their turn's toast asks the camera to look at their faction token. */
+export const ShipToastLooksAtToken = meta.story({
+  decorators: [recordLooks],
   play: async ({ canvasElement }) => {
     const page = await tableShown(canvasElement);
     changeTable(movementReachesViewer);
     const { log } = noticeLog(page);
-    const toast = await waitForFrame(() => log.getByRole('button', { name: /Your turn to ship and move/ }));
-    await expect(finishTransitions(toast)).toBeVisible();
+    await userEvent.click(await waitForFrame(() => log.getByRole('button', { name: /Your turn to ship and move/ })));
+    const snapshot = liveSnapshot();
+    await expect(lastLook()).toEqual(factionTokenSpot(snapshot, ownFaction(snapshot).id));
+    await expect(lastLook()).toBeDefined();
   },
 });
 
@@ -270,7 +284,7 @@ export const MentionAfterTheGame = meta.story({
     await writeToViewer(asker!.id, askViewer(snapshot));
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() =>
-      log.getByRole('button', { name: new RegExp(`${asker!.name} mentioned you`) })
+      log.getByRole('button', { name: toastName(`${asker!.name} mentioned you`, askViewer(snapshot)) })
     );
     await expect(finishTransitions(toast)).toBeVisible();
   },

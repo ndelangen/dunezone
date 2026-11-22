@@ -412,7 +412,7 @@ function AutoClearChatsItem() {
   return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
 }
 
-/* Chat messages that mention the viewer, or write to them privately, toast under the header; on unless turned off (#2981). */
+/* Chat notifications on or off: the viewer owns the choice, kept in this browser; the notices own what they show while it is on (#2981). */
 function ChatNoticesItem() {
   return <ViewerToggleItem label="Chat notifications" on={useChatNotices()} set={setChatNotices} />;
 }

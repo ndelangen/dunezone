@@ -7,9 +7,9 @@ import type { KeyboardEvent } from 'react';
 import { focusTable } from '../../../../../widgets/tabletop/focusTable';
 import { WINDOW_FOCUS_ATTRIBUTE } from '../../compass/windowFocus';
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import { completeMention, matchMentions, mentionQuery } from '../../multiplayer/mentions';
+import type { Mention, MentionQuery } from '../../multiplayer/mentions';
 import styles from './ChatComposer.module.css';
-import { completeMention, matchMentions, mentionQuery } from './mentions';
-import type { Mention, MentionQuery } from './mentions';
 
 const MENTION_TOKEN_SIZE = 20;
 
