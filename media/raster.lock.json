@@ -7946,6 +7946,42 @@
     "isOpaque": true,
     "color": "#081828"
   },
+  "/web/blog/learn-to-play-dune-online/chapter-complete.jpg": {
+    "sha256": "0a917925f9b072ce66ee6ce473ac76293cf6101052034b05011e682a2d661900",
+    "bytes": 148813,
+    "width": 2048,
+    "height": 1280,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/learn-to-play-dune-online/chat-reply.jpg": {
+    "sha256": "2875c647ff065fab0f6c25c24d0e0f034c3990b686a6c9cab6b80c24093c874a",
+    "bytes": 251458,
+    "width": 1600,
+    "height": 1800,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/blog/learn-to-play-dune-online/meet-arrakis.jpg": {
+    "sha256": "64330a1aed131e81fb52ea11430ab4a2a34dcb706b20cdb33ad687e6ddaa614d",
+    "bytes": 226336,
+    "width": 2048,
+    "height": 1280,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#281818"
+  },
+  "/web/blog/learn-to-play-dune-online/meet-in-arrakeen.jpg": {
+    "sha256": "d26fc679a53acb3dffb7bf29d48e68758c3831935da0e635c2a78c45f4de242a",
+    "bytes": 233469,
+    "width": 2048,
+    "height": 1280,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#281818"
+  },
   "/web/blog/playing-dune-online-in-real-time/table-in-play.jpg": {
     "sha256": "92d963f04706e2abeceebbf90431df485fe35194af1a5a344f1d0d67dd02b44d",
     "bytes": 398704,
