@@ -82,17 +82,32 @@
   filter: drop-shadow(0 5px 10px rgb(from var(--color-shadow) r g b / 0.38));
 }
 
-.cast {
+/*
+ * The cast and the caption as one column filling the artwork, so the cast takes whatever height the caption leaves.
+ * No z-index of its own: the cast, the caption and the faction token keep stacking against each other.
+ */
+.stage {
   position: absolute;
-  inset: 16% 0;
-  z-index: 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Dips into the caption's top padding by the same 4% the tokens always overlapped a one-line caption, never as far as its text. */
+.cast {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  margin: 16% 0 -4%;
+}
+
+/* 48% of the card wide, unless a tall caption leaves the cast less room: then it shrinks to stay clear of the faction token above it. */
 .factionLeader {
   position: absolute;
   right: 5%;
   bottom: 0;
-  width: 48%;
+  height: min(48cqi, 100% - 7cqi);
   aspect-ratio: 1;
   filter: drop-shadow(0 12px 17px rgb(from var(--color-shadow) r g b / 0.38));
   transition: transform 160ms ease;
@@ -141,11 +156,9 @@
 }
 
 .caption {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  position: relative;
   z-index: 4;
+  flex: none;
   display: flex;
   gap: 0.5rem;
   align-items: end;
@@ -173,10 +186,11 @@
   line-height: 1.12;
 }
 
-.ruleset {
-  margin-top: 0.15rem;
-  color: rgb(from var(--color-inverse) r g b / 0.78);
-  line-height: 1.15;
+/* The faction's rulesets as their covers, under the name; four of them fit the compact caption. */
+.rulesets {
+  --ruleset-cover-size: 1.375rem;
+
+  margin-top: calc(var(--space-xs) / 2);
 }
 
 /*
@@ -204,8 +218,8 @@
     line-height: 1.12;
   }
 
-  .ruleset {
-    font-size: 0.625rem;
+  .rulesets {
+    --ruleset-cover-size: 1.125rem;
   }
 }
 

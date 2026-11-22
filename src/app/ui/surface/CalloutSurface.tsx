@@ -148,15 +148,21 @@ export function CalloutSurface({
   children,
   actions,
   pointer,
+  reach = 1,
 }: {
   children: ReactNode;
   actions: ReactNode;
   pointer?: [number, number];
+  /** How far the pointer reaches from the capsule towards its tip, 0 to 1; a caller animates it to grow the pointer out. */
+  reach?: number;
 }) {
   const { ref, width, height } = useElementSize();
   const { ref: contentRef, height: contentHeight } = useElementSize();
   const { ref: actionsRef, width: actionsWidth, height: actionsHeight } = useElementSize();
-  const tip = pointer ?? [0, height / 2 + 26];
+  const full = pointer ?? [0, height / 2 + 26];
+  /* The pointer grows from where its base meets the capsule's edge, straight out towards its tip. */
+  const edge = full[1] < 0 ? -height / 2 : height / 2;
+  const tip: [number, number] = reach >= 1 ? full : [full[0] * reach, edge + (full[1] - edge) * reach];
   return (
     <PaintedSurfaceBoundary>
       <div className={styles.root} ref={ref}>

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { HOMEPAGE_CLIENT_CONNECTION_LIMIT, HOMEPAGE_ACCOUNT_CUTOFF_PATH } from '../../src/shared/homepage/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -37,6 +38,7 @@ async function visitor(member = false, now?: number) {
     peer.homepageAdmission = {
       allowed: true,
       userKey: crypto.randomUUID(),
+      issuedAt: now ?? Date.now(),
       leaseUntil: (now ?? Date.now()) + 30_000,
       avatarUrl: 'https://dune.zone/avatar/test.webp',
     };
@@ -58,6 +60,32 @@ async function command(connection: NativeConnection, action: PieceAction) {
 }
 
 describe('the public homepage table', () => {
+  it('lets one address hold only its share of the table, so a single visitor cannot fill it', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'homepage', { APPLICATION_ORIGIN: 'https://dune.zone' });
+    const open = async (address: string) => {
+      const response = await runtime.fetch('/__play/homepage/socket', {
+        headers: { Origin: runtime.origin, Upgrade: 'websocket', 'CF-Connecting-IP': address },
+      });
+      response.webSocket?.accept();
+      if (response.webSocket) {
+        sockets.push({ socket: response.webSocket } as NativeConnection);
+      } else {
+        await response.body?.cancel();
+      }
+      return response.status;
+    };
+    for (let index = 0; index < HOMEPAGE_CLIENT_CONNECTION_LIMIT; index++) {
+      expect(await open('203.0.113.7')).toBe(101);
+    }
+    expect(await open('203.0.113.7')).toBe(429);
+    expect(await open('2001:db8::7')).toBe(101);
+    /* A visitor who closes a socket gets its place back. */
+    sockets.shift()!.socket.close();
+    await eventually(async () => (await open('203.0.113.7')) === 101, 'freed place');
+  });
+
   it('replaces the generation when an invalid saved table is replaced', async () => {
     const member = await visitor(true);
     const before = await syncView(member);
@@ -501,3 +529,51 @@ function admittedProfile() {
   }
   return admission;
 }
+
+async function deliverCutoff() {
+  return await runtime.fetch(HOMEPAGE_ACCOUNT_CUTOFF_PATH, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${'c'.repeat(64)}`, 'X-Account-Operation': 'ban-operation' },
+  });
+}
+
+it('closes only the banned editor and refuses a forged cutoff', async () => {
+  const banned = await visitor(true);
+  const profile = admittedProfile();
+  const other = await visitor(true);
+  expect((await deliverCutoff()).status).toBe(403);
+  expect((await syncView(banned)).viewer.viewerSeat).not.toBe(SPECTATOR_SEAT);
+  peer.homepageCutoff = { userKey: profile.userKey, through: Date.now(), expiresAt: Date.now() + 360_000 };
+  expect((await deliverCutoff()).status).toBe(204);
+  expect((await syncView(banned)).viewer.viewerSeat).toBe(SPECTATOR_SEAT);
+  expect((await syncView(other)).viewer.viewerSeat).not.toBe(SPECTATOR_SEAT);
+});
+
+it('refuses a pre-ban admission still in flight, while a later post-unban lease survives a delayed cutoff', async () => {
+  const guest = await visitor();
+  const through = Date.now();
+  const before = {
+    allowed: true as const,
+    userKey: 'banned-editor',
+    issuedAt: through - 1,
+    leaseUntil: through + 30_000,
+  };
+  peer.holdHomepageAdmission = true;
+  guest.send({ type: 'authenticate', ticket: 'a'.repeat(64) });
+  const pending = await eventually(
+    () => peer.requests.find((request) => request.function === 'homepageAdmission:redeemTicket'),
+    'pending homepage admission'
+  );
+  peer.homepageCutoff = { userKey: before.userKey, through, expiresAt: through + 360_000 };
+  expect((await deliverCutoff()).status).toBe(204);
+  pending.release(before);
+  await guest.message('view');
+  expect((await syncView(guest)).viewer.viewerSeat).toBe(SPECTATOR_SEAT);
+
+  peer.holdHomepageAdmission = false;
+  peer.homepageAdmission = { ...before, issuedAt: through + 1 };
+  guest.send({ type: 'authenticate', ticket: 'b'.repeat(64) });
+  await guest.message('view', (view) => view.viewer.viewerSeat !== SPECTATOR_SEAT);
+  expect((await deliverCutoff()).status).toBe(204);
+  expect((await syncView(guest)).viewer.viewerSeat).not.toBe(SPECTATOR_SEAT);
+});

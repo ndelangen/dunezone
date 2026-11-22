@@ -18,6 +18,7 @@ describe('Storybook database authoring', () => {
 
     expect(first).toEqual(second);
     expect(first).not.toBe(second);
+    expect(first.every((document) => document.operation === undefined)).toBe(true);
     expect(first.filter(({ table }) => table === 'users')).toHaveLength(1);
     expect(first.filter(({ table }) => table === 'profiles')).toHaveLength(1);
     expect(first.filter(({ table }) => table === 'factions')).toHaveLength(2);
@@ -86,5 +87,63 @@ describe('Storybook database authoring', () => {
           table === 'publication_assets' && (value as { cache_token?: string }).cache_token === 'forward-reference'
       )
     );
+  });
+});
+
+describe('explicit Storybook seed patches', () => {
+  test('inserts acyclic rows first, then deterministically patches a back-reference', () => {
+    const scenario = db(() => {
+      const database = emptyDatabase();
+      database.users.push({ $key: 'source', name: 'Source', $patch: { merged_into_user_id: ref('target') } });
+      database.users.push({ $key: 'target', name: 'Target', merged_into_user_id: ref('source') });
+      return database;
+    });
+    const documents = scenario.create();
+    expect(documents).toEqual([
+      { key: 'source', table: 'users', value: { name: 'Source' } },
+      { key: 'target', table: 'users', value: { name: 'Target', merged_into_user_id: ref('source') } },
+      { operation: 'patch', key: 'source', table: 'users', value: { merged_into_user_id: ref('target') } },
+    ]);
+    expect(scenario.create()).toEqual(documents);
+  });
+
+  test('a deferred patch still requires a keyed row and known references', () => {
+    expect(() =>
+      db((baseline) => {
+        // @ts-expect-error Exercise the runtime guard for malformed untyped fixture data.
+        baseline.users.push({ name: 'No key', $patch: { name: 'Changed' } });
+      }).create()
+    ).toThrow('A Storybook database $patch requires a row $key.');
+    expect(() =>
+      db((baseline) => {
+        baseline.users[0]!.$patch = { merged_into_user_id: ref('missing') };
+      }).create()
+    ).toThrow('Storybook database reference missing has no matching row.');
+  });
+
+  test('references in insert rows still reject cycles', () => {
+    expect(() =>
+      db((baseline) => {
+        baseline.users[0]!.merged_into_user_id = ref('storybook-viewer');
+      }).create()
+    ).toThrow('Storybook database references contain a cycle.');
+  });
+
+  test('patched domain data must satisfy the same rules as the inserted data', () => {
+    expect(() =>
+      db((baseline) => {
+        baseline.rulesets[0]!.$patch = { name: '' };
+      }).create()
+    ).toThrow();
+    expect(() =>
+      db((baseline) => {
+        baseline.factions[0]!.$patch = { slug: '' };
+      }).create()
+    ).toThrow();
+    expect(() =>
+      db((baseline) => {
+        baseline.assets[0]!.$patch = { data: { invalid: true } };
+      }).create()
+    ).toThrow();
   });
 });

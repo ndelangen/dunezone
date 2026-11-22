@@ -19,9 +19,18 @@ import type { FactionInput } from '../../../shared/factions/schema';
 import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
 import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
+import { resolveSeedValue } from '../../../shared/seedReferences';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
-import type { SeedDocument, SeedReference, WithSeedReferences, WorkerIdentity } from './protocol';
+import type {
+  SeedDocument,
+  SeedInsertDocument,
+  SeedPatch,
+  SeedRow,
+  SeedReference,
+  WithSeedReferences,
+  WorkerIdentity,
+} from './protocol';
 
 const STORY_TIME = '2026-01-01T12:00:00.000Z';
 const VIEWER_KEY = 'storybook-viewer';
@@ -29,9 +38,15 @@ const GROUP_KEY = 'group:arrakeen-rules-council';
 const RULESET_KEY = 'ruleset:classicrules';
 const FACTION_KEY = 'faction:house-atreides';
 
-export type StorybookRow<TableName extends TableNames> = WithSeedReferences<WithoutSystemFields<Doc<TableName>>> & {
-  $key?: string;
-};
+export type StorybookRow<TableName extends TableNames> = SeedRow<TableName> &
+  (
+    | { $key?: string; $patch?: undefined }
+    | {
+        $key: string;
+        /** Applied after all rows exist, for optional relationships that point back to their source. */
+        $patch: Partial<WithSeedReferences<WithoutSystemFields<Doc<TableName>>>>;
+      }
+  );
 
 export type StorybookDatabase = {
   [TableName in TableNames]: StorybookRow<TableName>[];
@@ -41,6 +56,8 @@ export type DatabaseDefinition = {
   create: () => SeedDocument[];
   /** How long after the seeding the story opens, for a story about data that has aged, such as a session that signed in too long ago; the seeds are created at the story clock and every request runs this much later. */
   elapsedMs?: number;
+  /** Enables the voice feature with inert credentials in this story's network-disabled worker. */
+  discordVoice?: boolean;
 };
 
 type DatabaseChange = (baseline: StorybookDatabase) => StorybookDatabase | void;
@@ -344,7 +361,12 @@ function validateReferences(database: StorybookDatabase, keys: Set<string>) {
   }
 }
 
-function validateDomainRows(database: StorybookDatabase) {
+function validateDomainRows(
+  database: Pick<StorybookDatabase, 'factions' | 'rulesets' | 'assets'>,
+  keys: ReadonlySet<string>
+) {
+  /* An id inside an asset's data, such as a Nexus card's linked faction, exists only once the rows are seeded, so its key stands in for it here. */
+  const placeholders = new Map([...keys].map((key) => [key, key]));
   for (const row of database.factions) {
     FactionInputSchema.parse(row.data);
     FactionRowSlugSchema.parse(row.slug);
@@ -358,19 +380,31 @@ function validateDomainRows(database: StorybookDatabase) {
     }
   }
   for (const row of database.assets) {
-    parseAssetDataForWrite(row.type, row.data);
+    parseAssetDataForWrite(row.type, resolveSeedValue(row.data, placeholders));
   }
+}
+
+function patchedRows<Row extends { $patch?: object }>(rows: Row[]): Row[] {
+  return rows.filter((row) => row.$patch).map((row) => ({ ...row, ...row.$patch }));
 }
 
 function validateDatabase(database: StorybookDatabase) {
   const keys = collectKeys(database);
   validateReferences(database, keys);
-  validateDomainRows(database);
+  validateDomainRows(database, keys);
+  validateDomainRows(
+    {
+      factions: patchedRows(database.factions),
+      rulesets: patchedRows(database.rulesets),
+      assets: patchedRows(database.assets),
+    },
+    keys
+  );
 }
 
-function orderSeedDocuments(documents: SeedDocument[]) {
+function orderSeedDocuments(documents: SeedInsertDocument[]) {
   const pending = [...documents];
-  const ordered: SeedDocument[] = [];
+  const ordered: SeedInsertDocument[] = [];
   const resolved = new Set<string>();
   while (pending.length > 0) {
     const readyIndex = pending.findIndex((document) => {
@@ -394,21 +428,32 @@ function orderSeedDocuments(documents: SeedDocument[]) {
 
 function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
   validateDatabase(database);
-  const documents: SeedDocument[] = [];
+  const documents: SeedInsertDocument[] = [];
+  const patches: SeedPatch[] = [];
   for (const [table, rows] of Object.entries(database) as Array<[TableNames, Array<StorybookRow<TableNames>>]>) {
     for (const row of rows) {
-      const { $key: key, ...value } = row;
-      documents.push({ key, table, value } as SeedDocument);
+      const { $key: key, $patch: patch, ...value } = row;
+      documents.push({ key, table, value } as SeedInsertDocument);
+      if (!patch) {
+        continue;
+      }
+      if (!key) {
+        throw new Error('A Storybook database $patch requires a row $key.');
+      }
+      patches.push({ operation: 'patch', key, table, value: patch } as SeedPatch);
     }
   }
-  return orderSeedDocuments(documents);
+  return [...orderSeedDocuments(documents), ...patches];
 }
 
 /*
  * Declares a fresh page-story database. The callback may mutate the canonical baseline or return
  * a replacement, including `emptyDatabase()`.
  */
-export function db(change: DatabaseChange, options: Pick<DatabaseDefinition, 'elapsedMs'> = {}): DatabaseDefinition {
+export function db(
+  change: DatabaseChange,
+  options: Pick<DatabaseDefinition, 'elapsedMs' | 'discordVoice'> = {}
+): DatabaseDefinition {
   return {
     create: () => {
       const baseline = baselineDatabase();

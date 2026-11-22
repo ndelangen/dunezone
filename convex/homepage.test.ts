@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { storedProfileAvatar } from './profiles.test.fixture';
@@ -131,7 +132,7 @@ describe('homepage page data', () => {
       const owner = await ctx.db.insert('users', { name: 'Faction maker' });
       for (let index = 0; index <= 500; index += 1) {
         const stamp = new Date(Date.UTC(2026, 0, 1) + index * 60_000).toISOString();
-        await ctx.db.insert('factions', {
+        await insertFactionRow(ctx, {
           owner_id: owner,
           group_id: null,
           is_deleted: false,
@@ -144,8 +145,8 @@ describe('homepage page data', () => {
     });
 
     const { spotlights } = await t.query(api.homepage.get, {});
-    expect(spotlights.newArrival?.slug).toBe('faction-500');
-    expect(spotlights.freshlyUpdated?.slug).toBe('faction-499');
+    expect(spotlights.newArrival?.slug).toBe('faction-500-original');
+    expect(spotlights.freshlyUpdated?.slug).toBe('faction-499-original');
     /* 501 trigger-backed faction inserts take about 10 s locally; this leaves headroom for a loaded runner. */
   }, 120_000);
 });

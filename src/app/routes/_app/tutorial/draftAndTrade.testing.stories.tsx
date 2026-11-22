@@ -34,7 +34,7 @@ export const SearchDraftBanAndReady = meta.story({
     await userEvent.type(search, 'atr');
     await step('Find a suitable faction');
     await expect(page.getByText('suitable for this ruleset', { exact: true })).toBeVisible();
-    await expect(current()).toContain('drafting the same faction more than once gets confusing');
+    await expect(current()).toContain('A game takes one variant of each faction');
     const allFactions = page.getByRole('switch', { name: 'Show all factions' });
     await waitForFrame(async () => {
       const control = allFactions.closest('label')!.querySelector('.mantine-Switch-track')!.getBoundingClientRect();
@@ -56,7 +56,8 @@ export const SearchDraftBanAndReady = meta.story({
     await userEvent.clear(search);
     await userEvent.type(search, 'Ixians');
     const ixians = within(page.getByText('suitable for this ruleset', { exact: true }).closest('li')!);
-    await expect(ixians.getByText('Ixians', { exact: true })).toBeVisible();
+    /* The Ixians come in several variants, so the row names its variant after the Faction's name. */
+    await expect(ixians.getByText(/Dreamrules$/)).toBeVisible();
     await userEvent.click(ixians.getByRole('button', { name: 'Ban' }));
     await step('Ready for the deal');
     await waitForFrame(() => expect(page.getByText('5 of 6 ready')).toBeVisible());

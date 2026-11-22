@@ -111,6 +111,62 @@ describe('Drafting and public assignment on a real game', () => {
     expect(await stage(a)).toBe('drafting');
   });
 
+  it('drafts one variant per faction: another variant of a drafted faction is refused, and a ban on one bans them all', async () => {
+    await runtime.close();
+    await peer.close();
+    ({ peer, runtime } = await draftingRuntime([['atreides-kh', 'Atreides']], undefined, {
+      prepare: (prepared) => {
+        prepared.draftable = prepared.draftable.map((faction) =>
+          faction.id.startsWith('atreides')
+            ? {
+                ...faction,
+                familyId: 'family-atreides',
+                variantName: faction.id === 'atreides' ? 'Original' : 'Kwisatz Haderach',
+              }
+            : faction
+        );
+      },
+    }));
+    const a = await admit('a');
+    const b = await admit('b');
+    await seat(b, a);
+
+    let view = await accepted(a, { kind: 'draft-pick', factionId: 'atreides' });
+    /* A pick names its variant, since the Faction has two to tell apart. */
+    expect(view.snapshot.table.events[0].message).toBe('Seat 1 drafted Atreides · Original.');
+    for (const player of [a, b]) {
+      expect(await rejected(player, { kind: 'draft-pick', factionId: 'atreides-kh' })).toBe(
+        'Another variant of Atreides is already drafted; a game deals one variant per faction.'
+      );
+    }
+    /* The same variant can be drafted by more than one player. */
+    view = await accepted(b, { kind: 'draft-pick', factionId: 'atreides' });
+    expect(required(view.snapshot.draft).picks).toEqual({ 'seat-1': ['atreides'], 'seat-2': ['atreides'] });
+
+    view = await accepted(b, { kind: 'draft-ban', factionId: 'atreides-kh' });
+    /* A ban covers the whole Faction, so its event names the Faction alone. */
+    expect(view.snapshot.table.events[0].message).toBe('Seat 2 banned Atreides.');
+    expect(required(view.snapshot.draft).picks).toEqual({ 'seat-1': [], 'seat-2': [] });
+    expect(await rejected(a, { kind: 'draft-pick', factionId: 'atreides' })).toBe(
+      'Atreides is banned; every ban on it has to go first.'
+    );
+    /* The ban is on the Faction: it is not banned twice, and lifting it from either variant lifts it. */
+    expect(await rejected(b, { kind: 'draft-ban', factionId: 'atreides' })).toBe('You already banned Atreides.');
+    view = await accepted(b, { kind: 'draft-unban', factionId: 'atreides' });
+    expect(required(view.snapshot.draft).bans).toEqual({ 'seat-2': [] });
+
+    /* The deal names the variant it seats, as the pick did. */
+    await accepted(a, { kind: 'draft-pick', factionId: 'atreides-kh' });
+    await accepted(a, { kind: 'draft-ready', ready: true });
+    await accepted(b, { kind: 'draft-ready', ready: true });
+    await eventually(async () => (await stage(a)) === 'swapping', 'public assignment');
+    expect(
+      events(await syncView(a)).some((message: string) =>
+        /^Seat \d plays Atreides · Kwisatz Haderach at station \d\.$/.test(message)
+      )
+    ).toBe(true);
+  });
+
   it('deals seats by itself once the roster meets the minimum, everyone is ready and the pool suffices, and never again', async () => {
     const a = await admit('a');
     const b = await admit('b');

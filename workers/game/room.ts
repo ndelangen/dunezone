@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
 import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
@@ -19,7 +17,7 @@ import {
 } from '../../src/shared/play/commands';
 import type { DraftAction } from '../../src/shared/play/drafting';
 import { emptyPublicControls, isPublicAction } from '../../src/shared/play/inventory';
-import type { PublicAction, StoredControls, StoredSpawnContents } from '../../src/shared/play/inventory';
+import type { PublicAction, StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { LastTurnAction } from '../../src/shared/play/lastTurn';
 import { gestureBlockReason } from '../../src/shared/play/model';
 import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../../src/shared/play/model';
@@ -29,7 +27,6 @@ import type { SeatAction } from '../../src/shared/play/participation';
 import { isPeekAction } from '../../src/shared/play/peeking';
 import {
   PHASE_CHANGE_COOLDOWN_MS,
-  phaseAt,
   requirePhaseCooldownElapsed,
   STANDARD_PHASES,
   stepPhase,
@@ -52,15 +49,11 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
 import type { ResultAction } from '../../src/shared/play/result';
 import type { ReviewAction } from '../../src/shared/play/review';
-import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
-import { isSpicePiece } from '../../src/shared/play/spice';
-import { createSpiceStack } from '../../src/shared/play/spiceBank';
 import type { SpiceGiftChoice, SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
-import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
-import { PLAYER_RING_RADIUS, TABLE_SECTOR_COUNT, tableSeatAngles } from '../../src/shared/play/tableSettings';
+import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
 import {
   applyDraftToState,
   draftForGesture,
@@ -74,11 +67,16 @@ import {
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
 import type { TroopReserveLanding } from '../../src/shared/play/tableState';
-import { territoryAtTable, territoryLanding, withNudges } from '../../src/shared/play/territoryPlacement';
-import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
 import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../../src/shared/play/troopReserves';
+import {
+  allowedDuringSetup,
+  allowedWhenFinished,
+  isReadiness,
+  leavesTableSettled,
+  revisionTolerant,
+} from './actionPolicy';
 import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
@@ -88,12 +86,23 @@ import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
 import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
+import { publicControlsCommand } from './publicControls';
 import { setupCommand, gatherTraitors } from './setup-progress';
+import { collectSpice, stationFront, withdrawSpice } from './spiceReserveCommand';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 import { territoryTintCommand } from './territoryTints';
 
 export type Identity = Viewer;
+
+function samePointerIdentity(pointer: PublicPointer, identity: Identity): boolean {
+  return (
+    pointer.viewerSeat === identity.viewerSeat &&
+    pointer.displayName === identity.displayName &&
+    pointer.avatarUrl === identity.avatarUrl &&
+    pointer.color === identity.color
+  );
+}
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
 type FactionSetting = BiddingAction | LastTurnAction | MovementAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
@@ -122,66 +131,6 @@ type Carry = Identity & {
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
-/**
- * Actions that never rely on the table being exactly as their sender last saw it.
- * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
- * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
- * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
- * An alliance offer or answer names the other faction and is judged against the live alliances.
- * Breaking an alliance stays strict, so a late break never leaves an alliance re-formed since the sender saw it.
- * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
- * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
- * A tech token draw picks from whatever the shared table inventory holds when it arrives.
- * A restore names its deletion and finds room among the pieces as they lie when it arrives.
- * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
- * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
- * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
- */
-const REVISION_TOLERANT_ACTIONS = new Set<string>([
-  'spice-spawn',
-  'spice-blow',
-  'restore',
-  'tech-token-draw',
-  'hand-order',
-  'deck-draw',
-  'peek',
-  'peek-close',
-  'battle-claim',
-  'battle-plan',
-  'battle-ready',
-  'battle-disclose',
-  'battle-outcome',
-  'battle-cancel',
-  'draft-pick',
-  'draft-unpick',
-  'draft-ban',
-  'draft-unban',
-  'removal-ballot',
-  'review-propose',
-  'review-ballot',
-  'review-end',
-  'review-seek',
-  'seat-request',
-  'seat-withdraw',
-  'seat-approve',
-  'bid-raise',
-  'bid-pass',
-  'bid-lower',
-  'bid-seconds',
-  'alliance-offer',
-  'alliance-withdraw',
-  'alliance-accept',
-  'last-turn',
-  'movement-done',
-  'movement-undo',
-  'movement-order',
-  'tint-create',
-  'tint-paint',
-  'tint-set',
-  'tint-color',
-  'tint-remove',
-]);
-
 /*
  * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
  * A drop without a count keeps the carry's, as an older page sends none.
@@ -207,16 +156,13 @@ const CARRY_HISTORY_LIMIT = 1024;
 /** The refusal of a carry from a connection that used every carry ID the room remembers; only a new connection may start more. */
 export class CarryHistoryExhausted extends GameRejection {}
 
-/** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
-const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
-
 /**
  * Withdrawing readiness confirms no table, so it never waits on the revision.
  * A swap withdrawal still names its trading round;
  * a draft or setup withdrawal is judged by the room's current stage and phase.
  */
 function withdrawsReadiness(action: { kind: string; ready?: boolean }) {
-  return READINESS_ACTIONS.has(action.kind) && action.ready === false;
+  return isReadiness(action.kind) && action.ready === false;
 }
 
 /** Whether a commit left the game at the same stage, phase, setup step and trading round. */
@@ -228,9 +174,6 @@ function samePlace(before: GameSnapshot, after: GameSnapshot) {
     before.swapping?.round === after.swapping?.round
   );
 }
-
-/** Commits that leave the table a player readied for as it was: readiness itself, and a spectator asking for a seat or withdrawing the request. */
-const SETTLED_ACTIONS = new Set<string>([...READINESS_ACTIONS, 'seat-request', 'seat-withdraw']);
 
 export class Room {
   private current!: StoredSnapshot;
@@ -280,9 +223,9 @@ export class Room {
     const current = this.snapshot.revision;
     const crossed =
       expectedRevision < current &&
-      (REVISION_TOLERANT_ACTIONS.has(kind) ||
+      (revisionTolerant(kind) ||
         withdrawsReadiness(action) ||
-        (READINESS_ACTIONS.has(kind) && expectedRevision >= this.settledRevision));
+        (isReadiness(kind) && expectedRevision >= this.settledRevision));
     if (expectedRevision !== current && !crossed) {
       throw new GameRejection(message);
     }
@@ -293,7 +236,7 @@ export class Room {
     const before = this.snapshot;
     const settled = this.settledRevision;
     apply();
-    if (kind && SETTLED_ACTIONS.has(kind) && samePlace(before, this.snapshot)) {
+    if (kind && leavesTableSettled(kind) && samePlace(before, this.snapshot)) {
       this.settledRevision = settled;
     }
   }
@@ -679,46 +622,11 @@ export class Room {
 
   private assertActionStage(action: PieceAction) {
     /* A finished game leaves the table as it was; a locked prediction can still be revealed, and a peek can still be closed. */
-    if (this.snapshot.stage === 'finished' && ['prediction-reveal', 'peek-close'].includes(action.kind)) {
+    if (this.snapshot.stage === 'finished' && allowedWhenFinished(action.kind)) {
       return;
     }
     this.assertTableAvailable();
-    if (
-      this.snapshot.stage === 'setup' &&
-      ![
-        'split',
-        'stack',
-        'flip',
-        'lock',
-        'rotate',
-        'delete',
-        'restore',
-        'tech-token-draw',
-        'deck-draw',
-        'deck-shuffle',
-        'peek',
-        'peek-close',
-        'peek-arrange',
-        'peek-pull',
-        'hand-take',
-        'hand-play',
-        'hand-zone',
-        'hand-order',
-        'tint-create',
-        'tint-paint',
-        'tint-set',
-        'tint-color',
-        'tint-remove',
-        'bank-withdraw',
-        'bank-collect',
-        'spice-spawn',
-        'phase',
-        'ready',
-        'prediction-lock',
-        'prediction-reveal',
-        'traitors-gather',
-      ].includes(action.kind)
-    ) {
+    if (this.snapshot.stage === 'setup' && !allowedDuringSetup(action.kind)) {
       throw new GameRejection('That control is not available during setup.');
     }
   }
@@ -910,7 +818,11 @@ export class Room {
   private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
     /* A drawn tech token lands in front of the drawing seat's station, as a spice withdrawal does. */
     if (action.kind === 'tech-token-draw') {
-      return drawTechTokenInState(guarded, seatSubject(identity.viewerSeat), this.stationFront(identity.viewerSeat));
+      return drawTechTokenInState(
+        guarded,
+        seatSubject(identity.viewerSeat),
+        stationFront(this.snapshot.roster, identity.viewerSeat)
+      );
     }
     if (action.kind !== 'reset') {
       return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat), this.phases());
@@ -935,89 +847,18 @@ export class Room {
     /* A withdrawal packs into its territory around what other players carry, as a drop does; their temporary locks are then put back as stored. */
     const change =
       action.kind === 'bank-withdraw'
-        ? this.withdrawSpice(this.table(identity), balance, action.amount, identity.viewerSeat, action.position)
-        : this.collectSpice(table, balance, action.pieceId);
+        ? withdrawSpice(
+            this.table(identity),
+            this.snapshot.roster,
+            balance,
+            action.amount,
+            identity.viewerSeat,
+            action.position
+          )
+        : collectSpice(table, balance, action.pieceId);
     const settled = action.kind === 'bank-withdraw' ? this.restoreReservationLocks(table, change.table) : change.table;
     const next = nextSnapshot(this.snapshot, accepted(settled, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
-  }
-
-  private withdrawSpice(
-    table: TableState,
-    balance: number,
-    amount: number,
-    seat: Identity['viewerSeat'],
-    position?: Vector3Tuple
-  ) {
-    if (amount > balance) {
-      throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
-    }
-    const { piece, nudges } = this.spiceReserveStack(table, amount, seat, position);
-    return {
-      balance: balance - amount,
-      table: { ...table, pieces: [...withNudges(table.pieces, nudges), piece] },
-      message: `withdrew ${amount} spice onto the table.`,
-    };
-  }
-
-  private collectSpice(table: TableState, balance: number, pieceId: string) {
-    const piece = table.pieces.find((candidate) => candidate.id === pieceId);
-    if (!isSpicePiece(piece) || piece.locked) {
-      throw new GameRejection('Choose an unlocked spice stack on the table.');
-    }
-    if (!Number.isSafeInteger(balance + piece.items.length)) {
-      throw new GameRejection('This collection exceeds the spice reserve capacity.');
-    }
-    return {
-      balance: balance + piece.items.length,
-      table: { ...table, pieces: table.pieces.filter((candidate) => candidate.id !== piece.id) },
-      message: `collected ${piece.items.length} spice from the table.`,
-    };
-  }
-
-  /** The spot just in front of a seat's station, whichever station its seating fixed; none for a seat without one. */
-  private stationFront(seat: Identity['viewerSeat']): Vector3Tuple | undefined {
-    const roster = this.snapshot.roster;
-    const station = rosterSeat(roster, seat);
-    if (!roster || !station) {
-      return undefined;
-    }
-    const angle = tableSeatAngles(roster.seatCount)[station.position]!;
-    const radius = PLAYER_RING_RADIUS - 0.55;
-    return [Math.cos(angle) * radius, 0, Math.sin(angle) * radius];
-  }
-
-  /* New withdrawals use the chosen drop point; older clients retain their station-front placement. */
-  private spiceReserveStack(
-    table: TableState,
-    amount: number,
-    seat: Identity['viewerSeat'],
-    requested?: Vector3Tuple
-  ): { piece: TablePiece; nudges?: TerritoryNudge[] } {
-    const piece = createSpiceStack(table.nextEventNumber, 1);
-    piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
-    const front = this.stationFront(seat);
-    if (!front) {
-      throw new GameRejection('This seat has no station on the table.');
-    }
-    const origin = restingPositionAt(requested ?? front, piece);
-    const supported = clampPositionToTable(piece, origin);
-    if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
-      throw new GameRejection('Drop the spice on the table.');
-    }
-    /* Spice set down in a territory keeps inside it, as a carried stack does, and the stacks there make room. */
-    const landing = territoryLanding(table, piece, origin, table.pieces);
-    if (landing === null) {
-      throw new GameRejection(`${territoryAtTable(table, origin)!.name} has no room for that.`);
-    }
-    if (landing) {
-      return { piece: { ...piece, position: landing.position }, nudges: landing.nudges };
-    }
-    const position = nearestCollisionFreePosition(piece, origin, table.pieces);
-    if (!position) {
-      throw new GameRejection('Make room on the table before withdrawing spice.');
-    }
-    return { piece: { ...piece, position } };
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
@@ -1055,98 +896,17 @@ export class Room {
   publicCommand(identity: Identity, action: PublicAction, contents?: StoredSpawnContents): StoredSnapshot {
     this.assertPlaying();
     this.player(identity);
-    const controls = structuredClone(this.snapshot.controls ?? emptyPublicControls());
-    controls.seats = this.seatedPlayers();
-    if (!controls.seats.includes(identity.viewerSeat)) {
-      throw new GameRejection('Only a current seated player can use this control.');
-    }
-    const table = { ...this.viewerTable(identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
-    let message: string;
-    switch (action.kind) {
-      case 'ready':
-        message = this.setReadiness(identity, action.ready, controls);
-        break;
-      case 'spawn-request':
-        message = this.requestSpawn(identity, controls, table, contents);
-        break;
-      default:
-        message = this.resolveSpawn(identity, action, controls, table);
-    }
-    return { ...nextSnapshot(this.snapshot, accepted(table, action.kind, message)), controls };
-  }
-
-  private setReadiness(identity: Identity, ready: boolean, controls: StoredControls): string {
-    if (!phaseAt(this.snapshot.phase, this.phases()).allPlayersMustBeReady) {
-      throw new GameRejection('Ready applies only during a phase where everyone must be ready, such as Mentat Pause.');
-    }
-    controls.ready = controls.ready.filter((seat) => seat !== identity.viewerSeat);
-    if (ready) {
-      controls.ready.push(identity.viewerSeat);
-    }
-    return `${seatSubject(identity.viewerSeat)} ${ready ? 'is ready' : 'withdrew readiness'}.`;
-  }
-
-  private requestSpawn(
-    identity: Identity,
-    controls: StoredControls,
-    table: TableState,
-    contents?: StoredSpawnContents
-  ): string {
-    if (!contents) {
-      throw new GameRejection('Choose a complete published asset first.');
-    }
-    const requestId = `spawn-${this.snapshot.revision + 1}`;
-    if (controls.seats.length === 1) {
-      table.pieces.push(...this.spawnPieces(contents, requestId));
-      return `${contents.name} requested and spawned.`;
-    }
-    controls.requests.push({
-      id: requestId,
-      requesterSeat: identity.viewerSeat,
-      requesterName: identity.displayName,
-      /* The live snapshot carries what approval spawns; the audit row keeps the captured definitions. */
-      contents: { ...contents, definitions: [] },
-    });
-    return `${contents.name} requested.`;
-  }
-
-  private resolveSpawn(
-    identity: Identity,
-    action: Extract<PublicAction, { requestId: string }>,
-    controls: StoredControls,
-    table: TableState
-  ): string {
-    const request = controls.requests.find((request) => request.id === action.requestId);
-    if (!request) {
-      throw new GameRejection('That spawn request has already been resolved.');
-    }
-    if (action.kind === 'spawn-approve') {
-      /* The requester never supplies the approval; a lone player spawns directly and dismisses leftovers. */
-      if (request.requesterSeat === identity.viewerSeat) {
-        throw new GameRejection('One different seated player must approve this request.');
-      }
-      table.pieces.push(...this.spawnPieces(request.contents, request.id));
-    }
-    controls.requests = controls.requests.filter((candidate) => candidate !== request);
-    return `${request.contents.name} ${action.kind === 'spawn-approve' ? 'approved and spawned' : 'dismissed'}.`;
-  }
-
-  private spawnPieces(contents: StoredSpawnContents, requestId: string): TablePiece[] {
-    return contents.pieces.map((piece, index) => {
-      const items = piece.items.map((item, itemIndex) => ({
-        ...item,
-        id: piece.kind === 'card' ? crypto.randomUUID() : `${requestId}-${index}-${itemIndex}`,
-        faceUp: piece.kind !== 'card',
-      }));
-      /* A new deck's hidden runtime order is independent of its public catalogue recipe. */
-      if (piece.kind === 'card') {
-        for (let cursor = items.length - 1; cursor > 0; cursor--) {
-          const other = randomInt(cursor + 1);
-          [items[cursor], items[other]] = [items[other], items[cursor]];
-        }
-      }
-      return { ...piece, id: `${requestId}-${index}`, inventory: 'shared', items };
-    });
+    return publicControlsCommand(
+      {
+        snapshot: this.snapshot,
+        seats: this.seatedPlayers(),
+        viewerTable: () => this.viewerTable(identity.viewerSeat),
+        phases: this.phases(),
+      },
+      identity,
+      action,
+      contents
+    );
   }
 
   private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
@@ -1280,10 +1040,7 @@ export class Room {
     const previous = this.pointers.get(identity.connectionId);
     const changed =
       !previous ||
-      previous.viewerSeat !== identity.viewerSeat ||
-      previous.displayName !== identity.displayName ||
-      previous.avatarUrl !== identity.avatarUrl ||
-      previous.color !== identity.color ||
+      !samePointerIdentity(previous, identity) ||
       previous.position.some((value, index) => value !== position[index]);
     this.pointers.set(identity.connectionId, {
       connectionId: identity.connectionId,
@@ -1296,6 +1053,14 @@ export class Room {
       ...(sourceSeq === undefined ? {} : { sourceSeq }),
     });
     return changed;
+  }
+
+  /** Updates the label of a parked hand when its player changes their profile. */
+  refreshPointerIdentity(identity: Identity) {
+    const pointer = this.pointers.get(identity.connectionId);
+    if (pointer && !samePointerIdentity(pointer, identity)) {
+      this.pointer(identity, pointer.position, pointer.updatedAt, pointer.sourceSeq);
+    }
   }
 
   clearActivity(connectionId: string) {
@@ -1318,7 +1083,7 @@ export class Room {
     return carriesChanged || pointersChanged;
   }
 
-  private sweepCarries(now: number): boolean {
+  sweepCarries(now = Date.now()): boolean {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {

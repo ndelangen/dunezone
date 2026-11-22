@@ -14,9 +14,18 @@ export const options = publicQuery({
     q: v.string(),
     paginationOpts: paginationOptsValidator,
     selection: v.optional(v.object({ faqQuestionId: v.id('faq_items') })),
+    /* The factions a tool has seated, so a choice can say when another variant of its Faction is among them. */
+    seated: v.optional(v.array(v.string())),
   },
   returns: paginationResultValidator(
-    v.object({ choice: faqReferencePreviewValidator, selected: v.union(v.boolean(), v.null()) })
+    v.object({
+      choice: faqReferencePreviewValidator,
+      selected: v.union(v.boolean(), v.null()),
+      /* A faction choice's variant name where its Faction has several live variants to tell apart, else null. */
+      variant: v.union(v.string(), v.null()),
+      /* The seated variant of a faction choice's Faction, when it is another variant than the choice; null otherwise. */
+      seatedAs: v.union(v.string(), v.null()),
+    })
   ),
   handler: async (ctx, args) => {
     if (args.group !== 'faction' && !isAssetType(args.group)) {
@@ -29,9 +38,11 @@ export const options = publicQuery({
     }
     const rows = await loadCataloguePickerOptions(ctx, { ...args, kind, partition });
     const page = await Promise.all(
-      rows.page.map(async (choice) => ({
+      rows.page.map(async ({ choice, variant, seatedAs }) => ({
         choice,
         selected: args.selection ? Boolean(await faqReferencePair(ctx, args.selection.faqQuestionId, choice)) : null,
+        variant,
+        seatedAs,
       }))
     );
     return { ...rows, page };

@@ -2,6 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useState } from 'react';
+import { SiDiscord } from 'react-icons/si';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { LabeledAction } from './LabeledAction';
@@ -69,7 +70,7 @@ export const RendersAsAnAnchor = meta.story({
     rel: 'noopener noreferrer',
   },
   play: async ({ canvasElement }) => {
-    const link = within(canvasElement).getByRole('link', { name: 'Suggest an idea' });
+    const link = within(canvasElement).getByRole('link', { name: 'Suggest an idea (opens in a new tab)' });
     await expect(link).toHaveAttribute('href', 'https://example.com/ideas');
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
@@ -105,5 +106,16 @@ export const FocusSurvivesAReason = meta.story({
     await userEvent.click(button);
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toHaveFocus();
+  },
+});
+
+export const DiscordHover = meta.story({
+  args: { children: 'Join voice chat', icon: <SiDiscord size={16} />, provider: 'discord', emphasis: 'strong' },
+  play: async ({ canvasElement }) => {
+    const action = within(canvasElement).getByRole('button', { name: 'Join voice chat' });
+    await userEvent.hover(action);
+    const styles = getComputedStyle(action);
+    await expect(styles.getPropertyValue('--button-hover')).not.toBe(styles.getPropertyValue('--button-bg'));
+    await expect(styles.getPropertyValue('--button-hover')).not.toBe('');
   },
 });

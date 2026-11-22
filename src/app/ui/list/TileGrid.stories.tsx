@@ -95,16 +95,21 @@ export const FactionCardsMobile = meta.story({
 });
 
 /**
- * With a ruleset chosen, each card marks its membership against that one rather than listing all of them.
- * Classic is chosen because it is Fremen's second ruleset, so its caption changes where Advanced would leave it as it was.
+ * With a ruleset chosen, each card leads its rulesets with that one.
+ * Classic is chosen because it is Fremen's second ruleset, so its row changes where Advanced would leave it as it was.
  */
 export const FactionCardsWithSelectedRuleset = meta.story({
   render: () => factionCards(factions, 'classic'),
   globals: { viewport: { value: 'appDesktop' } },
   play: async ({ canvasElement }) => {
-    /* Every fixture card carries the same faction document, so the ruleset captions tell them apart in list order. */
+    /* Every fixture card carries the same faction document, so the rulesets tell them apart in list order. */
     const links = within(canvasElement).getAllByRole('link');
-    const captions = ['Atreides Advanced Dune', 'Atreides Classic Dune', 'Atreides Classic Dune +1', 'Atreides'];
+    const captions = [
+      'Atreides Rulesets: Advanced Dune',
+      'Atreides Rulesets: Classic Dune',
+      'Atreides Rulesets: Classic Dune, Advanced Dune',
+      'Atreides',
+    ];
     for (const [index, caption] of captions.entries()) {
       await expect(links[index]).toHaveAccessibleName(`${caption} Novice complexity, 2 out of 10`);
     }

@@ -1,11 +1,23 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import {
+  withTreacheryTracker,
   withTroopDetails,
   withPlanets,
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
+  variantMaintainerOutsideTheFactionGroup,
+  openFactionSeenFromOutsideItsGroup,
+  factionMaintainerOutsideTheVariantGroup,
+  DREAMRULES_PATH,
+  withAChildVariant,
+  withABrokenChildVariant,
+  withFourVariants,
+  expectVariantSwitcher,
+  openFactionSettings,
+  expectFactionSettings,
 } from './factions.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
@@ -48,6 +60,17 @@ export const Detail = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
     await expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+  },
+});
+
+/** A faction whose rules keep the Treachery tracker says so in its Setup, beside its start and revival. */
+export const DetailKeepsATreacheryTracker = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withTreacheryTracker },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const setup = await page.findByRole('region', { name: 'Setup' }, { timeout: 30_000 });
+    await expect(within(setup).getByText(TREACHERY_TRACKER_RULE)).toBeVisible();
   },
 });
 
@@ -96,6 +119,93 @@ export const Edit = meta.story({
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Faction name', 'House Atreides'),
 });
 
+/** The Faction chapter's own controls, which every variant of the Faction shares. */
+async function factionChapterControls(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  const name = await page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 });
+  return {
+    page,
+    controls: [
+      name,
+      page.getByRole('combobox', { name: 'Faction emblem' }),
+      page.getByRole('textbox', { name: 'Faction sheet theme' }),
+      page.getByRole('combobox', { name: 'TTS color 1' }),
+      page.getByRole('button', { name: 'Drag to reorder TTS color 1' }),
+      page.getByRole('button', { name: 'Remove last TTS color' }),
+      page.getByRole('button', { name: 'Add TTS color' }),
+      page.getByRole('combobox', { name: 'Background preset' }),
+      /* House Atreides paints a custom background, so the composer is open under the preset. */
+      page.getByRole('button', { name: 'Random pattern' }),
+      page.getByRole('switch', { name: 'Invert' }),
+    ],
+  };
+}
+
+/**
+ * The editor's first chapter is the Faction: the name, emblem, colors and background every variant shares (#2926).
+ * Its owner may change them, under a notice that says how far a change reaches.
+ */
+export const EditFactionChapter = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const { page, controls } = await factionChapterControls(canvasElement);
+    await expect(page.getByRole('tab', { name: /^Faction(?! leader)/ })).toHaveAttribute('aria-selected', 'true');
+    /* The notice is one line until pressed: its title is the toggle, and the explanation stays shut. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await expect(shared).toBeVisible();
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
+    for (const control of controls) {
+      await expect(control).toBeEnabled();
+    }
+  },
+});
+
+/**
+ * A member of the variant's Group who has no part in the Faction's (#2926).
+ * The Faction chapter names who may change its fields and disables each one;
+ * the other chapters stay theirs to edit.
+ */
+export const EditFactionChapterReadOnly = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: variantMaintainerOutsideTheFactionGroup },
+  play: async ({ canvasElement }) => {
+    const { page, controls } = await factionChapterControls(canvasElement);
+    await expect(page.getByText('Only the maintainers of House Atreides can change these')).toBeVisible();
+    await expect(page.getByText(/Chani Kynes and the members of Landsraad Archivists can change them\./)).toBeVisible();
+    for (const control of controls) {
+      await expect(control).toBeDisabled();
+    }
+  },
+});
+
+/**
+ * A member of the Faction's Group who has no part in the variant's (#2926).
+ * The editor opens on the Faction chapter alone, since no other chapter is theirs to change.
+ */
+export const EditFactionChapterAlone = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: factionMaintainerOutsideTheVariantGroup },
+  play: async ({ canvasElement }) => {
+    const { page, controls } = await factionChapterControls(canvasElement);
+    /* The notice opens to say whose the other chapters are, and the story leaves it shut, as a reader first meets it. */
+    const shared = page.getByRole('button', { name: 'Shared by every variant' });
+    await userEvent.click(shared);
+    /* The panel opens with a short animation, so wait for the words to show. */
+    await waitFor(() =>
+      expect(page.getByText(/The rest of the .+ variant is for its own owner and Group to edit\./)).toBeVisible()
+    );
+    await userEvent.click(shared);
+    await expect(shared).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Shared by every variant' })).toBeNull());
+    for (const control of controls) {
+      await expect(control).toBeEnabled();
+    }
+    await expect(page.queryByRole('tab', { name: /^Faction leader/ })).toBeNull();
+    await expect(page.queryByRole('option', { name: /^Faction leader/ })).toBeNull();
+  },
+});
+
 /**
  * Someone who can edit the faction is told when a replacement capture failed beside a current sheet (#1385).
  * The previous sheet stays published (CONTEXT.md, Asset publication state), so the words say it may be out of date, and the published PDF stays on offer.
@@ -113,5 +223,119 @@ export const DetailTellsItsEditorsAReplacementFailed = meta.story({
     await expect(page.findByText('Update failed')).resolves.toBeVisible();
     await expect(page.queryByText('Current')).toBeNull();
     await expect(page.findByRole('link', { name: 'Open published PDF' })).resolves.toBeVisible();
+  },
+});
+
+const LOAD = { timeout: 30_000 };
+
+/**
+ * The editor of a variant with a parent (#2927).
+ * Every field the variant may take from its parent says in its own header whether it does.
+ * A field that follows the parent keeps the parent's value, read-only, behind one line, and a custom one keeps its controls.
+ */
+export const EditVariantWithAParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, LOAD));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, LOAD));
+    const followsParent = await rules.findAllByRole('checkbox', { name: /^Use parent variant for / }, LOAD);
+    await expect(followsParent).toHaveLength(5);
+    await expect(followsParent.filter((choice) => (choice as HTMLInputElement).checked)).toHaveLength(4);
+    const inherited = rules.getByRole('group', { name: 'Starting instructions, from Original, read-only' });
+    /* The parent's value stays shut until its line is pressed. */
+    const toggle = within(inherited).getByRole('button', {
+      name: 'From Original, the parent variant. Read-only here.',
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(within(inherited).queryByRole('region')).toBeNull();
+    await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
+    await expect(rules.getByRole('textbox', { name: 'Revival instructions' })).toHaveTextContent('3 troops free.');
+  },
+});
+
+/**
+ * A maintainer of the Faction starts a new variant from the variant page's toolbar (#2927).
+ * The popover takes the name, shows the address it gives, and offers each live variant as the one parent, or none.
+ */
+export const DetailCreateVariant = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
+    /* The address follows the name as it is typed, so the story waits for it to settle on the whole name. */
+    await waitFor(() => expect(form.getByText('/factions/house-atreides-tournament')).toBeVisible());
+    const parents = within(form.getByRole('group', { name: 'Parent variant' }));
+    await expect(parents.getAllByRole('radio').map((radio) => radio.parentElement?.parentElement?.textContent)).toEqual(
+      ['No parent', 'Original', 'Dreamrules']
+    );
+    await expect(parents.getByRole('radio', { name: 'Dreamrules' })).toBeChecked();
+    await expect(form.getByText(/Starts with all 15 fields using Dreamrules\./)).toBeVisible();
+  },
+});
+
+/**
+ * A parent's change left the variant with fields a save would refuse (#2908), and its troops have no battle strengths yet.
+ * Those who may edit the variant see every problem in one notice on top of its page: one line until it is pressed.
+ * The way to the editor is the toolbar's Edit, so the notice does not repeat it.
+ */
+export const DetailVariantWithProblems = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, LOAD);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
+    /* The badge is for readers who cannot fix anything; an editor has the notice. */
+    await expect(page.queryByText('Not ready for play')).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Fix in the editor' })).toBeNull();
+  },
+});
+
+/**
+ * The variant switcher (#2928): a Variants card heading the details column of a variant's page.
+ * Each variant of the Faction is a row that links to it, the default first, with the covers of the rulesets it is in.
+ * A caret and a bold name mark the variant being read.
+ */
+export const DetailVariantSwitcher = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+  },
+});
+
+/**
+ * The Faction settings (#2928): a popover on the variant page's toolbar, beside Create variant, for the Faction's owner and its Group.
+ * It holds the variant order, whose first variant is the default, the hold that evicts a variant, and whether anyone signed in may add one.
+ * The default's row carries no eviction, and nothing here deletes the Faction: it goes with its last variant.
+ */
+export const DetailFactionSettings = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    await expectFactionSettings(await openFactionSettings(canvasElement));
+  },
+});
+
+/**
+ * An open Faction (#2928): anyone signed in is offered Create variant on its variants' pages, with the same form its maintainers get.
+ * The Faction settings stay with its owner and its Group.
+ */
+export const DetailOpenFaction = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: openFactionSeenFromOutsideItsGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, LOAD));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, LOAD));
+    await expect(form.getByRole('radio', { name: 'Original' })).toBeChecked();
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
   },
 });

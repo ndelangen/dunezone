@@ -72,10 +72,13 @@ export function omissionNote({
   noun: string;
 }): string | null {
   const parts: string[] = [];
+  const one = noun.replace(/s$/, '');
   if (duplicated && omittedCopies > 0) {
-    const wholly = omittedMembers > 0 ? `, including ${omittedMembers} ${noun} not drawn at all` : '';
+    /* Counted words agree with their count: "1 card", "another 1 is". */
+    const wholly =
+      omittedMembers > 0 ? `, including ${omittedMembers} ${omittedMembers === 1 ? one : noun} not drawn at all` : '';
     parts.push(
-      `Showing the first ${cap} copies; another ${omittedCopies} are not drawn${wholly}. The each-once view shows every loaded ${noun.replace(/s$/, '')} with its count.`
+      `Showing the first ${cap} copies; another ${omittedCopies} ${omittedCopies === 1 ? 'is' : 'are'} not drawn${wholly}. The each-once view shows every loaded ${one} with its count.`
     );
   }
   if (serverTruncated) {

@@ -32,6 +32,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 import { profileDescription } from './profileDescription';
+import { ProfileEmptyFactions } from './ProfileEmptyFactions';
 import { ProfileInvitations } from './ProfileInvitations';
 
 const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
@@ -83,11 +84,13 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
  * The member's newest factions and, when they have more, the way to the rest: the catalogue narrowed to them, in the same newest-first order.
  * The server counts the whole list and never fewer than the cards it sends.
  * The link appears only when the catalogue lists more than the cards shown, so it never opens an empty list.
+ * On the viewer's own profile the section ends with their factions left without a variant, which no card shows.
  */
-function ProfileFactions({ page }: { page: ProfilePageData }) {
+function ProfileFactions({ page, isSelf }: { page: ProfilePageData; isSelf: boolean }) {
   const { factionCount } = page;
   if (factionCount === 0) {
-    return <EmptyNote>No factions created yet.</EmptyNote>;
+    const none = <EmptyNote>No factions created yet.</EmptyNote>;
+    return isSelf ? <ProfileEmptyFactions whenNone={none} /> : none;
   }
   return (
     <Stack gap="md">
@@ -108,6 +111,7 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
           </LabeledAction>
         </Box>
       ) : null}
+      {isSelf ? <ProfileEmptyFactions /> : null}
     </Stack>
   );
 }
@@ -331,7 +335,7 @@ function ProfileDetailPage() {
         <div className={styles.contentColumns}>
           <Stack gap="md" className={styles.mainColumn}>
             <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
-              <ProfileFactions page={page} />
+              <ProfileFactions page={page} isSelf={isSelf} />
             </Section>
 
             <ProfileFaqActivity

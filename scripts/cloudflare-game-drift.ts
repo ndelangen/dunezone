@@ -14,6 +14,7 @@ export type GameDriftReport = {
   namespaceId: string;
   homepageNamespaceId: string;
   bugReportNamespaceId: string;
+  biddingNamespaceId: string;
   bindingCount: number;
 };
 
@@ -193,6 +194,7 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
     [
       'ALERT_EMAIL',
       'APPLICATION_ORIGIN',
+      'BIDDING_TABLES',
       'BUG_REPORT_STATES',
       'BUG_REPORTS',
       'CF_VERSION_METADATA',
@@ -225,10 +227,12 @@ function checkBindings(settings: JsonRecord, config: JsonRecord): Omit<GameDrift
   const room = bindings.find((binding) => binding.name === 'GAME_ROOMS')!;
   const homepage = bindings.find((binding) => binding.name === 'HOMEPAGE_ROOMS')!;
   const reports = bindings.find((binding) => binding.name === 'BUG_REPORTS')!;
+  const bidding = bindings.find((binding) => binding.name === 'BIDDING_TABLES')!;
   return {
     namespaceId: checkRoomBinding(room, config, 'GameRoom'),
     homepageNamespaceId: checkRoomBinding(homepage, config, 'HomepageRoom'),
     bugReportNamespaceId: checkRoomBinding(reports, config, 'BugReports'),
+    biddingNamespaceId: checkRoomBinding(bidding, config, 'BiddingTable'),
     bindingCount: bindings.length,
   };
 }
@@ -284,5 +288,6 @@ export async function auditGameWorker(client: ReadClient, config: JsonRecord): P
   checkOwnedNamespace(inventory, { worker, namespaceId: binding.namespaceId }, 'GameRoom');
   checkOwnedNamespace(inventory, { worker, namespaceId: binding.homepageNamespaceId }, 'HomepageRoom');
   checkOwnedNamespace(inventory, { worker, namespaceId: binding.bugReportNamespaceId }, 'BugReports');
+  checkOwnedNamespace(inventory, { worker, namespaceId: binding.biddingNamespaceId }, 'BiddingTable');
   return { worker, ...binding };
 }

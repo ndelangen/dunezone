@@ -31,11 +31,8 @@ describe('stored prose write validation', () => {
     const { amount: _amount, ...withoutAmount } = publishingSpiceCard;
     expect(() => parseAssetDataForWrite('card-spice', withoutAmount)).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, amount: 0 })).toThrow();
-    /* The classic highlight list is gone from the schema: an empty one from an older tab is dropped, one naming territories is refused. */
-    expect(parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] }).data).toEqual(
-      publishingSpiceCard
-    );
-    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['arsunt'] })).toThrow();
+    /* The classic highlight list is gone from the schema, so a write carrying one is refused. */
+    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] })).toThrow();
     expect(SpiceAsset.safeParse({ ...publishingSpiceCard, highlights: [] }).success).toBe(false);
     /* A capture queued with the list, which the strip left alone mid-capture, still reads as the card it stands for. */
     const queued = { assetId: 'card', slug: 'arsunt', card: publishingSpiceCard };

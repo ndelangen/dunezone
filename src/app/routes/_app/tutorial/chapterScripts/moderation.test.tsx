@@ -17,7 +17,7 @@ stubMatchMedia();
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-const FACTIONS = ['House Harkonnen', 'Fremen', 'Emperor', 'House Atreides', 'Spacing Guild'];
+const FACTIONS = ['Harkonnen', 'Fremen', 'Emperor', 'Atreides', 'Spacing Guild'];
 const seats = FACTIONS.map((name, index) => ({ id: `seat-${index + 2}`, faction: { name } }));
 const ballots = () => seats.slice(1).map((seat) => ({ seat: seat.id, choice: null }));
 
@@ -97,11 +97,11 @@ test('the first step waits for the Harkonnen player’s information, not another
       </MantineProvider>
     );
   const anchor = () => (start.anchor.kind === 'page' ? start.anchor.element() : null);
-  info('seat-5', 'House Atreides');
+  info('seat-5', 'Atreides');
   expect(open.done(open.begin(undefined as never), undefined as never)).toBe(false);
   expect(anchor()).toBeNull();
   cleanup();
-  info('seat-2', 'House Harkonnen');
+  info('seat-2', 'Harkonnen');
   expect(open.done(open.begin(undefined as never), undefined as never)).toBe(true);
   expect(anchor()?.closest('[data-faction-info-seat]')?.getAttribute('data-faction-info-seat')).toBe('seat-2');
   cleanup();

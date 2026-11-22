@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
@@ -45,7 +46,7 @@ async function seed() {
       approved_by: ownerId,
     });
     const row = (slug: string, data: Record<string, unknown>) =>
-      ctx.db.insert('factions', {
+      insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...data, name: slug },
         slug,
@@ -81,10 +82,6 @@ describe('faction reads name the Faction leader by their wire contract', () => {
 
     const list = await viewer.query(api.factions.list, {});
     list.forEach((row) => expectLeaderKey(row.data));
-
-    const catalogue = await viewer.query(api.factions.cataloguePage, {});
-    expect(catalogue.factions).toHaveLength(2);
-    catalogue.factions.forEach((row) => expectLeaderKey(row.data));
 
     const paged = await viewer.query(api.factions.catalogue, {});
     expect(paged.cards).toHaveLength(2);

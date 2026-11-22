@@ -197,6 +197,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           name="Spice"
           value={plan.spice}
           max={supportableSpice(plan, balance).at(-1) ?? 0}
+          stops={supportableSpice(plan, balance)}
           disabled={disabled}
           onChange={(wanted) => {
             const spice = snapSpice(plan, balance, wanted);
@@ -242,6 +243,7 @@ function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (
           name="Spice for spice strength"
           value={plan.spice}
           max={spiceStrengthOptions(plan, balance).at(-1) ?? 0}
+          stops={spiceStrengthOptions(plan, balance)}
           disabled={disabled}
           onChange={(wanted) => {
             const spice = snapSpiceStrength(plan, balance, wanted);

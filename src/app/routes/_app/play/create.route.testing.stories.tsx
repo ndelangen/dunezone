@@ -1,16 +1,65 @@
 import { testingPreview } from '@sb/preview';
+import { useEffect } from 'react';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
-import { convexNeverAnswers, db, ref, storybookViewer } from '@db/storybook';
+import { convexNeverAnswers, db, ref, storybookViewer, useStorybookDatabaseClient } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
-import { signedIn, creatable, chooseRuleset, typeCustomName } from './create.route.stories.fixture';
+import { signedIn, creatable, creatableDatabase, chooseRuleset, typeCustomName } from './create.route.stories.fixture';
 import { productDatabase } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Play/Create',
   args: { path: '/play/create' },
+});
+
+const creationDatabase: { client: ReturnType<typeof useStorybookDatabaseClient> | null } = { client: null };
+
+function ObserveCreation() {
+  const client = useStorybookDatabaseClient();
+  useEffect(() => {
+    creationDatabase.client = client;
+    return () => {
+      creationDatabase.client = null;
+    };
+  }, [client]);
+  return null;
+}
+
+export const DiscordVoiceChosen = meta.story({
+  parameters: { ...creatable, database: db(creatableDatabase, { discordVoice: true }) },
+  decorators: [
+    (Story) => (
+      <>
+        <ObserveCreation />
+        <Story />
+      </>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    const action = spyOn(creationDatabase.client!, 'action');
+    const voice = page.getByRole('switch', { name: 'Discord voice chat' });
+    await expect(voice).not.toBeChecked();
+    await expect(voice).toHaveAccessibleDescription(
+      'Give this game its own Discord voice channel. Anyone with its invite can join.'
+    );
+    await userEvent.click(voice);
+    await userEvent.click(page.getByRole('button', { name: 'Create game' }));
+    await waitFor(
+      async () => {
+        await expect(page.getByRole('button', { name: 'Copy game link' })).toBeVisible();
+        await expect(action).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({ discordVoice: true }),
+          expect.anything()
+        );
+      },
+      { timeout: 30_000 }
+    );
+  },
 });
 
 /** The baseline ruleset links a treachery deck and no spice deck, so the directory objects and creation stays disabled. */
@@ -59,6 +108,7 @@ export const Creatable = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await chooseRuleset(page);
+    await expect(page.queryByRole('switch', { name: 'Discord voice chat' })).toBeNull();
     const first = shownName(page);
     await expect(first).not.toBe('');
     /* One draw in 840 repeats the last, so three tries rule out chance. */
@@ -188,5 +238,21 @@ export const SignedOut = meta.story({
       '/auth/login?redirect=%2Fplay%2Fcreate'
     );
     await expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
+  },
+});
+
+export const DiscordVoicePhone = meta.story({
+  parameters: { ...creatable, database: db(creatableDatabase, { discordVoice: true }) },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    const voice = page.getByRole('switch', { name: 'Discord voice chat' });
+    await expect(voice).toHaveAccessibleDescription(
+      'Give this game its own Discord voice channel. Anyone with its invite can join.'
+    );
+    await expect(voice).not.toBeChecked();
+    await userEvent.click(voice);
+    await expect(voice).toBeChecked();
   },
 });

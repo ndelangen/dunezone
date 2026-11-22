@@ -121,6 +121,7 @@ describe('single-Renderer Publication execution', () => {
     ).resolves.toEqual({
       assigned: 1,
       rendered: 1,
+      reused: 0,
       completed: 1,
       failed: 0,
       missing: 0,

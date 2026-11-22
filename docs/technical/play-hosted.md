@@ -36,26 +36,37 @@ Database IDs still name
 the table session, admission request and game socket; replacing the browser address keeps that
 session mounted. The tab's existing saved-table record keeps its known slug under the ID key.
 A friendly-link reload can find that record only through the same account, sign-in session, age
-and payload checks. It shows a locked table until a fresh authorized socket view arrives. A refusal
-clears it, and a conflicting live resolution discards the stored hint.
+and payload checks. After the root establishes current account access, that record can show a
+locked table until a fresh authorized socket view arrives. A fresh signed-in reload with Convex
+unreachable instead waits at "Checking account access…" before displaying any route, even when
+the tab has a saved table. An already-open page retains its last account-status answer during a
+connection loss. See [account access](../authentication.md). A refusal clears the saved table, and
+a conflicting live resolution discards the stored hint.
 The [routing ticket](https://github.com/ndelangen/dunezone/issues/1937) records delivery evidence.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, the
 accounts enrolled at each game, session cutoffs and account-deletion delivery records. It does not store table actions or seats.
 The game Worker owns one SQLite Durable Object per game. Its transactions save the table with
 command receipts and phase-boundary history. Seat changes have their own durable history.
-Carries and pointers are
-temporary and disappear on disconnect or cold restore.
+Carries and pointers belong to the live connection. Pointer positions stay out of game history.
 
 `workers/game/session.ts` owns the Room, durable metadata, domain stores and history boundary.
 Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
-retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
-installation. It asks the session for projections instead of reading or changing its stores.
+retained content. `workers/game/index.ts` owns authorization, sockets and external requests, and
+handles the alarm when it fires. It asks the session for projections instead of reading or changing
+its stores. Beside it, `connection.ts` holds a socket's bookkeeping and rate limits, `roomHttp.ts`
+the HTTP helpers, `roomConversations.ts` the table-chat relay, `roomMetrics.ts` the room's counters,
+`roomProvisioning.ts` game creation and its confirmation, and `roomAlarm.ts` the room's one stored
+alarm, which deadlines, delivery retries and confirmation share. The Room's spice reserve and public
+controls (readiness and spawn requests) live in `spiceReserveCommand.ts` and `publicControls.ts`.
 
 A room hibernates while its players think, so a paused table costs no Durable Object duration.
-The one-second sweep runs only while something can expire on its own: an admission, a carry or a
-pointer. Every message starts it again. When it stops, the room saves its used carry IDs, its
-unwritten summary interval and a quiet marker. While the room sleeps, the alarm covers the battle
+The room stops its one-second sweep once admissions and carries have settled and pending motion
+has gone out. Browsers send a hand position when it moves and clear it on leave. The room puts the
+last position on its WebSocket attachment before hibernating. On wake, it restores positions for
+authorized connections, so a joining player sees the current hands in their initial view. When the
+sweep stops, the room also saves its used carry IDs, its unwritten summary interval and a quiet
+marker. While the room sleeps, the alarm covers the battle
 deadline, the directory retry and the next seat pass to expire. A pass whose session ended cannot
 be renewed, so its alarm wakes the room to pause that table. Keepalive pings are answered by the
 runtime without waking the room. Each admitted connection keeps its identity, pass and admission
@@ -90,12 +101,15 @@ rows in the new shape.
 
 Each command names the revision its sender last saw, and `Room.assertRevision` in
 `workers/game/room.ts` refuses one sent against a table that has changed since with "The table
-changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spice spawns, deck
-draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
-checked against the live table instead, so seats acting at the same moment do not turn each other
-away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
-that changed more than who is ready. A spice reserve withdrawal stays strict, so two tabs of one player
-cannot both spend from a spice reserve they saw once.
+changed. Try the action again." Every move declares how it is judged in one place, `ACTION_POLICY`
+in `workers/game/actionPolicy.ts`, and a new move does not compile until it has an entry there.
+Moves marked `tolerant` (battle actions, bids, draft picks, seat requests, alliance offers, hand
+arrangement and more) name what they change and are checked against the live table instead, so
+seats acting at the same moment do not turn each other away. Moves marked `readiness` (`ready`,
+`draft-ready`, `swap-ready`) may cross other readiness, but not a commit that changed more than who
+is ready. Everything else is `strict`; the entry's comment says why where it matters, as for a
+spice reserve withdrawal, which stays strict so two tabs of one player cannot both spend from a
+spice reserve they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
@@ -191,11 +205,29 @@ frame but `admission` carries the Worker's `serverNow`, and the browser keeps th
 from its monotonic clock since it last connected, so deadlines, vote ages and message times follow
 the Worker's clock. A Worker duration (the phase cooldown, the battle countdown) is measured on the
 monotonic clock from when it arrived. A tab that resumes after a deadline refreshes its controls on the next
-timer tick, and the Worker still checks its own deadlines when a command arrives. Carries and
-pointers expire on the Worker alone, which broadcasts each removal.
+timer tick, and the Worker still checks its own deadlines when a command arrives. The Worker expires
+carries and broadcasts the removal of hands when they leave the table or their socket closes.
 
 Account deletion has a durable Convex notification with acknowledgment after the SQLite change, so
 a disconnected account can lose its seat without reconnecting first.
+
+### Protocol version
+
+The page and the game Worker deploy separately, and the Worker deploys first, so a tab opened
+before a deploy can meet a newer Worker. Every `admit` message names the page's
+`PLAY_PROTOCOL_VERSION` (`src/shared/play/protocol.ts`), and the room admits only its own version,
+before it checks the pass or sends anything about the table. An older page is closed with
+`OUTDATED_PAGE_CLOSE_CODE` (4426) and stops with "This table needs a newer version of the page.
+Refresh to continue.", the same line it shows when a frame from the Worker does not parse. A page
+built before versioning sends no version and is treated as older; since it does not know 4426, the
+room first sends it an `outdated-page` frame outside the protocol, which such a page cannot parse and
+answers with that same line. A newer
+page, which meets a Worker that is not updated yet, is closed with 1012 like a restart and tries
+again.
+
+Bump the version in any change after which an older page could misread a message or send one the
+Worker now reads differently, even when every message still parses. A change that only adds an
+optional field both sides ignore when absent does not need it.
 
 ## Provisioning and transport
 

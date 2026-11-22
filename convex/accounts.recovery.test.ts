@@ -34,7 +34,11 @@ test(
         });
       }
     });
-    const args = { paginationOpts: { cursor: null, numItems: 40 }, selectedUserIds: [] };
+    const args = {
+      accountState: 'active' as const,
+      paginationOpts: { cursor: null, numItems: 40 },
+      selectedUserIds: [],
+    };
     const first = await admin.query(api.accounts.adminPage, args);
     expect(first.operations.every((operation) => operation.state === 'completed')).toBe(true);
     expect(first.failedOperations.page).toHaveLength(20);

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdSchema, tableIdentitySchema } from './schema';
 
 const removalChoiceSchema = z.enum(['remove', 'keep']).nullable();
@@ -17,9 +18,7 @@ export const removalActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('removal-ballot'), voteId: tableIdSchema, choice: removalChoiceSchema }),
 ]);
 export type RemovalAction = z.infer<typeof removalActionSchema>;
-export function isRemovalAction(action: { kind: string }): action is RemovalAction {
-  return action.kind === 'removal-start' || action.kind === 'removal-ballot';
-}
+export const isRemovalAction = actionKindGuard(removalActionSchema);
 
 /** Current players other than the target vote; fewer than three players cannot remove anyone. */
 export function removalThreshold(players: number): number {

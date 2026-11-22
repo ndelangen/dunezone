@@ -9,6 +9,7 @@ import { PROFILE_FAQ_PAGE_SIZE } from '../src/shared/profiles/faqActivity';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { PROFILE_FACTION_PREVIEW_SIZE } from './lib/profileDetail';
@@ -176,7 +177,7 @@ async function seedProfileDetail(
       image_cover: null,
     });
 
-    const activeFactionId = await ctx.db.insert('factions', {
+    const activeFactionId = await insertFactionRow(ctx, {
       owner_id: userId,
       data: { ...assetPublishingFaction, name: 'Atreides' },
       slug: 'atreides',
@@ -185,7 +186,7 @@ async function seedProfileDetail(
       is_deleted: false,
       group_id: null,
     });
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: userId,
       data: { ...assetPublishingFaction, name: 'Deleted faction' },
       slug: 'deleted-faction',
@@ -210,7 +211,7 @@ async function seedProfileDetail(
       position: 0,
     });
     for (let index = 1; index <= extraFactions; index += 1) {
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: userId,
         data: { ...assetPublishingFaction, name: `Sietch ${index}` },
         slug: `sietch-${index}`,
@@ -363,6 +364,8 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
       seed.advancedRulesetId,
       seed.basicRulesetId,
     ]);
+    /* Each is cited as a card draws it, with its cover thumb; neither of these has a cover. */
+    expect(page.factionPreview[0]?.rulesets).toMatchObject([{ coverThumbUrl: null }, { coverThumbUrl: null }]);
   });
 
   test('throws on malformed faction data at the query boundary', async () => {
@@ -379,7 +382,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
         created_at: at(1),
         updated_at: at(1),
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: userId,
         data: {},
         slug: 'broken',
@@ -472,7 +475,7 @@ describe('profile detail projection (api.profiles.pageBySlug)', () => {
     expect(answered.list_details).toMatchObject({
       accepted_answer: { excerpt: 'Accepted explanation from another contributor.' },
       answerers: [{ slug: 'asker' }],
-      references: [{ kind: 'faction', slug: 'atreides', name: 'Atreides' }],
+      references: [{ kind: 'faction', slug: 'atreides-original', name: 'Atreides' }],
     });
     expect(answered.faq_answers).toHaveLength(3);
     expect(answered.ruleset).toEqual({ id: seed.advancedRulesetId, slug: 'advanced', name: 'Advanced' });

@@ -144,11 +144,14 @@ Live since 2026-10-01:
   with a generic webhook posts to `https://dune.zone/__play/alerts/issues`, which the publisher
   forwards like any `/__play` path, and the game Worker emails from `alerting@dune.zone` through
   the `ALERT_EMAIL` Email Routing binding. Sending to a verified destination is free on every
-  plan. The route takes no credential, so the email carries nothing from the request: it only says
-  an issue was reported and to open the Worker's Issues page in the dashboard. The interval guard
-  holds one email per ten minutes within each Cloudflare location and isolate, not globally: callers
-  reaching several locations can each cause one, so an unexpected burst means someone is calling the
-  route, and the dashboard shows whether a real issue exists. A failed send is logged as a
+  plan. The automation's generic webhook carries a secret, which Cloudflare sends in the
+  `cf-webhook-auth` header; the route answers `401` to any request whose secret does not hash to
+  `ALERT_WEBHOOK_SECRET_SHA256` in `workers/game/alerts.ts`, so nobody else can send the email or
+  start the quiet interval that would swallow a real alert. Only the hash is in the repository; the
+  secret is kept only in the automation, and rotating it means changing both. The email still carries
+  nothing from the request: it only says an issue was reported and to open the Worker's Issues page in
+  the dashboard. The interval guard holds one email per ten minutes within each Cloudflare location and
+  isolate, not globally. A failed send is logged as a
   `console.warn` `alert-email-failed` and still answered 202, so it cannot feed itself back as a new
   issue faster than the interval. The one Worker secret, `ALERT_EMAIL_TO`, holds the destination so
   the address stays out of the repository; until it is set the route is refused like any unknown
@@ -166,15 +169,16 @@ Live since 2026-10-01:
   dashboard toggle-off goes unnoticed until the next deploy. Issues is free during its open beta.
   Automations are per Worker too and only appear once detection is on: Workers & Pages >
   `dunezone-game` > Issues > Automations > Add automation, not the account-level Observability
-  pages. The generic webhook form offers an optional webhook secret; the relay ignores it, so leave
-  it empty or set any random string kept only in that automation, never a Worker secret or a
-  repository value. Trigger on occurrence threshold; recurrence after inactivity can be a second
+  pages. The generic webhook form's webhook secret must be the secret whose SHA-256 is
+  `ALERT_WEBHOOK_SECRET_SHA256`; keep it only in that automation, never as a Worker secret or in the
+  repository. Trigger on occurrence threshold; recurrence after inactivity can be a second
   trigger.
 
   To prove the email path without a real error, send the request the automation would send:
-  `curl -i -X POST https://dune.zone/__play/alerts/issues`. A `202` answer and one email at the
+  `curl -i -X POST -H 'cf-webhook-auth: <the automation secret>' https://dune.zone/__play/alerts/issues`.
+  Without the header the answer is `401`. A `202` answer and one email at the
   alert inbox within a minute mean the publisher forwarding, the game Worker route, the secret and
-  the Email Routing binding all work. A `404` means `ALERT_EMAIL_TO` is unset. A second call
+  the Email Routing binding all work. A `403` means `ALERT_EMAIL_TO` is unset. A second call
   within ten minutes from the same location answers `202` without an email, which is the interval
   guard, not a failure; it also means a real issue in that window sends no email, so test when
   nothing is being watched. A `429` is the publisher's per-IP limit on `/__play` requests; retry
@@ -185,7 +189,9 @@ Live since 2026-10-01:
   deploy run 36937790739. Setting the secret in the dashboard blocked strict deploys until that run
   (`docs/deployment.md`, "Recovering from a dashboard edit"), so avoid dashboard edits to this
   Worker. The automation "Email alert relay" fires when an issue occurs once and posts to the route
-  above, with no webhook secret.
+  above. From PR #2847 (2026-11-09) its webhook secret must be the one whose hash is in
+  `alerts.ts`; setting it is a dashboard step, because the wrangler login lacks the Notifications
+  and Workers Observability permissions the API needs.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 
@@ -210,7 +216,7 @@ reads "The table could not be reached. Reconnecting..." and keeps that line thro
 until a view arrives; a pass request the game turns away reads "The table is temporarily unavailable."
 A socket that drops after the table has shown reconnects without keeping a failure line, so a
 deploy's cold restart does not read as an outage (`retryAfterFailure` in
-`src/app/routes/_app/play/multiplayer/GameSubscription.ts`).
+`src/app/db/tabletop/GameSubscription.ts`).
 
 Recovery: if the smoke failed after both Workers went out, rerun that run. "Re-run failed jobs"
 resumes at the failed job; "Re-run all jobs" deploys the same commit again from the start
@@ -334,7 +340,7 @@ identity and release, connections, messages in and out, bytes sent, saved-comman
 handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
 with its count, failures and durations. Each browser also reports, every five minutes, how long
 its saved actions took to be confirmed and its longest main-thread stall
-(`src/app/routes/_app/play/multiplayer/tableTelemetry.ts`). The room folds the latest report from
+(`src/app/db/tabletop/tableTelemetry.ts`). The room folds the latest report from
 each connection into its next line. No account, seat, faction or game content is recorded.
 
 To watch a session from a machine with a Wrangler login, run `bun run play:watch`. It runs the

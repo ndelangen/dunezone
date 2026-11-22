@@ -18,7 +18,8 @@
       "/published/*",
       "!/published/boards/*",
       "!/published/round-tokens/00000000000000000000*",
-      "!/published/pointer-tokens/00000000000000000000*"
+      "!/published/pointer-tokens/00000000000000000000*",
+      "!/published/faction-tokens/0000000000000000000*"
     ]
   }
 }

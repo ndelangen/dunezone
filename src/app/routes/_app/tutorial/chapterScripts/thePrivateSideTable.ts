@@ -11,7 +11,7 @@ import { ATREIDES_BATTLE_LOSS_COUNTER, KWISATZ_HADERACH } from './kwisatzHaderac
 
 /*
  * "The private side-table": a small table of the player's own for pieces that need a specific place.
- * Its reason clicks at once with the Atreides Kwisatz Haderach tracker (Norbert, 2026-10-26): the learner plays House Atreides,
+ * Its reason clicks at once with the Atreides Kwisatz Haderach tracker (Norbert, 2026-10-26): the learner plays Atreides,
  * lays the tracker card and its tiny Battle Loss Counter on the side-table, and moves the counter along the card's track as troops are lost.
  * The card and the counter are the site's published Kwisatz Haderach art; the chapter puts them in the Atreides hand itself,
  * since the faction does not bring them as Extras.
@@ -83,14 +83,14 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       id: 'open-hand',
       task: 'Find your tracking card',
       detail:
-        "You're playing House Atreides. Let's use a private side-table to track your Kwisatz Haderach.\n\nPress {H} to open your hand and find the card and its counter.",
+        "You're playing Atreides. Let's use a private side-table to track your Kwisatz Haderach.\n\nPress {H} to open your hand and find the card and its counter.",
       anchor: { kind: 'page', element: viaCompass('hand') },
       ...openedWindow(windowShown('hand')),
     }),
     task({
       id: 'pin-hand',
       task: 'Keep your hand open',
-      detail: 'Use the left pin beside the window title, or press {[}, to keep your hand open in the bottom left.',
+      detail: 'Use the left pin beside the panel title, or press {[}, to keep your hand open in the bottom left.',
       anchor: { kind: 'page', element: element('[aria-label="Pin to the bottom left"]') },
       begin: () => null,
       done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
@@ -159,7 +159,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
-  'Pin a window with {[} or {]} to keep it open beside another',
+  'Pin a panel with {[} or {]} to keep it open beside another',
   '{J}, or {Space} {←} {←}, opens your private side-table, and only you see it',
   'Drag a piece from your hand onto the side-table, or right-click it and choose Move to private side-table',
   'Pieces stay where you lay them, so a counter can sit on a card’s track',
@@ -170,7 +170,7 @@ const learned = [
 export const thePrivateSideTable: ChapterScript = {
   slug: 'the-private-side-table',
   checkpoint: 'turn-1-storm',
-  playAs: 'House Atreides',
+  playAs: 'Atreides',
   hand,
   tasks,
   learned,

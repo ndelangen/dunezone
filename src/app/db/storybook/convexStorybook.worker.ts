@@ -8,9 +8,10 @@ import type { WithoutSystemFields } from 'convex/server';
 import { convexToJson } from 'convex/values';
 import type { Value } from 'convex/values';
 
-import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
 import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
+import { insertSeedFaction } from '../../../../convex/lib/factionFamilies';
 import schema from '../../../../convex/schema';
 import aggregateSchema from '../../../../node_modules/@convex-dev/aggregate/src/component/schema';
 import migrationsSchema from '../../../../node_modules/@convex-dev/migrations/src/component/schema';
@@ -22,6 +23,7 @@ import type {
   ContextTraceEntry,
   SeedDocument,
   SeedDocumentFor,
+  SeedPatchFor,
   RollbackProbeResult,
   SchedulerProbeResult,
   WorkerIdentity,
@@ -29,12 +31,16 @@ import type {
   WorkerResponse,
 } from './protocol';
 
-/* Both sign-in providers are configured, as they are in production, so the pages that offer them show them as available; the values never reach a provider, since no story signs in. */
+/*
+ * Every sign-in provider is configured, as they are in production, so the pages that offer them show them as available; the values never reach a provider, since no story signs in.
+ * Steam needs no secret, only the site its return page lives on.
+ */
 const STORYBOOK_ENV = {
   AUTH_GOOGLE_ID: 'storybook',
   AUTH_GOOGLE_SECRET: 'storybook',
   AUTH_DISCORD_ID: 'storybook',
   AUTH_DISCORD_SECRET: 'storybook',
+  SITE_URL: 'https://storybook.invalid',
 };
 Object.assign(globalThis, { global: globalThis, process: { env: STORYBOOK_ENV } });
 const NativeDate = Date;
@@ -127,9 +133,57 @@ async function insertDocument<TableName extends TableNames>(
   db: DatabaseWriter,
   document: SeedDocumentFor<TableName>,
   references: Map<string, string>
+): Promise<Id<TableNames>> {
+  const value = resolveSeedValue(document.value, references);
+  if (document.table === 'factions') {
+    return await insertSeedFaction({ db } as MutationCtx, value as Parameters<typeof insertSeedFaction>[1]);
+  }
+  return await db.insert(document.table, value as WithoutSystemFields<Doc<TableName>>);
+}
+
+async function patchDocument<TableName extends TableNames>(
+  db: DatabaseWriter,
+  document: SeedPatchFor<TableName>,
+  references: Map<string, string>
 ) {
-  const value = resolveSeedValue(document.value, references) as WithoutSystemFields<Doc<TableName>>;
-  return await db.insert(document.table, value);
+  const id = references.get(document.key);
+  if (!id) {
+    throw new Error(`Storybook database patch ${document.key} has no matching row.`);
+  }
+  const value = resolveSeedValue(document.value, references) as Partial<Doc<TableName>>;
+  await db.patch(document.table, id as Id<TableName>, value);
+}
+
+/**
+ * A seeded variant's Faction goes by `<the variant's key>:family`, so a seed patch can change it.
+ * The Faction is made with the variant, so no seed row holds it.
+ */
+async function nameFamily(db: DatabaseWriter, key: string, id: Id<TableNames>, references: Map<string, string>) {
+  const familyId = db.normalizeId('factions', id) ? (await db.get('factions', id as Id<'factions'>))?.family_id : null;
+  if (familyId) {
+    references.set(`${key}:family`, familyId);
+  }
+}
+
+async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], references: Map<string, string>) {
+  for (const document of documents) {
+    if (document.operation === 'patch') {
+      continue;
+    }
+    const id = await insertDocument(db, document, references);
+    if (document.key) {
+      references.set(document.key, id);
+      await nameFamily(db, document.key, id, references);
+    }
+  }
+}
+
+async function applySeedPatches(db: DatabaseWriter, documents: SeedDocument[], references: Map<string, string>) {
+  for (const document of documents) {
+    if (document.operation === 'patch') {
+      await patchDocument(db, document, references);
+    }
+  }
 }
 
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
@@ -137,12 +191,8 @@ async function insertDocuments(world: World, documents: SeedDocument[], delay = 
   await world.test.run(async (ctx) => {
     /* Seeds write through the application's triggers, so every read model a real write keeps is derived the same way here. */
     const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
-    for (const document of documents) {
-      const id = await insertDocument(wrapped.db, document, world.references);
-      if (document.key) {
-        world.references.set(document.key, id);
-      }
-    }
+    await insertSeedRows(wrapped.db, documents, world.references);
+    await applySeedPatches(wrapped.db, documents, world.references);
   });
 }
 
@@ -376,6 +426,21 @@ async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown> 
     return null;
   }
   if (request.operation === 'reset') {
+    /* The opt-in resets with each world; other stories keep Discord disabled and this worker still rejects every network call. */
+    Object.assign(globalThis, {
+      process: {
+        env: {
+          ...STORYBOOK_ENV,
+          ...(request.discordVoice
+            ? {
+                DISCORD_BOT_TOKEN: 'storybook-only',
+                DISCORD_GUILD_ID: '100',
+                DISCORD_GAMES_CATEGORY_IDS: '200',
+              }
+            : {}),
+        },
+      },
+    });
     storyNow = STORYBOOK_NOW;
     world = createWorld(request.seed);
     await world;

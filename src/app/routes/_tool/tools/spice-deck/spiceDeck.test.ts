@@ -1,0 +1,212 @@
+import { describe, expect, test } from 'vite-plus/test';
+
+import {
+  blowAll,
+  blowPile,
+  blowSentence,
+  isPlayable,
+  lastPlayed,
+  nextPile,
+  spiceBlowOver,
+  newGame,
+  nextTurn,
+  remaining,
+  revealOne,
+  revealSentence,
+  setAsideLast,
+  wormChance,
+} from './spiceDeck';
+import type { Blow, SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
+
+const DECK: SpiceDeckDef = {
+  id: 'test',
+  name: 'Test deck',
+  cards: [
+    { key: 'broken-land', name: 'Broken Land', amount: 8, count: 1 },
+    { key: 'old-gap', name: 'Old Gap', amount: 6, count: 1 },
+    { key: 'red-chasm', name: 'Red Chasm', amount: 8, count: 1 },
+    { key: 'shai-hulud', name: 'Shai-Hulud', count: 2 },
+  ],
+};
+
+/* A game whose deck is stacked: the first copy listed is turned over first. */
+const stacked = (order: string[], piles = 2): SpiceDeckGame => ({
+  ...newGame(DECK, Math.random, { piles }),
+  draw: [...order].reverse(),
+});
+
+const keepOrder = () => 0.999999;
+
+describe('Spice Blow', () => {
+  test('a spice card lands on the pile being blown, and the next blow goes to the next pile', () => {
+    let game = blowPile(stacked(['old-gap#1', 'broken-land#1']), keepOrder);
+    expect(game.discards).toEqual([['old-gap#1'], []]);
+    expect(nextPile(game)).toBe(1);
+    game = blowPile(game, keepOrder);
+    expect(game.discards).toEqual([['old-gap#1'], ['broken-land#1']]);
+    expect(spiceBlowOver(game)).toBe(true);
+  });
+
+  test('Shai-Hulud lands on its pile like any card; the players set it aside, and it goes back in when the next turn starts', () => {
+    let game = revealOne(stacked(['shai-hulud#1', 'old-gap#1', 'broken-land#1', 'red-chasm#1']), keepOrder, 0);
+    expect(game.discards[0]).toEqual(['shai-hulud#1']);
+    expect(game.blows[0]!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm' }]);
+    game = setAsideLast(game);
+    expect(game.discards[0]).toEqual([]);
+    expect(game.setAside).toEqual(['shai-hulud#1']);
+    expect(lastPlayed(game)).toBeUndefined();
+    game = revealOne(game, keepOrder, 0);
+    expect(game.blows[0]!.reveals.map((reveal) => reveal.kind)).toEqual(['set-aside', 'spice']);
+    game = nextTurn(game, keepOrder);
+    expect(game.setAside).toEqual([]);
+    expect(game.draw).toContain('shai-hulud#1');
+  });
+
+  test('from the second turn on, Shai-Hulud devours the territory below it on its own pile', () => {
+    let game = blowAll(
+      stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']),
+      keepOrder
+    );
+    game = blowPile(nextTurn(game, keepOrder), keepOrder);
+    const reveals = game.blows.at(-1)!.reveals;
+    expect(reveals).toEqual([
+      { card: 'shai-hulud#1', kind: 'worm', devours: 'old-gap#1' },
+      { card: 'shai-hulud#2', kind: 'worm', devours: 'old-gap#1' },
+      { card: 'red-chasm#1', kind: 'spice' },
+    ]);
+    expect(game.discards[0]).toEqual(['old-gap#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']);
+    expect(blowSentence(game, game.blows.at(-1)!)).toBe(
+      'Spice pile A: Shai-Hulud! It devours everything in Old Gap. Shai-Hulud! It devours everything in Old Gap. 8 spice in Red Chasm.'
+    );
+  });
+
+  test('an empty deck is made again from both discard piles', () => {
+    let game = blowAll(stacked(['old-gap#1', 'broken-land#1']), keepOrder);
+    game = blowPile(nextTurn(game, keepOrder), keepOrder);
+    expect(game.blows.at(-1)!.reveals[0]).toEqual({ card: null, kind: 'reshuffle' });
+    expect(game.discards.flat()).toHaveLength(1);
+    expect(game.draw).toHaveLength(1);
+  });
+
+  test('one card per tap, onto the pile the players chose, and never more by itself', () => {
+    let game = nextTurn(
+      blowAll(stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'red-chasm#1']), keepOrder),
+      keepOrder
+    );
+    game = revealOne(game, keepOrder, 1);
+    expect(game.discards[1]).toEqual(['broken-land#1', 'shai-hulud#1']);
+    expect(game.blows.at(-1)).toEqual({
+      turn: 2,
+      pile: 1,
+      reveals: [{ card: 'shai-hulud#1', kind: 'worm', devours: 'broken-land#1' }],
+    });
+    expect(nextPile(game)).toBe(0);
+    game = revealOne(game, keepOrder, 1);
+    expect(game.blows.filter((blow) => blow.turn === 2)).toHaveLength(1);
+    expect(game.blows.at(-1)!.reveals).toHaveLength(2);
+  });
+
+  test('a card onto a pile whose blow is still open is the newest, after a card on another pile', () => {
+    let game = nextTurn(
+      blowAll(stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'red-chasm#1', 'shai-hulud#2']), keepOrder),
+      keepOrder
+    );
+    game = revealOne(game, keepOrder, 0);
+    game = revealOne(game, keepOrder, 1);
+    game = revealOne(game, keepOrder, 0);
+    expect(game.blows.at(-1)).toMatchObject({
+      pile: 0,
+      reveals: [{ kind: 'worm' }, { card: 'shai-hulud#2', kind: 'worm' }],
+    });
+    expect(lastPlayed(game)?.card).toBe('shai-hulud#2');
+  });
+
+  test('a single pile blows once a turn', () => {
+    const game = blowAll(stacked(['old-gap#1', 'broken-land#1'], 1), keepOrder);
+    expect(game.discards).toEqual([['old-gap#1']]);
+    expect(game.blows).toHaveLength(1);
+  });
+
+  test('Sandtrout leaves its pile waiting; a Discovery blow ends it and is what a later Shai-Hulud devours', () => {
+    const special: SpiceDeckDef = {
+      ...DECK,
+      cards: [
+        ...DECK.cards,
+        { key: 'sandtrout', name: 'Sandtrout', special: true, count: 1 },
+        { key: 'sihaya', name: 'Sihaya Ridge', special: true, territory: true, count: 1 },
+      ],
+    };
+    let game: SpiceDeckGame = {
+      ...newGame(special, Math.random, { piles: 2 }),
+      draw: ['shai-hulud#1', 'sihaya#1', 'sandtrout#1'],
+    };
+    expect(wormChance(game)).toBe(1 / 3);
+    game = revealOne(game, keepOrder);
+    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'sandtrout#1', kind: 'special' }]);
+    expect(nextPile(game)).toBe(0);
+    expect(blowSentence(game, game.blows.at(-1)!)).toBe('Spice pile A: Sandtrout. Follow the card.');
+    game = revealOne(game, keepOrder);
+    expect(game.blows.at(-1)!.reveals.map((reveal) => reveal.kind)).toEqual(['special', 'special']);
+    expect(nextPile(game)).toBe(1);
+    game = revealOne(nextTurn(game, keepOrder), keepOrder, 0);
+    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm', devours: 'sihaya#1' }]);
+  });
+
+  test('a Shai-Hulud on the first turn is read out as set aside and draw again', () => {
+    const game = revealOne(stacked(['old-gap#1', 'shai-hulud#1']), keepOrder, 0);
+    const turnOne = revealOne(game, keepOrder, 0);
+    const worm = turnOne.blows.at(-1)!.reveals.at(-1)!;
+    expect(revealSentence(turnOne, worm)).toBe('Shai-Hulud on turn 1. Set it aside and draw again.');
+    expect(revealSentence(turnOne, worm, 2)).toBe('Shai-Hulud! It devours everything in Old Gap.');
+  });
+
+  test('a deck with no spice card stops blowing instead of reshuffling forever', () => {
+    const worms: SpiceDeckDef = {
+      id: 'worms',
+      name: 'Worms',
+      cards: [{ key: 'shai-hulud', name: 'Shai-Hulud', count: 3 }],
+    };
+    const game = blowAll(newGame(worms, keepOrder, { piles: 1 }), keepOrder);
+    expect(spiceBlowOver(game)).toBe(false);
+    expect(game.discards.flat().length + game.draw.length).toBe(3);
+  });
+
+  test('what is left and the chance of Shai-Hulud next', () => {
+    const game = stacked(['old-gap#1', 'shai-hulud#1', 'broken-land#1', 'red-chasm#1']);
+    expect(wormChance(game)).toBe(0.25);
+    expect(remaining(game).find(({ card }) => card.key === 'shai-hulud')!.left).toBe(1);
+  });
+
+  test('with the deck run out, the odds come from the spice piles the next draw reshuffles', () => {
+    const game = { ...stacked([]), discards: [['old-gap#1', 'shai-hulud#1'], []] };
+    expect(wormChance(game)).toBe(0.5);
+  });
+});
+
+describe('a game read back from storage', () => {
+  test('is playable when every card belongs to its deck', () => {
+    expect(isPlayable(stacked(['old-gap#1', 'shai-hulud#1']))).toBe(true);
+  });
+
+  test('is not when a pile is missing or a card is not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    expect(isPlayable({ ...game, discards: undefined as unknown as SpiceDeckGame['discards'] })).toBe(false);
+    expect(isPlayable({ ...game, draw: ['sietch-tabr#1'] })).toBe(false);
+  });
+
+  test('is not when a blow lacks its cards or names a card not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    const blow = { turn: 1, pile: 0, reveals: [{ card: 'old-gap#1', kind: 'spice' as const }] };
+    expect(isPlayable({ ...game, blows: [blow] })).toBe(true);
+    expect(isPlayable({ ...game, blows: [{ turn: 1, pile: 0 } as unknown as Blow] })).toBe(false);
+    expect(isPlayable({ ...game, blows: [{ ...blow, reveals: [{ card: 'sietch-tabr#1', kind: 'spice' }] }] })).toBe(
+      false
+    );
+    expect(
+      isPlayable({
+        ...game,
+        blows: [{ ...blow, reveals: [{ card: 'shai-hulud#1', kind: 'worm', devours: 'nowhere#1' }] }],
+      })
+    ).toBe(false);
+  });
+});

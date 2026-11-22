@@ -2,6 +2,8 @@ import { assetPublishingFaction } from '@shared/factions/fixtures/assetPublishin
 
 import type { FactionCatalogueEntry } from '@db/factions';
 
+import { citedRulesets } from '../list/RulesetCovers.stories.fixture';
+
 export const baseFaction = {
   _id: 'faction-atreides',
   _creationTime: Date.parse('2026-07-20T10:00:00.000Z'),
@@ -14,6 +16,15 @@ export const baseFaction = {
   is_deleted: false,
   rulesets: [{ id: 'ruleset-advanced', slug: 'advanced', name: 'Advanced Dune' }],
 } as unknown as FactionCatalogueEntry;
+
+/** The base faction in the first `count` of the story rulesets. */
+export function inRulesets(count: number): FactionCatalogueEntry {
+  return {
+    ...baseFaction,
+    _id: `faction-atreides-${count}`,
+    rulesets: citedRulesets.slice(0, count),
+  } as unknown as FactionCatalogueEntry;
+}
 
 /* A self-contained image exercises publication delivery without a live publisher. */
 export const publishedImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600"><circle cx="300" cy="300" r="300" fill="#4b4c0d"/><circle cx="300" cy="300" r="285" fill="none" stroke="#e3dbb3" stroke-width="8"/><text x="300" y="340" text-anchor="middle" font-family="serif" font-size="120" fill="#e3dbb3">AT</text></svg>')}`;

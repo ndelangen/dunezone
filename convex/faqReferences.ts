@@ -52,5 +52,8 @@ export const options = publicQuery({
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(faqReferencePreviewValidator),
-  handler: async (ctx, args) => await loadCataloguePickerOptions(ctx, { ...args, partition: 'all' }),
+  handler: async (ctx, args) => {
+    const rows = await loadCataloguePickerOptions(ctx, { ...args, partition: 'all' });
+    return { ...rows, page: rows.page.map(({ choice }) => choice) };
+  },
 });

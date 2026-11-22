@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import type { MutationCtx } from './types';
 
 const now = '2026-08-10T00:00:00.000Z';
@@ -42,7 +43,7 @@ async function seedUsersAndGroups(ctx: MutationCtx) {
 async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof seedUsersAndGroups>>) {
   const { ownerId, otherId, otherGroupId, deletedGroupId } = seeded;
 
-  const unassignedFactionId = await ctx.db.insert('factions', {
+  const unassignedFactionId = await insertFactionRow(ctx, {
     owner_id: ownerId,
     data: { ...assetPublishingFaction, name: 'Unassigned Faction' },
     slug: 'unassigned-faction',
@@ -51,7 +52,7 @@ async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
     is_deleted: false,
     group_id: null,
   });
-  const elsewhereFactionId = await ctx.db.insert('factions', {
+  const elsewhereFactionId = await insertFactionRow(ctx, {
     owner_id: ownerId,
     data: { ...assetPublishingFaction, name: 'Elsewhere Faction' },
     slug: 'elsewhere-faction',
@@ -60,7 +61,7 @@ async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
     is_deleted: false,
     group_id: otherGroupId,
   });
-  await ctx.db.insert('factions', {
+  await insertFactionRow(ctx, {
     owner_id: ownerId,
     data: { ...assetPublishingFaction, name: 'Deleted Faction' },
     slug: 'deleted-faction',
@@ -69,7 +70,7 @@ async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
     is_deleted: true,
     group_id: null,
   });
-  await ctx.db.insert('factions', {
+  await insertFactionRow(ctx, {
     owner_id: otherId,
     data: { ...assetPublishingFaction, name: 'Someone Elses Faction' },
     slug: 'someone-elses-faction',
@@ -78,7 +79,7 @@ async function seedFactions(ctx: MutationCtx, seeded: Awaited<ReturnType<typeof 
     is_deleted: false,
     group_id: null,
   });
-  const danglingGroupFactionId = await ctx.db.insert('factions', {
+  const danglingGroupFactionId = await insertFactionRow(ctx, {
     owner_id: ownerId,
     data: { ...assetPublishingFaction, name: 'Dangling Group Faction' },
     slug: 'dangling-group-faction',
@@ -157,22 +158,22 @@ describe('factions.listOwnedForGroupAssign', () => {
 
     const bySlug = new Map(rows.map((row) => [row.slug, row]));
     expect(bySlug.size).toBe(3);
-    expect(bySlug.get('unassigned-faction')).toMatchObject({
+    expect(bySlug.get('unassigned-faction-original')).toMatchObject({
       groupId: null,
       groupName: null,
     });
-    expect(bySlug.get('elsewhere-faction')).toMatchObject({
+    expect(bySlug.get('elsewhere-faction-original')).toMatchObject({
       groupId: ids.otherGroupId,
       groupName: 'Other Guild',
     });
-    expect(bySlug.has('deleted-faction')).toBe(false);
-    expect(bySlug.has('someone-elses-faction')).toBe(false);
+    expect(bySlug.has('deleted-faction-original')).toBe(false);
+    expect(bySlug.has('someone-elses-faction-original')).toBe(false);
   });
 
   test('projects a group_id pointing at a soft-deleted group to unassigned', async () => {
     const { owner } = await fixture();
     const rows = await owner.query(api.factions.listOwnedForGroupAssign, {});
-    const danglingRow = rows.find((row) => row.slug === 'dangling-group-faction');
+    const danglingRow = rows.find((row) => row.slug === 'dangling-group-faction-original');
     expect(danglingRow).toMatchObject({ groupId: null, groupName: null });
   });
 

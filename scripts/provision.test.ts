@@ -25,6 +25,21 @@ import { writtenSnapshot } from './snapshot-anonymise.test.fixture';
 describe('local seed insertion', () => {
   const deployment: SelfHostedDeployment = { kind: 'self-hosted', url: 'http://127.0.0.1:3210', adminKey: 'test' };
 
+  test('rejects Storybook patches before sending an administrative request', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    try {
+      await expect(
+        insertLocalSeedDocuments(deployment, [
+          { operation: 'patch', key: 'user', table: 'users', value: { name: 'Changed' } },
+        ])
+      ).rejects.toThrow('Local fixture insertion does not accept Storybook seed patches.');
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test('recovers when the local backend refuses the current write window', async () => {
     const fetch = vi
       .fn()

@@ -66,6 +66,7 @@ describe('Play provisioning', () => {
       game: {
         rulesetId: game.ruleset_id,
         minimumPlayers: 4,
+        discordVoice: false,
         creator: expect.objectContaining({ userId: game.creator_id }),
       },
     });
@@ -80,6 +81,16 @@ describe('Play provisioning', () => {
     expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
       ok: true,
       game: { minimumPlayers: 4, lastTurn: 6 },
+    });
+  });
+
+  test('Discord voice opt-in reaches the Worker during provisioning', async () => {
+    const { t, game, credentials } = await fixture();
+    await t.run(async (ctx) => await ctx.db.patch(game._id, { discord_voice: true }));
+
+    expect(await t.mutation(api.playProvisioning.validateProvisioning, credentials)).toMatchObject({
+      ok: true,
+      game: { discordVoice: true },
     });
   });
 

@@ -74,19 +74,17 @@ A loader reads once for first paint; the hook subscribes and takes the loader's 
 `initialData`:
 
 ```typescript
-export async function loadFactionCataloguePage(): Promise<FactionCataloguePageData> {
-  const raw = await db.query(api.factions.cataloguePage, {});
-  return toFactionCataloguePageData(raw);
+export async function loadAssetCataloguePage(): Promise<AssetCataloguePageData> {
+  return await db.query(api.assets.cataloguePage, {});
 }
 
-export function useFactionCataloguePage(options?: { initialData?: FactionCataloguePageData }) {
-  const liveData = useQuery(api.factions.cataloguePage, {});
-  const normalized = liveData ? toFactionCataloguePageData(liveData) : undefined;
-  return toLiveQueryResult(normalized, () => options?.initialData);
+export function useAssetCataloguePage(options?: { initialData?: AssetCataloguePageData }) {
+  const liveData = useLiveQuery(api.assets.cataloguePage, {});
+  return toLiveQueryResult(liveData, () => options?.initialData);
 }
 ```
 
-**Example**: [`src/app/db/factions.ts`](../src/app/db/factions.ts)
+**Example**: [`src/app/db/assets.ts`](../src/app/db/assets.ts)
 
 ## Data validation
 

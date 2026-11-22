@@ -1,3 +1,4 @@
+import type { AllianceCommandKind, Relation } from '@shared/play/alliances';
 import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionTieBreaks } from '@shared/play/factionLabels';
 import type { LogTab } from '@shared/play/log';
@@ -8,8 +9,10 @@ import { tableForViewer } from '@shared/play/protocol';
 import type { GameSnapshot, PublicCarry, ServerMessage, Viewer } from '@shared/play/protocol';
 import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { renderedPiecesFor } from '@shared/play/tableState';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 
 import type { ConversationView } from './ConversationSession';
+import type { OwnChangesView } from './OwnChanges';
 import type { StoredTable } from './storedTable';
 import type { LogPage } from './TablePages';
 import type { TableSubscription } from './TableSubscription';
@@ -33,6 +36,10 @@ export type TableProjection = {
   canHandleTable: boolean;
   /* The connection is being restored: this is the last live table, read-only, until a fresh view replaces it. */
   reconnecting: boolean;
+  /* The table as the room confirmed it, present only while this viewer's own drag of the movement order shows on `snapshot` ahead of the room's answer. */
+  confirmedSnapshot?: GameSnapshot;
+  /* What this viewer's own commands changed, so the soft notices never tell them what they did themselves; absent where no live connection answers commands. */
+  ownChanges?: OwnChangesView;
   /* A seat command is on its way; the bar holds its buttons until the table answers. */
   seatCommandPending: boolean;
   /* How many of this viewer's own Traitor gathers the table has completed, so the camera can follow the pile they made. */
@@ -65,6 +72,12 @@ export type TableProjection = {
   deleteControls?: {
     remove(pieceId: string): void;
     restore(deletionId: string): void;
+  };
+  /* The alliance action on another faction's token (#2978); present only while this viewer acts for a faction in play. */
+  allianceControls?: {
+    /** How the viewer's faction stands with the faction this token belongs to, or null for its own token or a non-faction piece. */
+    relation(pieceId: string): Relation | null;
+    act(pieceId: string, kind: AllianceCommandKind): void;
   };
   /* Taking a loose card or a battle leader off the table into this viewer's hand; present only while this viewer can act. */
   handControls?: {
@@ -111,6 +124,10 @@ export type ConnectionView = {
   logHistory: Partial<Record<LogTab, LogPage>>;
   /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
+  /* The game's Treachery deck for the tracker; undefined until read, null when the game captured none. */
+  treacheryDeck?: readonly TreacheryDeckCard[] | null;
+  /* The seat the Treachery deck was read for. */
+  treacheryDeckSeat?: string | null;
 };
 
 /*

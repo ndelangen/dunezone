@@ -97,8 +97,10 @@ variant it names is in R2 before it goes live. After the deploy,
 `bun run media:publish --verify` checks that `/m` and the legacy URL serve the stored
 bytes. It downloads every entry no earlier deploy proved plus a random sample of 128 of the
 rest, and the deploy keeps the proved entries in the Actions cache (`media-verified-*`);
-`--all` downloads every entry. Publishing still checks every variant's stored integrity
-before the release goes live. [`docs/technical/media-runbooks.md`](../../docs/technical/media-runbooks.md)
+`--all` downloads every entry. Publishing uses the same record and asks R2 only about the entries
+it lacks, since R2 objects are create-only and a proved entry stays stored; `--all` asks about
+every variant. The monthly media report (`bun run media:gc`) watches that assumption: it fails when
+a variant any release record lists is missing from the bucket listing or stored at another size. [`docs/technical/media-runbooks.md`](../../docs/technical/media-runbooks.md)
 covers a deploy that stops here. No person holds the token. Local and CI Workers keep the
 raster copies, because their buckets are empty.
 
@@ -154,6 +156,22 @@ The scheduled handler emits one bounded `asset_publisher_cron` JSON event per
 invocation. Completed events report job and Browser-session counts; failures contain
 bounded diagnostics. Capture and public-delivery failures emit separate sanitized
 events.
+
+HTTP telemetry emits compact `publisher_request` records for every HTTP status of 400 or above,
+every thrown handler exception, and every handler with at least 1,000 ms of runtime-clock elapsed time.
+Other responses, including WebSocket upgrades, are sampled at 1%. Each record names its `reason`
+and `sampleRate`, with the method, allowlisted route family, status, elapsed time, validated Ray ID
+and release identity. Raw paths, query strings, cookies and request headers are omitted.
+Timing ends when the handler returns; it does not measure streaming completion, WebSocket lifetime
+or background work. Existing background-operation diagnostics retain their own failure coverage.
+The deployed runtime clock advances only after I/O, so CPU-only delays can escape the threshold.
+Use Workers Metrics and CPU profiling to investigate them.
+
+Automatic invocation records are disabled. Cloudflare's log sampling stays at 100%, so it keeps
+every application diagnostic and publishing result that the Worker emits. Workers Issues is enabled
+for uncaught exceptions and failed invocations that application code cannot catch, such as platform
+resource exhaustion. Consult Issues and Workers Metrics for those failures; compact request logs
+do not replace the removed invocation records' full metadata.
 
 `/__asset-publisher/health` is the no-store release identity endpoint. It reports
 the twenty-job limit, Cron schedule, Renderer identity, Worker version metadata,

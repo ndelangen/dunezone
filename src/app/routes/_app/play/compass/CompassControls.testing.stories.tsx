@@ -1,7 +1,9 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { gameMeta, install } from '../game.stories.fixture';
+import { voiceParameters } from '../../../discord.stories.fixture';
+import { openCompass } from '../controls.stories.fixture';
+import { gameMeta, install, session } from '../game.stories.fixture';
 import { productTransport } from '../product.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -113,4 +115,45 @@ export const OpenedChatTakesTheKeys = meta.story({
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(chat).not.toBeInTheDocument());
   },
+});
+
+/** Choosing a recipient in the compass sends one explicit request without creating a chat message. */
+export const NudgeSendsDiscordRequest = meta.story({
+  parameters: voiceParameters(),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
+    const target = session.transport.snapshot.roster!.seats.find((seat) => seat.id === 'seat-1')!;
+    const compass = await openCompass(page);
+    await userEvent.type(compass.getByRole('textbox', { name: 'Search controls' }), `nudge ${target.faction!.name}`);
+    await userEvent.click(await compass.findByText(`Nudge ${target.faction!.name}`, { exact: true }));
+    await waitFor(() =>
+      expect(session.transport.messages.filter((message) => message.type === 'nudge')).toEqual([
+        { type: 'nudge', requestId: expect.any(String), toSeat: target.id },
+      ])
+    );
+    await expect(session.transport.messages.filter((message) => message.type === 'conversation-send')).toEqual([]);
+    await expect(page.queryByRole('dialog', { name: 'Controls compass' })).toBeNull();
+  },
+});
+
+async function expectNoNudge(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
+  const compass = await openCompass(page);
+  await userEvent.type(compass.getByRole('textbox', { name: 'Search controls' }), 'nudge');
+  await waitFor(() => expect(compass.queryAllByRole('option')).toHaveLength(0));
+  await expect(session.transport.messages.filter((message) => message.type === 'nudge')).toEqual([]);
+}
+
+/** A game without Discord voice offers no Discord nudge command. */
+export const NudgeUnavailableWithoutVoice = meta.story({
+  play: async ({ canvasElement }) => expectNoNudge(canvasElement),
+});
+
+/** A spectator can join voice but cannot nudge a seated player. */
+export const NudgeUnavailableForSpectators = meta.story({
+  parameters: voiceParameters(),
+  beforeEach: install(() => productTransport('neutral')),
+  play: async ({ canvasElement }) => expectNoNudge(canvasElement),
 });

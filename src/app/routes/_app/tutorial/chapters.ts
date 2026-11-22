@@ -75,8 +75,8 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   },
   {
     slug: 'windows',
-    title: 'Windows',
-    goal: 'Open windows with the compass or a letter, then pin and resize them',
+    title: 'Panels',
+    goal: 'Open panels with the compass or a letter, then pin and resize them',
     minutes: 4,
     part: 'Using the table',
   },
@@ -192,4 +192,10 @@ export const chapterArt = (chapter: TutorialChapter) => {
   }
   const slug = ['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug;
   return `/tutorial/${slug}.webp`;
+};
+
+/* The text on a chapter's social card, which fits the wide card's four lines (120 characters). */
+export const chapterCardText = (chapter: TutorialChapter) => {
+  const long = `${chapter.goal}. A ${chapter.minutes}-minute chapter at a table you can play with.`;
+  return Array.from(long).length <= 120 ? long : `${chapter.goal}. A ${chapter.minutes}-minute chapter.`;
 };

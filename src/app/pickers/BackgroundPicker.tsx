@@ -21,11 +21,13 @@ export function BackgroundPicker({
   value,
   onPick,
   familyValue,
+  disabled,
 }: Readonly<{
   label: string;
   value: BackgroundData;
   onPick: (value: BackgroundData) => void;
   familyValue?: BackgroundData;
+  disabled?: boolean;
 }>) {
   const [opened, setOpened] = useState(false);
   /* Keep option labels after the dropdown releases its subscription. */
@@ -40,6 +42,7 @@ export function BackgroundPicker({
         resolvedValue={resolved === value ? undefined : resolved}
         familyValue={familyValue}
         presets={presets}
+        disabled={disabled}
         onDropdownChange={setOpened}
         onPick={(next) => {
           if (next) {

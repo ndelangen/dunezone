@@ -32,6 +32,7 @@ import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
 import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './CreateGamePass.module.css';
+import { offeredSpiceExtras } from './offeredSpiceExtras';
 import { RulesetManifest } from './RulesetManifest';
 
 /*
@@ -59,8 +60,11 @@ export type CreateGameDraft = {
   custom: boolean;
   customName: string;
   rulesetId: string;
+  /** The chosen ruleset's extra spice decks the creator ticked; a new ruleset starts with none (#2986). */
+  spiceExtras: readonly string[];
   minimumPlayers: number;
   lastTurn: number;
+  discordVoice: boolean;
   refusal: string | null;
 };
 export type CreateGameDraftEvent =
@@ -76,8 +80,10 @@ export const initialCreateGameDraft = (): CreateGameDraft => ({
   custom: false,
   customName: '',
   rulesetId: '',
+  spiceExtras: [],
   minimumPlayers: DEFAULT_TABLE_SEAT_COUNT,
   lastTurn: DEFAULT_LAST_TURN,
+  discordVoice: false,
   refusal: null,
 });
 
@@ -142,6 +148,7 @@ export function CreateGamePass({
   disabledReason,
   rulesetCheck = 'ready',
   onRecheck,
+  discordVoiceAvailable = false,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
@@ -164,6 +171,7 @@ export function CreateGamePass({
   rulesetCheck?: RulesetCheck;
   /** Runs the check of the chosen ruleset again; absent when there is nothing to check here, such as a ruleset the server already refuses. */
   onRecheck?: (() => void) | undefined;
+  discordVoiceAvailable?: boolean;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
   const started = useRef<number | undefined>(undefined);
@@ -183,11 +191,15 @@ export function CreateGamePass({
     },
     []
   );
+  const voiceHintId = useId();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
+  const spiceExtras = offeredSpiceExtras(draft.spiceExtras, preview);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
+    ...(spiceExtras.length ? { spiceExtras } : {}),
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
+    discordVoice: discordVoiceAvailable && draft.discordVoice,
   });
   const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
@@ -250,11 +262,19 @@ export function CreateGamePass({
                   check={rulesetCheck}
                   onRecheck={onRecheck}
                   value={draft.rulesetId}
-                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId } })}
+                  onChange={(rulesetId) => dispatch({ kind: 'patch', update: { rulesetId, spiceExtras: [] } })}
                   disabled={pending}
                 />
                 {chosen && preview ? (
                   <RulesetManifest ruleset={chosen} preview={preview} rulesetLink={rulesetLink} />
+                ) : null}
+                {chosen && preview?.spiceExtras?.length ? (
+                  <SpiceExtrasField
+                    decks={preview.spiceExtras}
+                    value={draft.spiceExtras}
+                    onChange={(spiceExtras) => dispatch({ kind: 'patch', update: { spiceExtras } })}
+                    disabled={pending}
+                  />
                 ) : null}
                 <Box mt="auto">
                   <PassFacts ruleset={chosen?.name ?? null} seats={draft.minimumPlayers} lastTurn={draft.lastTurn} />
@@ -275,6 +295,27 @@ export function CreateGamePass({
                   onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
                   disabled={pending}
                 />
+                {discordVoiceAvailable ? (
+                  <Stack gap="xs">
+                    <ControlBlock
+                      title="Discord voice chat"
+                      input={(field) => (
+                        <Switch
+                          {...field}
+                          aria-describedby={voiceHintId}
+                          checked={draft.discordVoice}
+                          onChange={(event) =>
+                            dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
+                          }
+                          disabled={pending}
+                        />
+                      )}
+                    />
+                    <Text id={voiceHintId} size="sm" c="dimmed">
+                      Give this game its own Discord voice channel. Anyone with its invite can join.
+                    </Text>
+                  </Stack>
+                ) : null}
                 <ActionError subject="Game" verb="create" error={shownFailure} />
                 <Stack gap="xs">
                   <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
@@ -291,6 +332,42 @@ export function CreateGamePass({
       </form>
       {departing ? <DepartureCover /> : null}
     </>
+  );
+}
+
+/* The ruleset's optional spice decks, one switch each; a ticked deck is shuffled into the spice deck at table setup (#2986). */
+function SpiceExtrasField({
+  decks,
+  value,
+  onChange,
+  disabled,
+}: Readonly<{
+  decks: Readonly<CreatableRulesetPreview['spiceExtras']>;
+  value: readonly string[];
+  onChange: (next: string[]) => void;
+  disabled: boolean;
+}>) {
+  return (
+    <Stack gap="xs">
+      <Eyebrow>Extra spice decks</Eyebrow>
+      {decks.map((deck) => (
+        <ControlBlock
+          key={deck.id}
+          title={deck.name}
+          description="Shuffled into the spice deck when the table is set up."
+          input={(field) => (
+            <Switch
+              {...field}
+              checked={value.includes(deck.id)}
+              onChange={(event) =>
+                onChange(event.currentTarget.checked ? [...value, deck.id] : value.filter((entry) => entry !== deck.id))
+              }
+              disabled={disabled}
+            />
+          )}
+        />
+      ))}
+    </Stack>
   );
 }
 

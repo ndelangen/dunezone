@@ -11,18 +11,25 @@ export function PieceBadge({
   owner,
   peeked,
   selected,
+  hovered,
   labelRef,
   badgeRef,
   classNames,
-}: { piece: TablePiece; owner: string | undefined; peeked: string | undefined; selected: boolean } & Pick<
-  ReturnType<typeof usePieceFlipAnimation>,
-  'labelRef' | 'badgeRef'
-> & { classNames: Record<string, string> }) {
+}: {
+  piece: TablePiece;
+  owner: string | undefined;
+  peeked: string | undefined;
+  selected: boolean;
+  hovered: boolean;
+} & Pick<ReturnType<typeof usePieceFlipAnimation>, 'labelRef' | 'badgeRef'> & { classNames: Record<string, string> }) {
   return (
     <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
       <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-        {/* The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held. */}
-        <span className={`scene-piece-tag ${classNames.pieceTag}`}>
+        {/*
+         * The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held.
+         * The piece under the pointer shows both, so a player finds a stack's size without knowing the keys (#2988).
+         */}
+        <span className={`scene-piece-tag ${classNames.pieceTag}`} data-hovered={hovered || undefined}>
           <span className={`scene-piece-name ${classNames.pieceName}`}>
             <span className="scene-piece-name__label">{piece.label}</span>
             {owner ? <span className={`scene-piece-name__owner ${classNames.pieceNameOwner}`}>{owner}</span> : null}

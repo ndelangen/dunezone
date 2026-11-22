@@ -15,6 +15,11 @@ const VIEWER_QUERIES: Record<string, string> = {
   'accountDeletion:page': "The viewer's own account deletion state.",
   'accountDeletion:listReplacementProfiles': 'Excludes the viewer from the replacement-owner search.',
   'accounts:connection': "Resolves a connection intent against the viewer's session.",
+  'accounts:connectedMethods': "Lists the methods connected to the viewer's account, for signing in again.",
+  'factionFamilies:ownEmpty':
+    "The viewer's own Factions left without a live variant, which only their owner may delete.",
+  'factionVariants:editorContext':
+    "A variant's parent and sibling variants, told only to those who may edit the variant or its Faction.",
   'factions:listForLoadPicker': "The viewer's own and their Groups' factions.",
   'factions:listOwnedForGroupAssign': "The viewer's own factions.",
   'faq:viewerAnswered': "Whether the viewer answered one question: the viewer half of the question page's answer form.",
@@ -29,7 +34,6 @@ const VIEWER_QUERIES: Record<string, string> = {
   'playGameDirectory:getGameByAddress': 'Only an active Play session may resolve an admitted game.',
   'playGameNameAvailability:nameAvailability': 'Only an active Play session may check a name address.',
   'profiles:defaultGroupPreference': "The viewer's own preference.",
-  'profiles:session': 'Who the viewer is: their user id, profile and admin flag.',
   'profiles:settings': "The viewer's own settings and sign-in methods.",
   'rulebooks:creationPage': 'Only editors of the ruleset may create a rulebook.',
   'rulebooks:editorBySlugs': 'Drafts are visible to editors only.',
@@ -86,7 +90,7 @@ describe('query audience', () => {
     expect(queries.size).toBeGreaterThan(50);
   });
 
-  test('every client-callable query is built with publicQuery, viewerQuery or adminQuery', () => {
+  test('every client-callable query declares its audience', () => {
     const unmarked = [...queries]
       .filter(([name, audience]) => audience === undefined && !(name in LIBRARY_QUERIES))
       .map(([name]) => name);
@@ -96,5 +100,10 @@ describe('query audience', () => {
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
     expect(viewer.sort()).toEqual(Object.keys(VIEWER_QUERIES).sort());
+  });
+
+  test('only the session envelope may answer a banned caller', () => {
+    const lifecycle = [...queries].filter(([, audience]) => audience === 'lifecycle').map(([name]) => name);
+    expect(lifecycle).toEqual(['profiles:session']);
   });
 });

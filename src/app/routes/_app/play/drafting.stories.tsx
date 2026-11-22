@@ -1,7 +1,13 @@
 import preview from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
-import { draftingSnapshot, storyPlayer, headerAlert, NOT_READY } from './drafting.stories.fixture';
+import {
+  draftingSnapshot,
+  storyPlayer,
+  headerAlert,
+  NOT_READY,
+  variantDraftingSnapshot,
+} from './drafting.stories.fixture';
 import { drafting, gameMeta, install, lastCommand, MIDWAY, press, shows } from './game.stories.fixture';
 import { productTransport, SIX } from './product.stories.fixture';
 
@@ -112,6 +118,28 @@ export const FactionSetAside = meta.story({
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
     await expect(within(row).getByRole('button', { name: /^Draft$/ })).toHaveAttribute('aria-disabled', 'true');
+  },
+});
+
+/**
+ * Three Factions have several variants, so their rows name the variant after the Faction, and a long variant name wraps.
+ * Atreides is drafted as Classic, which holds its other variants back, and the ban on one Harkonnen variant covers both.
+ */
+export const FactionVariants = meta.story({
+  beforeEach: install(() =>
+    productTransport(
+      'seat-2',
+      variantDraftingSnapshot(SIX, 6, {
+        picks: { 'seat-1': ['house-atreides-classic'], 'seat-2': ['fremen'] },
+        bans: { 'seat-3': ['house-harkonnen-brutal'] },
+      })
+    )
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const list = () => within(page.getByRole('list', { name: 'Factions' }));
+    await shows(() => list().getByRole('img', { name: 'House Atreides · Classic' }));
+    await expect(list().getAllByText('Drafted as Classic')).toHaveLength(2);
   },
 });
 

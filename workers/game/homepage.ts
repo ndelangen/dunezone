@@ -3,10 +3,14 @@ import { DurableObject } from 'cloudflare:workers';
 import { api } from '../../convex/_generated/api';
 import { ARRAKIS_BOARD_SLUG } from '../../src/shared/boards/arrakisOfficial';
 import {
+  HOMEPAGE_ACCOUNT_CUTOFF_PATH,
+  HOMEPAGE_CLIENT_CONNECTION_LIMIT,
   HOMEPAGE_CONNECTION_LIMIT,
   HOMEPAGE_EDITOR_LIMIT,
   HOMEPAGE_FRAME_LIMIT,
   HOMEPAGE_RESET_MS,
+  homepageAccountCutoffRequestSchema,
+  homepageAccountCutoffSchema,
   homepageAdmissionSchema,
   homepageMessageSchema,
 } from '../../src/shared/homepage/protocol';
@@ -18,6 +22,7 @@ import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/sh
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { clientAddress, clientKey } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { gameHttpClient } from './gameHttpClient';
@@ -28,8 +33,11 @@ import type { StoredSnapshot } from './state';
 
 type Connection = {
   viewer: Viewer;
+  /* A digest of the visitor's address, which bounds how many sockets one visitor holds; absent where no limit applies. */
+  client?: string;
   userKey?: string;
   leaseUntil: number;
+  leaseIssuedAt: number;
   generation: number;
   messages: number;
   windowAt: number;
@@ -63,9 +71,21 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   /* Reads overlap (a wake's and a reset's); only the latest one's answer is applied. */
   private boardReads = 0;
   private readonly connections = new Map<WebSocket, Connection>();
+  private readonly accountCutoffs = new Map<string, { through: number; expiresAt: number }>();
+  private cutoffExpiry = Infinity;
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
     super(ctx, env);
+    ctx.storage.sql.exec(
+      'CREATE TABLE IF NOT EXISTS homepage_account_cutoffs (user_key TEXT PRIMARY KEY, through INTEGER NOT NULL, expires_at INTEGER NOT NULL)'
+    );
+    ctx.storage.sql.exec('DELETE FROM homepage_account_cutoffs WHERE expires_at <= ?', Date.now());
+    for (const row of ctx.storage.sql.exec<{ user_key: string; through: number; expires_at: number }>(
+      'SELECT user_key, through, expires_at FROM homepage_account_cutoffs'
+    )) {
+      this.accountCutoffs.set(row.user_key, { through: row.through, expiresAt: row.expires_at });
+      this.cutoffExpiry = Math.min(this.cutoffExpiry, row.expires_at);
+    }
     this.diagnostics = new GameDiagnostics(ctx.id.toString(), env.GIT_SHA, () => ({
       roomClass: 'HomepageRoom',
       workerVersionId: env.CF_VERSION_METADATA.id,
@@ -92,6 +112,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.room = this.tableRoom(snapshot);
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
+          if (!Number.isFinite(connection?.leaseIssuedAt)) {
+            socket.close(1012, 'Reconnect to the table.');
+            continue;
+          }
           connection.authenticating = false;
           connection.controlTokens ??= 8;
           connection.controlUpdatedAt ??= Date.now();
@@ -108,10 +132,18 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     );
   }
 
-  async fetch(_request: Request) {
+  async fetch(request: Request) {
+    if (new URL(request.url).pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH) {
+      return await this.receiveAccountCutoff(request);
+    }
     await this.diagnostics.run('refresh', () => this.refresh());
+    const visitor = await clientKey(clientAddress(request, this.env));
+    /* Nothing awaits from here until the socket is counted, so two requests cannot both take the last place. */
     if (this.connections.size >= HOMEPAGE_CONNECTION_LIMIT) {
       return new Response('Table busy.', { status: 503 });
+    }
+    if (visitor && this.clientConnections(visitor) >= HOMEPAGE_CLIENT_CONNECTION_LIMIT) {
+      return new Response('Too many tables open.', { status: 429 });
     }
     const pair = new WebSocketPair();
     const [client, socket] = Object.values(pair);
@@ -124,7 +156,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         displayName: '',
         color: COLORS[this.connections.size % COLORS.length]!,
       },
+      ...(visitor ? { client: visitor } : {}),
       leaseUntil: 0,
+      leaseIssuedAt: 0,
       generation: 0,
       messages: 0,
       windowAt: Date.now(),
@@ -137,6 +171,14 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     this.saveConnection(socket, connection);
     this.sendView(socket, connection);
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private clientConnections(client: string) {
+    let count = 0;
+    for (const connection of this.connections.values()) {
+      count += Number(connection.client === client);
+    }
+    return count;
   }
 
   private saveConnection(socket: WebSocket, connection: Connection) {
@@ -250,14 +292,31 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     connection.generation++;
     connection.userKey = undefined;
     connection.leaseUntil = 0;
+    connection.leaseIssuedAt = 0;
     connection.viewer = { ...connection.viewer, viewerSeat: SPECTATOR_SEAT, avatarUrl: undefined };
     this.room.clearActivity(connection.viewer.connectionId);
     this.saveConnection(socket, connection);
     return changed;
   }
 
+  private expireAccountCutoffs(now: number) {
+    if (!(this.cutoffExpiry <= now)) {
+      return;
+    }
+    this.ctx.storage.sql.exec('DELETE FROM homepage_account_cutoffs WHERE expires_at <= ?', now);
+    this.cutoffExpiry = Infinity;
+    for (const [userKey, cutoff] of this.accountCutoffs) {
+      if (cutoff.expiresAt <= now) {
+        this.accountCutoffs.delete(userKey);
+      } else {
+        this.cutoffExpiry = Math.min(this.cutoffExpiry, cutoff.expiresAt);
+      }
+    }
+  }
+
   private async refresh() {
     const now = Date.now();
+    this.expireAccountCutoffs(now);
     if (this.resetAt <= now) {
       const snapshot = storedSnapshotSchema.parse(homepageSnapshot(this.env.APPLICATION_ORIGIN));
       /*
@@ -277,9 +336,19 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       /* Each new table picks up edits to the saved board. */
       void this.loadBoard();
     }
+    this.expireConnections(now);
+    await this.scheduleAlarm();
+    this.diagnostics.recovered('refresh');
+  }
+
+  private expireConnections(now: number) {
     let changed = false;
     for (const [socket, connection] of this.connections) {
-      if (connection.leaseUntil && connection.leaseUntil <= now) {
+      if (
+        connection.leaseUntil &&
+        (connection.leaseUntil <= now ||
+          (connection.userKey && this.cutoffCovers(connection.userKey, connection.leaseIssuedAt)))
+      ) {
         this.makeAnonymous(socket, connection);
         changed = true;
       }
@@ -287,15 +356,13 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (changed) {
       this.broadcast();
     }
-    await this.scheduleAlarm();
-    this.diagnostics.recovered('refresh');
   }
 
   private async scheduleAlarm() {
     const leases = [...this.connections.values()]
       .map((connection) => connection.leaseUntil)
       .filter((time) => time > Date.now());
-    const next = Math.min(this.resetAt, ...leases);
+    const next = Math.min(this.resetAt, ...leases, this.cutoffExpiry);
     if (next !== this.scheduledAlarm) {
       await this.ctx.storage.setAlarm(next);
       this.scheduledAlarm = next;
@@ -346,6 +413,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (!admission.allowed) {
       return this.makeAnonymous(socket, connection);
     }
+    const { issuedAt } = admission;
+    if (this.cutoffCovers(admission.userKey, issuedAt)) {
+      return this.makeAnonymous(socket, connection);
+    }
     const editors = [...this.connections.values()].filter(
       (other) => other.leaseUntil > Date.now() && other !== connection
     );
@@ -358,6 +429,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     }
     connection.userKey = admission.userKey;
     connection.leaseUntil = admission.leaseUntil;
+    connection.leaseIssuedAt = issuedAt;
     connection.viewer = {
       ...connection.viewer,
       viewerSeat: connection.viewer.connectionId,
@@ -365,6 +437,52 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     };
     this.saveConnection(socket, connection);
     return changed;
+  }
+
+  private cutoffCovers(userKey: string, issuedAt: number) {
+    const cutoff = this.accountCutoffs.get(userKey);
+    return cutoff !== undefined && issuedAt <= cutoff.through && cutoff.expiresAt > Date.now();
+  }
+
+  /** A capability is checked with Convex once; the stored cutoff also rejects an older admission still in flight. */
+  private async receiveAccountCutoff(request: Request) {
+    const input = homepageAccountCutoffRequestSchema.safeParse({
+      operationId: request.headers.get('X-Account-Operation'),
+      token: request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+    });
+    if (request.method !== 'POST' || !input.success) {
+      return new Response('Request refused.', { status: 403 });
+    }
+    const cutoff = homepageAccountCutoffSchema.parse(
+      await gameHttpClient(this.env.CONVEX_URL).query(api.homepageBanCutoff.authorize, input.data)
+    );
+    if (!cutoff || cutoff.expiresAt <= Date.now()) {
+      return new Response('Request refused.', { status: 403 });
+    }
+    this.ctx.storage.sql.exec(
+      'INSERT INTO homepage_account_cutoffs (user_key, through, expires_at) VALUES (?, ?, ?) ON CONFLICT(user_key) DO UPDATE SET through=MAX(through, excluded.through), expires_at=MAX(expires_at, excluded.expires_at)',
+      cutoff.userKey,
+      cutoff.through,
+      cutoff.expiresAt
+    );
+    const previous = this.accountCutoffs.get(cutoff.userKey);
+    const held = {
+      through: Math.max(previous?.through ?? 0, cutoff.through),
+      expiresAt: Math.max(previous?.expiresAt ?? 0, cutoff.expiresAt),
+    };
+    this.accountCutoffs.set(cutoff.userKey, held);
+    this.cutoffExpiry = Math.min(this.cutoffExpiry, held.expiresAt);
+    let changed = false;
+    for (const [socket, connection] of this.connections) {
+      if (connection.userKey === cutoff.userKey && connection.leaseIssuedAt <= cutoff.through) {
+        changed = this.makeAnonymous(socket, connection) || changed;
+      }
+    }
+    if (changed) {
+      this.broadcast();
+    }
+    await this.scheduleAlarm();
+    return new Response(null, { status: 204 });
   }
 
   /* Full views and admission calls have a separate budget from smooth pointer and carry motion. */

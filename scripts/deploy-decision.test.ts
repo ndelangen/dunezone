@@ -229,7 +229,10 @@ describe('the release gate in the production deploy workflow', () => {
     expect(deploy).toBeDefined();
     expect(base).toBeDefined();
     const failOpen = `needs.release_gate.outputs.${deploy} != 'false'`;
-    const deployJob = workflow.slice(workflow.indexOf('\n  deploy:\n'), workflow.indexOf('\n  dev_rebuild:\n'));
+    const deployStart = workflow.indexOf('\n  deploy:\n');
+    const nextJob = /\n {2}\w+:\n/g;
+    nextJob.lastIndex = deployStart + 1;
+    const deployJob = workflow.slice(deployStart, nextJob.exec(workflow)?.index);
     expect(deployJob).toContain(`\n    if: ${failOpen}\n`);
     const conditions = [...workflow.matchAll(new RegExp(`needs\\.release_gate\\.outputs\\.${deploy}\\b.*`, 'g'))];
     expect([...new Set(conditions.map(([condition]) => condition))]).toEqual([failOpen]);

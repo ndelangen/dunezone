@@ -1,0 +1,117 @@
+/*
+ * The viewer's soft notifications (#2981): small panes under the phase header that never take the pointer away from the table.
+ * The root covers the table's shell without catching the pointer; only the notices themselves do.
+ * It sits above the header (10) but under the compass panels (12 and up), so an open panel keeps its controls where it reaches the stack.
+ * Each pane is the kit's interactive Surface as it is: its slot fades and arrives, so the kit's own hover keeps its transitions.
+ */
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+}
+
+/* Under the rendered phase header, however tall its wrapped names and controls make it. */
+.stack {
+  position: absolute;
+  top: calc(var(--play-header-height) + var(--space-xs));
+  inset-inline: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: center;
+  pointer-events: none;
+}
+
+.slot {
+  pointer-events: auto;
+}
+
+/* The lead adds no box of its own, so an empty one leaves no gap; its toast takes the pointer like a slot's. */
+.lead {
+  display: contents;
+  pointer-events: auto;
+}
+
+.stack[data-gesture] .lead {
+  pointer-events: none;
+}
+
+/* While a board gesture holds the pointer no toast may be opened, but each stays readable, so the log still announces it. */
+.stack[data-gesture] .slot {
+  pointer-events: none;
+}
+
+/* A leaving toast no longer takes the pointer, whether it fades or, with motion off, is gone at once. */
+.slot[data-leaving] {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.root[data-motion] .slot {
+  transition: opacity 400ms ease-in;
+  animation: arrive 260ms ease-out backwards;
+}
+
+.toast {
+  position: relative;
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+  max-width: 340px;
+  font: inherit;
+  color: var(--color-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* The viewer's own turn reads as the one to act on: a brand edge rather than a brighter pane, drawn apart from the pane's own shadow so its hover keeps it. */
+.turn::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  content: "";
+  background: var(--color-brand);
+  border-start-start-radius: inherit;
+  border-end-start-radius: inherit;
+}
+
+.line {
+  flex: 1;
+  min-width: 0;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+/* A soft brand glow round the screen's edge while it is the viewer's turn; with motion off it does not pulse at all, as the turn's toast says it already. */
+.glow {
+  display: none;
+}
+
+.root[data-motion] .glow {
+  position: absolute;
+  inset: 0;
+  display: block;
+  box-shadow: inset 0 0 64px 8px rgb(from var(--color-brand) r g b / 55%);
+  opacity: 0;
+  animation: glow 2400ms ease-out forwards;
+}
+
+/* In softly, held, then out: 2.4 s in all. It keeps its last, unlit frame, so a story can still seek back into it. */
+@keyframes glow {
+  25%,
+  60% {
+    opacity: 1;
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}

@@ -23,7 +23,6 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import { factionNameField } from './factionNameField';
 import { rawFactionLoad } from './rawFactionLoad';
 
 export const Route = createFileRoute('/_app/factions/create')({
@@ -63,7 +62,6 @@ function CreateFactionPage() {
       });
     },
   });
-  const nameField = factionNameField(true);
   const validationHeader = useEditPageHeader({
     warnings: authoring.editing.warnings,
     onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
@@ -130,7 +128,6 @@ function CreateFactionPage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <FactionEditor
-            nameField={nameField}
             key="create"
             ref={viewRef}
             form={authoring.form}

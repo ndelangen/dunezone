@@ -22,7 +22,7 @@ A Group its owner has deleted. It survives with its memberships and asset associ
 _Avoid_: Archived group, removed group
 
 **Group-associated asset**:
-A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may rename it, delete it, or change its Group association. Renaming is the owner's for every kind because it recalculates the slug and moves the public URL with no redirect behind it, which makes it an identity change rather than an edit. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
+A faction, ruleset, or future community asset that its owner has assigned to a Group for collaborative maintenance. Active members may edit it, while its owner alone may rename it, delete it, or change its Group association. Renaming is the owner's for every kind because it recalculates the slug and moves the public URL with no redirect behind it, which makes it an identity change rather than an edit. A faction is the exception: its name is a shared field of its Faction, so the Faction's owner and the Faction's own Group rename it, and a variant's Group alone may not. An asset whose Group is deleted or no longer exists presents as ungrouped; the stored association survives until its owner changes it.
 
 **FAQ question**:
 A ruleset question owned by its author, who may edit or remove it and moderate its answers regardless of the ruleset's Group association.
@@ -132,6 +132,22 @@ A profile eligible for public discovery because it has a non-placeholder display
 **Faction slug**:
 The faction's public URL identifier, derived from its name. It is distinct from the faction's durable internal identity and may change when the faction is renamed.
 
+**Faction**:
+What the catalogue lists: a container of one or more Variants that share its name, emblem, background, theme colour and TTS colours. It has its own owner and Group, which co-owns it, a Default variant and a variant order. Only its owner deletes it, and only once it holds no live Variant; an owner who leaves hands it to the owner of its first live Variant whose account is active. In code it is the Faction family (`faction_families`), because the `factions` table already names the variants.
+_Avoid_: Faction family (outside code), container
+
+**Variant**:
+One playable version of a Faction, holding everything the Faction does not share: leaders, troops, rules and the rest. It has its own owner, Group, name and slug, and is a `factions` row, so its id is the one rulesets, publications and games already point at. A faction that predates variants became the single Variant of its own Faction, named after the first live ruleset linking it, otherwise "Original".
+
+**Default variant**:
+The Variant a Faction's address opens and its catalogue card draws, listed before the others; the Faction's maintainers choose it. Deleting it passes the role to the next live Variant in variant order.
+
+**Evict**:
+To split a Variant and every Variant below it out of a Faction into a new Faction of their own. Only the evicted Variant's link to its parent is cut, and what it inherited becomes its own, so the branch looks as it did. The new Faction copies the old one's shared fields, belongs to the evicted Variant's owner and Group, starts closed and has that Variant as its default.
+
+**Open faction**:
+A Faction anyone may add a Variant to, without approval. Every Faction starts closed, and closing it again keeps the Variants already in it.
+
 **Faction leader**:
 The single required primary leader who represents a faction, distinct from its supporting leaders. Among rendered game assets, the Faction leader is used on the faction shield.
 _Avoid_: Hero
@@ -222,11 +238,15 @@ _Avoid_: Asset generation, desired Renderer version
 A temporary scan started by a Renderer-revision increase. It visits eligible non-soft-deleted assets and creates or reuses Publication jobs through exactly the same rules as a save. The scan itself is not stored as publication state; Publication jobs are the durable regeneration obligation. Restarting the scan is safe because pending work is deduplicated. Later creations and undeletes follow normal pending publication, while soft-deleting an asset does not cancel work already enqueued.
 There is no durable rollout or rollout-item state machine, and neither the triggering Renderer revision nor a scan identity belongs on a Publication job.
 
+**Capture reuse**:
+Publishing a leader, traitor or troop face by copying another publication's finished file instead of rendering it, because both draw identical content. When the Publisher starts such a job, Convex fixes its content key: a hash of the asset type, the Renderer revision active at that moment and the drawn payload, leaving out a leader's faction and member ids, which only label the capture. If a Publication asset of another identity holds the same key, the assignment names it, and the Publisher copies that file under the job's own identity and completes the job as if it had captured it. While another asset's capture of the same key is in progress, the job waits in the queue, so identical content saved together is drawn once and then copied. A source that no longer matches what Convex recorded is a miss, and the job renders as usual. The alliance card is never reused, since it mixes faction-specific text with its troop. The content key is a capture fingerprint, not a record of which scan or revision triggered the job.
+_Avoid_: Shared image, image inheritance
+
 **Asset publication state**:
 Whether the last successfully published asset is current or awaiting replacement. This is separate from Publication-job status: an existing publication remains available while a replacement job is pending, in progress, or in error, and a successful job atomically replaces its publication metadata.
 
 **Publication asset**:
-The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores only an application-facing cache buster and publication time; using that cache buster in the public URL is optional because delivery selects the current object by pathname and ignores query parameters. The asset bytes remain in object storage and render data remains on Publication jobs.
+The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores an application-facing cache buster, the publication time and, for faces eligible for Capture reuse, the content key of the capture it points to; using that cache buster in the public URL is optional because delivery selects the current object by pathname and ignores query parameters. The asset bytes remain in object storage and render data remains on Publication jobs.
 
 **Publication cutover**:
 The one-time clean break from the legacy publication model to the current model. Legacy publication records and unfinished work are not imported or used as a compatibility read path. Temporary loss of public asset links is accepted; each link returns after a new Publication job successfully creates the current Publication asset. Legacy bytes that remain in object storage have no publication authority.
@@ -242,6 +262,13 @@ _Avoid_: Worker rollback, Renderer rollback, rollback rollout
 
 **Administrator**:
 An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/admin/jobs`, the route renders a visible refusal ("You cannot view publication jobs") instead of redirecting or exposing job data.
+
+**Account ban**:
+An Administrator's decision to block an account from Dune Zone. Linked sign-in methods stay attached,
+and every sign-in reaches the same banned account. The Administrator transfers or removes its direct
+ownership; its hosted games are always removed, including their Discord voice channels. Lifting a ban
+requires a fresh sign-in and restores no content automatically. This is separate from a Player's
+faction Ban list during drafting.
 
 **Publisher operational evidence**:
 The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/admin/jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.
@@ -288,6 +315,9 @@ _Avoid_: Custom game, user game
 
 **Conversation**:
 The retained private messages between two factions in one Real game, available from setup. Each faction's current Player inherits the full history; former occupants and Spectators cannot read or send. A message is Sent once the game database saves it. Unread clears only when the newest messages are visible in the open Conversation tab; there are no recipient read receipts.
+
+**Nudge**:
+A seated Player's request for another seated Player's attention, chosen through the Compass and delivered as a best-effort mention in the game's Discord voice-channel text chat. A Nudge shares only the waiting faction and game names, needs the target's linked Discord account, and has a five-minute cooldown per target Seat with no automatic retry. Chat messages never trigger Nudges.
 
 **Game log**:
 The retained public record of a Real game, read in the controls panel by every viewer, Spectators included, during and after play. Game holds what happened on the table: phases, spice transfers, battle results and predictions. Audit holds who sat where and how removal votes and Mentat recalls ended. Every entry is one sentence with its classification and the turn, setup step or stage it happened in; each producer files its entry inside the transaction that commits the event, and a deleted account reads `[deleted user]` wherever it appears. Private cards, unrevealed plans, spice reserve balances, Conversations and territory names never enter it.

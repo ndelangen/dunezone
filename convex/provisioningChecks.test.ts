@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 function rebuiltDeployment() {
   const t = applicationTest();
@@ -17,7 +18,7 @@ const timestamps = { created_at: '2026-07-01T10:00:00.000Z', updated_at: '2026-0
 
 async function insertFaction(t: Deployment, ownerId: Id<'users'>) {
   await t.run(async (ctx) => {
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: { name: 'House Cloned' },
       slug: 'house-cloned',
@@ -80,6 +81,35 @@ describe('rebuild contract for the anonymised snapshot', () => {
     await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
       /authAccounts still holds rows[\s\S]*users holds a row with an email/
     );
+  });
+
+  test('rejects a retained Discord switch even when Discord was disabled', async () => {
+    const t = rebuiltDeployment();
+    await seedSnapshotLoad(t);
+    const settingsId = await t.run(
+      async (ctx) => await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: 1_700_000_000_000 })
+    );
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
+      'play_discord_settings still holds rows'
+    );
+    await t.run(async (ctx) => await ctx.db.delete(settingsId));
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
+  });
+
+  test.each([
+    { table: 'play_discord_route_buckets', value: { route: 'POST /channels/:channel/messages', bucket_id: 'bucket' } },
+    { table: 'play_discord_rate_limits', value: { key: 'route:channel:123', blocked_until: 1_700_000_060_000 } },
+  ] as const)('rejects retained Discord request state in $table', async ({ table, value }) => {
+    const t = rebuiltDeployment();
+    await seedSnapshotLoad(t);
+    const rowId = await t.run((ctx) => ctx.db.insert(table, value));
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
+      `${table} still holds rows`
+    );
+    await t.run((ctx) => ctx.db.delete(rowId));
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
   });
 
   test('rejects private rows and a second account beside the placeholder owner', async () => {

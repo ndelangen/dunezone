@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
+import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck, stopProcess } from './storybook-publication-browser';
 import type { BrowserCheckProcess } from './storybook-publication-browser';
 
 function processThatExits(status: number): BrowserCheckProcess {
@@ -71,5 +71,35 @@ describe('Storybook publication browser process', () => {
 
     await expect(check(spawn)).rejects.toThrow('Browser publication check exited with status 1.');
     expect(spawn).toHaveBeenCalledOnce();
+  });
+});
+
+describe('stopping a process', () => {
+  test('returns once the process exits on normal termination, leaving no timer behind', async () => {
+    vi.useFakeTimers();
+    try {
+      const process = processThatStopsOn();
+      await expect(stopProcess(process, 5000, 'Wrangler')).resolves.toBeUndefined();
+      expect(process.kill).toHaveBeenCalledOnce();
+      /* A pending shutdown timer would keep Bun alive for its whole duration after a passing run. */
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('names the process that ignored SIGKILL', async () => {
+    const stuck: BrowserCheckProcess = { exited: new Promise(() => undefined), kill: vi.fn() };
+    vi.useFakeTimers();
+    try {
+      const stopping = expect(stopProcess(stuck, 1, 'Wrangler')).rejects.toThrow(
+        'Wrangler did not stop after SIGKILL.'
+      );
+      await vi.advanceTimersByTimeAsync(2);
+      await stopping;
+      expect(stuck.kill).toHaveBeenNthCalledWith(2, 'SIGKILL');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

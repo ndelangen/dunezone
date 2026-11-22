@@ -28,6 +28,23 @@ import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
 
+/** Whether the checkpoint a running recall shows has arrived: the reveal and the recalled inventories wait on the same thing. */
+function recallLoaded(table: TableProjection, current: NonNullable<TableProjection['review']>['current']) {
+  return !table.historyPending && current !== null && table.playback?.step === current.step;
+}
+
+/** The battle a recalled checkpoint settled, once that checkpoint has loaded: the table shows its reveal again where it was fought (#2985). */
+export function recalledBattle(table: TableProjection) {
+  const review = table.review;
+  const current = review?.current;
+  if (!review || !current || current.startedAt === null || !recallLoaded(table, current)) {
+    return undefined;
+  }
+  const moment = review.checkpoints.find((checkpoint) => checkpoint.step === current.step)?.moment;
+  /* The game keeps its settled battles newest first, so the one this checkpoint saved leads the list. */
+  return moment === 'battle' ? table.snapshot.battleResults?.[0] : undefined;
+}
+
 /** The shared checkpoint and private recorded inventories, with no mutation controls in their rendering. */
 export function mentatRecall(client: TableSession, table: TableProjection): CompassTable['recall'] {
   const review = table.review;
@@ -35,12 +52,26 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
   if (!review || !current || current.startedAt === null) {
     return;
   }
-  const loading = table.historyPending || table.playback?.step !== current.step;
+  const loading = !recallLoaded(table, current);
   const failed = loading && !table.historyPending;
   const failure = client.getSnapshot().error ?? 'The selected checkpoint is not loaded.';
+  /*
+   * While the next checkpoint loads, the inventories keep the last one recalled, faded, rather than blinking to a spinner (#2991).
+   * Before any checkpoint arrived, or when this one failed, there is nothing right to show, so the spinner stays.
+   */
+  const stepping = loading && !failed && table.playback !== null;
   const inventory = (side: boolean) =>
-    loading ? (
+    loading && !stepping ? (
       <Loader size="sm" aria-label="Loading recalled inventory" />
+    ) : stepping && table.snapshot.hand !== undefined ? (
+      <div className={styles.stale} aria-busy="true">
+        <FrozenInventory
+          hand={table.snapshot.hand}
+          order={table.snapshot.handOrder ?? []}
+          side={side}
+          balance={table.snapshot.bank?.balance}
+        />
+      </div>
     ) : table.snapshot.hand === undefined ? (
       <Text size="sm">Private contents are unavailable for this checkpoint and seat.</Text>
     ) : (
@@ -55,6 +86,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
     id: current.id,
     context: current.context,
     loading,
+    stepping,
     seated: Boolean(review.seat),
     chat: review.seat
       ? {

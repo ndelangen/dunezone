@@ -19,7 +19,8 @@ export const SendsEachAction = meta.story({
     await expect(args.onAction).toHaveBeenCalledWith(seat('seat-1'), 'alliance-accept');
     await userEvent.click(canvas.getByRole('button', { name: 'Withdraw alliance offer' }));
     await expect(args.onAction).toHaveBeenCalledWith(seat('seat-3'), 'alliance-withdraw');
-    await userEvent.click(canvas.getByRole('button', { name: 'Offer alliance' }));
+    /* Seats 4 and 5 are allied with each other and can still be offered one; seat 6's is the last offer on the list. */
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Offer alliance' }).at(-1)!);
     await expect(args.onAction).toHaveBeenCalledWith(seat('seat-6'), 'alliance-offer');
   },
 });

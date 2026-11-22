@@ -20,6 +20,7 @@
     "src/app/routes/_app/rulesets/rulebooks-editing.stories.tsx",
     "src/app/routes/_app/rulesets/rulebooks-editing.testing.stories.tsx",
     "src/app/db/",
+    "src/app/pickers/",
     "src/app/shell/",
     "src/app/ui/",
     "src/app/widgets/",

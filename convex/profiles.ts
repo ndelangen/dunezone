@@ -9,8 +9,8 @@ import type { ProfileCatalogueSort } from '../src/shared/profiles/catalogueSearc
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, publicQuery, viewerQuery } from './functions';
-import { isActiveProfile, isPublicProfile, optionalActiveUserId } from './lib/accountLifecycle';
+import { mutation, publicQuery, viewerQuery, lifecycleQuery } from './functions';
+import { isActiveProfile, isPublicProfile, optionalActiveUserId, lifecycleUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
   ALL_PARTITION,
@@ -73,17 +73,23 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
  * One query rather than two because every `_app` page holds this through the shell, and the pair cost two subscriptions to answer one question.
  * The envelope is never null: a signed-out viewer and a signed-in viewer with no profile row yet must stay distinguishable, or the client's bootstrap never fires for a new account.
  */
-export const session = viewerQuery({
+export const session = lifecycleQuery({
   args: {},
   returns: v.object({
     userId: v.union(v.id('users'), v.null()),
     isAdmin: v.boolean(),
+    isBanned: v.boolean(),
     profile: v.union(profileValidator, v.null()),
   }),
   handler: async (ctx) => {
+    const identityId = await lifecycleUserId(ctx);
+    const identity = identityId ? await ctx.db.get(identityId) : null;
+    if (identity?.account_state === 'banned') {
+      return { userId: null, profile: null, isAdmin: false, isBanned: true };
+    }
     const userId = await optionalActiveUserId(ctx);
     if (!userId) {
-      return { userId: null, profile: null, isAdmin: false };
+      return { userId: null, profile: null, isAdmin: false, isBanned: false };
     }
     const profile = await ctx.db
       .query('profiles')
@@ -91,6 +97,7 @@ export const session = viewerQuery({
       .unique();
     return {
       userId,
+      isBanned: false,
       profile: profile && isActiveProfile(profile) ? profile : null,
       isAdmin: Boolean((await ctx.db.get('users', userId))?.isAdmin),
     };
@@ -201,41 +208,6 @@ export const linkBySlug = publicQuery({
       return null;
     }
     return { slug: profile.slug, username: profile.username, image: profile.avatar?.url ?? profile.avatar_url };
-  },
-});
-
-const profileListEntryValidator = profileValidator.extend({
-  activity: v.object({
-    groupCount: v.number(),
-    factionCount: v.number(),
-    questionCount: v.number(),
-    answerCount: v.number(),
-  }),
-});
-
-/** The directory before `catalogue`; kept one release for bundles that still ask for it. */
-export const list = publicQuery({
-  args: {},
-  returns: v.array(profileListEntryValidator),
-  handler: async (ctx) => {
-    /* Read through the active range, so deleted and merged rows cannot use up the window and hide live profiles. */
-    const profiles = await ctx.db
-      .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
-      .take(500);
-    const activity = await loadProfileActivityCounts(
-      ctx,
-      profiles.map((profile) => profile.user_id)
-    );
-    return profiles.map((profile, index) => ({
-      ...profile,
-      activity: activity[index] ?? {
-        groupCount: 0,
-        factionCount: 0,
-        questionCount: 0,
-        answerCount: 0,
-      },
-    }));
   },
 });
 
@@ -413,7 +385,6 @@ async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * Only the page's own profiles and their activity counts are read, so a page costs the same however many profiles there are.
  * A search is the load-more search, best matches first up to `limit`;
  * without one the directory is browsed, in pages.
- * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {

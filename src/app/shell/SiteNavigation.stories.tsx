@@ -41,8 +41,9 @@ export const AllLinksFit = meta.story({
     const canvas = within(canvasElement);
     // Positive first: once the measured row shows its last link, the absence check is meaningful.
     await waitFor(async () => {
-      await expect(canvas.getByRole('link', { name: 'Assets' })).toBeVisible();
+      await expect(canvas.getByRole('link', { name: 'Blog' })).toBeVisible();
     });
+    await expect(canvas.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', '/tools');
     await expect(canvas.queryByRole('button', { name: /More/ })).toBeNull();
   },
 });
@@ -86,6 +87,21 @@ export const CollapsedMobile = meta.story({
     const canvas = within(canvasElement);
     await waitFor(async () => {
       await expect(canvas.getByRole('button', { name: /More/ })).toBeVisible();
+    });
+  },
+});
+
+/** The phone's More menu holds the product's own destinations, Tools among them. */
+export const CollapsedMobileMenuOpen = meta.story({
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const more = await waitFor(() => canvas.getByRole('button', { name: /More/ }));
+    more.click();
+    await waitForFrame(async () => {
+      const tools = finishTransitions(within(document.body).getByRole('menuitem', { name: 'Tools' }));
+      await expect(tools).toBeVisible();
+      await expect(tools).toHaveAttribute('href', '/tools');
     });
   },
 });

@@ -51,11 +51,20 @@ const { raw: draftableFactions, value: draftable } = checked(
   playDraftableFactionsSchema,
   await client.query(api.playCatalogue.draftableFactions, { rulesetId: ruleset.id })
 );
+/* The recipe names each Faction by its own address; a draft row is a variant, so the row is found through its Faction, preferring a variant the ruleset links. */
+const byFaction = new Map<string, (typeof draftable.factions)[number]>();
+for (const faction of [...draftable.factions].sort((a, b) => Number(b.linked) - Number(a.linked))) {
+  const address = await client.query(api.factions.pageSlug, { id: faction.familyId ?? faction.id });
+  if (address && !byFaction.has(address)) {
+    byFaction.set(address, faction);
+  }
+}
 const factions: Record<string, unknown> = {};
-for (const slug of TUTORIAL_RECIPE.factions) {
-  const entry = draftable.factions.find((faction) => faction.slug === slug);
+/* Kept by the recording's name for each, so the recording finds its draft row through the definition's id. */
+for (const { slug, address } of TUTORIAL_RECIPE.factions) {
+  const entry = byFaction.get(address);
   if (!entry?.published) {
-    throw new Error(`The faction ${slug} is not in the draft, or its token is not published.`);
+    throw new Error(`The faction ${address} is not in the draft, or its token is not published.`);
   }
   factions[slug] = checked(
     factionDefinitionSchema,

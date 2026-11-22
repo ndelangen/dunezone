@@ -3,6 +3,7 @@ import type { PaginationOptions } from 'convex/server';
 import type { QueryCtx } from '../types';
 import { readBoardListing } from './boardListing';
 import { searchIndexText } from './catalogueOrder';
+import { pickerVariantLabel, seatedSiblingName, seatedVariants } from './factionFamilies';
 import { faqReferencePreview } from './faqReferencePreviews';
 import { liveFaqReferenceTarget } from './faqReferenceTarget';
 import type { FaqReferenceTarget } from './faqReferenceTarget';
@@ -16,18 +17,16 @@ function catalogueEntryTarget(ctx: QueryCtx, kind: 'faction' | 'asset', sourceId
   return id ? { kind, id } : null;
 }
 
-/** The legacy FAQ picker and grouped picker share indexed search, paging and live target projection. */
-export async function loadCataloguePickerOptions(
+/**
+ * One page of a catalogue list for a picker: the entries a search finds, or without one the whole list, newest first.
+ * Paging by cursor, so a picker reads no more of a long list than its reader asks for.
+ */
+export async function paginateCatalogueEntries(
   ctx: QueryCtx,
-  args: {
-    kind: 'faction' | 'asset';
-    partition: string;
-    q: string;
-    paginationOpts: PaginationOptions;
-  }
+  args: { kind: string; partition: string; q: string; paginationOpts: PaginationOptions }
 ) {
   const text = args.q.trim();
-  const rows = text
+  return text
     ? await ctx.db
         .query('catalogue_entries')
         .withSearchIndex('search_text', (q) =>
@@ -39,6 +38,25 @@ export async function loadCataloguePickerOptions(
         .withIndex('by_kind_partition_created', (q) => q.eq('kind', args.kind).eq('partition', args.partition))
         .order('desc')
         .paginate(args.paginationOpts);
+}
+
+/**
+ * The legacy FAQ picker and grouped picker share indexed search, paging and live target projection.
+ * Each choice comes with its variant's name where its Faction has several, and null otherwise or on an asset.
+ * Given the factions a tool has seated, a faction choice also names the seated sibling that keeps it from the table.
+ */
+export async function loadCataloguePickerOptions(
+  ctx: QueryCtx,
+  args: {
+    kind: 'faction' | 'asset';
+    partition: string;
+    q: string;
+    paginationOpts: PaginationOptions;
+    seated?: readonly string[];
+  }
+) {
+  const seated = args.kind === 'faction' && args.seated ? await seatedVariants(ctx, args.seated) : [];
+  const rows = await paginateCatalogueEntries(ctx, args);
   const page = await Promise.all(
     rows.page.map(async (entry) => {
       const target = catalogueEntryTarget(ctx, args.kind, entry.source_id);
@@ -53,7 +71,14 @@ export async function loadCataloguePickerOptions(
           : board && !board.is_deleted
             ? { kind: 'asset' as const, asset: board }
             : null;
-      return live ? await faqReferencePreview(ctx, live) : null;
+      if (!live) {
+        return null;
+      }
+      return {
+        choice: await faqReferencePreview(ctx, live),
+        variant: live.kind === 'faction' ? await pickerVariantLabel(ctx, live.faction) : null,
+        seatedAs: live.kind === 'faction' ? seatedSiblingName(seated, live.faction) : null,
+      };
     })
   );
   return { ...rows, page: page.filter((choice) => choice !== null) };

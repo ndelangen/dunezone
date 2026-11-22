@@ -65,7 +65,9 @@ function PrivacyPage() {
                     An email address retained from an earlier sign-in, if one was supplied. Current sign-in requests
                     identity access only.
                   </List.Item>
-                  <List.Item>Whether you signed in with Google or Discord, and the account ID they give us.</List.Item>
+                  <List.Item>
+                    Whether you signed in with Google, Discord or Steam, and the account ID they give us.
+                  </List.Item>
                   <List.Item>The sign-in records needed to keep you logged in and protect your account.</List.Item>
                   <List.Item>
                     Basic technical details such as your IP address, browser, when you visited, and errors that
@@ -97,6 +99,32 @@ function PrivacyPage() {
               </Stack>
             </Section>
           </SimpleGrid>
+
+          <Section title="Discord voice chat">
+            <Stack gap="md">
+              <Text>
+                Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
+                can join, including spectators. You do not need to connect Discord to your Dune Zone account to use the
+                invite. Discord receives the game name and can see which Discord accounts join and use the channel.
+              </Text>
+              <Text>
+                Joining the Discord server is your choice. We never add you automatically or change your channel access
+                when you leave a seat. Discarding a game requests immediate deletion of its channel. While the
+                integration is enabled, we attempt deletion right away. Repeated failures stop after three attempts and
+                need an administrator to retry. When a game finishes, its channel is marked as ended. An hourly check
+                deletes ended channels that are empty. Channels for active games are also deleted after 14 days without
+                game activity. Pausing the integration delays channel cleanup until it resumes. We briefly check whether
+                an ended channel is occupied for cleanup and do not save voice participants' identities.
+              </Text>
+              <Text>
+                In a game with Discord voice, a seated player can choose a Nudge command in the Compass to mention
+                another player in the voice channel&apos;s text chat. The recipient needs a connected Discord account.
+                We send the waiting faction&apos;s name and the game name. Chat messages never trigger nudges or get
+                sent to Discord. Each seat can receive at most one nudge every five minutes. Discord controls
+                notification delivery through each player&apos;s settings.
+              </Text>
+            </Stack>
+          </Section>
 
           <Section title="Your choices">
             <Stack gap="md">
@@ -155,8 +183,8 @@ function PrivacyPage() {
                 the website useful and working. You can object to processing based on those interests.
               </Text>
               <Text>
-                Google or Discord handles sign-in. Convex stores application data. Cloudflare hosts and protects the
-                website and provides Web Analytics. These providers receive the information needed for those jobs.
+                Google, Discord or Steam handles sign-in. Convex stores application data. Cloudflare hosts and protects
+                the website and provides Web Analytics. These providers receive the information needed for those jobs.
               </Text>
               <Text>
                 We do not sell your data. Your profile and contributions are free for people to view, but we do not sell
@@ -276,7 +304,7 @@ function PrivacyPage() {
           </Section>
 
           <Text c="dimmed" size="sm">
-            Last updated 13 October 2026. If anything changes, we will update this page.
+            Last updated 10 November 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

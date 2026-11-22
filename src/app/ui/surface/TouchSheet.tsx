@@ -1,0 +1,116 @@
+import { Drawer, Popover } from '@mantine/core';
+import type { PopoverProps } from '@mantine/core';
+import { createContext, use } from 'react';
+import type { ReactNode } from 'react';
+
+import styles from './TouchSheet.module.css';
+
+/*
+ * A surface drawn either for a mouse or for a phone held in one hand.
+ * On a phone every chooser opens as a sheet from the bottom, every hover has a tap, and every action is a thumb's width.
+ */
+const TouchContext = createContext(false);
+
+/** Draws what is below for a phone: sheets instead of popovers, taps instead of hovers, larger actions. */
+export function TouchSurface({ touch = true, children }: Readonly<{ touch?: boolean; children: ReactNode }>) {
+  return <TouchContext value={touch}>{touch ? <HandHeld>{children}</HandHeld> : children}</TouchContext>;
+}
+
+/*
+ * A phone held in one hand: taps answer at once, with no double-tap zoom or grey flash, and every card and token answers a thumb across its whole cell.
+ * The sheets carry it too, since they open outside the surface.
+ */
+function HandHeld({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <div className={styles.handHeld} data-touch-surface="">
+      {children}
+    </div>
+  );
+}
+
+/** Whether this part is drawn for a phone. */
+export function useTouchSurface(): boolean {
+  return use(TouchContext);
+}
+
+/** The size of a small action: a thumb's width on a phone, 44 px, compact with a mouse. */
+export function useTouchActionSize(): 'sm' | 'xl' {
+  return useTouchSurface() ? 'xl' : 'sm';
+}
+
+const SheetContext = createContext<Readonly<{ opened: boolean; onClose: () => void }> | null>(null);
+
+/**
+ * A popover with a mouse, a sheet from the bottom on a phone: the same parts as Mantine's `Popover`.
+ * On a phone the target stays where it is and the dropdown slides up over the page, so it always fits the screen.
+ */
+export function SheetPopover({
+  opened,
+  onChange,
+  children,
+  ...rest
+}: Readonly<Omit<PopoverProps, 'opened' | 'onChange'> & { opened: boolean; onChange: (opened: boolean) => void }>) {
+  if (!useTouchSurface()) {
+    return (
+      <Popover opened={opened} onChange={onChange} {...rest}>
+        {children}
+      </Popover>
+    );
+  }
+  return <SheetContext value={{ opened, onClose: () => onChange(false) }}>{children}</SheetContext>;
+}
+
+/** Whether this part is drawn inside a phone's sheet, where a list of thumb-high rows beats a row of small tokens. */
+export function useInSheet(): boolean {
+  return use(SheetContext) !== null;
+}
+
+function Target({ children }: Readonly<{ children: ReactNode }>) {
+  return use(SheetContext) ? children : <Popover.Target>{children}</Popover.Target>;
+}
+
+function Dropdown({
+  label,
+  children,
+  className,
+  miw,
+}: Readonly<{
+  /** What the sheet is for, read out as the sheet's name on a phone, where the sheet is a dialog of its own. */
+  label: string;
+  children: ReactNode;
+  className?: string;
+  miw?: number;
+}>) {
+  const sheet = use(SheetContext);
+  if (!sheet) {
+    return (
+      <Popover.Dropdown className={className} miw={miw}>
+        {children}
+      </Popover.Dropdown>
+    );
+  }
+  return (
+    <Drawer
+      opened={sheet.opened}
+      onClose={sheet.onClose}
+      position="bottom"
+      title={label}
+      /* A thumb-sized, named close button: a screen reader cannot reach the tap outside, and a phone has no Escape key. */
+      withCloseButton
+      closeButtonProps={{ 'aria-label': 'Close', size: 'xl' }}
+      padding="md"
+      classNames={{
+        inner: styles.sheetInner,
+        content: styles.sheet,
+        header: styles.sheetHeader,
+        title: styles.sheetTitle,
+        body: styles.sheetBody,
+      }}
+    >
+      <HandHeld>{children}</HandHeld>
+    </Drawer>
+  );
+}
+
+SheetPopover.Target = Target;
+SheetPopover.Dropdown = Dropdown;

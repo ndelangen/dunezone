@@ -1,18 +1,13 @@
-import { SpiceAsset } from '../../src/shared/assets/schema';
 import { assetSupplySchema } from '../../src/shared/play/capture';
+import { spiceBlowOf } from '../../src/shared/play/spiceBlow';
 
-/** The printed fields the tutorial needs, without catalogue provenance or unrelated assets. */
+/**
+ * Where each recorded spice card puts its spice, read from the card as the game reads it when a live game takes it in (#2678), without catalogue provenance or unrelated assets.
+ * A card that names no territory, such as Shai-Hulud, is left out.
+ */
 export function tutorialSpiceBlows(supply: unknown) {
-  const cards: Array<{ assetId: string; name: string; amount: number; territory: string }> = [];
-  for (const { asset } of assetSupplySchema.parse(supply).members) {
-    if (asset.type !== 'card-spice') {
-      continue;
-    }
-    const data = SpiceAsset.parse(asset.data);
-    const territory = data.board?.tints[0]?.territories[0];
-    if (territory) {
-      cards.push({ assetId: asset.id, name: asset.name, amount: data.amount, territory });
-    }
-  }
-  return cards;
+  return assetSupplySchema.parse(supply).members.flatMap(({ asset }) => {
+    const spiceBlow = spiceBlowOf(asset.type, asset.data);
+    return spiceBlow ? [{ assetId: asset.id, name: asset.name, spiceBlow }] : [];
+  });
 }

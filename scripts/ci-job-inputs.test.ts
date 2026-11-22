@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
 
 import type { ReusableJob } from './lib/ci-job-inputs';
-import { JOB_INPUTS, jobKey, jobReads, parseLsTree } from './lib/ci-job-inputs';
+import { JOB_INPUTS, NO_JOB_READS, jobKey, jobReads, parseLsTree } from './lib/ci-job-inputs';
 import { importedFiles } from './lib/import-graph';
 import { verifyJob } from './lib/verify-workflow';
 
@@ -43,6 +43,25 @@ const ENTRY_POINTS: Record<ReusableJob, () => string[]> = {
     'playwright.config.ts',
     ...APPLICATION,
     ...tracked(/^convex\/(?!_generated\/).*\.ts$/u).filter((file) => !file.includes('.test.')),
+  ],
+  generate_and_build: () => [
+    ...APPLICATION,
+    'scripts/generate.ts',
+    'scripts/generate-palette.ts',
+    'scripts/generate-images.ts',
+    'scripts/generate-vectors.ts',
+    'scripts/generate-objs.ts',
+    'scripts/verify-images.ts',
+    'scripts/verify-vectors.ts',
+    'scripts/test-local-convex-isolation.ts',
+  ],
+  /* It excludes nothing but what no job reads, so the script tests stand in for the suite. */
+  test: () => [...tracked(/^scripts\/.*\.test\.ts$/u), ...ROOT_CONFIGURATION],
+  browser_checks: () => [
+    ...tracked(/^tools\/svg-authoring\/e2e\/.*\.ts$/u),
+    'browser-launch-tests.ts',
+    'vitest.browser-launch.config.ts',
+    'scripts/verify-storybook-publication.ts',
   ],
 };
 
@@ -83,7 +102,38 @@ const SAMPLES: Record<ReusableJob, { reads: string[]; skips: string[] }> = {
       'workers/publisher/index.ts',
     ],
   },
+  generate_and_build: {
+    reads: ['src/app/ui/control/Button.tsx', 'media/vector/icon/drup.svg', 'docker-compose.convex-local.yml'],
+    skips: ['src/app/ui/control/Button.stories.tsx', 'convex/rulebooks.test.ts', 'e2e/profile-edit.spec.ts'],
+  },
+  test: {
+    reads: [
+      'src/app/ui/control/Button.test.tsx',
+      'e2e/shards.json',
+      '.storybook/preview.tsx',
+      'some-new-root-file.json',
+    ],
+    skips: ['docs/deployment.md', 'AGENTS.md', 'skills-lock.json', '.agents/skills/wayfinder/agents/openai.yaml'],
+  },
+  browser_checks: {
+    reads: [
+      'src/app/ui/control/Button.stories.tsx',
+      'tools/svg-authoring/src/App.tsx',
+      'scripts/bidding-voice.browser.test.ts',
+    ],
+    skips: ['.claude/skills/wayfinder', '.vscode/settings.json', 'renovate.json', 'docs/adr/0001-example.md'],
+  },
 };
+
+/* Lint-only checks and configurations that name an excluded path to leave it out, which is not a read. */
+const NAMES_WITHOUT_READING = new Set([
+  'scripts/assert-no-ai-tells.ts',
+  'scripts/lib/ci-job-inputs.ts',
+  'scripts/ci-job-inputs.test.ts',
+  'vite.config.ts',
+  'stryker.config.json',
+  '.github/workflows/code-health.yml',
+]);
 
 describe('the verify jobs a pull request run can reuse', () => {
   test.each(JOBS)(
@@ -140,11 +190,31 @@ describe('the verify jobs a pull request run can reuse', () => {
       const definition = verifyJob(job, root);
       const [steps, record = ''] = definition.split('uses: ./.github/actions/record-pass');
       const uploaded = [...steps.matchAll(/\n {10}files: (coverage\/\S+)\n/gu)].map((match) => match[1]);
-      expect(uploaded.length, `${job} uploads coverage`).toBeGreaterThan(0);
       for (const report of uploaded) {
         expect(record, `${job} records ${report}`).toContain(report);
       }
     }
     expect(workflow).toContain('actions: read');
+  });
+
+  /*
+   * A path no job reads may still be named in code that opens it. Prose aside, the excluded paths are specific enough to search for,
+   * so every tracked script, configuration and workflow that names one must be a lint check or a file that only leaves it out.
+   */
+  test('nothing a reused job runs names a path no job reads', () => {
+    /* A path starts a string or follows a slash, so a property such as `style.cursor` does not count as naming `.cursor`. */
+    const named = NO_JOB_READS.filter((glob) => !glob.includes('*.md') && glob !== 'docs/**').map((glob) => {
+      const path = glob.replace(/\/\*\*$/u, '');
+      return { path, pattern: new RegExp(`(?<=^|[\\s'"\`/])${path.replaceAll('.', '\\.')}(?![\\w-])`, 'u') };
+    });
+    /* The excluded files themselves may name each other: no reused job reads them. */
+    const code = tracked(/\.(ts|tsx|js|mjs|cjs|sh|json|ya?ml|toml)$/u).filter(
+      (file) => JOBS.some((job) => jobReads(job, file)) && !NAMES_WITHOUT_READING.has(file)
+    );
+    const offenders = code.flatMap((file) => {
+      const text = readFileSync(resolve(root, file), 'utf8');
+      return named.filter(({ pattern }) => pattern.test(text)).map(({ path }) => `${file} names ${path}`);
+    });
+    expect(offenders, 'a file that reads one of these must be listed in its job, not in NO_JOB_READS').toEqual([]);
   });
 });

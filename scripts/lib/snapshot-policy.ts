@@ -169,12 +169,20 @@ export const snapshotPolicy = {
   play_game_slug_reservations: { drop: 'Game addresses are private Play directory data' },
   play_game_slug_cursors: { drop: 'Game address allocation is private Play directory data' },
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
+  play_game_discord_channels: { drop: 'Game voice room provisioning is not published content' },
+  play_discord_cooldown: { drop: 'Deployment-specific Discord retry deadline' },
+  play_discord_route_buckets: { drop: 'Discord route aliases are learned by each deployment' },
+  play_discord_rate_limits: { drop: 'Deployment-specific Discord bucket retry deadlines' },
+  play_discord_settings: { drop: 'Deployment-specific Discord switch' },
   homepage_tickets: { drop: 'Homepage editing tickets' },
   play_game_accounts: { drop: 'Play account links' },
   play_account_deletions: { drop: 'Play account deletions' },
   play_session_cutoffs: { drop: 'Play session cutoffs' },
   user_image_ingest_tokens: { drop: 'image ingest credentials' },
   account_connections: { drop: 'sign-in connection credentials' },
+  steam_openid_nonces: { drop: 'spent Steam sign-in assertions' },
+  steam_profile_lookups: { drop: 'Steam login profile lookup outcomes' },
+  linked_account_profiles: { drop: 'names and pictures reported by sign-in providers' },
   account_merge_operations: { drop: 'account merge audit records' },
   account_deletion_operations: { drop: 'account deletions' },
   account_deletion_items: { drop: 'account deletions' },
@@ -224,6 +232,32 @@ export const snapshotPolicy = {
       updated_at: 'keep',
       is_deleted: 'keep',
       group_id: { orNull: 'groups' },
+      family_id: 'keep',
+      variant_name: 'keep',
+      variant_slug: 'keep',
+      /* A parent may be a deleted variant the snapshot leaves out; `data` is the full resolved copy, so the variant reads the same as a root. */
+      parent_id: 'drop',
+      inherited: 'drop',
+      revision: 'keep',
+      problems: 'keep',
+    },
+    rows: notDeleted,
+  },
+  faction_families: {
+    fields: {
+      slug: 'keep',
+      data: 'keep',
+      owner_id: 'owner',
+      group_id: { orNull: 'groups' },
+      default_variant_id: { parent: 'factions' },
+      is_open: 'keep',
+      /* It may name deleted variants the snapshot leaves out; listings pass over any id that is not a variant of the faction. */
+      variant_order: 'keep',
+      is_deleted: 'keep',
+      /* Only a deleted Faction is merged into another, and the snapshot keeps no deleted Faction. */
+      merged_into: 'drop',
+      created_at: 'keep',
+      updated_at: 'keep',
     },
     rows: notDeleted,
   },
@@ -367,6 +401,10 @@ export const retiredTables = {
   /* The last two left the schema with the ticket admission path; Play has no games to keep, so their rows are not content. */
   play_tickets: 'retired Play admission tickets',
   play_auth_registrations: 'retired Play sign-in registrations',
+  /* Left the schema after `nexus_link_moves_clear_v1` (#2971) deleted its rows, the undo records of the Nexus link move. */
+  nexus_link_moves: 'the undo record of a one-off production migration',
+  /* Left the schema in f0cf05e83, which kept its rows in production: private game notification delivery state. */
+  play_game_discord_nudges: 'retired private game notification delivery state',
 } satisfies Record<string, string> & { [Table in TableNames]?: never };
 
 /**

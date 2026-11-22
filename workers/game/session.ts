@@ -23,6 +23,7 @@ import {
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LogTab } from '../../src/shared/play/log';
+import type { PlayNudge } from '../../src/shared/play/nudges';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
@@ -41,13 +42,14 @@ import { isResultAction } from '../../src/shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { dealtTroopKeys } from '../../src/shared/play/setupSupply';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
+import { treacheryDeckCards } from '../../src/shared/play/treacheryDeck';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import type { PassProfile } from './actors';
@@ -73,7 +75,7 @@ import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
-import { applyResult, settleEnding } from './result';
+import { applyResult, clocksAfterRecall, settleEnding } from './result';
 import { TableReviews } from './review';
 import type { ReviewCommand } from './review';
 import { Room } from './room';
@@ -245,8 +247,11 @@ export class GameSession {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
     const composed = this.composedTurn(roster, settled.table);
-    /* Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it. */
-    const playing = inPlay(settled.stage) && (!this.room || inPlay(this.room.snapshot.stage));
+    /*
+     * Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it.
+     * A finished game keeps the order it ended in, since it can end mid-turn and continue there.
+     */
+    const playing = keepsOrder(settled.stage) && (!this.room || keepsOrder(this.room.snapshot.stage));
     const phases = playing
       ? recomposedTurn(settled.phase, this.room?.snapshot.phase, settled.phases, composed)
       : composed;
@@ -338,6 +343,18 @@ export class GameSession {
     const seated = this.room && seatedFaction(this.room.snapshot, factionId);
     const capture = seated ? this.captures.faction(factionId) : undefined;
     return capture ? publicFaction(capture) : null;
+  }
+
+  /**
+   * The captured Treachery deck's cards for the Treachery tracker, answered only to a seat whose faction's captured rules keep it (#150);
+   * null to any other viewer, or when the game captured no deck.
+   * The deck list itself is public.
+   */
+  treacheryDeck(viewerSeat: string | null) {
+    const factionId =
+      viewerSeat && this.room ? rosterSeat(this.room.snapshot.roster, viewerSeat)?.faction?.id : undefined;
+    const capture = factionId ? this.captures.faction(factionId) : undefined;
+    return capture?.definition.rules.treacheryTracker ? treacheryDeckCards(this.captures.ruleset()) : null;
   }
 
   retainedCaptures() {
@@ -627,14 +644,7 @@ export class GameSession {
     if (!reviewRunning(running) || this.reviews.running()) {
       return next;
     }
-    const paused = now - running.startedAt;
-    const battle = next.battleState;
-    const bidding = next.bidding;
-    return {
-      ...next,
-      ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
-      ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
-    };
+    return clocksAfterRecall(next, now - running.startedAt);
   }
 
   /*
@@ -765,6 +775,7 @@ export class GameSession {
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
     let people: ReturnType<GameSession['people']> | undefined;
+    let removalVotes: ReturnType<RemovalVotes['current']> | undefined;
     const review = reviewableStage(room.snapshot.stage)
       ? {
           review: this.reviews.current(),
@@ -781,7 +792,7 @@ export class GameSession {
       if (!snapshot) {
         snapshot = {
           ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer, (people ??= this.people())),
-          ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
+          ...(room.snapshot.stage ? { removalVotes: (removalVotes ??= this.removal.current()) } : {}),
           ...review,
         };
         snapshots.set(audience, snapshot);
@@ -916,7 +927,12 @@ export class GameSession {
     const action = message.action;
     const { next, history } = this.storage.transactionSync(() => {
       const now = Date.now();
-      const settled = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, action, now), now));
+      const settled = this.withRoster(
+        this.reconcileVotes(
+          applyResult(room.snapshot, viewer, action, now, () => this.actors.seats()),
+          now
+        )
+      );
       const entry = this.history.entry(message, room.snapshot, settled);
       this.persistCommit({ key, viewer, message, next: settled, history: entry });
       return { next: settled, history: entry };
@@ -1120,7 +1136,9 @@ export class GameSession {
     return this.room?.phaseCooldownEndsAt ?? 0;
   }
   get battleDeadline() {
-    return this.room?.snapshot.battleState?.deadline ?? 0;
+    /* A finished game holds its battle countdown, as it holds a bid's. */
+    const snapshot = this.room?.snapshot;
+    return snapshot?.stage === 'finished' ? 0 : (snapshot?.battleState?.deadline ?? 0);
   }
 
   confirm() {
@@ -1270,11 +1288,14 @@ export class GameSession {
     const current = this.actors.currentViewers(viewers);
     this.watching = current.flatMap((viewer) => (viewer?.viewerSeat === SPECTATOR_SEAT ? [viewer.userId] : []));
     viewers.forEach((viewer, index) => {
-      if (current[index]?.viewerSeat !== viewer.viewerSeat) {
-        this.clearActivity(viewer.connectionId);
-        if (this.room) {
-          this.restampSeats(this.room);
-        }
+      const refreshed = current[index];
+      if (refreshed?.viewerSeat === viewer.viewerSeat) {
+        this.room?.refreshPointerIdentity(refreshed);
+        return;
+      }
+      this.clearActivity(viewer.connectionId);
+      if (this.room) {
+        this.restampSeats(this.room);
       }
     });
     return current;
@@ -1364,14 +1385,45 @@ export class GameSession {
       throw new GameRejection('Only recall chat is available during Mentat recall.');
     }
     this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
-    return this.storage.transactionSync(() => {
-      const saved = this.conversations.save(viewer, request, Date.now());
+    const saved = this.storage.transactionSync(() => {
+      const now = Date.now();
+      const saved = this.conversations.save(viewer, request, now);
       if (saved.inserted) {
-        this.stageDirectory(this.room!.snapshot, Date.now());
+        this.stageDirectory(this.room!.snapshot, now);
       }
       return saved;
     });
+    return saved;
   }
+
+  /** The request names a seat; current room records supply both account identities. */
+  nudge(viewer: Viewer, toSeat: string): PlayNudge {
+    const snapshot = this.room!.snapshot;
+    if (this.metadata?.game?.discordVoice !== true || (snapshot.stage !== 'setup' && snapshot.stage !== 'play')) {
+      throw new GameRejection('Discord nudges are available only during setup or play in a game with Discord voice.');
+    }
+    if (this.reviews.running()) {
+      throw new GameRejection('Discord nudges are unavailable during Mentat recall.');
+    }
+    const occupants = this.actors.occupants();
+    const from = occupants.find((occupant) => occupant.userId === viewer.userId);
+    const faction = snapshot.roster?.seats.find((seat) => seat.id === from?.seat)?.faction;
+    if (!from || !faction) {
+      throw new GameRejection('Only a seated player with a faction can send a Discord nudge.');
+    }
+    const target = occupants.find((occupant) => occupant.seat === toSeat);
+    if (!target || target.userId === viewer.userId || !snapshot.roster?.seats.some((seat) => seat.id === toSeat)) {
+      throw new GameRejection('Choose another occupied seat to nudge.');
+    }
+    return {
+      fromSeat: from.seat,
+      fromUserId: viewer.userId,
+      fromFactionId: faction.id,
+      toSeat: target.seat,
+      toUserId: target.userId,
+    };
+  }
+
   conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
     return conversationMembers(request.factionId, request.peerId, rosterFactionIds(this.room!.snapshot.roster)) ?? [];
   }
@@ -1498,6 +1550,9 @@ export class GameSession {
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);
   }
+  pointerFor(connectionId: string) {
+    return this.room?.pointers.get(connectionId);
+  }
   pose(...args: Parameters<Room['pose']>) {
     return this.room!.pose(...args);
   }
@@ -1509,12 +1564,11 @@ export class GameSession {
     this.room?.disconnect(connectionId);
     this.finishSetupCleanup();
   }
-  /** Whether anything here expires on its own: a carry or a pointer. */
-  get hasActivity() {
-    return Boolean(this.room && (this.room.carries.size || this.room.pointers.size));
+  get hasCarries() {
+    return Boolean(this.room?.carries.size);
   }
   sweep() {
-    const swept = this.room?.sweep();
+    const swept = this.room?.sweepCarries();
     const cleaned = this.finishSetupCleanup();
     return Boolean(swept || cleaned);
   }
@@ -1534,4 +1588,9 @@ const REVIEW_PAUSE = 'The table is paused for a review.';
 /* A fixture carries no stage and plays its phases from the start. */
 function inPlay(stage: StoredSnapshot['stage']) {
   return stage === undefined || stage === 'play';
+}
+
+/* Whether a turn's phase order is already being played: in play, or finished and able to continue. */
+function keepsOrder(stage: StoredSnapshot['stage']) {
+  return inPlay(stage) || stage === 'finished';
 }

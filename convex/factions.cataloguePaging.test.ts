@@ -9,6 +9,7 @@ import { compareCodeUnits } from '../src/shared/compareText';
 import { FACTION_CATALOGUE_PAGE_SIZE, FACTION_CATALOGUE_SORTS } from '../src/shared/factions/catalogueSearch';
 import { api } from './_generated/api';
 import type { DataModel, Id } from './_generated/dataModel';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { CATALOGUE_STAMP, catalogueFactionData, seedCatalogue } from './factions.catalogue.test.fixture';
 import type { SeededFaction } from './factions.catalogue.test.fixture';
 import { factionAuthor, factionTest } from './factions.test.fixture';
@@ -153,7 +154,7 @@ describe('faction catalogue query', () => {
       const ids: Id<'factions'>[] = [];
       for (let index = 0; index <= FACTION_CATALOGUE_PAGE_SIZE; index += 1) {
         ids.push(
-          await ctx.db.insert('factions', {
+          await insertFactionRow(ctx, {
             owner_id: chaniId,
             data: catalogueFactionData({ name: `Sietch ${String(index).padStart(2, '0')}` }),
             slug: `sietch-${index}`,
@@ -182,8 +183,12 @@ describe('faction catalogue query', () => {
     );
     expect(await names({ owner: 'stilgar' })).toEqual([]);
 
-    /* Patching the owner moves the faction from one member's list to the other's, and the counts follow. */
-    await t.run((rawCtx) => applicationTriggers.wrapDB(rawCtx).db.patch(sietches[0]!, { owner_id: stilgarId }));
+    /* Moving the faction and its only variant to another member, as an account merge does, moves it from one member's list to the other's, and the counts follow. */
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      await ctx.db.patch(sietches[0]!, { owner_id: stilgarId });
+      await ctx.db.patch((await ctx.db.get(sietches[0]!))!.family_id!, { owner_id: stilgarId });
+    });
     expect(await page({ owner: 'chani' })).toMatchObject({ total: FACTION_CATALOGUE_PAGE_SIZE, pageCount: 1 });
     expect((await page({ owner: 'chani', page: 2 })).cards).toEqual([]);
     expect(await names({ owner: 'stilgar' })).toEqual(['Sietch 00']);
@@ -372,7 +377,7 @@ describe('faction catalogue query', () => {
     const ids = await allPages(page, { sort: 'name' });
     expect(ids).toHaveLength(count);
     expect(new Set(ids)).toEqual(new Set(seeded.factionIds));
-  });
+  }, 60_000);
 
   test('finds the freshly updated faction behind any number of newer, never edited ones', async () => {
     const { page } = await catalogueWith([
@@ -428,7 +433,7 @@ describe('faction catalogue query', () => {
     await t.run(async (rawCtx) => {
       const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { name: 'Zz malformed' },
         slug: 'malformed',

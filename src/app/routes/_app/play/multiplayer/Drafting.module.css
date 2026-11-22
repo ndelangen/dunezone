@@ -309,25 +309,46 @@ button.token {
   border-block-start: 1px solid var(--mantine-color-default-border);
 }
 
-.rowBanned {
+/* Out of the draft: banned, or another variant of its Faction is already drafted. */
+.rowOut {
   opacity: 0.6;
 }
 
-/* A phone's pane keeps Draft and Ban beside the name and moves who picked or banned it to a line underneath (#1633). */
+/* The words, marks and actions are the row's own columns wherever the pane is wide enough for all four. */
+.rowBody {
+  display: contents;
+}
+
+/* A variant's name wraps under its Faction's, and a word longer than the column breaks rather than running out of it. */
+.rowWords {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* A phone's pane gives the row's words, marks and actions one cell: Draft and Ban stay beside the name while it has room to be read and drop under it when it has not, and who picked or banned it takes a line underneath (#1633). */
 @container drafting-panel (width < 30rem) {
   .row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    row-gap: 0.15rem;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .rowBody {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-sm);
+  }
+
+  .rowWords {
+    flex: 1 1 7rem;
   }
 
   .rowActions {
-    grid-column: 3;
-    grid-row: 1;
+    margin-inline-start: auto;
   }
 
   .rowStatus {
-    grid-column: 2 / -1;
-    grid-row: 2;
+    order: 1;
+    flex-basis: 100%;
   }
 
   .rowStatus:empty {

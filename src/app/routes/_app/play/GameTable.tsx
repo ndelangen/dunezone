@@ -104,7 +104,9 @@ type GameTableProps = {
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
   panels?: readonly TablePanel[];
   /** A window to open once per token, as a battle opens on the viewer's side; the player can close it and it stays closed. */
-  focus?: Readonly<{ key: string; token: string }> | null;
+  focus?: Readonly<{ key: string; token: string; placement?: 'centre'; seat?: string }> | null;
+  /** Hears which windows are open, by key, as that changes. */
+  onOpenWindows?: (keys: readonly string[]) => void;
   /** Sections the host adds to the Table panel, above the fixture's trackers. */
   tableControls?: ReactNode;
   /** What the Table panel's (?) says about it: play's Phase panel explains the phase. */
@@ -130,6 +132,8 @@ type GameTableProps = {
   phaseTurns?: ReactNode;
   /* Play chrome laid over the scene for a stage, under the header: the drafting ledger. */
   stageOverlay?: ReactNode;
+  /* The viewer's soft notifications, laid over everything inside the shell so they sit under its measured header; inert, like the other overlays, during a board gesture. */
+  notices?: (inert: boolean) => ReactNode;
   /* A stage's own panel, leading the Game group: the drafting panel. Its window is flush, so the content insets itself. */
   panelContent?: ReactNode;
   /* A view the host asks for after something the viewer did lands out of frame; each new revision moves the camera once. */
@@ -758,6 +762,7 @@ export function GameTable({
   readOnly = false,
   panels,
   focus,
+  onOpenWindows,
   tableControls,
   tableGuidance,
   gameMenu,
@@ -766,6 +771,7 @@ export function GameTable({
   stage,
   mapVisible,
   stageOverlay,
+  notices,
   panelContent,
   toolbarControl,
   connectionStatus,
@@ -876,7 +882,7 @@ export function GameTable({
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
               data-mentat-recall={Boolean(recall)}
-              data-mentat-recall-loading={Boolean(recall?.loading)}
+              data-mentat-recall-loading={recall?.loading ? (recall.stepping ? 'step' : 'true') : 'false'}
               data-show-counts={heldOverlays.counts || tableLabels.pinned.counts}
               data-show-names={heldOverlays.names || tableLabels.pinned.names}
             >
@@ -898,7 +904,10 @@ export function GameTable({
                 })}
                 onView={selectView}
                 focus={focus}
+                onOpenWindows={onOpenWindows}
               />
+              {/* Notices mount once the table is open, so what arrived while it loaded shows then, its fade and glow starting there. */}
+              {arrival === 'open' && notices?.(overlaysInert)}
             </div>
           </DarkSchemeIsland>
         </TableArrivalStage>

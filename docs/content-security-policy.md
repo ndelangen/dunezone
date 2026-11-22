@@ -21,14 +21,12 @@ Storybook has its own deployment and policy.
 | Video | Same-origin header video, plus `blob:` media. Blog YouTube players load only after a click, inside `https://www.youtube-nocookie.com` frames. Their own subresources are governed by the frame's policy. |
 | Frames | Same-origin faction sheet previews use `srcdoc`; YouTube uses the origin above. |
 | Styles | Local stylesheets and inline Mantine variables, React style attributes, print styles and WebGL overlays. Inline styles remain permitted. |
-| Workers | Same-origin only. The Convex Storybook worker is confined to Storybook, outside this deployment. |
+| Workers | Same-origin only. The bidding keyword worker receives a separate response policy permitting same-origin scripts, model reads and WebAssembly compilation. Its pinned engine runs locally without JavaScript evaluation. The Convex Storybook worker is confined to Storybook, outside this deployment. |
 | Authentication | Convex actions use the deployment above. `/auth/signin/` and `/auth/callback/` proxy OAuth server-side. Provider redirects are top-level navigation, not browser script or connection sources. |
 | Publisher capture | `/publisher-capture.html` and its bundles are served from the publisher's workers.dev origin, with same-origin snapshot reads. Static Assets applies the same policy. |
 
 External anchor destinations, including Discord, GitHub and BoardGameGeek, do not need script or
-connection permission. OAuth providers likewise need no script permission. No JavaScript `eval`,
-WebAssembly compilation or production browser worker was found in the app's
-execution paths, so those are not granted extra permission.
+connection permission. OAuth providers likewise need no script permission. JavaScript `eval` remains blocked. The bidding listener is the only production browser worker that compiles WebAssembly. `handleBundleAssetRequest` grants `wasm-unsafe-eval` only on its stored, content-hashed worker script response. The page and all other bundles keep the application policy.
 
 ## Inline scripts and caching
 

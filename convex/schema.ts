@@ -17,6 +17,8 @@ import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
+import { discordRetryState } from './lib/discordRetry';
+import { factionSharedValidator } from './lib/factionData';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
@@ -27,6 +29,7 @@ import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(
   v.literal('active'),
+  v.literal('banned'),
   v.literal('merge_pending'),
   v.literal('deletion_pending'),
   v.literal('deleted')
@@ -34,6 +37,8 @@ const accountStateValidator = v.union(
 
 const publicationJobFields = v.object({
   component_version: v.optional(v.number()),
+  /** What the capture draws, keyed with the renderer revision it was assigned under, so a finished capture with the same key can be reused instead of rendered again. */
+  content_key: v.optional(v.string()),
   asset_type: v.string(),
   asset_id: v.string(),
   asset_data: v.any(),
@@ -90,6 +95,7 @@ export default defineSchema({
    * Any signed-in player may create and enter a real game.
    */
   play_games: defineTable({
+    ban_operation_id: v.optional(v.id('account_deletion_operations')),
     fixture_key: v.optional(v.string()),
     name: v.string(),
     slug: v.string(),
@@ -97,6 +103,9 @@ export default defineSchema({
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
     last_turn: v.optional(zodToConvex(lastTurnSchema)),
+    /* The ruleset's extra spice decks the creator ticked; absent when none were (#2986). */
+    spice_extras: v.optional(v.array(v.string())),
+    discord_voice: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),
@@ -119,6 +128,50 @@ export default defineSchema({
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
+  play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_discord_route_buckets: defineTable({ route: v.string(), bucket_id: v.string() }).index('by_route', ['route']),
+  play_discord_rate_limits: defineTable({ key: v.string(), blocked_until: v.number() })
+    .index('by_key', ['key'])
+    .index('by_blocked_until', ['blocked_until']),
+  play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
+  play_game_discord_channels: defineTable({
+    ban_operation_id: v.optional(v.id('account_deletion_operations')),
+    game_id: v.id('play_games'),
+    guild_id: v.string(),
+    category_ids: v.array(v.string()),
+    channel_id: v.optional(v.string()),
+    creation_marker: v.optional(v.string()),
+    creation_category_id: v.optional(v.string()),
+    creation_name_pending: v.optional(v.boolean()),
+    creation_attempt: v.optional(v.number()),
+    invite_url: v.optional(v.string()),
+    state: v.union(
+      v.literal('pending'),
+      v.literal('creating'),
+      v.literal('ready'),
+      v.literal('deleting'),
+      v.literal('deleted')
+    ),
+    created_at: v.number(),
+    renamed_ended: v.optional(v.boolean()),
+    voice_checked_at: v.optional(v.number()),
+    work_revision: v.optional(v.number()),
+    lease_revision: v.optional(v.number()),
+    deleted_at: v.optional(v.number()),
+    deletion_requested_at: v.optional(v.number()),
+    cleanup_at: v.number(),
+    next_attempt_at: v.number(),
+    retry_after: v.optional(v.number()),
+    retry: v.optional(discordRetryState),
+    lease: v.optional(v.string()),
+    lease_until: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index('by_game_id', ['game_id'])
+    .index('by_channel_id', ['channel_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
+    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at'])
+    .index('by_ban_operation_id_state', ['ban_operation_id', 'state']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -135,6 +188,7 @@ export default defineSchema({
     .index('by_game_id_user_id', ['game_id', 'user_id'])
     .index('by_user_id', ['user_id']),
   play_account_deletions: defineTable({
+    ban_retirement: v.optional(v.boolean()),
     game_id: v.id('play_games'),
     user_id: v.id('users'),
     operation_id: v.id('account_deletion_operations'),
@@ -144,6 +198,7 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
+    .index('by_operation_id_state_next_attempt_at', ['operation_id', 'state', 'next_attempt_at'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */
@@ -170,6 +225,9 @@ export default defineSchema({
     merged_into_user_id: v.optional(v.id('users')),
     account_merge_operation_id: v.optional(v.id('account_merge_operations')),
     account_state: v.optional(accountStateValidator),
+    banned_at: v.optional(v.string()),
+    banned_by: v.optional(v.id('users')),
+    banned_reason: v.optional(v.string()),
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
   })
@@ -204,6 +262,8 @@ export default defineSchema({
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
     bgg_profile_url: v.optional(v.string()),
     account_state: accountStateValidator,
+    banned_at: v.optional(v.string()),
+    banned_by: v.optional(v.id('users')),
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
     slug: v.string(),
@@ -213,6 +273,7 @@ export default defineSchema({
     .index('by_user_id', ['user_id'])
     .index('by_slug', ['slug'])
     .index('by_account_state_username', ['account_state', 'username'])
+    .index('by_account_state_slug', ['account_state', 'slug'])
     .index('by_merged_into_profile_id', ['merged_into_profile_id']),
   groups: defineTable({
     name: v.string(),
@@ -253,13 +314,63 @@ export default defineSchema({
     updated_at: v.string(),
     is_deleted: v.boolean(),
     group_id: v.union(v.id('groups'), v.null()),
+    /** The Faction this row is a variant of, with the variant's own name and slug; `insertFaction` writes them with the row. */
+    family_id: v.id('faction_families'),
+    variant_name: v.string(),
+    variant_slug: v.string(),
+    /**
+     * The variant this one takes its inherited fields from, in the same Faction, fixed at creation (#2927).
+     * `inherited` names those fields;
+     * `data` always holds the full resolved copy readers use.
+     * Absent on a variant without a parent.
+     */
+    parent_id: v.optional(v.id('factions')),
+    inherited: v.optional(v.array(v.string())),
+    /** Counts this variant's saves, so a push-down to its children that a newer save overtook stops. */
+    revision: v.optional(v.number()),
+    /** What a save would refuse in the resolved data after a parent's change reached it, listed on the variant's page (#2908). */
+    problems: v.optional(v.array(v.string())),
   })
     .index('by_deleted', ['is_deleted'])
+    .index('by_parent', ['parent_id'])
+    .index('by_family', ['family_id'])
     .index('by_slug', ['slug'])
     .index('by_owner_id', ['owner_id'])
     .index('by_group_id', ['group_id'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
+  /**
+   * A Faction family: the faction the catalogue shows, holding what its variants share (#2925).
+   * Every `factions` row is one variant of a family.
+   * A trigger on the default variant mirrors its shared fields and `updated_at` here;
+   * the owner, Group, deletion, default, order and opening are the Faction's own (#2910, #2928).
+   * `slug` is the faction's own address, which leads to its default variant, and shares one namespace with the variants' addresses (#2909).
+   * `data` is null while the variant's stored data does not parse, as with its card.
+   */
+  faction_families: defineTable({
+    slug: v.string(),
+    data: v.union(factionSharedValidator, v.null()),
+    owner_id: v.id('users'),
+    group_id: v.union(v.id('groups'), v.null()),
+    /** Unset only while `insertFaction` creates the Faction and its first variant together. */
+    default_variant_id: v.optional(v.id('factions')),
+    /** Whether people other than the faction's maintainers may add variants. Every family starts closed. */
+    is_open: v.boolean(),
+    /**
+     * The order its maintainers gave the variants (#2928).
+     * Listings put the default variant first, then these, then any variant the order does not name, oldest first;
+     * absent until the order is first set.
+     */
+    variant_order: v.optional(v.array(v.id('factions'))),
+    is_deleted: v.boolean(),
+    /** The Faction an admin merged this one into (#2932); set on a deleted Faction, whose addresses then lead to that one's default variant. */
+    merged_into: v.optional(v.id('faction_families')),
+    created_at: v.string(),
+    updated_at: v.string(),
+  })
+    .index('by_default_variant', ['default_variant_id'])
+    .index('by_slug', ['slug'])
+    .index('by_owner_deleted', ['owner_id', 'is_deleted']),
   /**
    * Community assets, one table for every Asset category (cards, decks, tokens, boards).
    * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);
@@ -320,7 +431,6 @@ export default defineSchema({
     data: v.any(),
   })
     .index('by_faction', ['faction_id'])
-    .index('by_deleted_created', ['is_deleted', 'faction_creation_time'])
     .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
     .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
   /**
@@ -349,8 +459,15 @@ export default defineSchema({
     complexity: v.number(),
     complexity_score: v.number(),
     facets: v.array(v.string()),
+    /** The Faction a variant's entry belongs to, so a Faction's own entry can gather its variants without reading them (#2929). */
+    family_id: v.optional(v.string()),
+    /** A Faction's entry: how many live variants it has, which variant its card draws, and every variant's complexity, which the filter matches (#2929). */
+    variant_count: v.optional(v.number()),
+    card_source_id: v.optional(v.string()),
+    complexity_scores: v.optional(v.array(v.number())),
   })
     .index('by_kind_source', ['kind', 'source_id', 'partition'])
+    .index('by_kind_family', ['kind', 'family_id', 'partition'])
     .index('by_kind_partition_created', ['kind', 'partition', 'created_at'])
     .index('by_kind_partition_edited', ['kind', 'partition', 'edited_at'])
     .index('by_kind_partition_complexity', ['kind', 'partition', 'complexity_score'])
@@ -385,17 +502,22 @@ export default defineSchema({
     asset_type: v.string(),
     asset_id: v.string(),
     cache_token: v.string(),
+    /** The completed job's `content_key`: another publication with the same key reuses this capture's file. */
+    content_key: v.optional(v.string()),
     published_at: v.number(),
-  }).index('by_asset_type_and_asset_id', ['asset_type', 'asset_id']),
+  })
+    .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
+    .index('by_content_key', ['content_key']),
   publication_jobs: defineTable(publicationJobFields)
     .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_and_created_at', ['status', 'created_at'])
     .index('by_asset_type_status_created_at', ['asset_type', 'status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
-    .index('by_status_and_updated_at', ['status', 'updated_at']),
+    .index('by_status_and_updated_at', ['status', 'updated_at'])
+    .index('by_content_key_and_status', ['content_key', 'status']),
   /** Queue metadata for the admin listing, without the captured render payload. */
   publication_job_listings: defineTable(
-    publicationJobFields.omit('asset_data', 'component_version').extend({
+    publicationJobFields.omit('asset_data', 'component_version', 'content_key').extend({
       job_id: v.id('publication_jobs'),
       job_creation_time: v.number(),
     })
@@ -616,6 +738,7 @@ export default defineSchema({
       v.literal('board'),
       v.literal('treachery'),
       v.literal('spice'),
+      v.literal('spiceExtras'),
       v.literal('custom'),
       v.literal('techToken'),
       v.literal('customTokens')
@@ -624,6 +747,21 @@ export default defineSchema({
     .index('by_ruleset', ['ruleset_id'])
     .index('by_asset', ['asset_id'])
     .index('by_ruleset_slot', ['ruleset_id', 'slot']),
+  /* Steam assertions already used to sign in, kept until they would be too old to accept anyway. */
+  steam_openid_nonces: defineTable({ nonce: v.string(), expires_at: v.number() }).index('by_nonce', ['nonce']),
+  /* How each Steam login's last profile lookup went, so a blank name or avatar can be explained from the data alone. */
+  steam_profile_lookups: defineTable({ steam_id: v.string(), outcome: v.string(), checked_at: v.number() }).index(
+    'by_steam_id',
+    ['steam_id']
+  ),
+  /* The name and picture each connected sign-in method last reported, so a profile can take them again later without the provider's token. */
+  linked_account_profiles: defineTable({
+    user_id: v.id('users'),
+    provider: authProviderValidator,
+    name: v.union(v.string(), v.null()),
+    image: v.union(v.string(), v.null()),
+    synced_at: v.number(),
+  }).index('by_user_id_and_provider', ['user_id', 'provider']),
   account_connections: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -652,6 +790,12 @@ export default defineSchema({
     completed_at: v.union(v.number(), v.null()),
   }).index('by_state', ['state']),
   account_deletion_operations: defineTable({
+    kind: v.optional(v.union(v.literal('deletion'), v.literal('ban'))),
+    initiator_user_id: v.optional(v.id('users')),
+    homepage_cutoff_token: v.optional(v.string()),
+    homepage_cutoff_at: v.optional(v.number()),
+    ban_games_cursor: v.optional(v.union(v.string(), v.null())),
+    ban_games_queued: v.optional(v.boolean()),
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),
     replacement_user_id: v.union(v.id('users'), v.null()),

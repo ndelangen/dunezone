@@ -16,6 +16,7 @@ import {
   initialCreateGameDraft,
 } from '@app/widgets/create-game/CreateGamePass';
 import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/widgets/create-game/CreateGamePass';
+import { offeredSpiceExtras } from '@app/widgets/create-game/offeredSpiceExtras';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { openDeparture } from '@app/widgets/voyage/voyage';
@@ -73,6 +74,7 @@ function CreateGamePage() {
       return (
         <CreateGameForm
           rulesets={data.rulesets}
+          discordVoiceAvailable={data.discordVoiceAvailable}
           preview={data.preview?.rulesetId === draft.rulesetId ? data.preview : null}
           draft={draft}
           dispatch={dispatch}
@@ -138,13 +140,19 @@ const NO_FACTIONS: [] = [];
  * The listing's own objection stands first;
  * the capture's first ruleset problem fills in for it.
  */
-function useCheckedRulesets(rulesets: readonly PassRuleset[], rulesetId: string, revision: string) {
+function useCheckedRulesets(
+  rulesets: readonly PassRuleset[],
+  rulesetId: string,
+  revision: string,
+  spiceExtras: readonly string[]
+) {
   const chosen = rulesets.find((ruleset) => ruleset.id === rulesetId);
   const checkable = chosen?.selectable && chosen.objection === null ? chosen : undefined;
   const { check, recheck } = usePlayReadiness(
     checkable ? { id: checkable.id, name: checkable.name } : null,
     NO_FACTIONS,
-    revision
+    revision,
+    spiceExtras
   );
   if (!checkable) {
     return { rulesets, rulesetCheck: 'ready' as const, recheck: undefined };
@@ -203,7 +211,8 @@ function CreateGameForm({
   const { rulesets, rulesetCheck, recheck } = useCheckedRulesets(
     pass.rulesets,
     pass.draft.rulesetId,
-    JSON.stringify(pass.preview?.packed ?? null)
+    JSON.stringify(pass.preview?.packed ?? null),
+    offeredSpiceExtras(pass.draft.spiceExtras, pass.preview)
   );
   return (
     <PageLayout>

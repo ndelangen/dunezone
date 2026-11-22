@@ -2,7 +2,6 @@ import { statSync } from 'node:fs';
 import path from 'node:path';
 
 import { writeRendererManifest } from '../workers/publisher/renderer-manifest-build';
-import { writeApplicationAssetManifest } from './lib/application-assets';
 import { assemblePublisherAssets, inspectPublisherAssets, omitStaticRasters } from './lib/publisher-assets';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
@@ -24,9 +23,6 @@ const report = checkOnly
   : assemblePublisherAssets(appDirectory, publisherDirectory, headersFile);
 if (!statSync(path.join(repositoryRoot, 'dist/server/server.js')).isFile()) {
   throw new Error('Application server build is missing');
-}
-if (!checkOnly) {
-  writeApplicationAssetManifest(publisherDirectory);
 }
 const rendererManifest = checkOnly ? undefined : writeRendererManifest(repositoryRoot, publisherDirectory);
 

@@ -9,6 +9,7 @@ import {
 } from '../../src/shared/factions/catalogueSearch';
 import type { FactionCatalogueSearch, FactionCatalogueSort } from '../../src/shared/factions/catalogueSearch';
 import { complexityOutOfTen, effectiveComplexity } from '../../src/shared/factions/complexity';
+import { rulesetCoverThumbUrl } from '../../src/shared/rulesets/cover';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx } from '../types';
 import { resolveBackgrounds } from './backgroundPresets';
@@ -23,16 +24,14 @@ import {
   selectCatalogueSearch,
 } from './catalogueOrder';
 import type { CatalogueDirection, CatalogueSort } from './catalogueOrder';
-import type { catalogueFactionValidator } from './collaborativeAccessValidators';
+import type { catalogueFactionValidator, rulesetCitationValidator } from './collaborativeAccessValidators';
+import { ORIGINAL_VARIANT_NAME } from './factionFamilies';
 import { parseStoredFactionForRead } from './factionInput';
 import { loadPublicProfileBySlug } from './profileAddress';
 import { profileListName } from './profileCatalogue';
 
-export type FactionRulesetSummary = {
-  id: Id<'rulesets'>;
-  slug: string;
-  name: string;
-};
+/** A ruleset as a faction card cites it: the summary, and the cover thumb its small picture draws, or null where it has no cover. */
+export type FactionRulesetSummary = Infer<typeof rulesetCitationValidator>;
 
 /** Derived from the wire contract, so the projection below cannot quietly ship a field the validator rejects. */
 export type CatalogueFaction = Infer<typeof catalogueFactionValidator>;
@@ -60,7 +59,7 @@ export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulese
  * Production never reruns a finished migration, so a change to that output leaves every existing card stale until its faction is saved again.
  * Such a change bumps this number and ships a new `faction_cards_v*` migration id that rewrites every card; until then a reader falls back to the faction for a card of another version.
  */
-/* 2: the emblem rename (`faction_cards_v2`). */
+/* 2: the emblem rename, rebuilt in production by `faction_cards_v2`; `faction_cards_v1` rebuilds at the current version on a snapshot replay, so the next bump ships `faction_cards_v3`. */
 export const FACTION_CARD_PROJECTION = 2;
 
 /**
@@ -97,70 +96,20 @@ export async function catalogueFactionFromCard(
   };
 }
 
-const FACTION_LIMIT = 500;
-/* Bounded whole-index scan of ruleset_factions for the catalogue path; one read replaces one
- * indexed read per faction. The bound mirrors the pre-existing per-faction take(500) caps. */
-const FACTION_LINK_SCAN_LIMIT = 5000;
-
 async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRulesetSummary[]> {
   const rows = await ctx.db
     .query('rulesets')
     .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
     .take(500);
 
-  return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name }));
-}
-
-/**
- * The unpaged faction catalogue read model, behind the superseded `factions.cataloguePage`: one call owns row selection, ruleset enrichment (active rulesets only, name-then-id order), and canonical faction parsing.
- * It batches the link table in one bounded scan.
- */
-export async function loadFactionCatalogue(
-  ctx: QueryCtx
-): Promise<{ factions: CatalogueFaction[]; rulesets: FactionRulesetSummary[] }> {
-  const cards = await ctx.db
-    .query('faction_cards')
-    .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
-    .take(FACTION_LIMIT);
-  const rulesets = await listActiveRulesetSummaries(ctx);
-  const linksByFaction = await factionLinksByScan(ctx);
-  const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
-
-  const factions = await Promise.all(
-    cards.map((card) =>
-      catalogueFactionFromCard(
-        ctx,
-        card,
-        (linksByFaction.get(card.faction_id) ?? [])
-          .map((rulesetId) => activeRulesetById.get(rulesetId))
-          .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
-          .sort(compareRulesets)
-      )
-    )
-  );
-
-  return { factions, rulesets };
-}
-
-async function factionLinksByScan(ctx: QueryCtx) {
-  const links = await ctx.db.query('ruleset_factions').take(FACTION_LINK_SCAN_LIMIT);
-  const linksByFaction = new Map<Id<'factions'>, Id<'rulesets'>[]>();
-  for (const link of links) {
-    const existing = linksByFaction.get(link.faction_id);
-    if (existing) {
-      existing.push(link.ruleset_id);
-    } else {
-      linksByFaction.set(link.faction_id, [link.ruleset_id]);
-    }
-  }
-  return linksByFaction;
+  return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name, coverThumbUrl: rulesetCoverThumbUrl(row) }));
 }
 
 /** Homepage spotlights omit ruleset enrichment because they only render faction identity; they are the catalogue page's own two entries. */
 export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   const spotlights = await selectSpotlightEntries(ctx);
   const card = factionCardReader(ctx, []);
-  const preview = async (entry: { source_id: string; facets: string[] } | null) => {
+  const preview = async (entry: ListedFaction | null) => {
     const faction = await card(entry);
     if (!faction) {
       return null;
@@ -183,60 +132,8 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   return { newArrival, freshlyUpdated };
 }
 
-export function selectFactionCatalogueSpotlights<T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>>(
-  factions: T[]
-) {
-  const newArrival = [...factions]
-    .filter((faction) => parseTimestamp(faction.created_at) != null)
-    .sort((left, right) => compareByDate(left, right, 'created_at'))[0];
-
-  const freshlyUpdated = [...factions]
-    .filter((faction) => {
-      if (faction._id === newArrival?._id) {
-        return false;
-      }
-      const createdAt = parseTimestamp(faction.created_at);
-      const updatedAt = parseTimestamp(faction.updated_at);
-      return createdAt != null && updatedAt != null && updatedAt > createdAt;
-    })
-    .sort((left, right) => compareByDate(left, right, 'updated_at'))[0];
-
-  return {
-    newArrival: newArrival ?? null,
-    freshlyUpdated: freshlyUpdated ?? null,
-  };
-}
-
 function compareRulesets(left: FactionRulesetSummary, right: FactionRulesetSummary) {
   return left.name.localeCompare(right.name) || String(left.id).localeCompare(String(right.id));
-}
-
-function compareByDate(
-  left: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
-  right: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
-  field: 'created_at' | 'updated_at'
-) {
-  const leftTimestamp = parseTimestamp(left[field]);
-  const rightTimestamp = parseTimestamp(right[field]);
-  if (leftTimestamp == null && rightTimestamp == null) {
-    return compareFactionIdentity(left, right);
-  }
-  if (leftTimestamp == null) {
-    return 1;
-  }
-  if (rightTimestamp == null) {
-    return -1;
-  }
-  return rightTimestamp - leftTimestamp || compareFactionIdentity(left, right);
-}
-
-function compareFactionIdentity(left: Pick<Doc<'factions'>, '_id'>, right: Pick<Doc<'factions'>, '_id'>) {
-  return String(left._id).localeCompare(String(right._id));
-}
-
-function parseTimestamp(value: string) {
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 /* A faction's links are curated by hand; this bound is a ceiling on nonsense, the same one the detail page reads with. */
@@ -250,7 +147,7 @@ export function factionOwnerPartition(ownerId: Id<'users'>) {
 /**
  * What the catalogue searches and sorts on, read from the authored blob.
  * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
- * The catalogue page that shows such a row fails loudly, as the unpaged catalogue did.
+ * The catalogue page that shows such a row fails loudly.
  */
 function factionSearchFields(data: unknown) {
   try {
@@ -265,6 +162,13 @@ function factionSearchFields(data: unknown) {
     const name = typeof raw.name === 'string' ? raw.name : '';
     return { name, names: [name], complexity: 0 };
   }
+}
+
+/**
+ * A variant is found by its own name too, except the name every first variant got by default, which would match nearly every faction (#2929).
+ */
+function variantSearchNames(names: string[], variantName: string) {
+  return variantName !== ORIGINAL_VARIANT_NAME ? [...names, variantName] : names;
 }
 
 /**
@@ -291,10 +195,11 @@ export const factionCatalogueKind: CatalogueKind = {
     }
     const { name, names, complexity } = factionSearchFields(faction.data);
     return {
+      family_id: faction.family_id,
       kind: 'faction',
       source_id: faction._id,
       slug: faction.slug,
-      search_text: catalogueSearchText(names),
+      search_text: catalogueSearchText(variantSearchNames(names, faction.variant_name)),
       name_key: catalogueNameKey(name),
       created_at: catalogueTimestamp(faction.created_at),
       updated_at: catalogueTimestamp(faction.updated_at),
@@ -343,7 +248,7 @@ async function selectSpotlightEntries(ctx: QueryCtx) {
   const list = (index: 'by_kind_partition_created' | 'by_kind_partition_edited', field: 'created_at' | 'edited_at') =>
     ctx.db
       .query('catalogue_entries')
-      .withIndex(index, (q) => q.eq('kind', 'faction').eq('partition', ALL_PARTITION).gt(field, 0))
+      .withIndex(index, (q) => q.eq('kind', 'faction_family').eq('partition', ALL_PARTITION).gt(field, 0))
       .order('desc')
       .take(2);
   const [[newArrival], edited] = await Promise.all([
@@ -383,7 +288,7 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
   const [rulesets, owner] = await Promise.all([listActiveRulesetSummaries(ctx), catalogueOwner(ctx, query.owner)]);
   const partition = owner?.partition ?? rulesets.find((ruleset) => ruleset.slug === query.ruleset)?.id ?? ALL_PARTITION;
   const [counts, spotlightEntries] = await Promise.all([
-    countCataloguePartitions(ctx, 'faction', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
+    countCataloguePartitions(ctx, 'faction_family', [ALL_PARTITION, ...rulesets.map((ruleset) => ruleset.id)]),
     selectSpotlightEntries(ctx),
   ]);
   const [catalogueTotal = 0, ...rulesetCounts] = counts;
@@ -392,20 +297,30 @@ async function loadCatalogueFurniture(ctx: QueryCtx, query: FactionCatalogueQuer
     complexity: query.complexity ? parseComplexityRange(query.complexity) : undefined,
     text: query.q?.slice(0, FACTION_CATALOGUE_QUERY_LIMIT).trim() ?? '',
     catalogueTotal,
-    rulesets: rulesets.map((ruleset, index) => ({ ...ruleset, factionCount: rulesetCounts[index] ?? 0 })),
+    /* The toolbar's list names a ruleset and counts its factions; only a card draws its cover. */
+    rulesets: rulesets.map(({ id, slug, name }, index) => ({
+      id,
+      slug,
+      name,
+      factionCount: rulesetCounts[index] ?? 0,
+    })),
+    cardRulesets: rulesets,
     owner: owner ? { asked: owner.asked, member: owner.member } : null,
     spotlightEntries,
   };
 }
 
-/** Reads the card an entry stands for, naming only its live rulesets, name then id. */
+type ListedFaction = Doc<'catalogue_entries'>;
+
+/**
+ * Reads the card of the variant a Faction's entry draws, naming only the live rulesets any variant is linked to, name then id.
+ * The card leads to the variant it draws, at that variant's own address, so a visit never takes the Faction address's redirect.
+ * That is the default variant, or on a ruleset's list the variant linked to it (#2929).
+ */
 function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
-  /* A card cites a ruleset by its summary alone, not by the count the toolbar's list carries. */
-  const activeRulesetById = new Map<string, FactionRulesetSummary>(
-    rulesets.map(({ id, slug, name }) => [id, { id, slug, name }])
-  );
-  return async (entry: { source_id: string; facets: string[] } | null) => {
-    const factionId = entry ? ctx.db.normalizeId('factions', entry.source_id) : null;
+  const activeRulesetById = new Map<string, FactionRulesetSummary>(rulesets.map((ruleset) => [ruleset.id, ruleset]));
+  return async (entry: ListedFaction | null): Promise<CatalogueFaction | null> => {
+    const factionId = entry?.card_source_id ? ctx.db.normalizeId('factions', entry.card_source_id) : null;
     const row = factionId
       ? await ctx.db
           .query('faction_cards')
@@ -415,11 +330,11 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
     if (!entry || !row || row.is_deleted) {
       /* A listed entry without a live card is drift: the page comes up one card short until the card backfill or the next save. */
       if (entry) {
-        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card.`);
+        console.warn(`Catalogue entry for faction ${entry.source_id} has no live card ${entry.card_source_id}.`);
       }
       return null;
     }
-    return await catalogueFactionFromCard(
+    return catalogueFactionFromCard(
       ctx,
       row,
       entry.facets
@@ -434,9 +349,9 @@ function factionCardReader(ctx: QueryCtx, rulesets: FactionRulesetSummary[]) {
 async function loadCards(
   ctx: QueryCtx,
   furniture: Awaited<ReturnType<typeof loadCatalogueFurniture>>,
-  entries: { source_id: string; facets: string[] }[]
+  entries: ListedFaction[]
 ) {
-  const card = factionCardReader(ctx, furniture.rulesets);
+  const card = factionCardReader(ctx, furniture.cardRulesets);
   const [cards, newArrival, freshlyUpdated] = await Promise.all([
     Promise.all(entries.map((entry) => card(entry))),
     card(furniture.spotlightEntries.newArrival),
@@ -457,12 +372,13 @@ export async function loadFactionCataloguePage(ctx: QueryCtx, query: FactionCata
   const { partition, complexity, catalogueTotal, rulesets, owner } = furniture;
   const page = parseCataloguePage(query.page) ?? 1;
   const selection = await selectCataloguePage(ctx, {
-    kind: 'faction',
+    kind: 'faction_family',
     partition,
     ...catalogueOrderOf(query.sort),
     page,
     pageSize: FACTION_CATALOGUE_PAGE_SIZE,
     complexity,
+    anyScore: true,
   });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
 
@@ -488,7 +404,7 @@ export async function loadFactionCatalogueSearch(ctx: QueryCtx, query: FactionCa
   const furniture = await loadCatalogueFurniture(ctx, query);
   const { partition, complexity, text, catalogueTotal, rulesets, owner } = furniture;
   const limit = catalogueSearchLimit(query.limit, FACTION_CATALOGUE_PAGE_SIZE);
-  const selection = await selectCatalogueSearch(ctx, { kind: 'faction', partition, text, limit, complexity });
+  const selection = await selectCatalogueSearch(ctx, { kind: 'faction_family', partition, text, limit, complexity });
   const { cards, spotlights } = await loadCards(ctx, furniture, selection.entries);
 
   return {
@@ -536,13 +452,30 @@ export async function loadOwnerFactionPreview(ctx: QueryCtx, ownerId: Id<'users'
   return { factions, factionCount: Math.max(listed, factions.length), listedFactionCount: listed };
 }
 
-export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
+/** The live rulesets a faction is linked to, in the order the links were made. */
+async function liveFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
   const links = await ctx.db
     .query('ruleset_factions')
     .withIndex('by_faction', (q) => q.eq('faction_id', factionId))
     .take(500);
   const rulesets = await Promise.all(links.map((link) => ctx.db.get('rulesets', link.ruleset_id)));
-  return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted ? [{ id: ruleset._id, name: ruleset.name, slug: ruleset.slug }] : []
-  );
+  return rulesets.flatMap((ruleset) => (ruleset && !ruleset.is_deleted ? [ruleset] : []));
+}
+
+export async function listFactionRulesets(ctx: QueryCtx, factionId: Id<'factions'>) {
+  return (await liveFactionRulesets(ctx, factionId)).map((ruleset) => ({
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+  }));
+}
+
+/** The same rulesets, each with the cover thumb a small picture of it draws, or null where it has no cover. */
+export async function listFactionRulesetCovers(ctx: QueryCtx, factionId: Id<'factions'>) {
+  return (await liveFactionRulesets(ctx, factionId)).map((ruleset) => ({
+    id: ruleset._id,
+    name: ruleset.name,
+    slug: ruleset.slug,
+    coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+  }));
 }

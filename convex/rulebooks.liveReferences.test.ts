@@ -11,6 +11,7 @@ import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../src/sha
 import { projectRulebookRenderDocument, projectRulebookSource } from '../src/shared/rulebooks/projectRenderDocument';
 import { rulebookSourceClipPath } from '../src/shared/rulebooks/sources';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { resolveRulebookReferences } from './lib/rulebookReferences';
 import { rulebookFixture } from './rulebooks.test.fixture';
 
@@ -24,7 +25,7 @@ async function liveReferenceFixture() {
     source: { kind: 'starter' },
   });
   const refs = await fixture.t.run(async (ctx) => {
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: fixture.ids.ownerId,
       group_id: null,
       slug: 'live-components',

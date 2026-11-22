@@ -120,7 +120,7 @@ describe('Content import', () => {
     expect(member).toMatchObject({ to_asset_id: imported[1]!.id, count: 2 });
   });
 
-  test('remaps portable bindings and refreshes a linked card when a dependency changes its slug', async () => {
+  test('remaps portable bindings and refreshes a linked card when a dependency is renamed', async () => {
     const { t, owner } = await rulebookFixture();
     const bundle = packageFor([
       { key: 'atreides', kind: 'faction', data: assetPublishingFaction, link: true },
@@ -143,10 +143,17 @@ describe('Content import', () => {
       target,
       expectedHash: null,
     });
+    /* The card binds the imported variant, and the writer stores that variant's Faction (#2921). */
+    const familyLink = () =>
+      t.run(async (ctx) => {
+        const variant = await ctx.db.get('factions', faction.id as Id<'factions'>);
+        const family = (await ctx.db.get('faction_families', variant!.family_id!))!;
+        return { id: family._id, slug: family.slug };
+      });
     const cardArgs = { packageKey: bundle.packageKey, item: bundle.items[1]!, target, expectedHash: null };
     const card = await owner.mutation(api.contentImports.applyItem, cardArgs);
     expect(await t.run((ctx) => ctx.db.get('assets', card.id as Id<'assets'>))).toMatchObject({
-      data: { factionLink: { id: faction.id, slug: faction.slug } },
+      data: { factionLink: await familyLink() },
     });
     expect(await owner.mutation(api.contentImports.applyItem, cardArgs)).toMatchObject({ status: 'unchanged' });
     const renamed = await owner.mutation(api.contentImports.applyItem, {
@@ -161,7 +168,7 @@ describe('Content import', () => {
       status: 'updated',
     });
     expect(await t.run((ctx) => ctx.db.get('assets', card.id as Id<'assets'>))).toMatchObject({
-      data: { factionLink: { id: faction.id, slug: renamed.slug }, faction: 'House Atreides' },
+      data: { factionLink: await familyLink(), faction: 'House Atreides' },
     });
   });
 

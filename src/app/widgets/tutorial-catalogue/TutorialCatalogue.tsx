@@ -13,6 +13,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
 import { Clock } from 'lucide-react';
 import { useId } from 'react';
+import type { ReactNode } from 'react';
 
 import styles from './TutorialCatalogue.module.css';
 
@@ -20,20 +21,27 @@ import styles from './TutorialCatalogue.module.css';
  * The tutorial catalogues: every tutorial as a tile, in rows by part (layout A, Norbert 2026-10-23).
  * Read left to right and top to bottom, the tiles are a path; any tile will start its tutorial on its own.
  * Tutorials ship one at a time (Norbert, 2026-10-23), so a tutorial not yet built shows as coming soon and opens nothing.
+ * The tools catalogue wears the same tiles (Norbert, 2026-11-09): a tool not yet built also shows as coming soon, but opens its placeholder page.
  * Playing Dune and Creating content are two catalogues on their own routes, and the page toolbar moves between them (Norbert, 2026-11-01).
  */
 
-/** One tile, whichever catalogue it belongs to. */
+/** One tile, whichever catalogue it belongs to. The tools catalogue at /tools wears the same tiles (Norbert, 2026-11-09), without numbers or minutes. */
 export type CatalogueTile = Readonly<{
   slug: string;
-  number: number;
+  /** The tutorial's place on the path; tools have none, since they are not read in order. */
+  number?: number;
   title: string;
   /** What a reader can do once the tutorial is done, in one line. */
   goal: string;
-  minutes: number;
-  art: string;
-  /** Where the tile opens; a tile without one is coming soon. */
+  minutes?: number;
+  /** The tile's picture; a tile without one shows its `placeholder` in the same frame. */
+  art?: string;
+  /** What fills the picture frame while there is no picture yet, such as a tool's mark. */
+  placeholder?: ReactNode;
+  /** Where the tile opens; `target: '_blank'` opens it in a tab of its own, as a built tool does from the tools catalogue. */
   link?: LinkProps;
+  /** Whether it is ready; by default a tile with a link is, and one without is coming soon. A tool not yet built still opens its placeholder page. */
+  built?: boolean;
 }>;
 
 export type CatalogueRow = Readonly<{ part: string; tiles: readonly CatalogueTile[] }>;
@@ -47,8 +55,8 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
 
 /*
  * A tile: its picture first, then its number beside its title and goal (the prototype Norbert picked, layout A).
- * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
- * A built tile's title is a link that covers the whole tile, so the tile opens the tutorial and reads as one link.
+ * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are; a tutorial's opens nothing, a tool's opens its placeholder.
+ * A tile with a link has a title that covers the whole tile, so the tile opens and reads as one link.
  */
 function CatalogueTileView({
   tile,
@@ -56,9 +64,13 @@ function CatalogueTileView({
   className,
 }: Readonly<{ tile: CatalogueTile; eager: boolean; className?: string }>) {
   const titleId = useId();
+  const built = tile.built ?? tile.link !== undefined;
+  const newTab = tile.link?.target === '_blank';
   const title = (
     <>
-      <VisuallyHidden component="span">{`Chapter ${tile.number}: `}</VisuallyHidden>
+      {tile.number === undefined ? null : (
+        <VisuallyHidden component="span">{`Chapter ${tile.number}: `}</VisuallyHidden>
+      )}
       {tile.title}
     </>
   );
@@ -67,27 +79,39 @@ function CatalogueTileView({
       <Surface
         as="article"
         padding="none"
-        className={clsx(styles.tile, tile.link && styles.built, className)}
+        className={clsx(styles.tile, tile.link && styles.linked, className)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
-          <img src={tile.art} alt="" loading={eager ? undefined : 'lazy'} />
+          {tile.art === undefined ? (
+            <div className={styles.placeholder} aria-hidden>
+              {tile.placeholder}
+            </div>
+          ) : (
+            <img src={tile.art} alt="" loading={eager ? undefined : 'lazy'} />
+          )}
           <span className={styles.chips}>
-            {tile.link ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
-            <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${tile.minutes} min`}</StatusBadge>
+            {built ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
+            {tile.minutes === undefined ? null : (
+              <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${tile.minutes} min`}</StatusBadge>
+            )}
           </span>
         </div>
-        <div className={styles.words}>
-          <span className={styles.number} aria-hidden>
-            {tile.number}
-          </span>
-          <Text id={titleId} fw={700} lh={1.3}>
+        <div className={clsx(styles.words, tile.number === undefined && styles.unnumbered)}>
+          {tile.number === undefined ? null : (
+            <span className={styles.number} aria-hidden>
+              {tile.number}
+            </span>
+          )}
+          <Text fw={700} lh={1.3}>
             {tile.link ? (
-              <Link {...tile.link} className={styles.open}>
-                {title}
+              /* A new tab is a fresh document, so preloading the page here would be thrown away. */
+              <Link {...tile.link} className={styles.open} {...(newTab ? { rel: 'noopener', preload: false } : {})}>
+                <span id={titleId}>{title}</span>
+                {newTab ? <VisuallyHidden component="span"> (opens in a new tab)</VisuallyHidden> : null}
               </Link>
             ) : (
-              title
+              <span id={titleId}>{title}</span>
             )}
           </Text>
           <Text size="sm" c="dimmed" lh={1.35}>
@@ -118,25 +142,27 @@ function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   );
 }
 
-/**
- * The tiles alone, one row per part, each row named by its part.
- * The catalogue page mounts them under its title band, and a blog post shows the same rows in its column.
- * The rows step from one tile across to five by the width of the `page-frame` container they sit in, so a page that gives them less room than the frame names its own.
- * `eager` loads the first row's pictures at once, for a page whose rows open above the fold;
- * a list further down a page leaves them lazy.
- */
-function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly CatalogueRow[]; eager?: boolean }>) {
+/* The tiles, one row per part; the first row's pictures load at once. */
+function TutorialRows({ rows, blur }: Readonly<{ rows: readonly CatalogueRow[]; blur: boolean }>) {
   return (
     <Stack gap="xl">
-      {rows.map((row, index) => (
-        <Section key={row.part} title={row.part}>
-          <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
-            {row.tiles.map((tile) => (
-              <CatalogueTileView key={tile.slug} tile={tile} eager={eager && index === 0} />
-            ))}
-          </ol>
-        </Section>
-      ))}
+      {rows.map((row, index) => {
+        /* Tutorials are a path, so numbered; tools are not. */
+        const List = row.tiles[0]?.number === undefined ? 'ul' : 'ol';
+        return (
+          <Section key={row.part} title={row.part}>
+            <List
+              className={clsx(styles.row, !blur && styles.unblurred)}
+              aria-label={row.part}
+              start={row.tiles[0]?.number}
+            >
+              {row.tiles.map((tile) => (
+                <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
+              ))}
+            </List>
+          </Section>
+        );
+      })}
     </Stack>
   );
 }
@@ -172,13 +198,20 @@ export function TutorialCatalogue({
   subtitle,
   lede,
   rows,
+  footer,
+  blur = true,
 }: Readonly<{
-  track: CatalogueTrack;
+  /** The tutorial track, whose toolbar moves between the two; the tools catalogue has none. */
+  track?: CatalogueTrack;
   /** The page's name, its framed subtitle and its one-sentence purpose, as `PageTitle` takes them. */
   title: string;
   subtitle: string;
   lede: string;
   rows: readonly CatalogueRow[];
+  /** Anything after the rows, such as the tools catalogue's request for the next tool. */
+  footer?: ReactNode;
+  /** Keep the panes' live blur, as every surface does (Norbert, 2026-11-08: blur like surfaces, on every page); `false` drops it for a catalogue long enough to make scrolling stutter (#2652). */
+  blur?: boolean;
 }>) {
   return (
     <PageLayout>
@@ -187,11 +220,16 @@ export function TutorialCatalogue({
           <PageTitle title={title} subtitle={subtitle} lede={lede} />
         </Stack>
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <TutorialTracks track={track} />
-      </PageLayout.Toolbar>
+      {track === undefined ? null : (
+        <PageLayout.Toolbar>
+          <TutorialTracks track={track} />
+        </PageLayout.Toolbar>
+      )}
       <PageLayout.Content>
-        <TutorialTiles rows={rows} />
+        <Stack gap="xl">
+          <TutorialRows rows={rows} blur={blur} />
+          {footer}
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );

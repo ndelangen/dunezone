@@ -5,10 +5,10 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { runtime, Socket } from '@db/tabletop/gameRuntime.test.fixture';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
-import { runtime, Socket } from './gameRuntime.test.fixture';
 import { SwappingReady, SwappingStatus } from './Swapping';
 import { ServerClockContext } from './useServerNow';
 

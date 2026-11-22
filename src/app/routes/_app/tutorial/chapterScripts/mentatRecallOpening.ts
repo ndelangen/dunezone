@@ -105,7 +105,7 @@ function playTurn(context: HistoryPlayers, turn: number) {
 /** Two completed turns and the next storm, recorded through the same commands as a real table. */
 export function openRecallHistory(players: TablePlayers) {
   const roster = players.viewOf(players.others()[0]!).roster!;
-  const learner = roster.seats.find((seat) => seat.faction?.name === 'House Atreides')!;
+  const learner = roster.seats.find((seat) => seat.faction?.name === 'Atreides')!;
   const context = {
     players,
     seat: learner.id,

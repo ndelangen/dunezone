@@ -72,3 +72,24 @@ export const Live = meta.story({
     await expect(within(canvasElement).getByRole('status')).toHaveTextContent('Another editor saved first.');
   },
 });
+
+/**
+ * An extra on a page that is about something else starts as its title on one line.
+ * A press anywhere in the box opens it to the words, and another shuts it.
+ */
+export const Collapsible = meta.story({
+  args: {
+    tone: 'info',
+    title: 'Shared by every variant',
+    collapsible: true,
+    children: 'The name, emblem, colors and background belong to the faction, not to this variant.',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Shared by every variant' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    await expect(canvas.queryByRole('region', { name: 'Shared by every variant' })).toBeNull();
+  },
+});

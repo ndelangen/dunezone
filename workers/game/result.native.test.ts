@@ -203,6 +203,26 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
+  it('clears the confetti for the whole table once a player clears it, and logs who did (#2992)', async () => {
+    const { owner, other, observer } = await inPlay();
+    await toMentat(owner);
+    expect(await rejected(owner, { kind: 'result-confetti-clear', declaredAt: 0 })).toBe(true);
+    await accepted(owner, { kind: 'result-open' });
+    const finished = await accepted(owner, { kind: 'result-declare', result: 'faction', factionIds: ['atreides'] });
+    expect(finished.snapshot.result?.confettiClearedAt).toBeUndefined();
+    const declaredAt = finished.snapshot.result!.declaredAt;
+    expect(await rejected(observer, { kind: 'result-confetti-clear', declaredAt })).toBe(true);
+    /* A clear naming another result changes nothing. */
+    const stale = await accepted(other, { kind: 'result-confetti-clear', declaredAt: declaredAt - 1 });
+    expect(stale.snapshot.result?.confettiClearedAt).toBeUndefined();
+
+    const cleared = await accepted(other, { kind: 'result-confetti-clear', declaredAt });
+    expect(cleared.snapshot.result?.confettiClearedAt).toEqual(expect.any(Number));
+    expect((await syncView(owner)).snapshot.result?.confettiClearedAt).toBe(cleared.snapshot.result?.confettiClearedAt);
+    const game = await page(observer);
+    expect(game[0]?.text).toBe(`${cleared.viewer.displayName} cleared the confetti.`);
+  });
+
   it('replays only the public table, and only while the game is finished', async () => {
     const { owner, other, observer, stepId } = await inPlay();
     const playback = async (connection: NativeConnection, step: number) => {
@@ -470,6 +490,66 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
       `Determining the winner by ${first} ended.`,
       `${first} started determining the winner.`,
     ]);
+  });
+
+  it('lets only the last player at the table end the game, in any phase, with no winner and its replay kept', async () => {
+    const { owner, other, observer } = await inPlay();
+    /* Two players: neither can end it, and a watcher never can. */
+    expect(await rejected(owner, { kind: 'result-end' })).toBe(true);
+    expect(await rejected(observer, { kind: 'result-end' })).toBe(true);
+    await accepted(other, { kind: 'seat-depart' });
+    expect(await rejected(observer, { kind: 'result-end' })).toBe(true);
+    const before = (await syncView(owner)).snapshot;
+    expect(before.phase % TABLE_PHASES.length).not.toBe(MENTAT);
+
+    const ended = await accepted(owner, { kind: 'result-end' });
+    expect(ended.snapshot.stage).toBe('finished');
+    expect(ended.snapshot.result).toMatchObject({
+      kind: 'none',
+      factionIds: [],
+      by: { seat: ended.viewer.viewerSeat, name: ended.viewer.displayName },
+    });
+    expect(ended.snapshot.phase).toBe(before.phase);
+    expect(ended.snapshot.table.pieces).toEqual(before.table.pieces);
+    expect(await rejected(owner, { kind: 'result-end' })).toBe(true);
+    expect((await page(observer))[0].text).toBe(
+      `${ended.viewer.displayName} ended the game as the last player at the table.`
+    );
+
+    /* Leaving the finished game keeps it, and continuing returns to the phase it ended in. */
+    const continued = await accepted(owner, { kind: 'result-continue' });
+    expect(continued.snapshot.stage).toBe('play');
+    expect(continued.snapshot.phase).toBe(before.phase);
+    await accepted(owner, { kind: 'result-end' });
+    await accepted(owner, { kind: 'seat-depart' });
+    expect((await syncView(observer)).snapshot.stage).toBe('finished');
+  });
+
+  it('keeps the phase order the turn is playing when its last player ends the game mid-turn and continues', async () => {
+    const { owner, other } = await inPlay();
+    await next(owner);
+    await next(owner);
+    const suffix = async (connection: NativeConnection) =>
+      (await syncView(connection)).viewer.userId.slice('user-'.length);
+    const [stays, leaves] = [await suffix(owner), await suffix(other)];
+    /* The turn plays an order the composer would no longer give, as after a deferred reordering: its first two phases swapped. */
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const stored = JSON.parse(rows[0].data);
+    const [first, second, ...rest] = required(stored.phases as { id: string }[] | undefined);
+    const playing = [second!, first!, ...rest];
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify({ ...stored, phases: playing })]);
+    await runtime.restart();
+    const player = await admit(stays);
+    const leaving = await admit(leaves);
+    const ids = (phases: { id: string }[] | undefined) => required(phases).map((entry) => entry.id);
+    expect(ids((await syncView(player)).snapshot.phases)).toEqual(ids(playing));
+
+    await accepted(leaving, { kind: 'seat-depart' });
+    const ended = await accepted(player, { kind: 'result-end' });
+    expect(ids(ended.snapshot.phases)).toEqual(ids(playing));
+    const continued = await accepted(player, { kind: 'result-continue' });
+    expect(ids(continued.snapshot.phases)).toEqual(ids(playing));
+    expect(continued.snapshot.phase).toBe(ended.snapshot.phase);
   });
 
   it('continues with nobody ready, so no single player can move the phase on alone', async () => {

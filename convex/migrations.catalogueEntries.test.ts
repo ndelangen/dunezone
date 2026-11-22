@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 
 import { compareCodeUnits } from '../src/shared/compareText';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { CATALOGUE_STAMP, catalogueFactionData } from './factions.catalogue.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import { factionOwnerPartition } from './lib/factionCatalogue';
@@ -30,19 +31,19 @@ async function unmaintained() {
       is_deleted: false,
       image_cover: null,
     });
-    const live = await ctx.db.insert('factions', {
+    const live = await insertFactionRow(ctx, {
       ...owned,
       slug: 'atreides',
       is_deleted: false,
       data: catalogueFactionData({ name: 'Atreides', complexity: 0.4 }),
     });
-    const renamed = await ctx.db.insert('factions', {
+    const renamed = await insertFactionRow(ctx, {
       ...owned,
       slug: 'fremen',
       is_deleted: false,
       data: catalogueFactionData({ name: 'Fremen' }),
     });
-    const deleted = await ctx.db.insert('factions', {
+    const deleted = await insertFactionRow(ctx, {
       ...owned,
       slug: 'gone',
       is_deleted: true,
@@ -143,13 +144,23 @@ describe('catalogue entries backfill', () => {
     const { t, live, renamed, rulesetId, ownerId } = await unmaintained();
     const owner = factionOwnerPartition(ownerId);
 
-    /* The page draws its cards from `faction_cards`, which raw rows skip as well. */
-    await t.mutation(internal.migrations.runRequired, { ids: [...ids, 'faction_cards_v1'] });
+    /* The page draws its cards from `faction_cards` and lists factions from their families' entries, which raw rows skip as well. */
+    await t.mutation(internal.migrations.runRequired, {
+      ids: [
+        ...ids,
+        'faction_cards_v1',
+        'faction_families_v1',
+        'catalogue_entries_factions_family_v1',
+        'catalogue_entries_family_listing_v1',
+      ],
+    });
     await t.finishAllScheduledFunctions(() => undefined);
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
       ok: true,
     });
-    const rebuilt = await t.run((ctx) => ctx.db.query('catalogue_entries').collect());
+    const factionEntries = async () =>
+      (await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).filter((entry) => entry.kind === 'faction');
+    const rebuilt = await factionEntries();
     const byList = (left: unknown[], right: unknown[]) =>
       compareCodeUnits(`${String(left[0])} ${String(left[1])}`, `${String(right[0])} ${String(right[1])}`);
     expect(
@@ -178,6 +189,6 @@ describe('catalogue entries backfill', () => {
     await t.mutation(internal.migrations.catalogue_entries_prune_v1, { reset: true });
     await t.mutation(internal.migrations.catalogue_entries_verify_v1, { reset: true });
     await t.finishAllScheduledFunctions(() => undefined);
-    expect(await t.run((ctx) => ctx.db.query('catalogue_entries').collect())).toEqual(rebuilt);
+    expect(await factionEntries()).toEqual(rebuilt);
   });
 });

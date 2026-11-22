@@ -11,6 +11,7 @@ import {
   accepted,
   admitPlayer,
   eventually,
+  isFullView,
   seat,
   sendCommand,
   storedEventMessages,
@@ -72,6 +73,36 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     vote: RemovalVote,
     choice: Extract<RemovalAction, { kind: 'removal-ballot' }>['choice']
   ) => accepted(player, { kind: 'removal-ballot', voteId: vote.id, choice });
+
+  it('delivers the same open vote to newcomers and connected viewers, then clears it', async () => {
+    const [a, b, c] = await players(3);
+    const observer = await admit('observer');
+    const vote = await start(a, c);
+    const opened = await observer.message(
+      'view',
+      ({ snapshot }) => snapshot.removalVotes?.some(({ id }) => id === vote.id) ?? false
+    );
+    expect(isFullView(opened)).toBe(false);
+    expect(opened.snapshot.removalVotes).toEqual([vote]);
+
+    const newcomer = await admit('newcomer');
+    const joined = await newcomer.message('view');
+    expect(isFullView(joined)).toBe(true);
+    expect(joined.snapshot.removalVotes).toEqual([vote]);
+    const existing = await observer.message(
+      'view',
+      ({ snapshot }) => snapshot.controls?.spectators?.some(({ name }) => name === joined.viewer.displayName) ?? false
+    );
+    expect(isFullView(existing)).toBe(false);
+    expect(existing.snapshot.removalVotes).toEqual([vote]);
+
+    const { reply } = await sendCommand(b, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' });
+    const revision = required(reply.type !== 'rejected' ? reply.snapshot : undefined).revision;
+    for (const viewer of [a, b, c, observer, newcomer]) {
+      const view = await viewer.message('view', ({ snapshot }) => snapshot.revision === revision);
+      expect(view.snapshot.removalVotes).toEqual([]);
+    }
+  });
 
   /* The smallest table, an even count that rounds the majority up, and a full table. */
   it.each([

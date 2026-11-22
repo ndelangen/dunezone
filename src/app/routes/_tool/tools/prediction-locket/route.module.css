@@ -1,0 +1,341 @@
+/* A phone held at the table: the title on top, the picks or the locket in the middle, the one action under the thumb. */
+.tool {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 60px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.title {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.label {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.factions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--space-xs) 2px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--ui-recess);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice[aria-pressed="true"],
+.turn[aria-pressed="true"] {
+  border-color: var(--ui-brass);
+  background: var(--ui-selected);
+}
+
+.token,
+.searchMark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.token svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.searchMark {
+  border: 2px dashed var(--ui-raised);
+  color: var(--ui-muted);
+}
+
+/* Two lines, so a phone shows "House Atreides" whole rather than "House At…"; only a longer name is cut. */
+.choiceName {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.turns {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-xs);
+}
+
+.turn {
+  min-height: 56px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--ui-recess);
+  color: inherit;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dock {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom));
+  background: var(--ui-recess);
+  border-top: 1px solid var(--ui-raised);
+}
+
+.dock > * {
+  width: 100%;
+}
+
+.dockRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.peek {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  border: 1px solid var(--ui-raised);
+  border-radius: var(--mantine-radius-default, 8px);
+  background: var(--ui-ground);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+
+.peek[aria-pressed="true"] {
+  border-color: var(--ui-brass);
+  background: var(--ui-selected);
+}
+
+.lockedBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+}
+
+/* The locket: a brass-ringed disc, closed over the lock, open over the faction's token. */
+.locket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: min(78vw, 300px);
+  aspect-ratio: 1;
+  border: 6px solid var(--ui-brass);
+  border-radius: 50%;
+  background: var(--ui-recess);
+  box-shadow:
+    0 0 0 2px var(--ui-umber),
+    0 12px 32px rgb(0 0 0 / 35%);
+  text-align: center;
+}
+
+.lockMark {
+  color: var(--ui-brass);
+}
+
+.bigToken .token,
+.bigToken > * {
+  width: 120px;
+  height: 120px;
+}
+
+.prediction {
+  max-width: 80%;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.predictionTurn {
+  color: var(--ui-brass);
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.stampTime {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stampLabel {
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stampCity {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.city {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--ui-recess);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cityWords {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cityName {
+  font-weight: 700;
+}
+
+.cityRegion {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.citySearch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cityList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cityRow {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 8px;
+}
+
+.cityRow[aria-pressed="true"] {
+  background: var(--ui-selected);
+}
+
+.cityNone {
+  margin: 0;
+  color: var(--ui-muted);
+}
+
+.why {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Past the ten taps: any later turn, a step at a time. */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.stepperTurn {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

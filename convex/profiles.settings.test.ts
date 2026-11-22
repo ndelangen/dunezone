@@ -30,6 +30,7 @@ test("settings returns only the authenticated owner's methods and rejects a revo
     methods: [
       { provider: 'google', connected: true },
       { provider: 'discord', connected: false },
+      { provider: 'steam', connected: false },
     ],
     merging: false,
   });

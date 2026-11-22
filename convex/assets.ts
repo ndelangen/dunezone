@@ -69,9 +69,9 @@ import {
   syncCustomCardTokenRelations,
   validateCustomCardTokens,
 } from './lib/customCardTokens';
-import { parseStoredFactionForRead } from './lib/factionInput';
 import { loadRelatedFaqPage } from './lib/faqReferences';
 import { recordFormerSlug } from './lib/formerSlugs';
+import { nexusFactionTarget, nexusLinkFace, nexusLinkOf } from './lib/nexusFaction';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { profileSummary } from './lib/profileSummary';
 import { enqueueAssetPublication, supersedePendingPublication } from './lib/publication';
@@ -577,8 +577,11 @@ async function withValidatedBack(
   return data;
 }
 
-/* A linked Nexus face snapshots the faction artwork through the ordinary asset writer. */
-async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
+/*
+ * A linked Nexus face snapshots the faction artwork through the ordinary asset writer.
+ * The link is stored as a whole Faction (#2921): a live variant's id is taken for its Faction, so a stale draft, an open tab from before the move, or an import whose binding names a faction item, which is a variant, saves the Faction.
+ */
+export async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, previous?: unknown) {
   if (type !== 'card-nexus') {
     return input;
   }
@@ -589,18 +592,17 @@ async function withNexusFaction(ctx: MutationCtx, type: string, input: unknown, 
     }
     return card;
   }
-  const id = ctx.db.normalizeId('factions', card.factionLink.id);
-  const row = id ? await ctx.db.get('factions', id) : null;
-  if (!row || row.is_deleted) {
+  const target = await nexusFactionTarget(ctx, card.factionLink.id);
+  if (!target) {
     throw new ConvexError('Choose an available faction for this Nexus card');
   }
-  const faction = parseStoredFactionForRead(row.data);
+  const face = nexusLinkFace(target);
   return {
     ...card,
-    factionLink: { id: row._id, slug: row.slug },
-    faction: faction.name,
-    factionSymbol: { image: faction.emblem, background: faction.background },
-    icon: [faction.background, faction.emblem],
+    factionLink: nexusLinkOf(target),
+    faction: face.name,
+    factionSymbol: { image: face.emblem, background: face.background },
+    icon: [face.background, face.emblem],
   };
 }
 
@@ -1032,7 +1034,7 @@ export async function replaceAssetMembers(
 }
 
 /** Bounds a deck's composition read; a deck far below this is the ordinary case. */
-const DECK_CARD_LIMIT = 500;
+export const DECK_CARD_LIMIT = 500;
 
 /**
  * A container's member rows with their counts, soft-deleted members filtered out at read time.
@@ -1104,7 +1106,7 @@ async function containersHolding(
 /**
  * Enough of a container's member to draw its face, and nothing more.
  *
- * Deliberately not `assetListEntryValidator`: that shape carries an owner, which costs a `profiles` read per member, and a browse page of two hundred bundles would pay six hundred of them for a name no tile shows.
+ * Deliberately not `assetListEntryValidator`: that shape carries an owner, which costs a `profiles` read per member, and a catalogue page of bundles would pay several per tile for a name no tile shows.
  */
 const memberPreviewValidator = v.object({
   id: v.id('assets'),
@@ -1164,12 +1166,6 @@ export const assetBrowseEntryValidator = assetListEntryValidator.extend({
 });
 
 /**
- * How many rows one browse page holds.
- * Tied to `PER_TYPE_LIMIT` rather than restated, since the two answer the same question about the same table.
- */
-const BROWSE_LIMIT = PER_TYPE_LIMIT;
-
-/**
  * Whether a tile on this type's browse page draws the members standing behind it.
  *
  * Only bundles, and the relation kind comes off `CONTAINER_KINDS` rather than being restated here.
@@ -1179,45 +1175,6 @@ const BROWSE_LIMIT = PER_TYPE_LIMIT;
 function memberPreviewKind(type: string): string | null {
   return type === 'bundle' ? (CONTAINER_KINDS[type]?.kind ?? null) : null;
 }
-
-/**
- * Everything `/assets/{type}` draws, in one read.
- *
- * The route holds one page query (see docs/technical/ui-design-decisions.md), and `listByTypes` cannot become that query because `AssetPicker` shares it and would inherit a per-row index scan it has no use for.
- * Superseded by `catalogue`;
- * kept for one release so a bundle still asking for it keeps working while the new one deploys.
- *
- * `truncated` exists so a full page says so rather than quietly under-reporting its own total.
- */
-export const browsePage = publicQuery({
-  args: { type: v.string() },
-  returns: v.object({
-    entries: v.array(assetBrowseEntryValidator),
-    truncated: v.boolean(),
-  }),
-  handler: async (ctx, args) => {
-    const rows = await listAssetListingRows(ctx, args.type, BROWSE_LIMIT + 1);
-    const truncated = rows.length > BROWSE_LIMIT;
-    const page = truncated ? rows.slice(0, BROWSE_LIMIT) : rows;
-
-    const previewKind = memberPreviewKind(args.type);
-    /* One deck backs many of the cards on a page, and one owner holds many of the assets, so each row is read once and reused across the whole grid. */
-    const decks = new Map<Id<'assets'>, Doc<'assets'> | null>();
-    const owners = new Map<Id<'users'>, Awaited<ReturnType<typeof profileSummary>>>();
-    const presets: CardbackPresetMemo = new Map();
-    const entries: Infer<typeof assetBrowseEntryValidator>[] = [];
-    for (const row of page) {
-      /* No cache across rows here, unlike `decks`: two bundles sharing a token is the exception, where a deck shared across a page of cards is the rule. */
-      const members = previewKind ? await memberPreviews(ctx, row._id, previewKind) : [];
-      entries.push({
-        ...(await toListEntry(ctx, row, { owners, presets }, { deckBacks: decks })),
-        members,
-      });
-    }
-
-    return { entries, truncated };
-  },
-});
 
 /** The same catalogue tile on browse pages and FAQ references, including a bundle's member previews. */
 export async function toAssetCatalogueEntry(ctx: QueryCtx, row: Doc<'assets'>) {
@@ -1326,7 +1283,6 @@ async function loadCatalogueSearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * Only the page's own assets are read, so a page costs the same however many assets the type holds.
  * A search is the load-more search, best matches first up to `limit`;
  * without one the type is browsed, in pages.
- * Replaces `browsePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {

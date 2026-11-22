@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { publishingCustomDeckCardback } from '../assets/fixtures/publishingDeckCardback';
+import { publishingTreacheryCard } from '../assets/fixtures/publishingTreacheryCard';
 import { CatalogueCapture, playReadiness } from './catalogueCapture';
 import type { CatalogueReads } from './catalogueCapture';
 import { arrakisBoardCapture } from './fixtures/board';
@@ -7,16 +9,48 @@ import { arrakisBoardCapture } from './fixtures/board';
 const ORIGIN = 'https://dune.zone';
 
 /* A catalogue that answers only what each test gives it; anything else reads as absent. */
-function catalogue(answers: { rulesets?: Record<string, unknown>; factions?: Record<string, unknown> }) {
+function catalogue(answers: {
+  rulesets?: Record<string, unknown>;
+  factions?: Record<string, unknown>;
+  assets?: Record<string, unknown>;
+}) {
   const reads: CatalogueReads = {
     rulesetSupply: async (id) => answers.rulesets?.[id] ?? null,
     factionDefinition: async (id) => answers.factions?.[id] ?? null,
-    assetSupply: async () => null,
+    assetSupply: async (selection) => answers.assets?.[selection.slug] ?? null,
   };
   return new CatalogueCapture(reads, ORIGIN);
 }
 
 const kiss = { id: 'kiss', slug: 'kiss', name: 'KISS' };
+
+/* A Treachery card and a deck of two copies of each card, as the catalogue supplies them. */
+const blankSupply = { members: [], membersTruncated: false, backToken: null, backDeck: null };
+function cardSupply(id: string) {
+  return {
+    ...blankSupply,
+    asset: { id, type: 'card-treachery', slug: id, name: id, data: publishingTreacheryCard },
+    front: `/published/cards/${id}/card.jpg`,
+    back: null,
+    backMode: null,
+  };
+}
+function deckSupply(id: string, cards: ReturnType<typeof cardSupply>[]) {
+  return {
+    ...blankSupply,
+    asset: {
+      id,
+      type: 'deck',
+      slug: id,
+      name: id,
+      data: { name: id, about: '', cardback: publishingCustomDeckCardback },
+    },
+    members: cards.map((card) => ({ ...card, count: 2 })),
+    front: null,
+    back: `/published/decks/${id}/cardback.jpg`,
+    backMode: 'authored-cardback',
+  };
+}
 
 describe('playReadiness', () => {
   it('names both required decks of a ruleset that slots none, by their labels', async () => {
@@ -88,6 +122,69 @@ describe('playReadiness', () => {
     ]);
   });
 
+  it('retains only the extra spice decks the creator ticked, while readiness judges every one (#2986)', async () => {
+    const extra = (name: string) => ({ slot: 'spiceExtras', asset: { id: name, slug: name, name, type: 'deck' } });
+    const reads = catalogue({
+      rulesets: {
+        gf9: {
+          ruleset: { id: 'gf9', slug: 'gf9', name: 'GF9' },
+          board: arrakisBoardCapture,
+          slots: [extra('Expansion'), extra('Homebrew')],
+        },
+      },
+    });
+    const ticked = await reads.captureRuleset('gf9', { spiceExtras: ['Expansion'] });
+    expect(ticked.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['Expansion']);
+    const none = await reads.captureRuleset('gf9');
+    expect(none.decks.spiceExtras).toEqual([]);
+    const [ruleset] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, []);
+    expect(ruleset?.problems.map((problem) => problem.subject)).toEqual([
+      'Treachery deck',
+      'Spice deck',
+      'Extra spice decks: Expansion',
+      'Extra spice decks: Homebrew',
+    ]);
+  });
+
+  it('judges only the ticked extra spice decks when asked, and keeps the spice deck out of its own extras (#2986)', async () => {
+    const slot = (key: string, id: string) => ({ slot: key, asset: { id, slug: id, name: id, type: 'deck' } });
+    const card = cardSupply('karama');
+    const reads = catalogue({
+      rulesets: {
+        gf9: {
+          ruleset: { id: 'gf9', slug: 'gf9', name: 'GF9' },
+          board: arrakisBoardCapture,
+          slots: [
+            slot('treachery', 'treachery'),
+            slot('spice', 'spice'),
+            slot('spiceExtras', 'spice'),
+            slot('spiceExtras', 'expansion'),
+            slot('spiceExtras', 'homebrew'),
+          ],
+        },
+      },
+      assets: {
+        treachery: deckSupply('treachery', [card]),
+        spice: deckSupply('spice', [card]),
+        expansion: deckSupply('expansion', [card]),
+        homebrew: deckSupply('homebrew', [card]),
+      },
+    });
+    const ticked = await reads.captureRuleset('gf9', { spiceExtras: ['spice', 'expansion'] });
+    expect(ticked.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['expansion']);
+    expect(ticked.readiness.problems).toEqual([]);
+    const [chosen] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, [], { spiceExtras: ['expansion'] });
+    expect(chosen?.problems).toEqual([]);
+    const gone = await reads.captureRuleset('gf9', { spiceExtras: ['unslotted'] });
+    expect(gone.readiness.problems).toEqual([
+      { subject: 'spiceExtras: unslotted', reason: 'The ruleset no longer offers this extra spice deck.' },
+    ]);
+    const [every] = await playReadiness(reads, { id: 'gf9', name: 'GF9' }, []);
+    expect(every?.problems).toEqual([]);
+    const all = await reads.captureRuleset('gf9', { spiceExtras: 'every' });
+    expect(all.decks.spiceExtras.map((entry) => entry.asset.name)).toEqual(['expansion', 'homebrew']);
+  });
+
   it('turns a refused ruleset or faction into its one problem, so the rest is still judged', async () => {
     const report = await playReadiness(
       catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } }),
@@ -108,5 +205,25 @@ describe('playReadiness', () => {
         problems: [{ subject: 'faction', reason: 'This faction is not available.' }],
       },
     ]);
+  });
+});
+
+describe('captureTreacheryDeck', () => {
+  const ref = { id: 'treachery-deck', slug: 'treachery-deck', name: 'Cards' };
+
+  it('captures any deck by itself, with no Ruleset around it', async () => {
+    const deck = deckSupply('treachery-deck', [cardSupply('card-one'), cardSupply('card-two')]);
+    const captured = await catalogue({ assets: { 'treachery-deck': deck } }).captureTreacheryDeck(ref);
+    expect(captured.asset).toMatchObject({ id: 'treachery-deck', type: 'deck' });
+    expect(captured.contents?.members).toEqual([
+      { assetId: 'card-one', count: 2 },
+      { assetId: 'card-two', count: 2 },
+    ]);
+  });
+
+  it('says why a deck cannot be used', async () => {
+    await expect(catalogue({}).captureTreacheryDeck(ref)).rejects.toThrow(
+      'Cards cannot be used. This asset has no complete playable definition.'
+    );
   });
 });

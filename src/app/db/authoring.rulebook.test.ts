@@ -2,6 +2,7 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from '../../../convex/_generated/api';
+import { insertFactionRow } from '../../../convex/factionRows.test.fixture';
 import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
@@ -67,11 +68,11 @@ async function fixture() {
       created_at: '2026-10-20',
       updated_at: '2026-10-20',
     };
-    const factionId = await ctx.db.insert('factions', { ...common, slug: 'first', data: assetPublishingFaction });
+    const factionId = await insertFactionRow(ctx, { ...common, slug: 'first', data: assetPublishingFaction });
     const other = structuredClone(assetPublishingFaction);
     other.troops[0].troopId = absentTroop;
     other.factionLeader.memberId = absentTroop;
-    const otherFactionId = await ctx.db.insert('factions', { ...common, slug: 'other', data: other });
+    const otherFactionId = await insertFactionRow(ctx, { ...common, slug: 'other', data: other });
     const deckId = await ctx.db.insert('assets', { ...common, type: 'deck', slug: 'deck', data: {} });
     const tokenId = await ctx.db.insert('assets', { ...common, type: 'token-disc', slug: 'token', data: {} });
     const bundleId = await ctx.db.insert('assets', { ...common, type: 'bundle', slug: 'bundle', data: {} });

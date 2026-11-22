@@ -1,0 +1,16 @@
+Dune Zone bidding listener
+
+Engine: sherpa-onnx 2.0.1
+Source: https://github.com/k2-fsa/sherpa-onnx/tree/v2.0.1
+Package: https://registry.npmjs.org/sherpa-onnx/-/sherpa-onnx-2.0.1.tgz
+License: Apache License 2.0, included as LICENSE.txt.
+
+Model: sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01
+Source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/kws-models
+The original model README and its Apache License 2.0 declaration are included as MODEL_README.md.
+
+Dune Zone converts the package's CommonJS exports to static ES module exports at build preparation time.
+The engine runs in a browser worker with a read-only in-memory model filesystem.
+No downloaded JavaScript is evaluated as text.
+
+Regeneration and pinned archive hashes: scripts/bidding-voice-assets.ts in the Dune Zone repository.

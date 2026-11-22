@@ -274,5 +274,9 @@
     "source": "the components of Dune (Gale Force Nine, 2019)",
     "artist": "Casey Davies and Victor Pesch",
     "artistRole": "design"
+  },
+  "gf9-landsraad-emblem": {
+    "method": "ai-adapted",
+    "source": "the Landsraad promotional artwork for Dune: Kwisatz Haderach Edition (Gale Force Nine)"
   }
 }

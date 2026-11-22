@@ -17,4 +17,6 @@ export const factionDataValidator = zodToConvex(CanonicalFactionStoredObject);
 
 /** The catalogue's narrowed `data`, derived from the same authority as the full shape (#642). */
 export const catalogueFactionDataValidator = zodToConvex(CatalogueFactionStoredSchema);
+/** What a Faction family stores for its variants to share, derived from the same authority. */
+export const factionSharedValidator = factionDataValidator.pick('name', 'emblem', 'background', 'themeColor', 'colors');
 export const factionBackgroundValidator = zodToConvex(Background);

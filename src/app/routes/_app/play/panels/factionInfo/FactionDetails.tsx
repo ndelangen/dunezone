@@ -1,5 +1,6 @@
 import { Accordion, Box, Stack, Text, Tooltip } from '@mantine/core';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
 import type { PublicFaction } from '@shared/play/capture';
 import { Section } from '@ui/block/Section';
 import { EmptyNote } from '@ui/content/EmptyNote';
@@ -124,6 +125,11 @@ function Setup({ faction }: Faction) {
           <InlineFormattedTextSource source={faction.rules.revivalText} />
         </Text>
       </Section>
+      {faction.rules.treacheryTracker ? (
+        <Section title="Treachery tracker">
+          <Text size="sm">{TREACHERY_TRACKER_RULE}</Text>
+        </Section>
+      ) : null}
     </Stack>
   );
 }

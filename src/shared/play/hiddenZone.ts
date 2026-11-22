@@ -52,9 +52,11 @@ export function hiddenZoneFootprint(piece: TablePiece): { width: number; depth: 
   if (piece.kind === 'card') {
     return { width: CARD_WIDTH, depth: CARD_DEPTH };
   }
-  const standard = 2 * (piece.kind === 'marker' ? MARKER_FOOTPRINT_RADIUS : TROOP_FOOTPRINT_RADIUS * troopScale(piece));
-  /* A token's author may make it smaller or larger than standard, such as a tiny marker for a tracker card. */
-  const width = standard * (piece.items[0]?.artwork?.size ?? 1);
+  /* A token's author may make it smaller or larger than standard, such as a tiny marker for a tracker card; troopScale already counts it. */
+  const width =
+    piece.kind === 'marker'
+      ? 2 * MARKER_FOOTPRINT_RADIUS * (piece.items[0]?.artwork?.size ?? 1)
+      : 2 * TROOP_FOOTPRINT_RADIUS * troopScale(piece);
   return { width, depth: width * (tokenBoxRatio(piece) ?? 1) };
 }
 

@@ -22,10 +22,22 @@ import {
   memoryHistory,
   pageHistory,
   gridCards,
+  withRulesetCovers,
   withTroopDetails,
   withPlanets,
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
+  variantMaintainerOutsideTheFactionGroup,
+  openFactionSeenFromOutsideItsGroup,
+  DREAMRULES_PATH,
+  withAChildVariant,
+  withABrokenChildVariant,
+  withFourVariants,
+  expectVariantSwitcher,
+  findVariantsCard,
+  openFactionSettings,
+  expectFactionSettings,
+  settingsRows,
 } from './factions.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { StorybookPage } from './storybook';
@@ -722,5 +734,460 @@ export const DetailNotFoundIsThePageNotFound = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByText('Back to factions')).toBeNull();
+  },
+});
+
+/** A variant Group member outside the Faction's Group may not change the shared fields, yet the variant's own chapters stay theirs (#2926). */
+export const EditVariantChaptersOutsideTheFactionGroup = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: variantMaintainerOutsideTheFactionGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    await userEvent.click(page.getByRole('tab', { name: /^Faction leader/ }));
+    await expect(page.findByRole('textbox', { name: 'Faction leader name' })).resolves.toBeEnabled();
+  },
+});
+
+const DREAMRULES_SLUG = DREAMRULES_PATH.replace('/factions/', '');
+
+/**
+ * Switching a custom field to the parent and saving stores the parent's value and the choice (#2927).
+ * Switching another to custom leaves it holding the parent's value, now the variant's own to change.
+ */
+export const EditVariantSavesWhichFieldsFollowTheParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const original = await loadFaction('house-atreides');
+    const save = page.getByRole('button', { name: 'Save faction' });
+    await expect(save).toHaveAccessibleDescription(/^No unsaved changes/);
+
+    /* A custom field starts from the parent's value, so the choice alone is the unsaved change. */
+    const spice = rules.getByRole('checkbox', { name: 'Use parent variant for Starting spice' });
+    await expect(spice).toBeChecked();
+    await userEvent.click(spice);
+    await expect(rules.findByRole('textbox', { name: 'Starting spice' })).resolves.toHaveValue(
+      String(original.faction.data.rules.spiceCount)
+    );
+    await expect(save).toHaveAccessibleDescription(/^Unsaved changes/);
+
+    const revival = rules.getByRole('checkbox', { name: 'Use parent variant for Revival instructions' });
+    await expect(revival).not.toBeChecked();
+    await userEvent.click(revival);
+    await expect(
+      rules.findByRole('group', { name: 'Revival instructions, from Original, read-only' })
+    ).resolves.toBeVisible();
+    await expect(rules.queryByRole('textbox', { name: 'Revival instructions' })).toBeNull();
+
+    await userEvent.click(save);
+    await waitFor(
+      async () => {
+        const saved = (await loadFaction(DREAMRULES_SLUG)).faction;
+        await expect(saved.inherited).toContain('rules.revivalText');
+        await expect(saved.inherited).not.toContain('rules.spiceCount');
+        await expect(saved.data.rules.revivalText).toBe(original.faction.data.rules.revivalText);
+      },
+      { timeout: 30_000 }
+    );
+    /* The saved choices are what the editor now shows, with nothing left to save. */
+    await waitFor(() => expect(save).toHaveAccessibleDescription(/^Saved/));
+    await expect(
+      rules.findByRole('group', { name: 'Revival instructions, from Original, read-only' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(rules.findByRole('textbox', { name: 'Starting spice' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/** Reset puts back the saved choices along with the saved values. */
+export const EditVariantResetRestoresWhichFieldsFollowTheParent = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const start = rules.getByRole('checkbox', { name: 'Use parent variant for Starting instructions' });
+    await expect(start).toBeChecked();
+    await userEvent.click(start);
+    await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
+    await expect(
+      rules.findByRole('group', { name: 'Starting instructions, from Original, read-only' })
+    ).resolves.toBeVisible();
+    await expect(rules.queryByRole('textbox', { name: 'Starting instructions' })).toBeNull();
+  },
+});
+
+/** The parent's value opens from its one line, and shuts again from the same line. */
+export const EditVariantOpensAndShutsTheParentValue = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    const inherited = within(
+      await rules.findByRole('group', { name: 'Starting instructions, from Original, read-only' }, { timeout: 30_000 })
+    );
+    const toggle = inherited.getByRole('button', { name: 'From Original, the parent variant. Read-only here.' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(inherited.queryByRole('region')).toBeNull();
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const value = await inherited.findByRole('region');
+    await expect(value).toBeVisible();
+    await expect(value).not.toBeEmptyDOMElement();
+
+    /* The whole dashed box is the toggle: a press in its padding shuts it, and another opens it. */
+    const box = toggle.closest('[role="group"]');
+    await expect(box).not.toBeNull();
+    const padding = () => {
+      box!.scrollIntoView({ block: 'center' });
+      const { left, bottom } = box!.getBoundingClientRect();
+      return box!.ownerDocument.elementFromPoint(left + 3, bottom - 3);
+    };
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(inherited.queryByRole('region')).toBeNull());
+    await expect(padding()).toBe(toggle);
+    await userEvent.click(padding()!);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(inherited.queryByRole('region')).toBeNull());
+  },
+});
+
+/** A variant without a parent has no choice to offer: every field is its own. */
+export const EditVariantWithoutAParentOffersNoChoice = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('tab', { name: /Rules/ }, { timeout: 30_000 }));
+    const rules = within(await page.findByRole('tabpanel', { name: /Rules/ }, { timeout: 30_000 }));
+    await expect(rules.findByRole('textbox', { name: 'Starting instructions' })).resolves.toBeVisible();
+    await expect(rules.queryByRole('checkbox', { name: /^Use parent variant/ })).toBeNull();
+  },
+});
+
+/** Creating a variant stores it under the chosen parent and opens its page, at its own address. */
+export const DetailCreatesAVariantAndOpensIt = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withAChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, { timeout: 30_000 }));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, { timeout: 30_000 }));
+    const name = form.getByRole('textbox', { name: 'Variant name' });
+    const create = form.getByRole('button', { name: 'Create variant' });
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
+    /* The server refuses a name another variant has, and its words show in the popover. */
+    await userEvent.type(name, 'Dreamrules');
+    await userEvent.click(create);
+    /* The alert fades in, so its words are in the page a moment before they are visible. */
+    await waitFor(
+      () => expect(form.getByText('This faction already has a variant called “Dreamrules”.')).toBeVisible(),
+      { timeout: 30_000 }
+    );
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Tournament');
+    await userEvent.click(form.getByRole('radio', { name: 'Original' }));
+    await userEvent.click(create);
+
+    const original = (await loadFaction('house-atreides')).faction;
+    await waitFor(
+      async () => {
+        const created = (await loadFaction('house-atreides-tournament')).faction;
+        await expect(created.parent_id).toBe(original._id);
+        await expect(created.variant_name).toBe('Tournament');
+      },
+      { timeout: 30_000 }
+    );
+    await waitFor(
+      () =>
+        expect(page.getByRole('link', { name: 'Edit faction' })).toHaveAttribute(
+          'href',
+          '/factions/house-atreides-tournament/edit'
+        ),
+      { timeout: 30_000 }
+    );
+    await expect(page.queryByRole('form', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/** Someone outside an open Faction's Group adds a variant of their own to it, and lands on its page as its editor (#2928). */
+export const DetailOpenFactionTakesAnyonesVariant = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: openFactionSeenFromOutsideItsGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Create variant' }, { timeout: 30_000 }));
+    const form = within(await page.findByRole('form', { name: 'Create variant' }, { timeout: 30_000 }));
+    await userEvent.type(form.getByRole('textbox', { name: 'Variant name' }), 'Tournament');
+    await userEvent.click(form.getByRole('button', { name: 'Create variant' }));
+    await waitFor(
+      () =>
+        expect(page.getByRole('link', { name: 'Edit faction' })).toHaveAttribute(
+          'href',
+          '/factions/house-atreides-tournament/edit'
+        ),
+      { timeout: 30_000 }
+    );
+  },
+});
+
+/** The problems notice opens to the list, the parent's first, and shuts again (#2908). */
+export const DetailVariantProblemsOpenAndShut = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const toggle = await page.findByRole('button', { name: '4 problems to fix in this variant' }, { timeout: 30_000 });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const problems = within(await page.findByRole('list', { name: 'Problems' })).getAllByRole('listitem');
+    await expect(problems.map((problem) => problem.textContent)).toEqual([
+      'The troop "Fedaykin" names the planet "Caladan", which this variant does not have.',
+      'The troop "House guard" names the planet "Caladan", which this variant does not have.',
+      'Fedaykin: battle strengths have not been set, so this side is unavailable in battle plans.',
+      'House guard: battle strengths have not been set, so this side is unavailable in battle plans.',
+    ]);
+    await expect(
+      page.findByText(/The first 2 came from changes to Original/, undefined, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    /* Leave the story as a reader first meets it: one line, closed. */
+    await userEvent.click(toggle);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  },
+});
+
+/** A reader who cannot edit the variant is told it is not ready for play, and sees neither its problems nor the way to add a variant. */
+export const DetailKeepsProblemsFromReaders = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withABrokenChildVariant, identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'House Atreides' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('region', { name: 'Troops' })).resolves.toBeVisible();
+    await expect(page.findByText('Not ready for play', undefined, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: /to fix in this variant/ })).toBeNull();
+    await expect(page.queryByRole('list', { name: 'Problems' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/** On a laptop the details column is at its narrowest beside the content, and the switcher still shows every name whole. */
+export const DetailVariantSwitcherLaptop = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    await expectWithinWidth(canvasElement, [await findVariantsCard(canvasElement)]);
+  },
+});
+
+/** On a phone the details column runs the page's width, and the switcher fits it with every name whole. */
+export const DetailVariantSwitcherMobile = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    await expectWithinWidth(canvasElement, [await findVariantsCard(canvasElement)]);
+  },
+});
+
+/** A Faction with one variant has nothing to switch to, so its page carries no Variants card. */
+export const DetailWithOneVariantHasNoSwitcher = meta.story({
+  args: { path: '/factions/house-atreides' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('region', { name: 'Rulesets' }, { timeout: 30_000 });
+    await expect(page.queryByRole('region', { name: 'Variants' })).toBeNull();
+  },
+});
+
+/**
+ * A maintainer opens the Faction from its settings: one tick, kept by the server, and one more closes it again.
+ * The default's row carries no eviction hold;
+ * every other row does.
+ */
+export const DetailFactionSettingsOpenTheFaction = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    const open = within(settings).getByRole('checkbox', { name: 'Anyone signed in may add a variant' });
+    await userEvent.click(open);
+    /* The checkbox reads the Faction, so it ticks once the server has kept the change. */
+    await waitFor(() => expect(open).toBeChecked());
+    /* Shut and opened again, the settings read what the server kept. */
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(page.getByRole('button', { name: 'Faction settings' }));
+    await waitFor(() => expect(page.queryByRole('dialog')).toBeNull());
+    const reopened = await openFactionSettings(canvasElement);
+    await waitFor(() =>
+      expect(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' })).toBeChecked()
+    );
+    await userEvent.click(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' }));
+    await waitFor(() =>
+      expect(within(reopened).getByRole('checkbox', { name: 'Anyone signed in may add a variant' })).not.toBeChecked()
+    );
+  },
+});
+
+/**
+ * Moving a variant to the top makes it the default, in the settings and in the Variants card alike.
+ * The new default and the parent it follows then carry no eviction, since the default's branch stays.
+ */
+export const DetailFactionSettingsReorder = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    const handle = within(settings).getByRole('button', { name: 'Reorder Dreamrules' });
+    const names = () => settingsRows(settings).map((row) => row.name);
+    /* dnd-kit cancels a drag on any window resize (#2309), and this page can still be resizing in CI, so a cancelled drag is tried again. */
+    for (let attempt = 1; attempt <= 3 && names()[0] !== 'Dreamrules'; attempt++) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      handle.focus();
+      await userEvent.keyboard('[Space]');
+      await waitFor(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+      await userEvent.keyboard('[ArrowUp]');
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      await userEvent.keyboard('[Space]');
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+    }
+    await waitFor(
+      () =>
+        expect(settingsRows(settings)).toEqual([
+          { name: 'Dreamrules', evicts: false, whole: true },
+          { name: 'Original', evicts: false, whole: true },
+          { name: 'Tournament', evicts: true, whole: true },
+          { name: 'Two players', evicts: true, whole: true },
+        ]),
+      { timeout: 30_000 }
+    );
+    const card = within(await findVariantsCard(canvasElement));
+    await waitFor(() =>
+      expect(card.getAllByRole('listitem').map((row) => within(row).getByRole('paragraph').textContent)).toEqual([
+        'Dreamrules',
+        'Original',
+        'Tournament',
+        'Two players',
+      ])
+    );
+  },
+});
+
+/** On a laptop the settings open under the toolbar inside the page, with every name whole. */
+export const DetailFactionSettingsLaptop = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appLaptop' } },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    await expectWithinWidth(canvasElement, [settings]);
+  },
+});
+
+/** On a narrow phone the settings still fit the page, with every name whole. */
+export const DetailFactionSettingsMobile = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const settings = await openFactionSettings(canvasElement);
+    await expectFactionSettings(settings);
+    await expectWithinWidth(canvasElement, [settings]);
+  },
+});
+
+/** A signed-out reader of a Faction with several variants sees the switcher, and no Faction settings. */
+export const DetailKeepsFactionSettingsFromReaders = meta.story({
+  args: { path: DREAMRULES_PATH },
+  parameters: { database: withFourVariants, identity: null },
+  play: async ({ canvasElement }) => {
+    await expectVariantSwitcher(canvasElement, 'Dreamrules');
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
+  },
+});
+
+/** While the Faction has other live variants, the editor's hold deletes the variant alone and says only that. */
+export const EditVariantAmongOthersDeletesOnlyTheVariant = meta.story({
+  args: { path: `${DREAMRULES_PATH}/edit` },
+  parameters: { database: withFourVariants },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('button', { name: 'Delete variant' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Delete variant and faction' })).toBeNull();
+  },
+});
+
+/**
+ * Someone who maintains a variant and not its Faction edits the variant, and is offered neither the Faction settings nor a new variant while the Faction is closed.
+ */
+export const DetailWithoutFactionSettings = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: variantMaintainerOutsideTheFactionGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('link', { name: 'Edit faction' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Faction settings' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Create variant' })).toBeNull();
+  },
+});
+
+/**
+ * The Faction's owner editing its last live variant: the delete hold says it takes the Faction too (#2928).
+ */
+export const EditLastVariantDeletesTheFaction = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('button', { name: 'Delete variant and faction' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+  },
+});
+
+/**
+ * A card cites its faction's rulesets as their covers under its name: up to four, or three and a count of the rest.
+ * A ruleset without a cover shows its initial, and a faction in no ruleset shows no row.
+ */
+export const CatalogueRulesetCovers = meta.story({
+  args: { path: '/factions' },
+  parameters: { database: withRulesetCovers },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findAllByRole('link', { name: /House Atreides/ }, { timeout: 30_000 });
+    const covers = (name: RegExp) => within(gridCards(page, name)[0]!).queryByRole('group', { name: /^Rulesets:/ });
+    const atreides = covers(/House Atreides/)!;
+    await expect(atreides).toHaveAccessibleName(
+      'Rulesets: ClassicRules, Dreamrules, Landsraad, Sietch house rules, Spring Cup, Two players'
+    );
+    await expect(atreides.children).toHaveLength(4);
+    await expect(within(atreides).getByText('+3')).toBeVisible();
+    await waitFor(() => expect(atreides.querySelectorAll('img')).toHaveLength(3));
+    /* Sietch house rules has no cover, so the Fremen's row holds two pictures and an initial. */
+    const fremen = covers(/Fremen of the Deep Desert/)!;
+    await expect(fremen).toHaveAccessibleName('Rulesets: Dreamrules, Sietch house rules, Spring Cup');
+    await expect(within(fremen).getByText('S')).toBeVisible();
+    await expect(covers(/Spacing Guild/)!.children).toHaveLength(1);
+    await expect(covers(/Bene Tleilax/)).toBeNull();
   },
 });

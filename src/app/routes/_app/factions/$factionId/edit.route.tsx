@@ -1,41 +1,21 @@
-import { Stack } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
-import { HoldAction } from '@ui/control/HoldAction';
-import { IconAction } from '@ui/control/IconAction';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { UserRoundMinus } from 'lucide-react';
-import { useRef } from 'react';
 
-import { useAuthoringAccountKey } from '@db/authoring';
-import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { loadFaction } from '@db/factions';
-import { useViewerAssignableGroups } from '@db/viewerAccess';
+import { isFactionNotFound, loadFaction, useFaction, useFactionVariantContext } from '@db/factions';
+import { redirectFromFormerAddress, redirectToOwnFactionAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { RouteLoadError } from '@app/routes/routeStates';
-import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
-import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
-import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { FactionComplexityIndicator } from '@app/widgets/faction-editor/FactionComplexityIndicator';
-import { FactionEditor } from '@app/widgets/faction-editor/FactionEditor';
-import type { FactionAuthoringViewHandle } from '@app/widgets/faction-editor/FactionEditor';
-import { FactionGroupPopover } from '@app/widgets/faction-editor/FactionGroupPopover';
-import { factionLoadSource } from '@app/widgets/faction-editor/factionLoadSource';
-import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPublicationStatus';
-import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import { factionNameField } from '../factionNameField';
-import { rawFactionLoad } from '../rawFactionLoad';
+import { useFactionEditRights } from '../useFactionEditRights';
+import { FactionEditForm } from './FactionEditForm';
 
 export const Route = createFileRoute('/_app/factions/$factionId/edit')({
   validateSearch: (params: Record<string, unknown>): { notice?: RouteNoticeCode } => {
@@ -44,7 +24,19 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
     }
     return {};
   },
-  loader: async ({ params }) => await loadFaction(params.factionId),
+  loader: async ({ params, location }) => {
+    try {
+      const page = await loadFaction(params.factionId);
+      redirectToOwnFactionAddress(params.factionId, page.faction.slug, location, '/edit');
+      return page;
+    } catch (error) {
+      /* A rename moves the faction, and an old edit link follows it there, as the faction page's own link does. */
+      if (isFactionNotFound(error)) {
+        await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location, '/edit');
+      }
+      throw error;
+    }
+  },
   errorComponent: FactionEditError,
   head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.faction.data.name}` : 'Edit faction'),
   component: FactionEditPage,
@@ -55,58 +47,26 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
  * Without this the reader met the router's unstyled default and, in development, a stack trace.
  */
 function FactionEditError({ error }: ErrorComponentProps) {
+  const back = <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>;
+  if (isFactionNotFound(error)) {
+    return <RouteNotFound title="Edit faction" back={back} noun="faction" renamed />;
+  }
   return (
-    <RouteLoadError
-      size="compact"
-      title="Edit faction"
-      back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
-      what="Faction could not be loaded"
-      error={error}
-    />
+    <RouteLoadError size="compact" title="Edit faction" back={back} what="Faction could not be loaded" error={error} />
   );
 }
 
 function FactionEditPage() {
-  const authoringAccountKey = useAuthoringAccountKey();
   const { factionId } = Route.useParams();
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const navigate = useNavigate();
-  const viewRef = useRef<FactionAuthoringViewHandle | null>(null);
-  const updateFaction = useUpdateFaction();
-  const deleteFaction = useDeleteFaction();
-  const setFactionGroup = useSetFactionGroup();
-
   const page = useFaction(factionId, { initialData: loaderData }).data ?? loaderData;
-  const { resolved: viewerResolved, viewerAccess } = useFactionAccess(page);
-  const assignableGroups = useViewerAssignableGroups();
-  const { faction, assetPublishing } = page;
-  const authoringFaction = faction ?? loaderData.faction;
-  const authoring = useFactionAuthoring({
-    sessionKey: authoringFaction._id,
-    initialData: authoringFaction.data,
-    persistence: {
-      save: async (draft) => await updateFaction.mutateAsync({ input: draft, id: authoringFaction._id }),
-      isPending: updateFaction.isPending,
-      error: updateFaction.error,
-      hasSaved: updateFaction.data !== undefined,
-      reset: updateFaction.reset,
-    },
-    onSaved: (entry) => {
-      if (entry.slug !== factionId) {
-        void navigate({
-          to: '/factions/$factionId/edit',
-          params: { factionId: entry.slug },
-          replace: true,
-        });
-      }
-    },
-  });
-  const nameField = factionNameField(viewerAccess.capabilities.rename);
-  const validationHeader = useEditPageHeader({
-    warnings: authoring.editing.warnings,
-    onFocusWarning: (warning) => viewRef.current?.focusWarning(warning),
-  });
+  const editRights = useFactionEditRights(page);
+  const { resolved: viewerResolved, viewerAccess, rights, canOpenEditor } = editRights;
+  const { faction } = page;
+  /* The context answers only the variant's editors, and names a parent only for a variant that has one. */
+  const variantContext = useFactionVariantContext(faction._id);
   const backToFaction = (
     <PageMessage.Back to="/factions/$factionId" params={{ factionId }}>
       Back to faction
@@ -122,24 +82,14 @@ function FactionEditPage() {
   }
 
   if (viewerAccess.viewer.kind === 'anonymous') {
-    /* The name stays conditional here, as it was in the old header: this guard runs before the one
-       below that answers whether there is a faction at all, so the title cannot assume one. */
     return (
-      <PageMessage size="compact" title={faction ? `Edit ${faction.data.name}` : 'Edit faction'} back={backToFaction}>
+      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <LoginGate action="edit factions" />
       </PageMessage>
     );
   }
 
-  if (!faction) {
-    return (
-      <RoutePending size="compact" title="Edit faction" back={backToFaction} loading="Loading faction">
-        The faction is still loading.
-      </RoutePending>
-    );
-  }
-
-  if (!viewerAccess.capabilities.edit) {
+  if (!canOpenEditor) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
         <PageState kind="absent" title="You cannot edit this faction">
@@ -151,9 +101,15 @@ function FactionEditPage() {
     );
   }
 
-  const assignedGroup = viewerAccess.assignedGroup;
-  const canDelete = viewerAccess.capabilities.delete;
-  const canAssignGroup = viewerAccess.capabilities.changeGroup;
+  /* The editor of a variant with a parent waits for that parent, so no inherited field ever shows as the variant's own. */
+  if (faction.parent_id !== undefined && rights.variant && variantContext === undefined) {
+    return (
+      <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
+        Loading the parent variant.
+      </RoutePending>
+    );
+  }
+
   const routeNotice = resolveRouteNotice(search.notice);
   const dismissRouteNotice = () =>
     navigate({
@@ -163,111 +119,18 @@ function FactionEditPage() {
     });
 
   return (
-    <BackgroundLibrary presets={page.backgrounds ?? []} fronts={page.cardFrontPresets}>
-      <PageLayout>
-        {validationHeader.slot}
-        <PageLayout.Toolbar>
-          <AuthoringToolbar
-            scopeKey={authoringAccountKey}
-            load={{
-              noun: 'faction',
-              scopeKey: faction._id,
-              mode: 'replace',
-              disabled: updateFaction.isPending,
-              raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
-              source: factionLoadSource(faction.slug),
-              onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
-            }}
-            status={{
-              isDirty: authoring.editing.isDirty,
-              isNameBlank: authoring.editing.isNameBlank,
-              invalid: authoring.editing.invalid,
-              saveState: authoring.persistence.saveState,
-            }}
-            copy={{
-              saveLabel: 'Save faction',
-              nameBlankMessage: 'Add a faction name before saving; it determines the faction URL.',
-            }}
-            actions={{
-              onSave: authoring.actions.submit,
-              onReset: validationHeader.releasing(authoring.actions.reset),
-              onBack: () =>
-                navigate({
-                  to: '/factions/$factionId',
-                  params: { factionId },
-                }),
-            }}
-            review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
-            centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
-            accessActions={
-              <>
-                {canAssignGroup && !assignedGroup ? (
-                  <FactionGroupPopover
-                    disabled={setFactionGroup.isPending}
-                    assignableGroups={assignableGroups}
-                    onAssignGroup={async (nextGroupId) => {
-                      await setFactionGroup.mutateAsync({
-                        id: faction._id,
-                        groupId: nextGroupId,
-                      });
-                    }}
-                  />
-                ) : null}
-                {canAssignGroup && assignedGroup ? (
-                  <IconAction
-                    label="Remove group"
-                    tooltip={`Remove group access (${assignedGroup.name})`}
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    disabled={setFactionGroup.isPending}
-                    onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
-                    icon={<UserRoundMinus size={17} aria-hidden />}
-                  />
-                ) : null}
-              </>
-            }
-            statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
-            destructiveActions={
-              canDelete ? (
-                <HoldAction
-                  label="Delete faction"
-                  pending={deleteFaction.isPending}
-                  onConfirm={() =>
-                    deleteFaction.mutate({ id: faction._id }, { onSuccess: () => void navigate({ to: '/factions' }) })
-                  }
-                />
-              ) : null
-            }
-          />
-        </PageLayout.Toolbar>
-        <PageLayout.Content>
-          <Stack gap="sm">
-            {routeNotice ? (
-              <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
-                {routeNotice.message}
-              </Notice>
-            ) : null}
-            <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
-            <FactionEditor
-              nameField={nameField}
-              key={faction._id}
-              ref={viewRef}
-              form={authoring.form}
-              errors={authoring.persistence.errors}
-              isNameBlank={authoring.editing.isNameBlank}
-              warnings={authoring.editing.warnings}
-              onSettle={validationHeader.settle}
-              backgroundModeMemory={authoring.backgroundModeMemory}
-              onBackgroundModeMemoryChange={authoring.setBackgroundModeMemory}
-              retainedManualComplexity={authoring.retainedManualComplexity}
-              onRetainedManualComplexityChange={authoring.setRetainedManualComplexity}
-              strengthRefusal={authoring.strengthRefusal}
-              onStrengthRefusalChange={authoring.setStrengthRefusal}
-            />
-          </Stack>
-        </PageLayout.Content>
-      </PageLayout>
-    </BackgroundLibrary>
+    <FactionEditForm
+      factionId={factionId}
+      page={page}
+      editRights={editRights}
+      variantContext={variantContext}
+      routeNotice={
+        routeNotice ? (
+          <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
+            {routeNotice.message}
+          </Notice>
+        ) : null
+      }
+    />
   );
 }

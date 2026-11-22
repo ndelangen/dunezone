@@ -3,9 +3,9 @@ import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { forgetStoredPlayTable, keepsPlayTable } from '@db/playTables';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 
-import { runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { runtime, Socket } from './gameRuntime.test.fixture';
 import { sessionTableStore, STORED_TABLE_MAX_AGE_MS } from './storedTable';
 import type { TableAccount } from './storedTable';
 import { TableSession } from './TableSession';

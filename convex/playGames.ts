@@ -4,6 +4,7 @@ import type { Infer } from 'convex/values';
 import type { z } from 'zod';
 
 import { publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import { playSpiceExtrasSchema } from '../src/shared/play/admission';
 import type { playCreateGameRequestSchema } from '../src/shared/play/admission';
 import {
   playGeneratedGameRequestSchema,
@@ -14,7 +15,7 @@ import { normalizePlayGameSlug, playGameNameSchema } from '../src/shared/play/ga
 import { isGeneratedPlayGameName } from '../src/shared/play/generatedGameNames';
 import { lastTurnSchema } from '../src/shared/play/lastTurn';
 import { playCreateGameOutcomeSchema } from '../src/shared/play/seatLimit';
-import { RULESET_ASSET_SLOT_ORDER } from '../src/shared/rulesets/assetSlots';
+import { RULESET_ASSET_SLOT_ORDER, SPICE_EXTRAS_LIMIT } from '../src/shared/rulesets/assetSlots';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action } from './_generated/server';
@@ -22,6 +23,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
+import { discordEnabled } from './lib/discordStatus';
 import { currentPlaySession, livePlaySession } from './lib/playAuthorization';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
@@ -30,6 +32,7 @@ import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/p
 import { atPlaySeatLimit } from './lib/playSeats';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 import { rulesetFactionLinksByCreation } from './lib/rulesetFactionLinks';
+import { rulesetDeck } from './lib/rulesetSlots';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -62,25 +65,15 @@ async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boardA
     ['treachery', 'treachery deck'],
     ['spice', 'spice deck'],
   ] as const) {
-    const deck = await requiredDeck(ctx, rulesetId, slot);
+    const deck = await rulesetDeck(ctx, rulesetId, slot);
     if (!deck) {
       return `No ${label} is linked.`;
     }
-    if (!(await deckHasMembers(ctx, deck))) {
+    if (!(await deckHasMembers(ctx, deck._id))) {
       return `The ${label} is empty.`;
     }
   }
   return null;
-}
-
-/* One slot row and one asset row per required deck, so a listing of two hundred rulesets stays within a query's reads. */
-async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
-  const row = await ctx.db
-    .query('ruleset_asset_slots')
-    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
-    .first();
-  const asset = row ? await ctx.db.get(row.asset_id) : null;
-  return asset && !asset.is_deleted ? asset._id : null;
 }
 
 const RULESET_CHOICE_LIMIT = 200;
@@ -98,6 +91,8 @@ const rulesetPreviewValidator = v.object({
     })
   ),
   factions: v.array(v.object({ id: v.id('factions'), name: v.string(), token: v.string(), own: v.boolean() })),
+  /* Optional decks the creator may tick to shuffle into the spice deck (#2986); they stay out of `packed` until ticked. */
+  spiceExtras: v.array(v.object({ id: v.id('assets'), name: v.string() })),
 });
 
 const PREVIEW_FACTION_LIMIT = 50;
@@ -110,13 +105,35 @@ const FACTION_LINK_SCAN = 10;
  * then its factions, marked `own` when no other ruleset links them.
  */
 async function rulesetPreview(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  return { rulesetId, packed: await packedFor(ctx, rulesetId), factions: await factionsFor(ctx, rulesetId) };
+  return {
+    rulesetId,
+    packed: await packedFor(ctx, rulesetId),
+    factions: await factionsFor(ctx, rulesetId),
+    spiceExtras: await spiceExtrasFor(ctx, rulesetId),
+  };
+}
+
+/* The slot holds at most SPICE_EXTRAS_LIMIT rows (the slot mutation refuses more), so this read is the whole slot. */
+async function spiceExtrasFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const rows = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', 'spiceExtras'))
+    .take(SPICE_EXTRAS_LIMIT);
+  const extras = [];
+  for (const row of rows) {
+    const asset = await ctx.db.get(row.asset_id);
+    if (asset && !asset.is_deleted) {
+      extras.push({ id: asset._id, name: assetDisplayName(asset) });
+    }
+  }
+  return extras;
 }
 
 /* The decks and token bundles in slot order, each with its count and one face; a deleted asset is left out. Slots are read in order, so the required decks always come first. */
 async function packedFor(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const packed = [];
-  for (const slot of RULESET_ASSET_SLOT_ORDER) {
+  /* Extra spice decks stay out until ticked; the create page lists them as switches instead. */
+  for (const slot of RULESET_ASSET_SLOT_ORDER.filter((entry) => entry !== 'spiceExtras')) {
     const rows = await ctx.db
       .query('ruleset_asset_slots')
       .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
@@ -197,6 +214,7 @@ export const creatable = viewerQuery({
     v.object({ access: v.literal('unauthenticated') }),
     v.object({
       access: v.literal('allowed'),
+      discordVoiceAvailable: v.boolean(),
       rulesets: v.array(
         v.object({
           id: v.id('rulesets'),
@@ -229,7 +247,12 @@ export const creatable = viewerQuery({
       });
     }
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
-    return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
+    return {
+      access: 'allowed' as const,
+      discordVoiceAvailable: await discordEnabled(ctx),
+      rulesets,
+      preview: chosen ? await rulesetPreview(ctx, chosen._id) : null,
+    };
   },
 });
 
@@ -316,6 +339,8 @@ export const createGameWithName = action({
         rulesetId: args.rulesetId,
         minimumPlayers: args.minimumPlayers,
         lastTurn: args.lastTurn,
+        spiceExtras: args.spiceExtras,
+        discordVoice: args.discordVoice,
         name: prepared.name,
         base: prepared.base,
         check,
@@ -394,6 +419,7 @@ export const createNamedGame = internalMutation({
 async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof playCreateGameRequestSchema>) {
   /* The Convex validator keeps only the type, so the turn's whole-number range is enforced here, before any budget is spent. */
   lastTurnSchema.optional().parse(args.lastTurn);
+  playSpiceExtrasSchema.optional().parse(args.spiceExtras);
   const session = await livePlaySession(ctx);
   if (!session) {
     return { ok: false as const, reason: 'not_authorized' as const };
@@ -402,6 +428,13 @@ async function gameCreationEligibility(ctx: MutationCtx, args: z.infer<typeof pl
   const ruleset = rulesetId ? await ctx.db.get('rulesets', rulesetId) : null;
   if (!ruleset || ruleset.is_deleted || (await rulesetObjection(ctx, ruleset._id)) !== null) {
     return { ok: false as const, reason: 'unavailable' as const };
+  }
+  /* A ticked deck the ruleset no longer offers would silently stay off the table, so the game is refused instead. */
+  if (args.spiceExtras?.length) {
+    const offered = new Set<string>((await spiceExtrasFor(ctx, ruleset._id)).map((extra) => extra.id));
+    if (!args.spiceExtras.every((id) => offered.has(id))) {
+      return { ok: false as const, reason: 'unavailable' as const };
+    }
   }
   if (await atPlaySeatLimit(ctx, session.userId)) {
     return { ok: false as const, reason: 'seat_limit' as const };
@@ -431,6 +464,8 @@ export async function createAuthorizedGame(
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
       last_turn: args.lastTurn,
+      ...(args.spiceExtras?.length ? { spice_extras: args.spiceExtras } : {}),
+      discord_voice: args.discordVoice === true,
       creator_id: eligible.userId,
       name,
     },

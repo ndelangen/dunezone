@@ -29,6 +29,22 @@ export const providers = publicQuery({
   handler: async () => signInProviders(),
 });
 
+/**
+ * The sign-in methods connected to the reader's account, or `null` when signed out.
+ * Signing in again offers only these: any other method would sign in to a separate account instead.
+ */
+export const connectedMethods = viewerQuery({
+  args: {},
+  returns: v.union(v.null(), v.array(authProviderValidator)),
+  handler: async (ctx) => {
+    const userId = await optionalActiveUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+    return (await accountMethods(ctx, userId)).filter((method) => method.connected).map((method) => method.provider);
+  },
+});
+
 const profileSummary = v.object({
   userId: v.id('users'),
   name: v.string(),
@@ -39,6 +55,7 @@ const operationValidator = docValidator('account_merge_operations');
 
 export const adminPage = adminQuery({
   args: {
+    accountState: v.union(v.literal('active'), v.literal('banned')),
     paginationOpts: paginationOptsValidator,
     failedPaginationOpts: v.optional(paginationOptsValidator),
     selectedUserIds: v.array(v.id('users')),
@@ -56,7 +73,7 @@ export const adminPage = adminQuery({
     const selected = await Promise.all(args.selectedUserIds.map((userId) => profileForAccount(ctx, userId)));
     const page = await ctx.db
       .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
+      .withIndex('by_account_state_username', (q) => q.eq('account_state', args.accountState))
       .paginate(args.paginationOpts);
     return {
       selected: await Promise.all(

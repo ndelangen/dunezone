@@ -7,6 +7,7 @@ import { resolveSeedValue } from '../src/shared/seedReferences';
 import type { Doc, Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
+import { insertSeedFaction } from './lib/factionFamilies';
 import { isIsolatedLoopbackBackend } from './lib/isolatedBackend';
 import { ensureProfileForUser } from './lib/profileBootstrap';
 import { identifiesSomeone } from './lib/provisioningContract';
@@ -198,6 +199,9 @@ type SeedDocument = { key?: string; table: TableNames; value: unknown };
 
 /** The schema validates the resolved row on insert, which is the check a seed document gets. */
 async function insertSeedDocument<TableName extends TableNames>(ctx: MutationCtx, table: TableName, value: unknown) {
+  if (table === 'factions') {
+    return await insertSeedFaction(ctx, value as Parameters<typeof insertSeedFaction>[1]);
+  }
   return await ctx.db.insert(table, value as WithoutSystemFields<Doc<TableName>>);
 }
 

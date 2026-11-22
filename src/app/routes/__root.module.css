@@ -1,0 +1,5 @@
+.pending {
+  padding: var(--space-xl);
+  color: var(--color-inverse);
+  text-align: center;
+}

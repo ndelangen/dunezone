@@ -1,6 +1,8 @@
-import { Stack } from '@mantine/core';
+import { Divider, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { Link } from '@tanstack/react-router';
+import type { CSSProperties } from 'react';
+import { expect } from 'storybook/test';
 
 import { Surface } from './Surface';
 import { SurfaceFiller } from './SurfaceFiller.stories.fixture';
@@ -22,6 +24,17 @@ export const Borderless = meta.story({
   args: { withBorder: false },
 });
 
+/** Inside a region that sets `--surface-backdrop: none`, as a catalogue grid does: the glass stays, the grid shows through sharp instead of frosted. */
+export const Unblurred = meta.story({
+  decorators: [
+    (Story) => (
+      <div style={{ '--surface-backdrop': 'none' } as CSSProperties}>
+        <Story />
+      </div>
+    ),
+  ],
+});
+
 /** The play table's opaque ground: no artwork shows through, for a pane that is a step into the table, such as a ticket's stub. */
 export const Ground = meta.story({
   args: { tone: 'ground' },
@@ -38,6 +51,25 @@ export const Padding = meta.story({
       <Surface {...args} padding="md" />
     </Stack>
   ),
+});
+
+/** A rule dividing a padded pane runs from border to border, past the padding its content keeps. */
+export const Divided = meta.story({
+  args: {
+    padding: 'lg',
+    children: (
+      <Stack gap="lg">
+        <SurfaceFiller height={48} />
+        <Divider />
+        <SurfaceFiller height={48} />
+      </Stack>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const rule = canvasElement.querySelector('[role="separator"]')!;
+    const pane = rule.parentElement!.parentElement!;
+    await expect(Math.round(rule.getBoundingClientRect().width)).toBe(pane.clientWidth);
+  },
 });
 
 /** Hover and focus it: lifts and brightens. Only for a pane that is itself the click target. */

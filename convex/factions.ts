@@ -14,8 +14,10 @@ import { listCardFrontPresets } from './lib/cardFrontPresets';
 import {
   assignedGroupSummary,
   liveGroupOrNull,
+  loadFactionFamilyAccess,
+  requireFactionFamily,
   requireFactionSoftDelete,
-  requireFactionUpdate,
+  requireFactionSave,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
 import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
@@ -26,27 +28,25 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { listFactionRulesets } from './lib/factionCatalogue';
 import {
-  loadFactionCatalogue,
-  loadFactionCataloguePage,
-  loadFactionCatalogueSearch,
-  selectFactionCatalogueSpotlights,
-} from './lib/factionCatalogue';
+  allocateFactionAddress,
+  familyAt,
+  liveDefaultVariant,
+  mergedInto,
+  variantAddressAfterSave,
+} from './lib/factionAddresses';
+import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
-import {
-  factionInputForWrite,
-  factionRowForClient,
-  parseFactionInput,
-  parseStoredFactionForRead,
-} from './lib/factionInput';
+import { factionDataChange, firstLiveVariant, insertFaction } from './lib/factionFamilies';
+import { factionInputForWrite, factionRowForClient, parseStoredFactionForRead } from './lib/factionInput';
+import { inheritedFields, pushSharedFields, storeVariantData, withInheritedFields } from './lib/factionVariants';
 import { loadRelatedFaqPage } from './lib/faqReferences';
-import { recordFormerSlug } from './lib/formerSlugs';
 import {
   buildOwnedForGroupAssignRows,
   OWNED_FOR_GROUP_ASSIGN_LIMIT,
   ownedForGroupAssignRowValidator,
 } from './lib/groupAssignPicker';
+import { nexusLinkOf, nexusLinkTarget } from './lib/nexusFaction';
 import { requireAuthUserId } from './lib/policy';
 import {
   enqueueFactionLeaderPublications,
@@ -54,24 +54,18 @@ import {
   enqueueFactionTokenPublication,
   enqueueFactionFaces,
 } from './lib/publication';
-import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
-/**
- * Who holds this address: a living faction, a soft-deleted one whose slug stays reserved, or nobody.
- * `exceptId` is the faction doing the asking, so renaming a faction never trips over its own address.
- */
-async function factionSlugHolder(
-  ctx: QueryCtx,
-  slug: string,
-  exceptId?: Id<'factions'>
-): Promise<'live' | 'deleted' | null> {
-  const existing = await ctx.db
+/** Who holds this address: a living faction or variant, a soft-deleted one whose slug stays reserved, or nobody. */
+async function factionSlugHolder(ctx: QueryCtx, slug: string): Promise<'live' | 'deleted' | null> {
+  const variant = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .unique();
-  if (!existing || existing._id === exceptId) {
+  /* A faction's own address and its variants' share one namespace (#2909). */
+  const existing = variant ?? (await familyAt(ctx, slug));
+  if (!existing) {
     return null;
   }
   return existing.is_deleted ? 'deleted' : 'live';
@@ -84,30 +78,20 @@ export const slugTaken = publicQuery({
   handler: async (ctx, args) => (args.slug === 'create' ? null : await factionSlugHolder(ctx, args.slug)),
 });
 
-async function resolveFactionSlug(ctx: MutationCtx, name: string, own?: Doc<'factions'>) {
-  const base = slugify(name);
-  /* Keep existing suffixes on ordinary saves, including after the plain address becomes free. */
-  if (own && slugify(own.data.name) === base && own.slug !== 'create') {
-    return own.slug;
-  }
-  return await allocateCounterSlug(ctx, `faction-slug:${JSON.stringify([base])}`, base, async (slug) => {
-    if (slug === 'create') {
-      return false;
-    }
-    return (await factionSlugHolder(ctx, slug, own?._id)) === null;
-  });
-}
-
 function factionDataForClient(data: unknown) {
   return parseStoredFactionForRead(data);
 }
 
-/** The faction row a page is for: live, or NOT_FOUND. */
+/**
+ * The variant a page is for: live, or NOT_FOUND.
+ * A faction's own address answers with its default variant, whose own address the page then moves to (#2909).
+ */
 async function liveFactionBySlug(ctx: QueryCtx, slug: string) {
-  const row = await ctx.db
-    .query('factions')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
-    .unique();
+  const row =
+    (await ctx.db
+      .query('factions')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()) ?? (await liveDefaultVariant(ctx, await mergedInto(ctx, await familyAt(ctx, slug))));
   if (!row || row.is_deleted) {
     throw new ConvexError({ code: 'NOT_FOUND', message: `Faction with slug ${slug} not found` });
   }
@@ -134,7 +118,22 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
+    family: await familyAccessFacts(ctx, row.family_id),
     rulesets: await listFactionRulesets(ctx, row._id),
+  };
+}
+
+/** The Faction's public access facts, from which the browser decides who may change the shared fields. */
+async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get('faction_families', familyId);
+  if (!family) {
+    return null;
+  }
+  return {
+    _id: family._id,
+    owner_id: family.owner_id,
+    is_deleted: family.is_deleted,
+    assignedGroup: await assignedGroupSummary(ctx, family.group_id),
   };
 }
 
@@ -164,15 +163,15 @@ export const detailPage = publicQuery({
 /**
  * A live faction's page address by its id, for Play, whose seats carry only the id.
  * The game shows the faction as it captured it, and reads only the address live, since renaming a faction moves its page.
+ * The id names a variant, or a whole Faction as a Nexus card's link does (#2921), whose address is the Faction's own.
  * Null for an unknown or deleted faction, so a game table never fails on it.
  */
 export const pageSlug = publicQuery({
   args: { id: v.string() },
   returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
-    const id = ctx.db.normalizeId('factions', args.id);
-    const row = id ? await ctx.db.get('factions', id) : null;
-    return row && !row.is_deleted ? row.slug : null;
+    const target = await nexusLinkTarget(ctx, args.id);
+    return target ? nexusLinkOf(target).slug : null;
   },
 });
 
@@ -185,31 +184,6 @@ export const list = publicQuery({
       .withIndex('by_deleted', (q) => q.eq('is_deleted', false))
       .take(500);
     return rows.map(factionRowForClient);
-  },
-});
-
-/**
- * The unpaged catalogue bundle, superseded by `catalogue`.
- * Deleting a public query is expand/contract: this goes in the release after the one that moves the route off it.
- */
-export const cataloguePage = publicQuery({
-  args: {},
-  returns: v.object({
-    factions: v.array(catalogueFactionValidator),
-    rulesets: v.array(rulesetSummaryValidator),
-    spotlights: v.object({
-      newArrival: v.union(catalogueFactionValidator, v.null()),
-      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
-    }),
-  }),
-  handler: async (ctx) => {
-    const { factions, rulesets } = await loadFactionCatalogue(ctx);
-
-    return {
-      factions,
-      rulesets,
-      spotlights: selectFactionCatalogueSpotlights(factions),
-    };
   },
 });
 
@@ -271,7 +245,6 @@ const catalogueSearchValidator = v.object({
  * The Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
  * A search is the load-more search, best matches first up to `limit`;
  * without one the catalogue is browsed, in pages.
- * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {
@@ -302,6 +275,8 @@ const loadPickerRowValidator = v.object({
   groupLabel: v.string(),
   ownerId: v.id('users'),
   ownerUsername: v.union(v.string(), v.null()),
+  /* The variant's name where its Faction has several live variants to tell apart, else null. */
+  variant: v.union(v.string(), v.null()),
 });
 
 export const listForLoadPicker = viewerQuery({
@@ -345,7 +320,14 @@ export const listForLoadPicker = viewerQuery({
         .query('profiles')
         .withIndex('by_user_id', (q) => q.eq('user_id', oid))
         .unique();
-      ownerUsernameById.set(oid, profile?.username ?? null);
+      /* A deleted or departing account no longer answers to its name, as on every other list (catalogueEntries). */
+      ownerUsernameById.set(oid, profile && isActiveProfile(profile) ? (profile.username ?? null) : null);
+    }
+
+    /* A Faction's variants are counted from the rows, so the count holds only within the 500 rows read above. */
+    const variantCounts = new Map<string, number>();
+    for (const row of factionRows) {
+      variantCounts.set(row.family_id, (variantCounts.get(row.family_id) ?? 0) + 1);
     }
 
     const rows = factionRows.map((row) => {
@@ -360,6 +342,7 @@ export const listForLoadPicker = viewerQuery({
         groupLabel,
         ownerId: row.owner_id,
         ownerUsername: ownerUsernameById.get(row.owner_id) ?? null,
+        variant: (variantCounts.get(row.family_id) ?? 0) > 1 ? row.variant_name : null,
       };
     });
 
@@ -423,7 +406,7 @@ function savedFactionExtras(data: unknown): FactionExtra[] {
  * One the faction already listed is kept even after its asset is removed, so unrelated edits still save;
  * Play names it as not ready until the author fixes or removes it.
  */
-async function assertAddedFactionExtrasExist(
+export async function assertAddedFactionExtrasExist(
   ctx: MutationCtx,
   extras: readonly FactionExtra[] | undefined,
   saved: readonly FactionExtra[]
@@ -450,10 +433,10 @@ export const create = mutation({
 
     const data = factionInputForWrite(args.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, []);
-    const slug = await resolveFactionSlug(ctx, data.name);
+    const slug = await allocateFactionAddress(ctx, slugify(data.name));
 
     const now = nowIso();
-    const _id = await ctx.db.insert('factions', {
+    const row = await insertFaction(ctx, {
       owner_id: userId,
       data,
       slug,
@@ -462,10 +445,6 @@ export const create = mutation({
       updated_at: now,
       is_deleted: false,
     });
-    const row = await ctx.db.get(_id);
-    if (!row) {
-      throw new Error('Failed to create faction');
-    }
     await enqueueFactionSheetPublication(ctx, row);
     await enqueueFactionTokenPublication(ctx, row);
     await enqueueFactionLeaderPublications(ctx, row);
@@ -474,41 +453,43 @@ export const create = mutation({
   },
 });
 
+/**
+ * The fields the save leaves the variant following its parent in.
+ * Which fields follow the parent is the variant's own content, so changing them takes the right to edit the variant.
+ */
+function requireInheritanceRight(
+  access: { subject: Doc<'factions'>; viewerAccess: { capabilities: { edit: boolean } } },
+  proposed: readonly string[] | undefined
+) {
+  if (!access.subject.parent_id) {
+    return {};
+  }
+  const inherited = inheritedFields(access.subject, proposed);
+  if (inherited.join() !== inheritedFields(access.subject).join() && !access.viewerAccess.capabilities.edit) {
+    throw new Error('Not authorized');
+  }
+  return { inherited };
+}
+
 export const update = mutation({
   args: {
     id: v.id('factions'),
     data: v.any(),
+    /** For a variant with a parent: the fields it follows that parent in, each taken from the parent's data (#2927). */
+    inherited: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const data = parseFactionInput(args.data, {
-      requireAuthoringSemantics: true,
-    });
-    const access = await requireFactionUpdate(ctx, args.id, data);
-    const identifiedData = factionInputForWrite(data, access.subject.data);
+    const subject = await ctx.db.get(args.id);
+    const proposed = subject ? await withInheritedFields(ctx, subject, args.data, args.inherited) : args.data;
+    const { data, ...access } = await requireFactionSave(ctx, args.id, proposed);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
-    const slug = await resolveFactionSlug(ctx, data.name, access.subject);
-    if (slug !== access.subject.slug) {
-      await recordFormerSlug(ctx, {
-        kind: 'faction',
-        scope: '',
-        slug: access.subject.slug,
-        record_id: access.subject._id,
-      });
+    const slug = await variantAddressAfterSave(ctx, access.subject, data.name);
+    const inherited = requireInheritanceRight(access, args.inherited);
+    const sharedChanged = factionDataChange(parseStoredFactionForRead(access.subject.data), data).shared;
+    const updated = await storeVariantData(ctx, access.subject, data, { slug, ...inherited });
+    if (sharedChanged) {
+      await pushSharedFields(ctx, updated);
     }
-
-    await ctx.db.patch(access.subject._id, {
-      data: identifiedData,
-      slug,
-      updated_at: nowIso(),
-    });
-    const updated = await ctx.db.get(access.subject._id);
-    if (!updated) {
-      throw new Error('Failed to update faction');
-    }
-    await enqueueFactionSheetPublication(ctx, updated);
-    await enqueueFactionTokenPublication(ctx, updated, access.subject.data);
-    await enqueueFactionLeaderPublications(ctx, updated, access.subject.data);
-    await enqueueFactionFaces(ctx, updated, access.subject.data);
     return factionRowForClient(updated);
   },
 });
@@ -533,14 +514,46 @@ export const setGroup = mutation({
   },
 });
 
+/**
+ * Deletes a variant;
+ * its owner alone may.
+ * Were it the default, the Faction's next live variant becomes the default in this same transaction (#2928).
+ * Deleting the last live variant deletes the Faction too, when the one deleting it owns the Faction;
+ * otherwise the Faction stays for its owner to delete.
+ * `and_faction` says the Faction is meant to go with this variant, as the hold on a Faction's last variant does.
+ * It is then refused, with nothing deleted, unless the viewer may delete the Faction and this is its last live variant.
+ */
 export const softDelete = mutation({
-  args: { id: v.id('factions') },
+  args: { id: v.id('factions'), and_faction: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const access = await requireFactionSoftDelete(ctx, args.id);
+    if (args.and_faction) {
+      await requireLastVariantOfOwnFaction(ctx, access.subject);
+    }
 
     await ctx.db.patch(access.subject._id, {
       is_deleted: true,
       updated_at: nowIso(),
     });
+    await deleteEmptiedFamily(ctx, access.subject.family_id);
   },
 });
+
+/** Throws unless deleting this variant would also delete its Faction: the viewer may delete the Faction, and no other variant of it is live. */
+async function requireLastVariantOfOwnFaction(ctx: MutationCtx, variant: Doc<'factions'>) {
+  const family = await requireFactionFamily(ctx, variant.family_id, 'delete');
+  if (await firstLiveVariant(ctx, family, (row) => row._id !== variant._id)) {
+    throw new ConvexError('This faction has other variants. Delete or evict them before deleting the faction.');
+  }
+}
+
+/** Deletes the Faction once it holds no live variant, if the viewer is the one who may delete it. */
+async function deleteEmptiedFamily(ctx: MutationCtx, familyId: Id<'faction_families'>) {
+  const family = await ctx.db.get(familyId);
+  if (!family || family.is_deleted || (await liveDefaultVariant(ctx, family))) {
+    return;
+  }
+  if ((await loadFactionFamilyAccess(ctx, family)).capabilities.delete) {
+    await ctx.db.patch(family._id, { is_deleted: true });
+  }
+}

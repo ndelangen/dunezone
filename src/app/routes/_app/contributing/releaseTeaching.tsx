@@ -29,11 +29,11 @@ const STAGES = [
   },
   {
     title: 'Build and check the release',
-    command: 'publisher:assets → publisher:retain-assets → publisher:application-runtime:verify',
+    command: 'publisher:assets → publisher:application-runtime:verify',
     reason:
-      "Build browser and server artifacts from the same commit, retain the previous release's hashed browser files, and exercise the assembled public application locally.",
+      'Build browser and server artifacts from the same commit and exercise the assembled public application locally.',
     consequence:
-      'Old hashed browser files remain available for at least seven days after replacement. Runtime checks must pass before the site upload.',
+      "Only the new release's hashed browser files are uploaded; a tab still on an older release may need a refresh. Runtime checks must pass before the site upload.",
   },
   {
     title: 'Deploy the game Worker',
@@ -59,9 +59,9 @@ const STAGES = [
   },
   {
     title: 'Publish Storybook and queue image updates',
-    command: 'Storybook deploy → Renderer revision activation → variant verification',
+    command: 'Renderer revision activation → variant verification · Storybook deploy',
     reason:
-      "Publish the isolated Storybook, activate any increased renderer revisions and verify the release's media. A separate job then rebuilds the shared development environment.",
+      'The release activates any increased renderer revisions and verifies its media. A parallel job builds and checks the isolated Storybook while the release runs, and publishes it once the release has finished. A separate job then rebuilds the shared development environment.',
     consequence:
       'Increasing a renderer revision queues new captures. Pages can show the previous published image until its replacement is ready.',
   },
@@ -221,10 +221,10 @@ function BuildDrawing() {
       </g>
       <path d="M276 40H330L348 58V119H276ZM330 40V58H348" />
       <text x="310" y="145" textAnchor="middle">
-        Old files
+        New files
       </text>
       <text x="310" y="167" textAnchor="middle">
-        ≥ 7 days
+        only
       </text>
       <text x="43" y="143" textAnchor="middle">
         Commit
@@ -349,10 +349,10 @@ const RELEASE_DESCRIPTIONS = [
   'The requested commit passes the release gate, or the workflow skips an already deployed or superseded commit',
   'The old browser still calls oldQuery. The new backend retains oldQuery while adding newQuery',
   'Required migrations change stored records from legacy rows to migrated rows and verify completion',
-  'Build and verify a new artifact without deploying it; retain previous browser files for at least seven days',
+  'Build and verify a new artifact without deploying it; it carries only its own browser files',
   'Upload the new game Worker, then verify that its active release identity matches the commit',
   'Upload raster image variants to R2 before new browser code requests them',
-  'New requests receive new browser code; an already open tab keeps previous code; both use the new backend',
+  'New requests receive new browser code; an already open tab keeps only the code it already loaded and may need a refresh; both use the new backend',
   'Publish the new Storybook and queue new image captures; the previous image remains until a replacement is ready',
 ];
 
@@ -418,15 +418,15 @@ export function ReleaseTeaching() {
       <Section title="If a later stage fails">
         <Text>
           A failed stage stops the workflow, but does not undo the artifacts already deployed. Inspect the live
-          identities, correct the failing input and deploy the fix through the workflow. Keep the compatibility and
-          asset-retention gates in place.
+          identities, correct the failing input and deploy the fix through the workflow. Keep the compatibility gates in
+          place.
         </Text>
       </Section>
       <Anchor href="https://github.com/ndelangen/dunezone/blob/main/.github/workflows/deploy-main.yml">
         Read the production workflow
       </Anchor>
       <Anchor href="https://github.com/ndelangen/dunezone/blob/main/docs/deployment.md#browser-files-across-deployments">
-        Read how browser files survive a deployment
+        Read how browser files change across a deployment
       </Anchor>
     </Stack>
   );

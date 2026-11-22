@@ -10,6 +10,7 @@ import type { TableProjection, TableSession } from '../../db/tabletop/TableSessi
 export type TabletopContextValue = Pick<
   TableProjection,
   | 'affordances'
+  | 'allianceControls'
   | 'spiceReserveControls'
   | 'spiceBlowControls'
   | 'canHandleTable'

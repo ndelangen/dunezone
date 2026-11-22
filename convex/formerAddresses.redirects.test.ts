@@ -37,14 +37,17 @@ describe('former addresses', () => {
       data: { ...assetPublishingFaction, name: 'Corrino' },
     });
 
-    await expect(resolve('atreides')).resolves.toBe('/factions/corrino');
-    await expect(resolve('bene')).resolves.toBe('/factions/corrino');
+    /* The faction's addresses and the variant's both lead to the variant's current one (#2909). */
+    for (const slug of ['atreides', 'atreides-original', 'bene', 'bene-original', 'corrino']) {
+      await expect(resolve(slug)).resolves.toBe('/factions/corrino-original');
+    }
     /* The current address is its own page, and an address nothing left is no redirect. */
-    await expect(resolve('corrino')).resolves.toBeNull();
+    await expect(resolve('corrino-original')).resolves.toBeNull();
     await expect(resolve('fremen')).resolves.toBeNull();
 
     await owner.mutation(api.factions.softDelete, { id: faction._id });
     await expect(resolve('atreides')).resolves.toBeNull();
+    await expect(resolve('corrino')).resolves.toBeNull();
   });
 
   test('a record that takes a freed address wins over the record that left it', async () => {

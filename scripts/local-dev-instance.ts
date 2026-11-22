@@ -49,6 +49,9 @@ export function createLocalDevelopmentInstance(environment: NodeJS.ProcessEnv): 
   const sitePort = parsePort(environment.CONVEX_SITE_PORT, 'CONVEX_SITE_PORT', firstPort + 2);
   const dashboardPort = parsePort(environment.CONVEX_DASHBOARD_PORT, 'CONVEX_DASHBOARD_PORT', firstPort + 3);
 
+  if (backendPort === 3211) {
+    throw new Error('CONVEX_BACKEND_PORT cannot be 3211 because the local callback proxy shares the backend network');
+  }
   if (sitePort === 3210) {
     throw new Error('CONVEX_SITE_PORT cannot be 3210 because the local OIDC proxy shares the backend network');
   }

@@ -59,6 +59,7 @@
     }
   ],
   "ignorePatterns": [
+    "public/tools/bidding-listener/**",
     "**/dist",
     "**/.temp",
     "**/*.gen.ts",

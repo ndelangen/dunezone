@@ -1,6 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
@@ -9,7 +10,13 @@ import { unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
-import { factionOf, mentatSnapshot, finishedSnapshot } from './results.stories.fixture';
+import {
+  endedSnapshot,
+  factionOf,
+  lastPlayerSnapshot,
+  mentatSnapshot,
+  finishedSnapshot,
+} from './results.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -299,5 +306,47 @@ export const ReplayRefusal = meta.story({
       'aria-disabled',
       'true'
     );
+  },
+});
+
+/* The game menu, opened once the table has loaded. */
+async function openedGameMenu(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+  return page;
+}
+
+/* The finished hold of the last player ends the game rather than leaving it. */
+export const LastPlayerHoldsToEndTheGame = meta.story({
+  beforeEach: install(() => productTransport('seat-2', lastPlayerSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = await openedGameMenu(canvasElement);
+    const end = await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to end the game' }));
+    await completeHold(end);
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'result-end' }), { timeout: 10_000 });
+  },
+});
+
+/* Once ended, the last player can still leave; the finished game keeps its result, so leaving discards nothing. */
+export const LastPlayerLeavesTheEndedGame = meta.story({
+  beforeEach: install(() => productTransport('seat-2', endedSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = await openedGameMenu(canvasElement);
+    await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' }));
+    await expect(page.queryByRole('menuitem', { name: /end the game|discard the game/ })).toBeNull();
+  },
+});
+
+/* Once the game has ended, the same open menu's item gives up the seat at once, without reopening the menu. */
+export const LastPlayerEndsThenLeaves = meta.story({
+  beforeEach: install(() => productTransport('seat-2', lastPlayerSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = await openedGameMenu(canvasElement);
+    await completeHold(await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to end the game' })));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'result-end' }), { timeout: 10_000 });
+    const ended = endedSnapshot('seat-2');
+    session.transport.deliver(session.transport.view({ ...ended, revision: ended.revision + 1 }));
+    await completeHold(await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' })));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'seat-depart' }), { timeout: 10_000 });
   },
 });

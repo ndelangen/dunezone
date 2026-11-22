@@ -1,7 +1,8 @@
+import { actionKindGuard } from '../../src/shared/play/actionKinds';
 import { accepted, nextSnapshot } from '../../src/shared/play/commands';
 import { rosterFactionEventName } from '../../src/shared/play/factionLabels';
 import type { MovementAction, MovementTurns } from '../../src/shared/play/movement';
-import { MOVEMENT_PHASE_ID } from '../../src/shared/play/movement';
+import { MOVEMENT_PHASE_ID, movementActionSchema } from '../../src/shared/play/movement';
 import { phaseAt } from '../../src/shared/play/phases';
 import { rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -70,10 +71,7 @@ function mark(snapshot: StoredSnapshot, movement: MovementTurns, factionId: stri
   return { ...nextSnapshot(snapshot, table), movement: { ...movement, done: finished } };
 }
 
-const MOVEMENT_KINDS = new Set(['movement-done', 'movement-undo', 'movement-order']);
-export function isMovementAction(action: { kind: string }): action is MovementAction {
-  return MOVEMENT_KINDS.has(action.kind);
-}
+export const isMovementAction = actionKindGuard(movementActionSchema);
 
 function movementPhase(snapshot: StoredSnapshot): boolean {
   const playing = snapshot.stage === undefined || snapshot.stage === 'play';

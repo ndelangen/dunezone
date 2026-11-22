@@ -60,6 +60,7 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
         { name: 'GAME_ROOMS', class_name: 'GameRoom' },
         { name: 'HOMEPAGE_ROOMS', class_name: 'HomepageRoom' },
         { name: 'BUG_REPORTS', class_name: 'BugReports' },
+        { name: 'BIDDING_TABLES', class_name: 'BiddingTable' },
       ],
     },
     'Durable Object binding'
@@ -70,6 +71,7 @@ export function validateGameDeployContract(config: JsonObject, environment: Node
       { tag: 'v1', new_sqlite_classes: ['GameRoom'] },
       { tag: 'v2', new_sqlite_classes: ['HomepageRoom'] },
       { tag: 'v3', new_sqlite_classes: ['BugReports'] },
+      { tag: 'v4', new_sqlite_classes: ['BiddingTable'] },
     ],
     'SQLite migration'
   );

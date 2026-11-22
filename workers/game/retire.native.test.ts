@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
-import { createPeer, createRuntime, eventually, provision } from './native-runtime.fixture.ts';
+import { admitPlayer, createPeer, createRuntime, eventually, provision } from './native-runtime.fixture.ts';
 
 const CREDENTIALS = { gameId: 'fixture-game', secret: 'a'.repeat(64) };
 /* A spawn request stored before requests named their seat (#1172); the current schema requires one (#1407). */
@@ -25,7 +25,14 @@ describe('The hosted fixture room retires on request', () => {
 
   const post = (
     operation: string,
-    body: { userId?: string; eventId?: string; deletionOperationId?: string; gameId: string; secret: string }
+    body: {
+      userId?: string;
+      eventId?: string;
+      deletionOperationId?: string;
+      banOperationId?: string;
+      gameId: string;
+      secret: string;
+    }
   ) =>
     runtime.fetch(`/__play/games/fixture-game/${operation}`, {
       method: 'POST',
@@ -103,12 +110,30 @@ describe('The hosted fixture room retires on request', () => {
     });
   };
 
-  it('never retires a real game', async () => {
+  it('refuses ordinary retirement for a confirmed real game', async () => {
     realGame();
     runtime = await createRuntime(peer, 'game');
     expect((await provision(runtime)).status).toBe(200);
     expect((await post('retire', CREDENTIALS)).status).toBe(403);
     expect(await runtime.exec<{ id: number }>('SELECT id FROM metadata')).toEqual([{ id: 1 }]);
+  });
+
+  it('retires a confirmed real game for an authenticated account ban', async () => {
+    realGame();
+    runtime = await createRuntime(peer, 'game');
+    expect((await provision(runtime)).status).toBe(200);
+    const creator = await admitPlayer(runtime, 'a');
+    const visitor = await admitPlayer(runtime, 'b');
+    expect((await post('retire', { ...CREDENTIALS, banOperationId: 'ban-1', secret: 'b'.repeat(64) })).status).toBe(
+      403
+    );
+    expect(await runtime.exec<{ id: number }>('SELECT id FROM metadata')).toEqual([{ id: 1 }]);
+    expect(creator.closed || visitor.closed).toBe(false);
+    expect((await post('retire', { ...CREDENTIALS, banOperationId: 'ban-1' })).status).toBe(200);
+    await eventually(() => creator.closed && visitor.closed, 'all game connections closed');
+    expect(await storedTables()).toEqual([]);
+    expect((await post('retire', { ...CREDENTIALS, banOperationId: 'ban-1' })).status).toBe(200);
+    expect((await deleteAccount()).status).toBe(403);
   });
 
   it('retires a real game Convex never confirmed, which stored its creator', async () => {

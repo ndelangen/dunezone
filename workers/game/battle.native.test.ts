@@ -268,6 +268,38 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     );
   });
 
+  it('holds a battle countdown while its last player has ended the game, then resumes it with the time it had left', async () => {
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan' as const, battleId, plan: plan() });
+    const deadline = required(required((await ready(battleId)).snapshot.battle).deadline);
+    /* The fixture plays without a stage; the battle runs in a real game in play. */
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
+      JSON.stringify({ ...readHistoricalSnapshot(rows[0].data), stage: 'play' }),
+    ]);
+    await runtime.restart();
+    a = await admit('a');
+    b = await admit('b');
+    await accepted(b, { kind: 'seat-depart' as const });
+    const ended = await accepted(a, { kind: 'result-end' as const });
+    expect(ended.snapshot.stage).toBe('finished');
+    const left = deadline - required(ended.serverNow);
+
+    /* Long past the old deadline, nothing is revealed and no piece moves. */
+    await runtime.clock(deadline - Date.now() + 30_000);
+    await runtime.alarm(true);
+    const held = (await syncView(a)).snapshot;
+    expect(required(held.battle)).toMatchObject({ stage: 'countdown', deadline });
+    expect(held.table.pieces).toEqual(ended.snapshot.table.pieces);
+
+    const continued = await accepted(a, { kind: 'result-continue' as const });
+    const resumed = required(required(continued.snapshot.battle).deadline);
+    expect(required(continued.snapshot.battle).stage).toBe('countdown');
+    /* Each command reads the server clock a few milliseconds apart from the time it reports, so allow a little either way. */
+    expect(resumed - required(continued.serverNow)).toBeLessThanOrEqual(left + 50);
+    expect(resumed - required(continued.serverNow)).toBeGreaterThan(left - 1000);
+  });
+
   it('cancels once with private inventory and reserve restored and board troops unchanged', async () => {
     await accepted(a, { kind: 'hand-take' as const, pieceId: 'treachery-card-loose' });
     await accepted(a, { kind: 'hand-take' as const, pieceId: 'fixture-leader' });

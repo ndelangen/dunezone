@@ -27,6 +27,7 @@ test('only a live signed-in visitor can issue a single-use homepage ticket', asy
     avatarUrl: null,
     userKey: person.userId,
     leaseUntil: Date.now() + HOMEPAGE_LEASE_MS,
+    issuedAt: Date.now(),
   });
   expect(await t.mutation(api.homepageAdmission.redeemTicket, issued!)).toEqual({ allowed: false });
   expect(await t.run((ctx) => ctx.db.query('homepage_tickets').collect())).toEqual([]);
@@ -56,6 +57,7 @@ test('the editing lease cannot outlast the auth session', async () => {
     userKey: person.userId,
     avatarUrl: null,
     leaseUntil: expiry,
+    issuedAt: Date.now(),
   });
 });
 

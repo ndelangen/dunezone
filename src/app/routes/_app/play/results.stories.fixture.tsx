@@ -48,3 +48,24 @@ export function finishedSnapshot(viewerSeat: string, declaredAt = 1): GameSnapsh
   ];
   return snapshot;
 }
+
+/* A game in play where every other player has given up their seat, so only the viewer's is held. */
+export function lastPlayerSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
+  const snapshot = playingSnapshot(viewerSeat);
+  snapshot.controls!.seats = [viewerSeat];
+  snapshot.controls!.players = snapshot.controls!.players.filter((player) => player.seat === viewerSeat);
+  return snapshot;
+}
+
+/* The game the last player ended: no winner, by them, in the phase they stopped in. */
+export function endedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
+  const snapshot = lastPlayerSnapshot(viewerSeat);
+  snapshot.stage = 'finished';
+  snapshot.result = {
+    kind: 'none',
+    factionIds: [],
+    by: { seat: viewerSeat, name: SIX.find((player) => player.seat === viewerSeat)!.name },
+    declaredAt: 1,
+  };
+  return snapshot;
+}

@@ -101,6 +101,7 @@ export const redeemTicket = mutation({
       avatarUrl: playerSummary(profile).avatarUrl,
       userKey: ticket.user_id,
       leaseUntil: Math.min(now + HOMEPAGE_LEASE_MS, auth.authExpiresAt),
+      issuedAt: now,
     };
   },
 });

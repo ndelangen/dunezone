@@ -22,7 +22,7 @@ test('owner adds an owned, unassigned faction to their Group', async ({ page }) 
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await page.getByRole('textbox', { name: 'Faction leader name' }).fill('Leader');
     await page.getByRole('button', { name: 'Save faction' }).click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${factionName.toLowerCase()}/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionName.toLowerCase()}-original/edit$`));
   });
 
   await test.step('owner adds the faction to the Group from the picker', async () => {

@@ -18,6 +18,8 @@ const OWN_BOARD_FACES = '/published/boards/';
 /* Seeded IDs have local art; production IDs continue to the application Worker. */
 const OWN_ROUND_TOKENS = '/published/round-tokens/00000000000000000000';
 const OWN_POINTER_TOKENS = '/published/pointer-tokens/00000000000000000000';
+/* Seeded faction IDs start with nineteen zeros; the static build answers their tokens from its fixtures. */
+const OWN_FACTION_TOKENS = '/published/faction-tokens/0000000000000000000';
 
 type Env = { ASSETS: { fetch: (request: Request) => Promise<Response> } };
 
@@ -138,7 +140,8 @@ export function isMediaPath(pathname: string): boolean {
     MEDIA_PREFIXES.some((prefix) => pathname.startsWith(prefix)) &&
     !pathname.startsWith(OWN_BOARD_FACES) &&
     !pathname.startsWith(OWN_ROUND_TOKENS) &&
-    !pathname.startsWith(OWN_POINTER_TOKENS)
+    !pathname.startsWith(OWN_POINTER_TOKENS) &&
+    !pathname.startsWith(OWN_FACTION_TOKENS)
   );
 }
 

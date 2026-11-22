@@ -7,6 +7,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import type { MutationCtx } from './types';
 
@@ -188,7 +189,7 @@ describe('FAQ reference public pages', () => {
     expect(faction.page[0]).toMatchObject({
       kind: 'faction',
       id: ids.faction,
-      faction: { rulesets: [{ slug: 'advanced' }] },
+      faction: { rulesets: [{ slug: 'advanced', coverThumbUrl: null }] },
     });
     await t.run((ctx) => ctx.db.patch('assets', ids.assets[0]!, { is_deleted: true }));
     const deleted = await t.query(api.faqReferences.options, { kind: 'asset', q: 'card-treachery', paginationOpts });
@@ -329,7 +330,7 @@ describe('FAQ reference public pages', () => {
 });
 
 async function seedTargets(ctx: MutationCtx, user: Id<'users'>, otherRuleset: Id<'rulesets'>) {
-  const faction = await ctx.db.insert('factions', {
+  const faction = await insertFactionRow(ctx, {
     owner_id: user,
     group_id: null,
     slug: 'atreides',

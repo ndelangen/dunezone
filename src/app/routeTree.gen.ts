@@ -10,16 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as ToolRouteRouteImport } from './routes/_tool/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSplatRouteRouteImport } from './routes/_app/$.route'
 import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
+import { Route as AppToolsRouteRouteImport } from './routes/_app/tools/route'
 import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/admin/accounts.route'
+import { Route as AppAdminDiscordRouteRouteImport } from './routes/_app/admin/discord.route'
+import { Route as AppAdminFactionMergeRouteRouteImport } from './routes/_app/admin/faction-merge.route'
 import { Route as AppAdminGameDebuggerRouteRouteImport } from './routes/_app/admin/game-debugger/route'
 import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
@@ -28,11 +32,13 @@ import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
+import { Route as AppAuthSteamRouteRouteImport } from './routes/_app/auth/steam.route'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
 import { Route as AppContributingIndexRouteImport } from './routes/_app/contributing/index'
 import { Route as AppContributingIntroRouteRouteImport } from './routes/_app/contributing/$intro.route'
 import { Route as AppCreateIndexRouteImport } from './routes/_app/create/index'
 import { Route as AppCreateFactionRouteRouteImport } from './routes/_app/create/faction.route'
+import { Route as AppCreateVariantRouteRouteImport } from './routes/_app/create/variant.route'
 import { Route as AppFactionsIndexRouteImport } from './routes/_app/factions/index'
 import { Route as AppFactionsCreateRouteRouteImport } from './routes/_app/factions/create.route'
 import { Route as AppFaqIndexRouteImport } from './routes/_app/faq/index'
@@ -47,9 +53,16 @@ import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
+import { Route as AppToolsIndexRouteImport } from './routes/_app/tools/index'
+import { Route as AppToolsToolRouteRouteImport } from './routes/_app/tools/$tool.route'
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
+import { Route as ToolToolsBattleWheelRouteRouteImport } from './routes/_tool/tools/battle-wheel/route'
+import { Route as ToolToolsBiddingRouteRouteImport } from './routes/_tool/tools/bidding/route'
+import { Route as ToolToolsPredictionLocketRouteRouteImport } from './routes/_tool/tools/prediction-locket/route'
+import { Route as ToolToolsSpiceDeckRouteRouteImport } from './routes/_tool/tools/spice-deck/route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
+import { Route as AppAdminAccountProfileSlugRouteRouteImport } from './routes/_app/admin/account.$profileSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
 import { Route as AppContributingCodeIndexRouteImport } from './routes/_app/contributing/code/index'
@@ -71,6 +84,7 @@ import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
+import { Route as ToolToolsAtreidesTreacheryTrackerIndexRouteImport } from './routes/_tool/tools/atreides-treachery-tracker/index'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
 import { Route as AppAssetsTypeSlugConvertToSpiceRouteRouteImport } from './routes/_app/assets/$type/$slug/convert-to-spice.route'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
@@ -85,6 +99,10 @@ import { Route as AppRulesetsRulesetSlugRulebooksRulebookSlugEditionsRouteRouteI
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolRouteRoute = ToolRouteRouteImport.update({
+  id: '/_tool',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -117,6 +135,11 @@ const AppPlayRouteRoute = AppPlayRouteRouteImport.update({
   path: '/play',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppToolsRouteRoute = AppToolsRouteRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppTutorialRouteRoute = AppTutorialRouteRouteImport.update({
   id: '/tutorial',
   path: '/tutorial',
@@ -137,6 +160,17 @@ const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AppAdminRouteRoute,
 } as any)
+const AppAdminDiscordRouteRoute = AppAdminDiscordRouteRouteImport.update({
+  id: '/discord',
+  path: '/discord',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminFactionMergeRouteRoute =
+  AppAdminFactionMergeRouteRouteImport.update({
+    id: '/faction-merge',
+    path: '/faction-merge',
+    getParentRoute: () => AppAdminRouteRoute,
+  } as any)
 const AppAdminGameDebuggerRouteRoute =
   AppAdminGameDebuggerRouteRouteImport.update({
     id: '/game-debugger',
@@ -178,6 +212,11 @@ const AppAuthLoginRouteRoute = AppAuthLoginRouteRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAuthSteamRouteRoute = AppAuthSteamRouteRouteImport.update({
+  id: '/auth/steam',
+  path: '/auth/steam',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppBlogIndexRoute = AppBlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -202,6 +241,11 @@ const AppCreateIndexRoute = AppCreateIndexRouteImport.update({
 const AppCreateFactionRouteRoute = AppCreateFactionRouteRouteImport.update({
   id: '/create/faction',
   path: '/create/faction',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCreateVariantRouteRoute = AppCreateVariantRouteRouteImport.update({
+  id: '/create/variant',
+  path: '/create/variant',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFactionsIndexRoute = AppFactionsIndexRouteImport.update({
@@ -274,6 +318,16 @@ const AppRulesetsCreateRouteRoute = AppRulesetsCreateRouteRouteImport.update({
   path: '/rulesets/create',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppToolsIndexRoute = AppToolsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppToolsRouteRoute,
+} as any)
+const AppToolsToolRouteRoute = AppToolsToolRouteRouteImport.update({
+  id: '/$tool',
+  path: '/$tool',
+  getParentRoute: () => AppToolsRouteRoute,
+} as any)
 const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -284,11 +338,39 @@ const AppTutorialChapterRouteRoute = AppTutorialChapterRouteRouteImport.update({
   path: '/$chapter',
   getParentRoute: () => AppTutorialRouteRoute,
 } as any)
+const ToolToolsBattleWheelRouteRoute =
+  ToolToolsBattleWheelRouteRouteImport.update({
+    id: '/tools/battle-wheel',
+    path: '/tools/battle-wheel',
+    getParentRoute: () => ToolRouteRoute,
+  } as any)
+const ToolToolsBiddingRouteRoute = ToolToolsBiddingRouteRouteImport.update({
+  id: '/tools/bidding',
+  path: '/tools/bidding',
+  getParentRoute: () => ToolRouteRoute,
+} as any)
+const ToolToolsPredictionLocketRouteRoute =
+  ToolToolsPredictionLocketRouteRouteImport.update({
+    id: '/tools/prediction-locket',
+    path: '/tools/prediction-locket',
+    getParentRoute: () => ToolRouteRoute,
+  } as any)
+const ToolToolsSpiceDeckRouteRoute = ToolToolsSpiceDeckRouteRouteImport.update({
+  id: '/tools/spice-deck',
+  path: '/tools/spice-deck',
+  getParentRoute: () => ToolRouteRoute,
+} as any)
 const PreviewSheetFactionSlugRouteRoute =
   PreviewSheetFactionSlugRouteRouteImport.update({
     id: '/preview/sheet/$factionSlug',
     path: '/preview/sheet/$factionSlug',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AppAdminAccountProfileSlugRouteRoute =
+  AppAdminAccountProfileSlugRouteRouteImport.update({
+    id: '/account/$profileSlug',
+    path: '/account/$profileSlug',
+    getParentRoute: () => AppAdminRouteRoute,
   } as any)
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
@@ -412,6 +494,12 @@ const AppRulesetsRulesetSlugEditRouteRoute =
     path: '/rulesets/$rulesetSlug/edit',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const ToolToolsAtreidesTreacheryTrackerIndexRoute =
+  ToolToolsAtreidesTreacheryTrackerIndexRouteImport.update({
+    id: '/tools/atreides-treachery-tracker/',
+    path: '/tools/atreides-treachery-tracker/',
+    getParentRoute: () => ToolRouteRoute,
+  } as any)
 const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
   id: '/assets/$type/$slug/',
   path: '/assets/$type/$slug/',
@@ -485,24 +573,34 @@ export interface FileRoutesByFullPath {
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
+  '/tools': typeof AppToolsRouteRouteWithChildren
   '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
+  '/create/variant': typeof AppCreateVariantRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/tools/bidding': typeof ToolToolsBiddingRouteRoute
+  '/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
+  '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin/': typeof AppAdminIndexRoute
   '/assets/': typeof AppAssetsIndexRoute
@@ -518,7 +616,9 @@ export interface FileRoutesByFullPath {
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
+  '/tools/': typeof AppToolsIndexRoute
   '/tutorial/': typeof AppTutorialIndexRoute
+  '/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -540,6 +640,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/tools/atreides-treachery-tracker/': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -553,27 +654,36 @@ export interface FileRoutesByFullPath {
   '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/': typeof AppRulesetsRulesetSlugRulebooksRulebookSlugIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AppIndexRoute
   '/$': typeof AppSplatRouteRoute
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
-  '/': typeof AppIndexRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
+  '/create/variant': typeof AppCreateVariantRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
   '/groups/create': typeof AppGroupsCreateRouteRoute
   '/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/tools/bidding': typeof ToolToolsBiddingRouteRoute
+  '/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
+  '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin': typeof AppAdminIndexRoute
   '/assets': typeof AppAssetsIndexRoute
@@ -589,7 +699,9 @@ export interface FileRoutesByTo {
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
+  '/tools': typeof AppToolsIndexRoute
   '/tutorial': typeof AppTutorialIndexRoute
+  '/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -611,6 +723,7 @@ export interface FileRoutesByTo {
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
+  '/tools/atreides-treachery-tracker': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -626,30 +739,41 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
+  '/_tool': typeof ToolRouteRouteWithChildren
   '/_app/$': typeof AppSplatRouteRoute
   '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
+  '/_app/tools': typeof AppToolsRouteRouteWithChildren
   '/_app/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_app/admin/discord': typeof AppAdminDiscordRouteRoute
+  '/_app/admin/faction-merge': typeof AppAdminFactionMergeRouteRoute
   '/_app/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
   '/_app/admin/presets': typeof AppAdminPresetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
+  '/_app/auth/steam': typeof AppAuthSteamRouteRoute
   '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/_app/create/faction': typeof AppCreateFactionRouteRoute
+  '/_app/create/variant': typeof AppCreateVariantRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
   '/_app/groups/create': typeof AppGroupsCreateRouteRoute
   '/_app/media/$source': typeof AppMediaSourceRouteRouteWithChildren
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/_app/tools/$tool': typeof AppToolsToolRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/_tool/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/_tool/tools/bidding': typeof ToolToolsBiddingRouteRoute
+  '/_tool/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
+  '/_tool/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/assets/': typeof AppAssetsIndexRoute
@@ -665,7 +789,9 @@ export interface FileRoutesById {
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
+  '/_app/tools/': typeof AppToolsIndexRoute
   '/_app/tutorial/': typeof AppTutorialIndexRoute
+  '/_app/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/_app/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/_app/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/_app/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -687,6 +813,7 @@ export interface FileRoutesById {
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/_tool/tools/atreides-treachery-tracker/': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/_app/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -708,24 +835,34 @@ export interface FileRouteTypes {
     | '/imports'
     | '/media'
     | '/play'
+    | '/tools'
     | '/tutorial'
     | '/auth/oauth'
     | '/admin/accounts'
+    | '/admin/discord'
+    | '/admin/faction-merge'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
     | '/admin/presets'
     | '/auth/error'
     | '/auth/login'
+    | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
+    | '/create/variant'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tools/$tool'
     | '/tutorial/$chapter'
+    | '/tools/battle-wheel'
+    | '/tools/bidding'
+    | '/tools/prediction-locket'
+    | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/admin/'
     | '/assets/'
@@ -741,7 +878,9 @@ export interface FileRouteTypes {
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
+    | '/tools/'
     | '/tutorial/'
+    | '/admin/account/$profileSlug'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -763,6 +902,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
+    | '/tools/atreides-treachery-tracker/'
     | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
@@ -776,27 +916,36 @@ export interface FileRouteTypes {
     | '/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/$'
     | '/imports'
     | '/media'
     | '/auth/oauth'
-    | '/'
     | '/admin/accounts'
+    | '/admin/discord'
+    | '/admin/faction-merge'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
     | '/admin/presets'
     | '/auth/error'
     | '/auth/login'
+    | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
+    | '/create/variant'
     | '/factions/create'
     | '/groups/create'
     | '/media/$source'
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tools/$tool'
     | '/tutorial/$chapter'
+    | '/tools/battle-wheel'
+    | '/tools/bidding'
+    | '/tools/prediction-locket'
+    | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/admin'
     | '/assets'
@@ -812,7 +961,9 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profiles'
     | '/rulesets'
+    | '/tools'
     | '/tutorial'
+    | '/admin/account/$profileSlug'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -834,6 +985,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
+    | '/tools/atreides-treachery-tracker'
     | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
@@ -848,30 +1000,41 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/_tool'
     | '/_app/$'
     | '/_app/admin'
     | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
+    | '/_app/tools'
     | '/_app/tutorial'
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/accounts'
+    | '/_app/admin/discord'
+    | '/_app/admin/faction-merge'
     | '/_app/admin/game-debugger'
     | '/_app/admin/jobs'
     | '/_app/admin/migrations'
     | '/_app/admin/presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
+    | '/_app/auth/steam'
     | '/_app/contributing/$intro'
     | '/_app/create/faction'
+    | '/_app/create/variant'
     | '/_app/factions/create'
     | '/_app/groups/create'
     | '/_app/media/$source'
     | '/_app/play/$gameId'
     | '/_app/play/create'
     | '/_app/rulesets/create'
+    | '/_app/tools/$tool'
     | '/_app/tutorial/$chapter'
+    | '/_tool/tools/battle-wheel'
+    | '/_tool/tools/bidding'
+    | '/_tool/tools/prediction-locket'
+    | '/_tool/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/_app/admin/'
     | '/_app/assets/'
@@ -887,7 +1050,9 @@ export interface FileRouteTypes {
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
+    | '/_app/tools/'
     | '/_app/tutorial/'
+    | '/_app/admin/account/$profileSlug'
     | '/_app/contributing/code/$lesson'
     | '/_app/contributing/deployment/$lesson'
     | '/_app/contributing/design-decisions/$group'
@@ -909,6 +1074,7 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
+    | '/_tool/tools/atreides-treachery-tracker/'
     | '/_app/assets/$type/$slug/convert-to-spice'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
@@ -924,6 +1090,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  ToolRouteRoute: typeof ToolRouteRouteWithChildren
   AuthOauthRouteRoute: typeof AuthOauthRouteRoute
   PreviewSheetFactionSlugRouteRoute: typeof PreviewSheetFactionSlugRouteRoute
 }
@@ -935,6 +1102,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_tool': {
+      id: '/_tool'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ToolRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -979,6 +1153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlayRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/tools': {
+      id: '/_app/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof AppToolsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/tutorial': {
       id: '/_app/tutorial'
       path: '/tutorial'
@@ -1005,6 +1186,20 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/admin/accounts'
       preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/discord': {
+      id: '/_app/admin/discord'
+      path: '/discord'
+      fullPath: '/admin/discord'
+      preLoaderRoute: typeof AppAdminDiscordRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/faction-merge': {
+      id: '/_app/admin/faction-merge'
+      path: '/faction-merge'
+      fullPath: '/admin/faction-merge'
+      preLoaderRoute: typeof AppAdminFactionMergeRouteRouteImport
       parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/admin/game-debugger': {
@@ -1063,6 +1258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuthLoginRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/auth/steam': {
+      id: '/_app/auth/steam'
+      path: '/auth/steam'
+      fullPath: '/auth/steam'
+      preLoaderRoute: typeof AppAuthSteamRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/blog/': {
       id: '/_app/blog/'
       path: '/blog'
@@ -1096,6 +1298,13 @@ declare module '@tanstack/react-router' {
       path: '/create/faction'
       fullPath: '/create/faction'
       preLoaderRoute: typeof AppCreateFactionRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/create/variant': {
+      id: '/_app/create/variant'
+      path: '/create/variant'
+      fullPath: '/create/variant'
+      preLoaderRoute: typeof AppCreateVariantRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/factions/': {
@@ -1196,6 +1405,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/tools/': {
+      id: '/_app/tools/'
+      path: '/'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof AppToolsIndexRouteImport
+      parentRoute: typeof AppToolsRouteRoute
+    }
+    '/_app/tools/$tool': {
+      id: '/_app/tools/$tool'
+      path: '/$tool'
+      fullPath: '/tools/$tool'
+      preLoaderRoute: typeof AppToolsToolRouteRouteImport
+      parentRoute: typeof AppToolsRouteRoute
+    }
     '/_app/tutorial/': {
       id: '/_app/tutorial/'
       path: '/'
@@ -1210,12 +1433,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTutorialChapterRouteRouteImport
       parentRoute: typeof AppTutorialRouteRoute
     }
+    '/_tool/tools/battle-wheel': {
+      id: '/_tool/tools/battle-wheel'
+      path: '/tools/battle-wheel'
+      fullPath: '/tools/battle-wheel'
+      preLoaderRoute: typeof ToolToolsBattleWheelRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
+    '/_tool/tools/bidding': {
+      id: '/_tool/tools/bidding'
+      path: '/tools/bidding'
+      fullPath: '/tools/bidding'
+      preLoaderRoute: typeof ToolToolsBiddingRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
+    '/_tool/tools/prediction-locket': {
+      id: '/_tool/tools/prediction-locket'
+      path: '/tools/prediction-locket'
+      fullPath: '/tools/prediction-locket'
+      preLoaderRoute: typeof ToolToolsPredictionLocketRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
+    '/_tool/tools/spice-deck': {
+      id: '/_tool/tools/spice-deck'
+      path: '/tools/spice-deck'
+      fullPath: '/tools/spice-deck'
+      preLoaderRoute: typeof ToolToolsSpiceDeckRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
     '/preview/sheet/$factionSlug': {
       id: '/preview/sheet/$factionSlug'
       path: '/preview/sheet/$factionSlug'
       fullPath: '/preview/sheet/$factionSlug'
       preLoaderRoute: typeof PreviewSheetFactionSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/account/$profileSlug': {
+      id: '/_app/admin/account/$profileSlug'
+      path: '/account/$profileSlug'
+      fullPath: '/admin/account/$profileSlug'
+      preLoaderRoute: typeof AppAdminAccountProfileSlugRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/assets/$type/': {
       id: '/_app/assets/$type/'
@@ -1364,6 +1622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_tool/tools/atreides-treachery-tracker/': {
+      id: '/_tool/tools/atreides-treachery-tracker/'
+      path: '/tools/atreides-treachery-tracker'
+      fullPath: '/tools/atreides-treachery-tracker/'
+      preLoaderRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
     '/_app/assets/$type/$slug/': {
       id: '/_app/assets/$type/$slug/'
       path: '/assets/$type/$slug'
@@ -1446,20 +1711,26 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteRouteChildren {
   AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
+  AppAdminDiscordRouteRoute: typeof AppAdminDiscordRouteRoute
+  AppAdminFactionMergeRouteRoute: typeof AppAdminFactionMergeRouteRoute
   AppAdminGameDebuggerRouteRoute: typeof AppAdminGameDebuggerRouteRoute
   AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAdminPresetsRouteRoute: typeof AppAdminPresetsRouteRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminAccountProfileSlugRouteRoute: typeof AppAdminAccountProfileSlugRouteRoute
 }
 
 const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
   AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
+  AppAdminDiscordRouteRoute: AppAdminDiscordRouteRoute,
+  AppAdminFactionMergeRouteRoute: AppAdminFactionMergeRouteRoute,
   AppAdminGameDebuggerRouteRoute: AppAdminGameDebuggerRouteRoute,
   AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAdminPresetsRouteRoute: AppAdminPresetsRouteRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminAccountProfileSlugRouteRoute: AppAdminAccountProfileSlugRouteRoute,
 }
 
 const AppAdminRouteRouteWithChildren = AppAdminRouteRoute._addFileChildren(
@@ -1505,6 +1776,20 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
   AppPlayRouteRouteChildren,
 )
 
+interface AppToolsRouteRouteChildren {
+  AppToolsToolRouteRoute: typeof AppToolsToolRouteRoute
+  AppToolsIndexRoute: typeof AppToolsIndexRoute
+}
+
+const AppToolsRouteRouteChildren: AppToolsRouteRouteChildren = {
+  AppToolsToolRouteRoute: AppToolsToolRouteRoute,
+  AppToolsIndexRoute: AppToolsIndexRoute,
+}
+
+const AppToolsRouteRouteWithChildren = AppToolsRouteRoute._addFileChildren(
+  AppToolsRouteRouteChildren,
+)
+
 interface AppTutorialRouteRouteChildren {
   AppTutorialChapterRouteRoute: typeof AppTutorialChapterRouteRoute
   AppTutorialIndexRoute: typeof AppTutorialIndexRoute
@@ -1524,12 +1809,15 @@ interface AppRouteRouteChildren {
   AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
+  AppToolsRouteRoute: typeof AppToolsRouteRouteWithChildren
   AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
+  AppAuthSteamRouteRoute: typeof AppAuthSteamRouteRoute
   AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
   AppCreateFactionRouteRoute: typeof AppCreateFactionRouteRoute
+  AppCreateVariantRouteRoute: typeof AppCreateVariantRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
   AppGroupsCreateRouteRoute: typeof AppGroupsCreateRouteRoute
   AppRulesetsCreateRouteRoute: typeof AppRulesetsCreateRouteRoute
@@ -1584,12 +1872,15 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
+  AppToolsRouteRoute: AppToolsRouteRouteWithChildren,
   AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
+  AppAuthSteamRouteRoute: AppAuthSteamRouteRoute,
   AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
   AppCreateFactionRouteRoute: AppCreateFactionRouteRoute,
+  AppCreateVariantRouteRoute: AppCreateVariantRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,
   AppGroupsCreateRouteRoute: AppGroupsCreateRouteRoute,
   AppRulesetsCreateRouteRoute: AppRulesetsCreateRouteRoute,
@@ -1655,8 +1946,30 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
   AppRouteRouteChildren,
 )
 
+interface ToolRouteRouteChildren {
+  ToolToolsBattleWheelRouteRoute: typeof ToolToolsBattleWheelRouteRoute
+  ToolToolsBiddingRouteRoute: typeof ToolToolsBiddingRouteRoute
+  ToolToolsPredictionLocketRouteRoute: typeof ToolToolsPredictionLocketRouteRoute
+  ToolToolsSpiceDeckRouteRoute: typeof ToolToolsSpiceDeckRouteRoute
+  ToolToolsAtreidesTreacheryTrackerIndexRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
+}
+
+const ToolRouteRouteChildren: ToolRouteRouteChildren = {
+  ToolToolsBattleWheelRouteRoute: ToolToolsBattleWheelRouteRoute,
+  ToolToolsBiddingRouteRoute: ToolToolsBiddingRouteRoute,
+  ToolToolsPredictionLocketRouteRoute: ToolToolsPredictionLocketRouteRoute,
+  ToolToolsSpiceDeckRouteRoute: ToolToolsSpiceDeckRouteRoute,
+  ToolToolsAtreidesTreacheryTrackerIndexRoute:
+    ToolToolsAtreidesTreacheryTrackerIndexRoute,
+}
+
+const ToolRouteRouteWithChildren = ToolRouteRoute._addFileChildren(
+  ToolRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
+  ToolRouteRoute: ToolRouteRouteWithChildren,
   AuthOauthRouteRoute: AuthOauthRouteRoute,
   PreviewSheetFactionSlugRouteRoute: PreviewSheetFactionSlugRouteRoute,
 }

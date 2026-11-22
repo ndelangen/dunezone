@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 
 import type { TableView } from '../../../../widgets/tabletop/playView';
@@ -41,7 +41,10 @@ export type CompassControlsProps = Readonly<{
   /** Moves the camera, as the dial does. */
   onView: (view: TableView) => void;
   /** The window an event asks for (a battle, the end of the game, a phase with a panel of its own), once per token. */
-  focus?: Readonly<{ key: string; token: string; placement?: 'centre' }> | null;
+  /** A window to open once per token; `seat` sets a seat's window (Faction info) on that seat. */
+  focus?: Readonly<{ key: string; token: string; placement?: 'centre'; seat?: string }> | null;
+  /** Hears which windows are open, as their keys, whenever that changes: the table hints at a closed window it needs. */
+  onOpenWindows?: (keys: readonly string[]) => void;
 }>;
 
 /*
@@ -113,15 +116,30 @@ function RecallControls({ table, onView }: Readonly<{ table: CompassTable; onVie
 function useFocusedWindow(
   focus: CompassControlsProps['focus'],
   windows: readonly TableWindow[],
-  reveal: (key: string) => void,
+  reveal: (key: string, seat?: string) => void,
   active: boolean
 ) {
   const [followed, setFollowed] = useState<string | null>(null);
   const key = focus?.key === 'spice' ? 'hand' : focus?.key;
   if (active && focus && key && focus.token !== followed && windows.some((entry) => entry.key === key)) {
     setFollowed(focus.token);
-    reveal(key);
+    reveal(key, focus.seat);
   }
+}
+
+/* Tells the table which windows are open, once per change, so a hint elsewhere can offer a closed one. */
+function useOpenWindowsReport(
+  windows: readonly TableWindow[],
+  isOpen: (key: string) => boolean,
+  report: ((keys: readonly string[]) => void) | undefined
+) {
+  const keys = windows.filter((entry) => isOpen(entry.key)).map((entry) => entry.key);
+  const joined = keys.join('\n');
+  /* Before paint, so a hint at a closed window never shows for a frame after the window opened; a report that stops leaves nothing open behind it. */
+  useLayoutEffect(() => {
+    report?.(joined ? joined.split('\n') : []);
+    return () => report?.([]);
+  }, [joined, report]);
 }
 
 function Controls({
@@ -130,6 +148,7 @@ function Controls({
   panels,
   onView,
   focus,
+  onOpenWindows,
 }: Omit<CompassControlsProps, 'scene' | 'overlay' | 'header' | 'camera'> &
   Readonly<{ rootRef: RefObject<HTMLDivElement | null> }>) {
   const table = useContext(CompassTableContext);
@@ -146,8 +165,10 @@ function Controls({
     active
   );
   /* A centre focus opens a closed window in the centre and brings one already open forward, never closing it. */
-  const centre = (key: string) => (opened.isOpen(key) ? opened.reveal(key) : opened.show(key));
+  const centre = (key: string, seat?: string) =>
+    opened.isOpen(key) ? opened.reveal(key, seat) : opened.show(key, seat);
   useFocusedWindow(focus, windows, focus?.placement === 'centre' ? centre : opened.reveal, active);
+  useOpenWindowsReport(windows, opened.isOpen, active ? onOpenWindows : undefined);
   /* The cheat sheet goes away as it came, by ? or the bar's button, from the centre or a slot alike. */
   const sheetSide = SIDES.find((side) => opened.slots[side]?.key === KEYBOARD_SHORTCUTS);
   const toggleSheet = windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)

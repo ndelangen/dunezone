@@ -6,6 +6,7 @@
 export const browserLaunchTests = [
   'src/app/print/capture/captureSettle.browser.test.ts',
   'scripts/application-security.browser.test.ts',
+  'scripts/bidding-voice.browser.test.ts',
   'scripts/faction-editor-readiness.browser.test.ts',
   'scripts/storybook-publication-images.test.ts',
   '.storybook/storyImagesWorker.test.ts',

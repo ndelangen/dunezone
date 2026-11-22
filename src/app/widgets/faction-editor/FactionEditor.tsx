@@ -2,6 +2,7 @@ import { Stack } from '@mantine/core';
 import { FactionNameSchema } from '@shared/factions/schema';
 import { ActionError } from '@ui/block/ActionError';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -9,10 +10,10 @@ import type { BackgroundModeMemory } from '@app/widgets/background-composer/Back
 import type { FactionAuthoringWarning } from './factionAuthoringContract';
 import styles from './FactionEditor.module.css';
 import { FactionFormFields } from './FactionFormFields';
-import type { FactionFormFieldsHandle } from './FactionFormFields';
-import type { FactionIdentityNameField } from './FactionFormSectionIdentity';
+import type { FactionEditRights, FactionFormFieldsHandle } from './FactionFormFields';
 import type { StrengthRefusal } from './FactionFormSectionLeaders';
 import type { FactionFormApi } from './factionFormTypes';
+import type { FactionInheritance } from './FactionInheritance';
 import { FactionSheetReview } from './FactionSheetReview';
 import type { FactionSheetReviewHandle } from './FactionSheetReview';
 
@@ -21,8 +22,12 @@ export interface FactionEditorProps {
   errors: string[];
   isNameBlank: boolean;
   warnings: FactionAuthoringWarning[];
-  /** A route-bound name input rendered in the Identity section's name slot; see `FactionIdentityNameField`. */
-  nameField?: FactionIdentityNameField;
+  /** The notice heading the Faction chapter, in the page's words. */
+  factionNotice?: ReactNode;
+  /** What the page's viewer may change; omitted, everything. */
+  rights?: FactionEditRights;
+  /** For a variant with a parent: what it takes from that parent, field by field; omitted, every field is its own. */
+  inheritance?: FactionInheritance;
   /** Fires on field blur and chapter switch, the moments the validation header may settle closed. */
   onSettle?: () => void;
   /** The background composer's colour-mode memory, from `useFactionAuthoring`, which clears it whenever the draft is replaced. */
@@ -49,7 +54,9 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       errors,
       isNameBlank,
       warnings,
-      nameField,
+      factionNotice,
+      rights,
+      inheritance,
       onSettle,
       backgroundModeMemory,
       onBackgroundModeMemoryChange,
@@ -92,7 +99,9 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
                   ref={fieldsRef}
                   form={form}
                   warnings={warnings}
-                  nameField={nameField}
+                  factionNotice={factionNotice}
+                  rights={rights}
+                  inheritance={inheritance}
                   onSettle={onSettle}
                   backgroundModeMemory={backgroundModeMemory}
                   onBackgroundModeMemoryChange={onBackgroundModeMemoryChange}

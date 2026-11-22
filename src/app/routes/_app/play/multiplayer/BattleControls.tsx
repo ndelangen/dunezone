@@ -15,7 +15,7 @@ import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 
@@ -31,6 +31,7 @@ import { planLocks, supportMatters } from '../panels/battlePlan/planView';
 import { BattleBeacon } from './BattleBeacon';
 import styles from './BattleControls.module.css';
 import { battleCapsuleY, headerInset } from './battlePlacement';
+import { useBattlePlanOpener } from './BattlePlanHint';
 import { PieceImage, pieceName } from './HandPiece';
 import { KeyboardSpicePlacement } from './KeyboardSpicePlacement';
 import { SPICE_RESERVE_DROP } from './spiceReserveDrop';
@@ -308,7 +309,8 @@ function useInventoryDrop({ client, table }: Props) {
     };
   }, [camera, renderer, client, table.canHandleTable]);
 }
-type ActiveProps = Props & { battle: PublicBattle; own: number };
+/* `openPlan` opens the closed Battle plan panel for a player who has taken a side (#2984). */
+type ActiveProps = Props & { battle: PublicBattle; own: number; openPlan?: (() => void) | null };
 function OutcomeButton({ client, table, battle, own, outcome }: ActiveProps & { outcome: Outcome }) {
   return (
     <Button
@@ -334,9 +336,16 @@ function CancelBattleButton({
   variant,
   className,
   fullWidth,
-}: ActiveProps & Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'>) {
+  'data-half': half,
+  shortLabel,
+}: ActiveProps &
+  Pick<ButtonProps, 'size' | 'variant' | 'className' | 'fullWidth'> & { 'data-half'?: 'right'; shortLabel?: string }) {
+  const label = battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle';
   return (
     <Button
+      data-half={half}
+      /* Beside Battle plan the whole label does not fit, so a shorter one shows and the name keeps the whole (Norbert, 2026-11-17). */
+      aria-label={shortLabel ? label : undefined}
       size={size}
       variant={variant}
       className={className}
@@ -344,7 +353,7 @@ function CancelBattleButton({
       disabled={!table.canHandleTable}
       onClick={() => client.command({ kind: 'battle-cancel', battleId: battle.id })}
     >
-      {battle.stage === 'revealed' ? 'Resolve battle' : 'Cancel battle'}
+      {shortLabel ?? label}
     </Button>
   );
 }
@@ -355,6 +364,29 @@ function BattleActions(props: ActiveProps) {
     return null;
   }
   if (battle.stage === 'preparing') {
+    if (props.openPlan && props.own >= 0) {
+      return (
+        <>
+          <Button
+            size="xs"
+            className={styles.outcome}
+            color="cta"
+            aria-label="Open battle plan"
+            onClick={props.openPlan}
+          >
+            Battle plan
+          </Button>
+          <CancelBattleButton
+            {...props}
+            size="xs"
+            className={styles.cancel}
+            variant="default"
+            data-half="right"
+            shortLabel="Cancel"
+          />
+        </>
+      );
+    }
     return <CancelBattleButton {...props} size="xs" className={styles.cancel} variant="default" fullWidth />;
   }
   if (battle.stage !== 'revealed') {
@@ -385,7 +417,13 @@ function waitingOn({ battle, table, own }: ActiveProps) {
 function BattleCentre(props: ActiveProps) {
   if (props.battle.stage === 'revealed') {
     if (!offersActions(props.table)) {
-      return null;
+      /* A recalled battle that settled with no winner says so once, between the wheels; a winner's call sits under its own wheel. */
+      const recalled = props.battle.id !== props.table.snapshot.battle?.id;
+      return recalled && !props.battle.sides.some((side) => side?.choice) ? (
+        <Text className={styles.choice} size="xs">
+          {OUTCOME_LABELS.none}
+        </Text>
+      ) : null;
     }
     /* Anyone seated can end a revealed battle; it settles with the winner a side called, unless the sides called different winners. */
     const waiting = waitingOn(props);
@@ -495,7 +533,7 @@ function SideContents({
   own,
   index,
   active,
-}: ActiveProps & { index: 0 | 1; active: Set<string> }) {
+}: ActiveProps & { index: 0 | 1; active?: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
   const hint = useId();
@@ -567,17 +605,55 @@ function SideContents({
     </Button>
   );
 }
+/*
+ * The sides claimed while the panel was up, until their token has dropped in: a side whose claim this page saw arrive,
+ * not one already taken when the panel opened, and only for the drop itself, so later changes inside it do not replay it.
+ */
+function useClaimDrops(battle: PublicBattle) {
+  const motion = useMotionAllowed();
+  const claimed = battle.sides.map(Boolean);
+  const [seen, setSeen] = useState({ claimed, motion, dropping: [] as number[] });
+  /* With motion off no drop plays, so nothing would clear its mark: a claim then is not kept to drop later. */
+  const arrived = motion ? claimed.flatMap((now, index) => (now && !seen.claimed[index] ? [index] : [])) : [];
+  if (claimed.some((now, index) => now !== seen.claimed[index]) || motion !== seen.motion) {
+    setSeen({
+      claimed,
+      motion,
+      dropping: motion ? [...seen.dropping.filter((index) => claimed[index]), ...arrived] : [],
+    });
+  }
+  /* A drop that lands clears its side's mark; one cut short by motion turning off, or by the claim going, is cleared above. */
+  const settled = (index: number, animation: string) => {
+    if (animation.includes('claim-drop')) {
+      setSeen((before) => ({ ...before, dropping: before.dropping.filter((other) => other !== index) }));
+    }
+  };
+  return {
+    dropping: (index: number) => motion && (seen.dropping.includes(index) || arrived.includes(index)),
+    settled,
+  };
+}
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
-  const active = new Set(
-    table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
-  );
+  const claims = useClaimDrops(battle);
+  /* Only the live battle marks its pieces on the table; one a recall shows again draws every piece from its saved plans. */
+  const active =
+    battle.id === table.snapshot.battle?.id
+      ? new Set(
+          table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
+        )
+      : undefined;
   return (
     <Group justify="space-between" wrap="nowrap" gap="sm" pos="relative">
       {([0, 1] as const).map((index) => {
         const side = battle.sides[index];
         return (
-          <div className={styles.side} key={index}>
+          <div
+            className={styles.side}
+            key={index}
+            data-claimed-now={claims.dropping(index) || undefined}
+            onAnimationEnd={(event) => claims.settled(index, event.animationName)}
+          >
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
@@ -593,13 +669,49 @@ function BattleSides(props: ActiveProps) {
     </Group>
   );
 }
+/*
+ * The panel's pointer grows from the panel down to the marker once the panel has sprung up.
+ * The callout mounts with its battle, so the reach starts with it; it grows again when motion is turned back on, as the panel's
+ * own spring does, and stands at full reach as soon as motion is off.
+ */
+function usePointerReach() {
+  const motion = useMotionAllowed();
+  const [run, setRun] = useState({ motion, count: motion ? 1 : 0 });
+  const [reach, setReach] = useState(motion ? 0 : 1);
+  if (run.motion !== motion) {
+    setRun({ motion, count: motion ? run.count + 1 : run.count });
+    /* Motion turned back on grows the pointer again from nothing, rather than showing it whole until the first frame. */
+    if (motion) {
+      setReach(0);
+    }
+  }
+  useEffect(() => {
+    if (!run.motion) {
+      return;
+    }
+    const start = performance.now() + 140;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - start) / 200));
+      setReach(1 - (1 - t) ** 3);
+      if (t < 1) {
+        frame = requestAnimationFrame(step);
+      }
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [run]);
+  return motion ? reach : 1;
+}
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const canvas = useThree((state) => state.renderer.domElement);
   const { anchor, capsule } = placement;
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
-  const props = { client, table, battle, own };
+  /* The callout draws in its own root, which no context reaches, so the opener is read here and handed down. */
+  const props = { client, table, battle, own, openPlan: useBattlePlanOpener() };
+  const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
     <Html
@@ -610,9 +722,14 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>
-          <div className={styles.callout} data-battle-stage={battle.stage}>
+          <div
+            className={styles.callout}
+            data-battle-stage={battle.stage}
+            data-pointer={anchor[1] < capsule[1] ? 'above' : 'below'}
+          >
             <CalloutSurface
               pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
+              reach={reach}
               actions={
                 <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
                   <BattleActions {...props} />
@@ -626,6 +743,33 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
       </PointerSessionContext>
     </Html>
   );
+}
+type BattleResult = NonNullable<TableProjection['snapshot']['battleResults']>[number];
+/*
+ * A settled battle drawn as the table revealed it, for a recall: both wheels in the callout pointing at its territory,
+ * with the winner's call under its wheel, or No winner once between them. The result keeps no side's own call, so no other call shows.
+ * A recall plays back, so the callout offers no controls.
+ */
+function settledReveal(result: BattleResult): PublicBattle {
+  const choice = (index: 0 | 1) => (result.outcome === (index ? 'right' : 'left') ? result.outcome : null);
+  return {
+    id: result.id,
+    anchor: result.anchor,
+    territory: result.territory,
+    stage: 'revealed',
+    sides: [
+      { factionId: result.factions[0], ready: true, choice: choice(0) },
+      { factionId: result.factions[1], ready: true, choice: choice(1) },
+    ],
+    deadline: null,
+    revealed: result.plans,
+  };
+}
+/** The reveal of the battle a recalled checkpoint settled, read-only, where the battle was fought (#2985). */
+export function RecalledBattleScene({ result, ...props }: Props & Readonly<{ result: BattleResult }>) {
+  const battle = settledReveal(result);
+  const placement = useBattlePlacement(battle);
+  return <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} />;
 }
 /**
  * The scene owns pointer projection;
@@ -648,7 +792,8 @@ export function BattleScene({
         onDrop={(position) => markBattle(props.client, position)}
         onHover={onMarkerTerritory}
       />
-      {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
+      {/* Keyed by the battle, so a battle that replaces another builds up as its own. */}
+      {battle ? <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} /> : null}
     </>
   );
 }

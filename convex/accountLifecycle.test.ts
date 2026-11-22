@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { groupPageAs } from './viewerAccess.test.fixture';
 
@@ -52,6 +53,7 @@ describe('account lifecycle', () => {
       userId: null,
       profile: null,
       isAdmin: false,
+      isBanned: false,
     });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
     await expect(t.query(api.profiles.pageBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);
@@ -96,7 +98,7 @@ describe('account lifecycle', () => {
         created_by: ownerId,
         is_deleted: false,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: assetPublishingFaction,
         slug: 'index-faction',
@@ -172,7 +174,7 @@ describe('account lifecycle', () => {
         approved_at: now,
         approved_by: ownerId,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: pendingId,
         data: assetPublishingFaction,
         slug: 'pending-owned-faction',

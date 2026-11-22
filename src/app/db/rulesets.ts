@@ -199,6 +199,11 @@ export function useRulesetDetailPage(slug: string, options?: { initialData?: Rul
   return { ...result, data };
 }
 
+/** What the standalone Treachery tracker's setup opens on, live and in one subscription: the first rulesets, the default and base ones, and the base one's first factions. */
+export function useTrackerToolSetup(args: FunctionArgs<typeof api.rulesets.trackerToolSetup>) {
+  return useLiveQuery(api.rulesets.trackerToolSetup, args);
+}
+
 /** A ruleset's first `limit` factions in its own order, live, and whether more remain; a larger limit loads more. */
 export function useOrderedRulesetFactions(rulesetId: Id<'rulesets'>, limit: number) {
   /* Not held: each Load more is a longer prefix, and holding the shorter ones would keep them all subscribed. */

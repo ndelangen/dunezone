@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { SPICE_EXTRAS_LIMIT } from '../rulesets/assetSlots';
+import { playDiscordMenuSchema } from './discord';
 import { lastTurnSchema } from './lastTurn';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
@@ -44,6 +46,8 @@ export const playProvisionFailureSchema = playProvisionRequestSchema.extend({
 });
 /** The minimum player count a game is created with is also its table's seat count. */
 const playMinimumPlayersSchema = tableSeatCountSchema;
+/** The ids of the ruleset's extra spice decks a game's creator chose; a ruleset slots only a handful. */
+export const playSpiceExtrasSchema = z.array(identifierSchema).max(SPICE_EXTRAS_LIMIT);
 /*
  * What a real game is provisioned with: its fixed ruleset, its minimum count and its creator, who
  * takes the first seat. `provisional` is true only on an isolated development backend; it lets the
@@ -52,8 +56,12 @@ const playMinimumPlayersSchema = tableSeatCountSchema;
 export const playGameProvisionSchema = z.object({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
+  /* Absent on older games; Convex checks their saved opt-in before delivering a nudge. */
+  discordVoice: z.boolean().optional(),
   /* Chosen on the create page; a game created before that plays the standard ten turns. */
   lastTurn: lastTurnSchema.optional(),
+  /* The ruleset's extra spice decks the creator ticked on the create page, shuffled into the spice deck at setup (#2986). */
+  spiceExtras: playSpiceExtrasSchema.optional(),
   creator: z.object({
     userId: identifierSchema,
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
@@ -150,6 +158,8 @@ export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
   lastTurn: lastTurnSchema.optional(),
+  spiceExtras: playSpiceExtrasSchema.optional(),
+  discordVoice: z.boolean().optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
@@ -177,5 +187,6 @@ export const playGameAddressAccessSchema = z.union([
      * Null until the account is enrolled here, which the page asks for once with `playAdmission.enrolPlayer`.
      */
     pass: z.string().max(4096).nullable(),
+    voice: playDiscordMenuSchema.nullable().optional(),
   }),
 ]);

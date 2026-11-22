@@ -24,6 +24,12 @@
   overflow-wrap: anywhere;
 }
 
+/* The body's rules run from border to border, as Surface's own do; `--surface-inset` is the pane's padding. */
+.body > :global(.mantine-Divider-root[data-orientation="horizontal"]),
+.body > :global(.mantine-Stack-root) > :global(.mantine-Divider-root[data-orientation="horizontal"]) {
+  margin-inline: calc(-1 * var(--surface-inset, 0px));
+}
+
 .link {
   color: inherit;
   text-decoration: none;

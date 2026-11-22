@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { ADMISSION_REFUSED_CLOSE_CODE, PASS_EXPIRED_CLOSE_CODE } from '../../src/shared/play/protocol';
+import {
+  ADMISSION_REFUSED_CLOSE_CODE,
+  OUTDATED_PAGE_CLOSE_CODE,
+  PASS_EXPIRED_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
+} from '../../src/shared/play/protocol';
 import { PLAY_SEAT_LIMIT_MESSAGE } from '../../src/shared/play/seatLimit';
 import { realGame, rejected } from './native-real-game.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
@@ -27,9 +32,9 @@ describe('Seat passes admit players without the room asking Convex about them', 
   const calls = (name: string) => peer.requests.filter((request) => request.function === name);
   const admissionStatuses = (connection: NativeConnection) =>
     connection.messages.flatMap((message) => (message.type === 'admission' ? [message.status] : []));
-  async function refusedWith(raw: Promise<string>) {
+  async function refusedWith(raw: Promise<string>, protocol = PLAY_PROTOCOL_VERSION) {
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit', pass: await raw });
+    connection.send({ type: 'admit', protocol, pass: await raw });
     await eventually(() => connection.closed, 'refused socket closed');
     return connection;
   }
@@ -56,6 +61,26 @@ describe('Seat passes admit players without the room asking Convex about them', 
     expect(elsewhere.closeCode).toBe(ADMISSION_REFUSED_CLOSE_CODE);
     const expired = await refusedWith(fixturePass('b', { exp: Date.now() - 1 }));
     expect(expired.closeCode).toBe(PASS_EXPIRED_CLOSE_CODE);
+  });
+
+  it('turns away a page on another protocol before it sees the table, even with a valid pass', async () => {
+    const older = await refusedWith(fixturePass('b'), PLAY_PROTOCOL_VERSION - 1);
+    expect(older.closeCode).toBe(OUTDATED_PAGE_CLOSE_CODE);
+    const newer = await refusedWith(fixturePass('b'), PLAY_PROTOCOL_VERSION + 1);
+    expect(newer.closeCode).toBe(1012);
+    /* A page built before versioning sends no protocol, and gets a frame it cannot read, which it answers by asking for a refresh. */
+    const unversioned = await openGame(runtime);
+    unversioned.send({ type: 'admit', pass: await fixturePass('b') });
+    await eventually(() => unversioned.closed, 'unversioned socket closed');
+    expect(unversioned.closeCode).toBe(OUTDATED_PAGE_CLOSE_CODE);
+    expect(unversioned.outsideProtocol).toEqual([{ type: 'outdated-page' }]);
+    expect(unversioned.messages).toEqual([]);
+    for (const connection of [older, newer]) {
+      expect(connection.messages.some((message) => message.type === 'view' || message.type === 'admission')).toBe(
+        false
+      );
+    }
+    await syncView(await admitPlayer(runtime, 'b'));
   });
 
   it('keeps a player admitted at the seat limit from asking for a seat until the read answers', async () => {

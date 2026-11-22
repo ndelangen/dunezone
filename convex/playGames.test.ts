@@ -18,6 +18,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
 import { playRateLimiter } from './lib/playRateLimits';
@@ -213,7 +214,7 @@ describe('real games are created and entered by any signed-in player, Administra
       const owner = (await ctx.db.query('users').first())!._id;
       const stamp = new Date().toISOString();
       const faction = (slug: string, name: string) =>
-        ctx.db.insert('factions', {
+        insertFactionRow(ctx, {
           owner_id: owner,
           data: { name },
           slug,
@@ -270,6 +271,42 @@ describe('real games are created and entered by any signed-in player, Administra
     const slots = listing.access === 'allowed' ? listing.preview?.packed.map(({ slot }) => slot) : [];
     expect(slots?.slice(0, 2)).toEqual(['treachery', 'spice']);
     expect(slots).toHaveLength(8);
+  });
+
+  test('a ticked extra spice deck is recorded only when the ruleset offers it (#2986)', async () => {
+    const { t, member, memberId, rulesets } = await world();
+    const { offered, other } = await t.run(async (ctx) => {
+      const deck = (slug: string) =>
+        ctx.db.insert('assets', {
+          owner_id: memberId,
+          type: 'deck',
+          data: { name: slug, about: '', cardback: publishingCustomDeckCardback },
+          slug,
+          created_at: '',
+          updated_at: '',
+          is_deleted: false,
+          group_id: null,
+        });
+      const offered = await deck('expansion');
+      await ctx.db.insert('ruleset_asset_slots', {
+        ruleset_id: rulesets.ready,
+        asset_id: offered,
+        slot: 'spiceExtras',
+      });
+      return { offered, other: await deck('elsewhere') };
+    });
+    const request = { rulesetId: rulesets.ready, minimumPlayers: 4 as const };
+    expect(await member.mutation(api.playGames.createGame, { ...request, spiceExtras: [other] })).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    });
+    const listing = await member.query(api.playGames.creatable, { rulesetId: rulesets.ready });
+    expect(listing.access === 'allowed' && listing.preview?.spiceExtras.map(({ id }) => id)).toEqual([offered]);
+    expect(await member.mutation(api.playGames.createGame, { ...request, spiceExtras: [offered] })).toMatchObject({
+      ok: true,
+    });
+    const [game] = await t.run(async (ctx) => await ctx.db.query('play_games').collect());
+    expect(game?.spice_extras).toEqual([offered]);
   });
 
   test('a last turn outside the whole-number range is refused before a game is made', async () => {

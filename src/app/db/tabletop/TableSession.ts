@@ -1,9 +1,12 @@
 import { tableHandlingOpen } from '@shared/play/admission';
+import { allianceAction, relationTo } from '@shared/play/alliances';
+import type { AllianceCommandKind } from '@shared/play/alliances';
 import type { BattlePlanInput } from '@shared/play/battle';
 import { factionOfToken, factionTokenPieceUnder, factionTokenSeenOver } from '@shared/play/bribes';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { foldedTurns, rotatedPiece } from '@shared/play/commands';
 import { snapshotFactionLabels, snapshotFactionTieBreaks } from '@shared/play/factionLabels';
+import { isFactionToken } from '@shared/play/factionToken';
 import type { SpawnSelection } from '@shared/play/inventory';
 import type { LogTab } from '@shared/play/log';
 import { affordancesFor, gestureBlockReason } from '@shared/play/model';
@@ -25,7 +28,7 @@ import type {
 } from '@shared/play/protocol';
 import { isRemovalAction } from '@shared/play/removal';
 import { isReviewAction, reviewRunning } from '@shared/play/review';
-import { CARRY_FLIPS_LIMIT, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
+import { CARRY_FLIPS_LIMIT, rosterSeat, SPECTATOR_SEAT, tablePositionSchema } from '@shared/play/schema';
 import { isSpicePiece } from '@shared/play/spice';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
@@ -45,9 +48,11 @@ import { troopFactionOf } from '@shared/play/troopReserves';
 import { BattleQueue } from './BattleQueue';
 import { ConversationSession } from './ConversationSession';
 import type { ConversationView } from './ConversationSession';
+import { OwnChanges } from './OwnChanges';
 import type { GameRuntime } from './runtime';
 import type { StoredTable } from './storedTable';
 import { TablePages } from './TablePages';
+import { TablePointer } from './TablePointer';
 import { pickupRidersOf, remoteViewOf, sameForPanels, storedProjection } from './tableProjection';
 import type { ConnectionView, TableProjection } from './tableProjection';
 
@@ -211,7 +216,6 @@ export class TableSession {
   private cancelTableFrame: (() => void) | undefined;
   private tickTimer: ReturnType<typeof setInterval> | undefined;
   private poseTimer: ReturnType<typeof setTimeout> | undefined;
-  private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private error: string | null = null;
   private history: Extract<ServerMessage, { type: 'history' }> | null = null;
   /* The running table review this page follows, by id; null when none holds it. */
@@ -241,7 +245,7 @@ export class TableSession {
   private readonly sentTurns = new Map<string, Turn>();
   /* Sent turns the room has done whose new table is still on its way after a resync; they show until it arrives. */
   private readonly doneTurns = new Set<string>();
-  private pointer: Vector3Tuple | null = null;
+  private readonly pointer: TablePointer;
   /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
   private pingPoint: Vector3Tuple | null = null;
   private cached: ConnectionView;
@@ -254,6 +258,8 @@ export class TableSession {
   /* The Shipment and Movement order this viewer dragged, shown until the room answers it, and the live table shown with it. */
   private pendingMovementOrder: { commandId: string; order: string[] } | null = null;
   private movementShown: { from: GameSnapshot; commandId: string; shown: GameSnapshot } | null = null;
+  /* What this viewer's own commands changed, by the room's answers, for the soft notices. */
+  private readonly ownChanges = new OwnChanges();
   /*
    * The peek this viewer closed, hidden at once while the room confirms it.
    * The room's frame without the peek, a refused close, a dropped connection or asking to peek again each forget it,
@@ -289,8 +295,14 @@ export class TableSession {
   constructor(
     readonly game: string,
     private readonly subscription: TableSubscription,
-    private readonly runtime: GameRuntime
+    private readonly runtime: GameRuntime,
+    { refreshStationaryPointer = false }: { refreshStationaryPointer?: boolean } = {}
   ) {
+    this.pointer = new TablePointer(
+      (position) => this.send({ type: 'pointer', seq: ++this.seq, position }),
+      () => this.canPoint(),
+      refreshStationaryPointer
+    );
     this.conversations = new ConversationSession(
       (message) => this.subscription.send(message),
       () => this.emit(),
@@ -608,6 +620,7 @@ export class TableSession {
       spiceGift: undefined,
       deckControls: undefined,
       handControls: undefined,
+      allianceControls: undefined,
       deleteControls: undefined,
       peek: null,
       peekControls: undefined,
@@ -661,6 +674,8 @@ export class TableSession {
     return {
       viewer,
       snapshot: displayed,
+      ...(this.pendingMovementOrder && !this.history ? { confirmedSnapshot: this.snapshot } : {}),
+      ownChanges: this.ownChanges.view(),
       liveRevision: this.snapshot.revision,
       playback: this.history
         ? {
@@ -731,6 +746,7 @@ export class TableSession {
         canHandleTable && this.subscription.supportsCommand('deck-draw') ? this.deckControls(displayed) : undefined,
       deleteControls: this.deleteControls(canHandleTable),
       handControls: this.handControls(canHandleTable),
+      allianceControls: this.allianceControls(canInteract, displayed),
       /* A look back in time shows no peek: what a faction saw then is not what it holds open now. */
       peek:
         this.history || displayed.peek?.piece.id === this.closedPeek?.pieceId
@@ -860,6 +876,31 @@ export class TableSession {
   }
   private deleteControls(canHandleTable: boolean): TableProjection['deleteControls'] {
     return canHandleTable && this.subscription.supportsCommand('delete') ? this.removal : undefined;
+  }
+  private allying: Cached<NonNullable<TableProjection['allianceControls']>> | undefined;
+  /* The alliance action on a faction token, for a seated faction at the live table in play (#2978). */
+  private allianceControls(canInteract: boolean, displayed: GameSnapshot): TableProjection['allianceControls'] {
+    const own = rosterSeat(displayed.roster, this.viewer!.viewerSeat)?.faction?.id;
+    if (!canInteract || this.history || displayed.stage !== 'play' || !own) {
+      return undefined;
+    }
+    const alliances = displayed.alliances;
+    const factionOf = (pieceId: string) =>
+      factionOfToken(this.snapshot.table.pieces.find((piece) => piece.id === pieceId && isFactionToken(piece)));
+    this.allying = cachedBy(this.allying, [alliances, own], () => ({
+      relation: (pieceId) => {
+        const factionId = factionOf(pieceId);
+        return factionId ? relationTo(alliances, own, factionId) : null;
+      },
+      act: (pieceId, kind: AllianceCommandKind) => {
+        const factionId = factionOf(pieceId);
+        const action = factionId && allianceAction(alliances, kind, own, factionId);
+        if (action) {
+          this.command(action);
+        }
+      },
+    }));
+    return this.allying.value;
   }
   private handControls(canHandleTable: boolean): TableProjection['handControls'] {
     return canHandleTable && this.subscription.supportsCommand('hand-take') ? this.taking : undefined;
@@ -1017,6 +1058,8 @@ export class TableSession {
       spiceHistory: this.pages.spiceHistory,
       logHistory: this.pages.logHistory,
       factions: this.pages.factions,
+      treacheryDeck: this.pages.treacheryDeck,
+      treacheryDeckSeat: this.pages.treacheryDeckSeat,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
@@ -1030,7 +1073,7 @@ export class TableSession {
       return true;
     }
     if (message.type === 'pointer' || message.type === 'ping') {
-      return this.canPoint();
+      return this.canPoint() || (message.type === 'pointer' && message.position === null);
     }
     return this.canAct() || this.canSendWhilePaused(message);
   }
@@ -1051,6 +1094,7 @@ export class TableSession {
         this.conversations.disconnected(this.status === 'denied');
         this.pendingArrangement = null;
         this.pendingMovementOrder = null;
+        this.ownChanges.forget();
         this.closedPeek = null;
         this.noteEndedCarry({
           held: pausedWhileHeld,
@@ -1124,10 +1168,13 @@ export class TableSession {
   }
   private settleRequest(message: TableSubscriptionEvent) {
     const settled = settledRequest(message);
+    /* The subscription applies a view before it hands it on, so the room's table already shows what each taken command did. */
+    this.ownChanges.observed(this.saved);
     if (!settled) {
       return;
     }
     this.settle(settled.id, settled.outcome, message.type === 'resync');
+    this.ownChanges.settled(settled.id, settled.outcome, { room: this.saved, followsLater: message.type === 'resync' });
     /* A refused close leaves the peek open, so it shows again. */
     if (settled.outcome === 'rejected' && settled.id === this.closedPeek?.commandId) {
       this.closedPeek = null;
@@ -1200,15 +1247,10 @@ export class TableSession {
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' | 'ping' | 'card-draw' }>
   ) {
-    if (this.conversations.receive(message)) {
+    if (this.conversations.receive(message) || this.pages.receive(message)) {
       return;
     }
     switch (message.type) {
-      case 'log-history':
-      case 'spice-history':
-      case 'faction':
-        this.pages.receive(message);
-        break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
           this.catalogueResult = message;
@@ -1306,6 +1348,7 @@ export class TableSession {
   }
   private replaceActivity(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
+      this.pointer.forgetSent();
       this.noteEndedCarry({
         held: 'The room resumed. Pick up the piece again to continue.',
         placing: 'The room resumed as you placed a piece. Check where it landed.',
@@ -1318,6 +1361,9 @@ export class TableSession {
   }
   private receiveView(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.conversations.authority(message.snapshot, message.viewer);
+    if (message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat) {
+      this.pointer.forgetSent();
+    }
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
@@ -1379,6 +1425,7 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
+    this.pointer.forgetSent();
     this.pages.disconnected();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
@@ -1405,11 +1452,9 @@ export class TableSession {
     this.carry = null;
     this.carries = [];
     this.pointers = [];
-    this.pointer = null;
+    this.pointer.cancel();
     clearTimeout(this.poseTimer);
-    clearTimeout(this.pointerTimer);
     this.poseTimer = undefined;
-    this.pointerTimer = undefined;
     this.pendingFlips.clear();
     this.handFlip = null;
     this.unanswered.clear();
@@ -1421,6 +1466,7 @@ export class TableSession {
   readLogHistory = (tab: LogTab, before?: number) => this.pages.readLog(tab, before);
   refreshLogHistory = (tab: LogTab) => this.pages.refreshLog(tab);
   readFaction = (factionId: string) => this.pages.readFaction(factionId);
+  readTreacheryDeck = (seat: string | null) => this.pages.readTreacheryDeck(seat);
   readSpiceHistory = (before?: number) => this.pages.readSpice(before);
   private expireHistoryRequest() {
     if (this.pendingHistory === null) {
@@ -1433,16 +1479,14 @@ export class TableSession {
     this.error = 'The checkpoint did not arrive. Try loading it again.';
     this.emit();
   }
-  /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
+  /* Carries and homepage preview pointers expire on the Worker. */
   private readonly tickActivity = () => {
     this.conversations.tick();
     this.expireHistoryRequest();
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
-    if (this.pointer !== null && this.canPoint()) {
-      this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
-    }
+    this.pointer.refresh();
     if (this.table?.phaseCooling && !this.phaseCooling()) {
       this.emit();
     } else if (this.table?.snapshot.battle?.stage === 'countdown') {
@@ -1507,6 +1551,34 @@ export class TableSession {
   private canHandle() {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
+  /** Whether this viewer can request a nudge from the current live table. */
+  get canNudge(): boolean {
+    if (!this.canAct()) {
+      return false;
+    }
+    if (!['setup', 'play'].includes(this.snapshot.stage ?? '')) {
+      return false;
+    }
+    const sender = this.snapshot.roster?.seats.find((seat) => seat.id === this.viewer?.viewerSeat);
+    return Boolean(sender?.faction);
+  }
+  /** Sends one best-effort request; a disconnected table never queues it. */
+  nudge = (toSeat: string): boolean => {
+    if (!this.canNudge) {
+      return false;
+    }
+    if (toSeat === this.viewer?.viewerSeat) {
+      return false;
+    }
+    const target = this.snapshot.controls?.players.find((player) => player.seat === toSeat);
+    if (!target) {
+      return false;
+    }
+    if (!this.snapshot.roster?.seats.some((seat) => seat.id === toSeat)) {
+      return false;
+    }
+    return this.send({ type: 'nudge', requestId: crypto.randomUUID(), toSeat });
+  };
   requestHistory = (step: number) => {
     if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;
@@ -1792,6 +1864,7 @@ export class TableSession {
   private sendCommand(commandId: string, action: PieceAction) {
     const sent = this.send({ type: 'command', commandId, action, expectedRevision: this.snapshot.revision });
     if (sent) {
+      this.ownChanges.sent(commandId, action);
       this.unanswered.add(commandId);
     }
     return sent;
@@ -1998,23 +2071,7 @@ export class TableSession {
   /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
   publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
     this.pingPoint = position ? onTable(surface) : null;
-    if (!this.canPoint()) {
-      this.pointer = null;
-      clearTimeout(this.pointerTimer);
-      this.pointerTimer = undefined;
-      return;
-    }
-    this.pointer = onTable(position);
-    if (this.pointer === null) {
-      clearTimeout(this.pointerTimer);
-      this.pointerTimer = undefined;
-      this.send({ type: 'pointer', seq: ++this.seq, position: null });
-    } else if (!this.pointerTimer) {
-      this.pointerTimer = setTimeout(() => {
-        this.pointerTimer = undefined;
-        this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
-      }, 50);
-    }
+    this.pointer.publish(this.canPoint() ? onTable(position) : null);
   };
 }
 

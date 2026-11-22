@@ -17,6 +17,7 @@ import styles from './ConversationPanel.module.css';
 import type { Mention } from './mentions';
 import { MentionCard, MentionText } from './MentionText';
 import type { MentionActions } from './MentionText';
+import { useViewingConversation } from './viewingConversations';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
 const NO_MENTIONS: readonly Mention[] = [];
@@ -84,6 +85,7 @@ export function ConversationPanel({
   const latest = entries.at(-1)?.sequence ?? 0;
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
   const newest = useVisibleRead(online && unread ? latest : null, onRead);
+  useViewingConversation(peerId, newest);
   const arrival = useArrivalAnnouncement(peerId, page, factionId);
   return (
     <Section hiddenHeading title="Conversation" help={CONVERSATION_HELP} className={styles.panel}>

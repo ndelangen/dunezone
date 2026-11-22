@@ -12,7 +12,7 @@ import { isResultAction } from '@shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '@shared/play/review';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
-import { applyResult, settleEnding } from '../../../../../../workers/game/result';
+import { applyResult, clocksAfterRecall, settleEnding } from '../../../../../../workers/game/result';
 import { Room } from '../../../../../../workers/game/room';
 import {
   internalAction,
@@ -325,14 +325,7 @@ export class LocalTable {
       if (committing) {
         let next = this.session.reviews.reconcile(this.room.snapshot, Date.now());
         if (reviewRunning(running) && !this.session.reviews.running()) {
-          const paused = Date.now() - running.startedAt;
-          const battle = next.battleState;
-          const bidding = next.bidding;
-          next = {
-            ...next,
-            ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
-            ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
-          };
+          next = clocksAfterRecall(next, Date.now() - running.startedAt);
         }
         this.room.accept(next);
         if (this.session.reviews.running()) {
@@ -483,7 +476,7 @@ export class LocalTable {
     }
     if (message.type === 'command' && isResultAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
-      room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now())));
+      room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now(), () => this.seats())));
       return;
     }
     /* What the page's player holds as they let go, read before the drop ends the carry. */

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { TokenImage } from '@ui/content/TokenImage';
+import { RulesetCovers } from '@ui/list/RulesetCovers';
 import type { ReactNode } from 'react';
 
 import type { FactionCatalogueEntry } from '@db/factions';
@@ -18,7 +19,7 @@ import styles from './FactionCard.module.css';
  *
  * A Block.
  * Callers hand it the faction document;
- * this owns which piece becomes what: the background renders as full-bleed artwork, the Faction leader leads the cast, the first three supporting leaders fan out beside it, the name captions the bottom with the complexity glyph at its right.
+ * this owns which piece becomes what: the background renders as full-bleed artwork, the Faction leader leads the cast, the first three supporting leaders fan out beside it, the name captions the bottom with the complexity glyph at its right, and the faction's rulesets stand under the name as their covers.
  * The artwork is game-asset content, not a pane treatment;
  * nothing here is a slot.
  */
@@ -29,6 +30,7 @@ export function FactionCard({
   livePreview = false,
 }: {
   faction: FactionCatalogueEntry;
+  /** The ruleset the list is narrowed to, whose cover leads the card's rulesets. */
   selectedRulesetSlug?: string;
   /** Authoring previews render the current draft instead of its last publication. */
   livePreview?: boolean;
@@ -39,9 +41,12 @@ export function FactionCard({
   action?: ReactNode;
 }) {
   const { name, emblem, background, factionLeader, leaders } = faction.data;
-  const rulesetLabel = factionRulesetLabel(faction, selectedRulesetSlug);
   const firstColor = background.colors[0];
   const tokenColor = typeof firstColor === 'string' ? firstColor : firstColor.stops[0][0];
+  /* The ruleset the list is narrowed to leads; the rest keep the order they came in. */
+  const rulesets = faction.rulesets.toSorted(
+    (left, right) => Number(right.slug === selectedRulesetSlug) - Number(left.slug === selectedRulesetSlug)
+  );
 
   return (
     /* Exists to position the adornment against the tile; the link keeps its own bounds so its hit area never grows. */
@@ -65,46 +70,50 @@ export function FactionCard({
               </TokenAvatar>
             )}
           </div>
-          <div className={styles.cast} aria-hidden>
-            <div className={styles.factionLeader}>
-              {livePreview ? (
-                <LeaderToken {...factionLeader} strength={undefined} background={background} emblem={emblem} />
-              ) : (
-                <TokenAvatar
-                  src={faction.tokenImages?.members[factionLeader.memberId]}
-                  name={factionLeader.name}
-                  color={tokenColor}
-                />
-              )}
+          {/* The cast stands on the caption: a taller caption lifts the tokens rather than running over them. */}
+          <div className={styles.stage}>
+            <div className={styles.cast} aria-hidden>
+              <div className={styles.factionLeader}>
+                {livePreview ? (
+                  <LeaderToken {...factionLeader} strength={undefined} background={background} emblem={emblem} />
+                ) : (
+                  <TokenAvatar
+                    src={faction.tokenImages?.members[factionLeader.memberId]}
+                    name={factionLeader.name}
+                    color={tokenColor}
+                  />
+                )}
+              </div>
+              <div className={styles.leaders}>
+                {leaders.slice(0, 3).map((leader, index) => (
+                  <span key={`${leader.name}-${leader.image}-${index}`}>
+                    {livePreview ? (
+                      <LeaderToken {...leader} background={background} emblem={emblem} />
+                    ) : (
+                      <TokenAvatar
+                        src={faction.tokenImages?.members[leader.memberId]}
+                        name={leader.name}
+                        color={tokenColor}
+                      />
+                    )}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className={styles.leaders}>
-              {leaders.slice(0, 3).map((leader, index) => (
-                <span key={`${leader.name}-${leader.image}-${index}`}>
-                  {livePreview ? (
-                    <LeaderToken {...leader} background={background} emblem={emblem} />
-                  ) : (
-                    <TokenAvatar
-                      src={faction.tokenImages?.members[leader.memberId]}
-                      name={leader.name}
-                      color={tokenColor}
-                    />
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className={styles.caption}>
-            <div className={styles.captionText}>
-              <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
-                {name}
-              </Text>
-              {rulesetLabel ? (
-                <Text className={styles.ruleset} size="xs" lineClamp={1}>
-                  {rulesetLabel}
+            <div className={styles.caption}>
+              <div className={styles.captionText}>
+                <Text className={styles.name} fw={800} size="lg" lineClamp={2}>
+                  {name}
                 </Text>
-              ) : null}
+                <RulesetCovers
+                  className={styles.rulesets}
+                  rulesets={rulesets}
+                  size="var(--ruleset-cover-size)"
+                  limit={4}
+                />
+              </div>
+              <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
             </div>
-            <ComplexityGlyph score={effectiveComplexity(faction.data.complexity)} />
           </div>
         </BackgroundRenderer>
       </UnstyledButton>
@@ -144,17 +153,4 @@ function TokenAvatar({
       {src ? <TokenImage src={src} name={name} shape="round" /> : children}
     </Avatar>
   );
-}
-
-/** The card's ruleset caption: the selected ruleset when the faction is in it, else its first. */
-function factionRulesetLabel(faction: Pick<FactionCatalogueEntry, 'rulesets'>, selectedRulesetSlug?: string) {
-  if (faction.rulesets.length === 0) {
-    return null;
-  }
-  const primary = faction.rulesets.find((ruleset) => ruleset.slug === selectedRulesetSlug) ?? faction.rulesets[0];
-  if (!primary) {
-    return null;
-  }
-  const additionalCount = faction.rulesets.length - 1;
-  return additionalCount > 0 ? `${primary.name} +${additionalCount}` : primary.name;
 }

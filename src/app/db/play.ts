@@ -3,6 +3,8 @@ import { CatalogueCapture, playReadiness } from '@shared/play/catalogueCapture';
 import type { PlayReadinessEntry } from '@shared/play/catalogueCapture';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
+import { treacheryCardsOf } from '@shared/play/treacheryDeck';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useCallback, useEffect, useState } from 'react';
@@ -82,7 +84,9 @@ function browserCatalogue() {
 export function usePlayReadiness(
   ruleset: { id: string; name: string } | null,
   factions: readonly { id: string; name: string }[] | undefined,
-  revision: string
+  revision: string,
+  /* The extra spice decks a game's creator ticked; left out, every extra deck the ruleset slots is judged. */
+  spiceExtras?: readonly string[]
 ) {
   const [round, setRound] = useState(0);
   const recheck = useCallback(() => setRound((value) => value + 1), []);
@@ -96,6 +100,7 @@ export function usePlayReadiness(
       ? JSON.stringify({
           ruleset: { id: ruleset.id, name: ruleset.name },
           factions: factions.map(({ id, name }) => ({ id, name })),
+          spiceExtras: spiceExtras ? [...spiceExtras] : 'every',
           revision,
           round,
         })
@@ -106,10 +111,13 @@ export function usePlayReadiness(
       return;
     }
     let current = true;
-    const asked: { ruleset: { id: string; name: string }; factions: { id: string; name: string }[] } =
-      JSON.parse(request);
+    const asked: {
+      ruleset: { id: string; name: string };
+      factions: { id: string; name: string }[];
+      spiceExtras: string[] | 'every';
+    } = JSON.parse(request);
     const answer = (check: PlayReadinessCheck) => current && setAnswered({ request, check });
-    playReadiness(browserCatalogue(), asked.ruleset, asked.factions).then(
+    playReadiness(browserCatalogue(), asked.ruleset, asked.factions, { spiceExtras: asked.spiceExtras }).then(
       (entries) => answer({ status: 'checked', entries }),
       (error: unknown) =>
         answer({ status: 'failed', reason: error instanceof Error ? error.message : 'The check could not finish.' })
@@ -275,4 +283,64 @@ export async function requestPlayAdmission(gameId: string, { renew = false }: { 
     }
     return result;
   }
+}
+
+/** The picked Treachery decks as a game would capture them: loading, their cards together, or why one could not be read. */
+export type TreacheryDeckRead =
+  | { status: 'loading' }
+  | { status: 'read'; cards: TreacheryDeckCard[] }
+  | { status: 'failed'; reason: string };
+
+/** A deck of Treachery cards as the tracker names it to read its cards. */
+export type TreacheryDeckRef = Readonly<{ id: string; slug: string; name: string }>;
+
+/* Each deck read once a page session, so picking another deck beside it does not read it again; a failed read is dropped so a later pick asks again. */
+const deckReads = new Map<string, Promise<TreacheryDeckCard[]>>();
+
+function readTreacheryDeck(deck: TreacheryDeckRef): Promise<TreacheryDeckCard[]> {
+  let read = deckReads.get(deck.id);
+  if (!read) {
+    read = browserCatalogue()
+      .captureTreacheryDeck(deck)
+      .then((captured) => treacheryCardsOf(captured) ?? []);
+    read.catch(() => deckReads.delete(deck.id));
+    deckReads.set(deck.id, read);
+  }
+  return read;
+}
+
+/** Several decks' cards as one deck: a card in two decks is one card with the copies of both. */
+function joinTreacheryDecks(decks: readonly (readonly TreacheryDeckCard[])[]): TreacheryDeckCard[] {
+  const cards = new Map<string, TreacheryDeckCard>();
+  for (const card of decks.flat()) {
+    const was = cards.get(card.key);
+    cards.set(card.key, was ? { ...was, count: was.count + card.count } : card);
+  }
+  return [...cards.values()];
+}
+
+/**
+ * The picked decks' cards, each captured once by the game's own capture code, for a tracker at a physical table.
+ * One-off reads: the deck a tracker starts from is copied, so a later edit to a deck need not reach it.
+ */
+export function useTreacheryDecks(decks: readonly TreacheryDeckRef[]): TreacheryDeckRead {
+  const key = decks.map((deck) => deck.id).join(',');
+  const [answered, setAnswered] = useState<{ key: string; read: TreacheryDeckRead } | null>(null);
+  useEffect(() => {
+    let current = true;
+    const answer = (read: TreacheryDeckRead) => current && setAnswered({ key, read });
+    /* Each deck is read once a page session, so a new array naming the same decks costs nothing. */
+    Promise.all(decks.map(readTreacheryDeck)).then(
+      (cards) => answer({ status: 'read', cards: joinTreacheryDecks(cards) }),
+      (error: unknown) =>
+        answer({
+          status: 'failed',
+          reason: error instanceof Error ? error.message : 'A Treachery deck could not be read.',
+        })
+    );
+    return () => {
+      current = false;
+    };
+  }, [key, decks]);
+  return answered?.key === key ? answered.read : { status: 'loading' };
 }

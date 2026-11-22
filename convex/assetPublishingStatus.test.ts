@@ -9,6 +9,7 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { publicationHrefFor, publicationStatusFor } from './assetPublishingStatus';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 async function seedFaction(t: ReturnType<typeof convexTest>) {
   return await t.run(async (ctx) => {
@@ -22,7 +23,7 @@ async function seedFaction(t: ReturnType<typeof convexTest>) {
       created_at: '2026-07-16T12:00:00.000Z',
       updated_at: '2026-07-16T12:00:00.000Z',
     });
-    return await ctx.db.insert('factions', {
+    return await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: assetPublishingFaction,
       slug: 'status-projection',

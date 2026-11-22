@@ -13,14 +13,27 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { LoadError } from '@ui/block/LoadError';
 import { Section } from '@ui/block/Section';
+import { Pending } from '@ui/content/Pending';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
-import { useContext, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import type { ReactNode } from 'react';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useContext,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -33,12 +46,12 @@ import { BrowserDiagnostics } from '../browserDiagnostics';
 import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
+import { FACTION_INFO } from '../compass/windows';
 import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
-import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
@@ -52,22 +65,26 @@ import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
-import { ConnectedKeyboardShortcutsPanel } from '../panels/shortcuts/useKeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
+import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
+import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
-import { BattleModeToggle, BattleScene } from './BattleControls';
+import { BattleModeToggle, BattleScene, RecalledBattleScene } from './BattleControls';
+import { BattlePlanHint, BattlePlanOpenerContext } from './BattlePlanHint';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
+import { useChatSounds } from './chatSounds';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
-import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
-import { mentatRecall } from './MentatRecall';
+import { mentatRecall, recalledBattle } from './MentatRecall';
+import { useNoticeStart } from './noticeStart';
+import { OptionalChunkBoundary } from './OptionalChunkBoundary';
+import { OwnFactionNotice } from './OwnFaction';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
 import { usePlayerWindows } from './playerWindows';
 import { useResultCelebration } from './resultCelebration';
@@ -81,6 +98,66 @@ import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
+
+/* Only a faction whose rules keep the Treachery tracker loads it, so the table's own bundle stays within its budget. */
+const ConnectedTreacheryTrackerPanel = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.ConnectedTreacheryTrackerPanel,
+  }))
+);
+/* The tracker follows the table even while its panel is closed, from the same chunk. */
+const TreacheryTrackerFollower = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.TreacheryTrackerFollower,
+  }))
+);
+
+/* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
+const ConnectedKeyboardShortcutsPanel = lazy(() =>
+  import('../panels/shortcuts/useKeyboardShortcutsPanel').then((module) => ({
+    default: module.ConnectedKeyboardShortcutsPanel,
+  }))
+);
+
+/* The planner loads when a battle first needs it, which keeps the table's own bundle within its budget. */
+/* The territory tints are a rare setting, so their panel loads when opened rather than in the table's bundle. */
+const ConnectedTerritoryTintsPanel = lazy(() =>
+  import('../panels/tints/useTerritoryTintsPanel').then((module) => ({ default: module.ConnectedTerritoryTintsPanel }))
+);
+
+const ConnectedBattlePlanPanel = lazy(() =>
+  import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
+);
+
+/* The soft notices load with the table's first frame rather than in its bundle, which keeps that bundle within its budget. */
+const TableSoftNotices = lazy(() => import('./SoftNotices').then((module) => ({ default: module.TableSoftNotices })));
+
+/* The notices with their own loading and error boundaries, so the table renders without waiting for them and plays on if they never load. */
+function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
+  return (
+    <OptionalChunkBoundary fallback={null}>
+      <Suspense fallback={null}>
+        <TableSoftNotices {...props} />
+      </Suspense>
+    </OptionalChunkBoundary>
+  );
+}
+
+/*
+ * The soft notices with the viewer's dealt faction at the top of their stack.
+ * The notices start afresh with each notice start, while the faction notice keeps its state until a tutorial run starts over, so a Reset can tell the faction again.
+ * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
+ */
+function PlayNotices(
+  props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
+) {
+  const epoch = useContext(CompassEpochContext);
+  return (
+    <OwnFactionNotice key={epoch} inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)}>
+      {(toast) => <TableNotices key={props.start?.epoch} {...props} lead={toast} />}
+    </OwnFactionNotice>
+  );
+}
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -207,16 +284,33 @@ type WindowFocus = ReturnType<typeof useWindowFocus>;
  * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
+/* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
+function useNoticePanelOpener(client: TableSession, openWindow: (key: string, seat?: string) => void) {
+  return useCallback(
+    (key: string, seat?: string) => {
+      if (key === 'transfers') {
+        client.readSpiceHistory();
+      }
+      openWindow(key, seat);
+    },
+    [client, openWindow]
+  );
+}
+
 function useAskedWindow(focus: WindowFocus) {
   /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
-  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre'; seat?: string } | null>(null);
   const [followed, setFollowed] = useState({ token: focus?.token, epoch });
   if (focus?.token !== followed.token || epoch !== followed.epoch) {
     setFollowed({ token: focus?.token, epoch });
     setAsked(null);
   }
-  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  const open = useCallback(
+    (key: string, seat?: string) =>
+      setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre', ...(seat ? { seat } : {}) }),
+    []
+  );
   return [asked ?? focus, open] as const;
 }
 
@@ -330,7 +424,15 @@ function handPanels({ client, table }: TableControlProps) {
     return [];
   }
   return [
-    { ...PANEL_WINDOWS.hand, content: <ConnectedHandPanel client={client} table={table} hand={hand} /> },
+    {
+      ...PANEL_WINDOWS.hand,
+      content: (
+        <Stack gap="xs">
+          <BattlePlanHint />
+          <ConnectedHandPanel client={client} table={table} hand={hand} />
+        </Stack>
+      ),
+    },
     {
       ...PANEL_WINDOWS.sideTable,
       content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
@@ -339,7 +441,7 @@ function handPanels({ client, table }: TableControlProps) {
 }
 
 /** The Result panel, while a declared result or an ending game asks the table to settle it. */
-function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
+function resultPanels({ client, table, error, declare }: Omit<ControlPanelsProps, 'tracker'>) {
   return resultFocus(table)
     ? [
         {
@@ -350,8 +452,12 @@ function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
     : [];
 }
 
-/** The private destinations are only installed for a viewer with a hand. */
-function yoursGroup({ client, table }: TableControlProps): TablePanel {
+/** The private destinations are only installed for a viewer with a hand; the Treachery tracker only for a faction whose rules allow it. */
+function yoursGroup({
+  client,
+  table,
+  tracker,
+}: TableControlProps & Readonly<{ tracker: TrackerSeat | null }>): TablePanel {
   return {
     key: 'yours',
     label: 'Yours',
@@ -363,8 +469,28 @@ function yoursGroup({ client, table }: TableControlProps): TablePanel {
       ...(table.snapshot.bank
         ? [{ ...PANEL_WINDOWS.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
         : []),
+      ...(tracker
+        ? [
+            {
+              ...PANEL_WINDOWS.treacheryTracker,
+              content: (
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />
+                </Suspense>
+              ),
+            },
+          ]
+        : []),
     ],
   };
+}
+
+/*
+ * The hints point to the Battle plan panel only for a player who has taken a side in the battle on the table (Norbert, 2026-11-17),
+ * and only while plans are still being made.
+ */
+function battlePlanCanOpen(table: TableProjection) {
+  return offersActions(table) && battleFocus(table) !== null && table.snapshot.battle?.stage === 'preparing';
 }
 
 /** GameTable supplies the stage and phase controls beside these game actions. */
@@ -391,7 +517,12 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
             {
               ...PANEL_WINDOWS.battlePlan,
               help: battleHelp(table),
-              content: withTableError(error, <ConnectedBattlePlanPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedBattlePlanPanel client={client} table={table} />
+                </Suspense>
+              ),
               /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
@@ -420,7 +551,18 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         ? [
             {
               ...PANEL_WINDOWS.tints,
-              content: withTableError(error, <ConnectedTerritoryTintsPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <OptionalChunkBoundary
+                  fallback={
+                    <LoadError title="Territory tints could not be loaded">Reload the page to try again.</LoadError>
+                  }
+                >
+                  <Suspense fallback={<Pending>Loading territory tints</Pending>}>
+                    <ConnectedTerritoryTintsPanel client={client} table={table} />
+                  </Suspense>
+                </OptionalChunkBoundary>
+              ),
             },
           ]
         : []),
@@ -504,7 +646,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
 }
 
 /** The left rail keeps personal resources first and omits groups with no stage content. */
-type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
+type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice; tracker: TrackerSeat | null }>;
 
 function controlPanels(
   props: ControlPanelsProps & Readonly<{ report: { enabled: boolean; content: ReactNode } }>
@@ -529,7 +671,14 @@ function controlPanels(
         ]
       : []),
     /* Every viewer, seated or watching, can look up the keys. */
-    { ...PANEL_WINDOWS.shortcuts, content: <ConnectedKeyboardShortcutsPanel /> },
+    {
+      ...PANEL_WINDOWS.shortcuts,
+      content: (
+        <Suspense fallback={<Loader size="sm" />}>
+          <ConnectedKeyboardShortcutsPanel />
+        </Suspense>
+      ),
+    },
   ];
 }
 
@@ -541,7 +690,8 @@ function stageScene({
   onMarkerTerritory,
 }: TableControlProps & Readonly<{ bidderFaded: boolean; onMarkerTerritory: (territoryId: string | null) => void }>) {
   if (reviewRunning(table.review?.current)) {
-    return null;
+    const settled = recalledBattle(table);
+    return settled ? <RecalledBattleScene client={client} table={table} result={settled} /> : null;
   }
   const stage = table.snapshot.stage;
   if (stage === 'swapping' || stage === 'setup') {
@@ -609,7 +759,46 @@ function spiceBlowCommand(table: TableProjection): (() => void) | null {
   return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
 }
 
-function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+function nudgeControls(
+  client: TableSession,
+  table: TableProjection,
+  players: CompassTable['players'],
+  available: boolean
+): CompassTable['nudge'] {
+  if (!available || !client.canNudge) {
+    return null;
+  }
+  const occupied = new Set(table.snapshot.controls?.players.map((player) => player.seat));
+  return {
+    targets: players.filter((player) => !player.own && occupied.has(player.seat)),
+    send: (seat) => client.nudge(seat),
+  };
+}
+
+/* A table the server has confirmed and is showing as it is now: not a past table, a recall, or a saved table still reconnecting. */
+function showsLiveTable(table: TableProjection, recalling: boolean) {
+  return !table.playback && !table.historyPending && !table.reconnecting && !recalling;
+}
+
+/* The stages in which factions are dealt and set up: Trading and Setup. */
+const DEALING_STAGES: ReadonlySet<string> = new Set(['swapping', 'setup']);
+
+/* The viewer's own faction while the live table deals and sets up factions; anything else is not news. */
+function dealtFaction(table: TableProjection, recalling: boolean) {
+  const { stage, roster } = table.snapshot;
+  const dealing = showsLiveTable(table, recalling) && DEALING_STAGES.has(stage ?? '');
+  if (!dealing) {
+    return null;
+  }
+  return roster?.seats.find((seat) => seat.id === table.viewer.viewerSeat)?.faction?.id ?? null;
+}
+
+function useHostedControls(
+  client: TableSession,
+  table: TableProjection,
+  error: string | null,
+  discordNudgesAvailable: boolean
+) {
   useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
@@ -617,6 +806,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
   const compassTable: CompassTable = {
     ...players,
     recall,
+    nudge: nudgeControls(client, table, players.players, discordNudgesAvailable),
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
     clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
@@ -626,6 +816,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
+    dealt: dealtFaction(table, Boolean(recall)),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -637,11 +828,13 @@ function HostedGameMenu({
   identity,
   error,
   onClearConfetti,
-}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void }>) {
+  voice,
+}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void; voice?: ReactNode }>) {
   return (
     <>
       {table.snapshot.stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
       <GameMenu
+        voice={voice}
         sharing={<GameLink address={identity.address} page={identity.page} />}
         client={client}
         table={table}
@@ -650,6 +843,19 @@ function HostedGameMenu({
     </>
   );
 }
+
+type ConnectedTableProps = ConnectionControlsProps &
+  Readonly<{
+    voice?: ReactNode;
+    discordNudgesAvailable?: boolean;
+    exitControl: ReactNode;
+    connection: string;
+    identity: GameIdentity;
+    onReady?: (() => void) | undefined;
+    gameId: string;
+    diagnostics: BrowserDiagnostics;
+    reportsEnabled: boolean;
+  }>;
 
 function ConnectedTable({
   client,
@@ -662,28 +868,33 @@ function ConnectedTable({
   diagnostics,
   reportsEnabled,
   exitControl,
-}: Readonly<{
-  exitControl: ReactNode;
-  client: TableSession;
-  table: TableProjection;
-  error: string | null;
-  connection: string;
-  identity: GameIdentity;
-  onReady?: (() => void) | undefined;
-  gameId: string;
-  diagnostics: BrowserDiagnostics;
-  reportsEnabled: boolean;
-}>) {
+  voice,
+  discordNudgesAvailable = false,
+}: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
-  const celebration = useResultCelebration(table);
+  const celebration = useResultCelebration(client, table);
+  useChatSounds(client, table);
+  /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
+  const [battleOpen, setBattleOpen] = useState(false);
+  const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
+  const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
+  const noticeStart = useNoticeStart(table);
+  const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
+  const openNoticePanel = useNoticePanelOpener(client, openWindow);
+  /* A battle toast brings the planner forward even when it is open behind another panel. */
+  const noticeBattleOpener = useMemo(
+    () => (battlePlanCanOpen(table) ? () => openWindow('battle') : null),
+    [table, openWindow]
+  );
   const declare = useDeclareChoice(table);
+  const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   /* The territory under the battle marker while it is carried, which the board lights. */
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
-  const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
+  const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
@@ -692,73 +903,95 @@ function ConnectedTable({
   );
   return (
     <PredictionEmblemsContext value={predictionEmblems}>
-      <TabletopSessionProvider session={client}>
-        {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
-        <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-          {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-          <CompassTableContext value={compassTable}>
-            <GameTable
-              readOnly={readOnly}
-              onSceneReady={onReady}
-              waitControls={exitControl}
-              seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
-              tableProgress={progress}
-              stage={stage}
-              mapVisible={setupMapVisible(table.snapshot.setup)}
-              connectionStatus={<ConnectionStatus table={table} />}
-              alliances={<AllianceStrip table={table} />}
-              techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({
-                client,
-                table,
-                error,
-                bidderFaded,
-                onBidderFadedChange: setBidderFaded,
-                onOpenRecall: () => openWindow('review'),
-              })}
-              /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
-              requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
-              showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
-              highlightTerritory={markerTerritory}
-              sceneContent={
-                <>
-                  {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
-                  {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
-                </>
-              }
-              gameMenu={
-                <HostedGameMenu
-                  client={client}
-                  table={table}
-                  identity={identity}
-                  error={error}
-                  onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
-                />
-              }
-              stageStatus={stageStatus({ client, table, identity })}
-              phaseTurns={<PhaseTurns client={client} table={table} />}
-              stageOverlay={
-                stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
-              }
-              panelContent={
-                stage === 'drafting' && !isSpectator(table) ? (
-                  <DraftingPanel client={client} table={table} error={error} />
-                ) : undefined
-              }
-              focus={focus}
-              panels={controlPanels({
-                client,
-                table: normal,
-                error,
-                declare,
-                report: { enabled: reportsEnabled, content: bugReport },
-              })}
-              tableGuidance={phaseGuidance(table)}
-              tableControls={phaseTabControls({ client, table, error, progress })}
-            />
-          </CompassTableContext>
-        </div>
-      </TabletopSessionProvider>
+      <BattlePlanOpenerContext value={battlePlanOpener}>
+        <TabletopSessionProvider session={client}>
+          {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
+          <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
+            {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
+            <CompassTableContext value={compassTable}>
+              <GameTable
+                readOnly={readOnly}
+                onSceneReady={onReady}
+                waitControls={exitControl}
+                seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
+                tableProgress={progress}
+                stage={stage}
+                mapVisible={setupMapVisible(table.snapshot.setup)}
+                connectionStatus={<ConnectionStatus table={table} />}
+                alliances={<AllianceStrip table={table} />}
+                techTokens={<TechTokenStrip table={table} />}
+                toolbarControl={stageToolbar({
+                  client,
+                  table,
+                  error,
+                  bidderFaded,
+                  onBidderFadedChange: setBidderFaded,
+                  onOpenRecall: () => openWindow('review'),
+                  onOpenAlliances: () => openWindow('alliances'),
+                })}
+                /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
+                requestedView={
+                  table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined
+                }
+                showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+                highlightTerritory={markerTerritory}
+                sceneContent={
+                  <>
+                    {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
+                    {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                  </>
+                }
+                gameMenu={
+                  <HostedGameMenu
+                    voice={voice}
+                    client={client}
+                    table={table}
+                    identity={identity}
+                    error={error}
+                    onClearConfetti={celebration.hasConfetti ? celebration.clear : undefined}
+                  />
+                }
+                stageStatus={stageStatus({ client, table, identity })}
+                phaseTurns={<PhaseTurns client={client} table={table} />}
+                stageOverlay={
+                  stage === 'drafting' ? <DraftingOverlay client={client} table={table} error={error} /> : undefined
+                }
+                panelContent={
+                  stage === 'drafting' && !isSpectator(table) ? (
+                    <DraftingPanel client={client} table={table} error={error} />
+                  ) : undefined
+                }
+                focus={focus}
+                onOpenWindows={hearOpenWindows}
+                panels={controlPanels({
+                  client,
+                  table: normal,
+                  error,
+                  declare,
+                  tracker,
+                  report: { enabled: reportsEnabled, content: bugReport },
+                })}
+                tableGuidance={phaseGuidance(table)}
+                tableControls={phaseTabControls({ client, table, error, progress })}
+                notices={(inert) => (
+                  <PlayNotices
+                    table={table}
+                    start={noticeStart}
+                    inert={inert}
+                    openPanel={openNoticePanel}
+                    openBattlePlan={noticeBattleOpener}
+                  />
+                )}
+              />
+            </CompassTableContext>
+            {tracker ? (
+              <Suspense fallback={null}>
+                <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+              </Suspense>
+            ) : null}
+          </div>
+        </TabletopSessionProvider>
+      </BattlePlanOpenerContext>
     </PredictionEmblemsContext>
   );
 }
@@ -768,7 +1001,11 @@ export default function HostedTable({
   exitControl,
   identity,
   onReady,
+  voice,
+  discordNudgesAvailable = false,
 }: Readonly<{
+  voice?: ReactNode;
+  discordNudgesAvailable?: boolean;
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
@@ -806,6 +1043,8 @@ export default function HostedTable({
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
+        voice={voice}
+        discordNudgesAvailable={discordNudgesAvailable}
         gameId={gameId}
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}

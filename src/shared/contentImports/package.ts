@@ -41,7 +41,37 @@ export const importRulebookDataSchema = z.strictObject({
   ),
 });
 export const contentImportItemSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ ...common, kind: z.literal('faction'), data: z.unknown(), link: z.boolean().optional() }),
+  z
+    .strictObject({
+      ...common,
+      kind: z.literal('faction'),
+      data: z.unknown(),
+      link: z.boolean().optional(),
+      /** An existing variant's address: the import links it to the Ruleset, and updates it only where the content differs and the importer may edit it (#2916). */
+      variant: keySchema.optional(),
+      /** An existing Faction's address: the item becomes a new variant of it rather than a new Faction (#2916). */
+      faction: keySchema.optional(),
+      /** The new variant's name; the target Ruleset's name when left out. */
+      variantName: z.string().trim().min(1).max(160).optional(),
+      /** The variant the new one follows: an earlier item's key, else an existing variant's address. Inheritable fields the copy leaves out follow it. */
+      parent: keySchema.optional(),
+    })
+    .refine((item) => !(item.variant && item.existing), {
+      path: ['variant'],
+      message: 'Name the variant once, with variant or existing.',
+    })
+    .refine((item) => !(item.faction && (item.variant || item.existing)), {
+      path: ['faction'],
+      message: 'A new variant of a faction cannot also name an existing record.',
+    })
+    .refine((item) => !item.variantName || item.faction, {
+      path: ['variantName'],
+      message: 'Name a variant only when adding it to a faction.',
+    })
+    .refine((item) => !item.parent || item.faction, {
+      path: ['parent'],
+      message: 'Give a parent only when adding a variant to a faction.',
+    }),
   z.strictObject({
     ...common,
     kind: z.literal('asset'),
@@ -69,6 +99,7 @@ export const contentImportPackageSchema = z
   .superRefine((value, ctx) => {
     const keys = new Set<string>();
     const singleSlots = new Set<string>();
+    const allKeys = new Set(value.items.map((item) => item.key));
     value.items.forEach((item, index) => {
       if (keys.has(item.key)) {
         ctx.addIssue({ code: 'custom', path: ['items', index, 'key'], message: 'Each package key must appear once.' });
@@ -84,6 +115,13 @@ export const contentImportPackageSchema = z
             message: `Put dependency ${key} before ${item.key}.`,
           });
         }
+      }
+      if (item.kind === 'faction' && item.parent && allKeys.has(item.parent) && !keys.has(item.parent)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['items', index, 'parent'],
+          message: `Put parent ${item.parent} before ${item.key}.`,
+        });
       }
       if (item.kind === 'asset' && item.members) {
         if (!['deck', 'bundle'].includes(item.type)) {

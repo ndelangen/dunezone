@@ -71,6 +71,8 @@ export const rulebookRendererCss = ${JSON.stringify(emittedCssMarker)};`;
     cssCodeSplit: false,
     outDir: path.join(repositoryRoot, 'workers/publisher/runtime-generated'),
     emptyOutDir: true,
+    /* The report's one line stays; CI skips gzipping the 5.7 MB runtime just to size it. */
+    reportCompressedSize: !process.env.CI,
     rollupOptions: {
       input: runtimeEntry,
       output: {

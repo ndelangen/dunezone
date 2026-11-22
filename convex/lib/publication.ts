@@ -54,7 +54,6 @@ import {
 import type { TokenFace, CustomCardTokens } from '../../src/shared/assets/schema';
 import { BoardAsset } from '../../src/shared/boards/schema';
 import { HistoricalFactionPublicationSchema } from '../../src/shared/factions/schema';
-import { renameLegacyEmblems } from '../../src/shared/legacyEmblem';
 import type { Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { resolveBackgrounds } from './backgroundPresets';
@@ -218,8 +217,7 @@ export async function enqueueFactionTokenPublication(
   const payload = factionTokenAssetDataSchema.strip().parse(faction.data);
   if (
     previousData !== undefined &&
-    JSON.stringify(payload) ===
-      JSON.stringify(factionTokenAssetDataSchema.strip().parse(renameLegacyEmblems(previousData)))
+    JSON.stringify(payload) === JSON.stringify(factionTokenAssetDataSchema.strip().parse(previousData))
   ) {
     return null;
   }
@@ -375,7 +373,7 @@ export async function enqueueAssetPublication(
       if (await holdsForRenderer(ctx, asset.type, asset._id, 1)) {
         return null;
       }
-      const { about: _about, ...leader } = LeaderTokenAsset.parse(renameLegacyEmblems(asset.data));
+      const { about: _about, ...leader } = LeaderTokenAsset.parse(asset.data);
       return await enqueuePublicationJob(ctx, {
         assetType: asset.type,
         assetId: asset._id,

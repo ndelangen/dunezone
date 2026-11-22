@@ -212,6 +212,46 @@
       "requires": ["faction_cards_v1"]
     },
     {
+      "id": "faction_families_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "faction_families_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_families_v1"]
+    },
+    {
+      "id": "faction_variant_addresses_v1",
+      "phase": "widen",
+      "requires": ["faction_families_v1"]
+    },
+    {
+      "id": "faction_variant_addresses_verify_v1",
+      "phase": "widen",
+      "requires": ["faction_variant_addresses_v1"]
+    },
+    {
+      "id": "catalogue_entries_factions_family_v1",
+      "phase": "widen",
+      "requires": ["faction_families_v1"]
+    },
+    {
+      "id": "catalogue_entries_factions_family_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_family_v1"]
+    },
+    {
+      "id": "catalogue_entries_family_listing_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_factions_family_v1"]
+    },
+    {
+      "id": "catalogue_entries_family_listing_verify_v1",
+      "phase": "widen",
+      "requires": ["catalogue_entries_family_listing_v1"]
+    },
+    {
       "id": "publication_job_listings_v1",
       "phase": "widen",
       "requires": []
@@ -222,119 +262,9 @@
       "requires": ["publication_job_listings_v1"]
     },
     {
-      "id": "publication_queue_type_orders_drop_v1",
+      "id": "faction_duplicates_merge_v1",
       "phase": "widen",
       "requires": []
-    },
-    {
-      "id": "emblem_rename_factions_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_cards_v2",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_assets_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_publication_jobs_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_background_presets_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_discovery_presets_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_card_front_presets_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_cardback_presets_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_rulebook_drafts_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_rulebook_edition_contents_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "emblem_rename_factions_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_factions_v1"]
-    },
-    {
-      "id": "emblem_rename_assets_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_assets_v1"]
-    },
-    {
-      "id": "emblem_rename_publication_jobs_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_publication_jobs_v1"]
-    },
-    {
-      "id": "emblem_rename_background_presets_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_background_presets_v1"]
-    },
-    {
-      "id": "emblem_rename_discovery_presets_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_discovery_presets_v1"]
-    },
-    {
-      "id": "emblem_rename_card_front_presets_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_card_front_presets_v1"]
-    },
-    {
-      "id": "emblem_rename_cardback_presets_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_cardback_presets_v1"]
-    },
-    {
-      "id": "emblem_rename_factions_narrow",
-      "phase": "narrow",
-      "requires": ["emblem_rename_factions_v1", "emblem_rename_factions_verify_v1"]
-    },
-    {
-      "id": "emblem_rename_presets_narrow",
-      "phase": "narrow",
-      "requires": [
-        "emblem_rename_discovery_presets_v1",
-        "emblem_rename_discovery_presets_verify_v1",
-        "emblem_rename_cardback_presets_v1",
-        "emblem_rename_cardback_presets_verify_v1"
-      ]
-    },
-    {
-      "id": "emblem_rename_rulebook_drafts_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_rulebook_drafts_v1"]
-    },
-    {
-      "id": "emblem_rename_rulebook_edition_contents_verify_v1",
-      "phase": "widen",
-      "requires": ["emblem_rename_rulebook_edition_contents_v1"]
     },
     {
       "id": "board_readiness_listing_narrow",
@@ -347,57 +277,13 @@
       "requires": ["publication_job_listings_v1", "publication_job_listings_verify_v1"]
     },
     {
-      "id": "arrakis_spice_cards_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "arrakis_rulebook_drafts_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "arrakis_rulebook_edition_contents_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "arrakis_spice_cards_verify_v1",
-      "phase": "widen",
-      "requires": ["arrakis_spice_cards_v1"]
-    },
-    {
-      "id": "arrakis_rulebook_drafts_verify_v1",
-      "phase": "widen",
-      "requires": ["arrakis_rulebook_drafts_v1"]
-    },
-    {
-      "id": "arrakis_rulebook_edition_contents_verify_v1",
-      "phase": "widen",
-      "requires": ["arrakis_rulebook_edition_contents_v1"]
-    },
-    {
-      "id": "arrakis_spice_highlights_strip_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "arrakis_spice_highlights_verify_cards_v1",
-      "phase": "widen",
-      "requires": ["arrakis_spice_highlights_strip_v1"]
-    },
-    {
-      "id": "arrakis_spice_highlights_verify_jobs_v1",
-      "phase": "widen",
-      "requires": ["arrakis_spice_highlights_strip_v1"]
-    },
-    {
-      "id": "spice_highlights_narrow",
+      "id": "faction_family_narrow",
       "phase": "narrow",
       "requires": [
-        "arrakis_spice_highlights_strip_v1",
-        "arrakis_spice_highlights_verify_cards_v1",
-        "arrakis_spice_highlights_verify_jobs_v1"
+        "faction_families_v1",
+        "faction_families_verify_v1",
+        "faction_variant_addresses_v1",
+        "faction_variant_addresses_verify_v1"
       ]
     }
   ]

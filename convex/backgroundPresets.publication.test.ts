@@ -19,6 +19,7 @@ import { arrakisBoard } from '../src/shared/boards/geometry';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 afterEach(() => vi.useRealTimers());
 async function fixture(initialize = true) {
@@ -386,7 +387,7 @@ test('changing the Traitor family recaptures only Traitor faces', async () => {
   const { t, admin } = await fixture();
   await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', {});
-    await ctx.db.insert('factions', {
+    await insertFactionRow(ctx, {
       data: assetPublishingFaction,
       slug: 'traitor-proof',
       owner_id: owner,
@@ -483,8 +484,8 @@ test('faction catalogue cards, spotlights and sheet preview projections follow t
     revision: 1,
     value: { ...background.value, colors: ['#123456', '#654321'] },
   });
-  const catalogue = await t.query(api.factions.cataloguePage, {});
-  expect(catalogue.factions[0]?.data.background.colors).toEqual(['#123456', '#654321']);
+  const catalogue = await t.query(api.factions.catalogue, {});
+  expect(catalogue.cards[0]?.data.background.colors).toEqual(['#123456', '#654321']);
   expect(catalogue.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);
   const homepage = await t.query(api.homepage.get, {});
   expect(homepage.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);

@@ -3,6 +3,7 @@ import type { Infer } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { publicQuery } from './functions';
+import { familyAt, liveDefaultVariant, mergedInto } from './lib/factionAddresses';
 import type { QueryCtx } from './types';
 
 const addressValidator = v.union(
@@ -27,12 +28,15 @@ const FORMER_HOLDERS_READ = 8;
  * The newest live record a rename moved away from this address, read from the table the kind names.
  * A deleted former holder no longer holds the address, so an older live one behind it still answers.
  */
-async function formerRecord<Table extends 'factions' | 'assets' | 'groups' | 'rulesets' | 'rulebooks'>(
+async function formerRecord<
+  Table extends 'factions' | 'faction_families' | 'assets' | 'groups' | 'rulesets' | 'rulebooks',
+>(
   ctx: QueryCtx,
   table: Table,
   kind: Doc<'former_slugs'>['kind'],
   scope: string,
-  slug: string
+  slug: string,
+  holds: (record: Doc<Table>) => boolean = (record) => !record.is_deleted
 ) {
   const rows = await ctx.db
     .query('former_slugs')
@@ -42,7 +46,7 @@ async function formerRecord<Table extends 'factions' | 'assets' | 'groups' | 'ru
   for (const row of rows) {
     const id = ctx.db.normalizeId(table, row.record_id);
     const record = id && (await ctx.db.get(table, id));
-    if (record && !record.is_deleted) {
+    if (record && holds(record)) {
       return record;
     }
   }
@@ -77,12 +81,42 @@ async function rulebookAt(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slug: string
   return await liveAt(holder, () => formerRecord(ctx, 'rulebooks', 'rulebook', rulesetId, slug));
 }
 
+/**
+ * The variant a `/factions/` address leads to (#2909).
+ * A variant's own address and a faction's share one namespace, so at most one current holder answers;
+ * only when neither does are the renames away from it followed: a variant's former address first, then a faction's.
+ */
 async function factionAt(ctx: QueryCtx, slug: string) {
   const holder = await ctx.db
     .query('factions')
     .withIndex('by_slug', (q) => q.eq('slug', slug))
     .first();
-  return await liveAt(holder, () => formerRecord(ctx, 'factions', 'faction', '', slug));
+  if (holder) {
+    return holder.is_deleted ? null : holder;
+  }
+  const family = await familyAt(ctx, slug);
+  if (family) {
+    return await liveDefaultVariant(ctx, await mergedInto(ctx, family));
+  }
+  const former = await formerRecord(ctx, 'factions', 'faction', '', slug);
+  return (
+    former ??
+    (await liveDefaultVariant(
+      ctx,
+      await mergedInto(
+        ctx,
+        /* A Faction merged away still leads on, to the one it joined. */
+        await formerRecord(
+          ctx,
+          'faction_families',
+          'faction_family',
+          '',
+          slug,
+          (family) => !family.is_deleted || !!family.merged_into
+        )
+      )
+    ))
+  );
 }
 
 async function assetAt(ctx: QueryCtx, type: string, slug: string) {

@@ -25,6 +25,8 @@ export type CompassTable = Readonly<{
     id: string;
     context: string;
     loading: boolean;
+    /** Whether the loading checkpoint follows one already shown, which stays drawn meanwhile. */
+    stepping?: boolean;
     /** Whether the viewer holds a seat, so recall holds their actions; an observer has none to hold. */
     seated: boolean;
     panels: readonly TablePanel[];
@@ -41,6 +43,8 @@ export type CompassTable = Readonly<{
   clearChat?: (seat: string) => ReactNode;
   /** Clears every chat from the viewer's own view; null while none has a message to clear. */
   clearChats?: (() => void) | null;
+  /** Explicit Discord mentions for the occupied seats the viewer may nudge. */
+  nudge?: Readonly<{ targets: readonly CompassPlayer[]; send: (seat: string) => void }> | null;
   /** Steps to the next phase; null while the header's Next phase button would be disabled, or the stage has none. */
   nextPhase: (() => void) | null;
   /** The Spice blow command: every face-up spice card on the table places its spice; null while there is none or the viewer cannot act. */
@@ -51,6 +55,8 @@ export type CompassTable = Readonly<{
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
   /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
   seatRequests?: number;
+  /** The viewer's own faction while the live table deals, trades and sets up factions (Trading and Setup), when it is news (#2987); null otherwise. */
+  dealt?: string | null;
 }>;
 
 export const CompassTableContext = createContext<CompassTable | null>(null);

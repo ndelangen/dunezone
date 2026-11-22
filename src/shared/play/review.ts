@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { actionKindGuard } from './actionKinds';
 import { tableCountSchema, tableIdSchema, tableIdentitySchema } from './schema';
 
 /**
@@ -59,14 +60,7 @@ export const reviewActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('review-seek'), reviewId: tableIdSchema, step: tableCountSchema }),
 ]);
 export type ReviewAction = z.infer<typeof reviewActionSchema>;
-export function isReviewAction(action: { kind: string }): action is ReviewAction {
-  return (
-    action.kind === 'review-propose' ||
-    action.kind === 'review-ballot' ||
-    action.kind === 'review-end' ||
-    action.kind === 'review-seek'
-  );
-}
+export const isReviewAction = actionKindGuard(reviewActionSchema);
 
 /** A majority of the seated players, the proposer included; once the game is finished, the proposer alone. */
 export function reviewThreshold(players: number, stage?: string): number {

@@ -99,7 +99,7 @@ describe('faction cards and board listings', () => {
     const [id] = await insertStoredFactions(t, [{ slug: 'broken', data: { leaders: 'not a list' } }]);
     await t.mutation(internal.migrations.faction_cards_v1, {});
     const { cards } = await readModels(t);
-    expect(cards).toMatchObject([{ faction_id: id, slug: 'broken', data: null }]);
+    expect(cards).toMatchObject([{ faction_id: id, slug: 'broken-original', data: null }]);
   });
 
   test('the backfills fill rows written without triggers, and rerunning them writes nothing', async () => {
@@ -162,7 +162,7 @@ describe('faction cards and board listings', () => {
       await ctx.db.patch(card!._id, { data: { ...card!.data, name: 'From the card' } });
       return card!._id;
     });
-    const names = async () => (await t.query(api.factions.cataloguePage, {})).factions.map((row) => row.data.name);
+    const names = async () => (await t.query(api.factions.catalogue, {})).cards.map((row) => row.data.name);
 
     expect(await names()).toEqual(['From the card']);
     await t.run(async (ctx) => {

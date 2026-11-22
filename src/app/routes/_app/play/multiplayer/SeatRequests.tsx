@@ -24,6 +24,7 @@ import {
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
 import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
+import { setPointerNames, usePointerNames } from '../../../../widgets/tabletop/pointerNames';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -36,6 +37,7 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { setTableVolume, TABLE_VOLUME_MAX, useTableVolume } from '../../../../widgets/tabletop/tableSounds';
 import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
 import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
@@ -252,11 +254,21 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
   );
 }
 
-/** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
+/** Whether the viewer is the last player at a game in play, who ends it rather than leaving it empty. */
+function endsTheGame(table: TableProjection): boolean {
+  return table.snapshot.stage === 'play' && publicControlsOf(table).seats.length === 1;
+}
+
+/*
+ * The game menu's held seat item names what it costs: the game, a roster place, or a seat left open.
+ * The last player in play ends the game instead; a finished game keeps its result when its last player leaves.
+ */
 function leavingLabel(table: TableProjection): string {
   const controls = publicControlsOf(table);
   switch (true) {
-    case controls.seats.length === 1:
+    case endsTheGame(table):
+      return 'Hold to end the game';
+    case controls.seats.length === 1 && table.snapshot.stage !== 'finished':
       return 'Hold to leave and discard the game';
     case table.snapshot.stage === 'drafting':
       return 'Hold to give up your place';
@@ -288,6 +300,30 @@ function TableLightingSlider() {
         step={0.05}
         value={lighting}
         onChange={setTableLighting}
+        label={percent}
+      />
+    </Stack>
+  );
+}
+
+/* How loud the table's sounds play for this viewer, pings, chat and the Ready reminder alike; 0 mutes them (#2982). */
+function TableVolumeSlider() {
+  const volume = useTableVolume();
+  const labelId = useId();
+  const percent = (value: number) => (value === 0 ? 'Muted' : `${Math.round(value * 100)}%`);
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Sound volume
+      </Text>
+      <Slider
+        thumbLabel="Sound volume"
+        thumbValueText={percent}
+        min={0}
+        max={TABLE_VOLUME_MAX}
+        step={0.05}
+        value={volume}
+        onChange={setTableVolume}
         label={percent}
       />
     </Stack>
@@ -360,6 +396,11 @@ function CameraFollowsPhaseItem() {
   return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
 }
 
+/* Shows other players' names beside their pointer hands; on unless turned off (#2993). */
+function PointerNamesItem() {
+  return <ViewerToggleItem label="Pointer names" on={usePointerNames()} set={setPointerNames} />;
+}
+
 /* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
 function ShortcutsButtonItem() {
   return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
@@ -401,14 +442,21 @@ function TableLabelItems() {
  * The settings menu behind the gear at the right end of the header, in every stage, after the phase controls.
  * It gives up the viewer's seat with a five-second hold, never a modal or a bar;
  * a spectator has no seat to give up.
- * While a result's confetti is on the table it also stops and clears it, for this viewer alone.
+ * While a result's confetti is on the table it also stops and clears it, for the whole table when a player clears it.
  */
 export function GameMenu({
   client,
   table,
   onClearConfetti,
   sharing,
-}: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
+  voice,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  onClearConfetti?: () => void;
+  sharing: ReactNode;
+  voice?: ReactNode;
+}>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
@@ -425,12 +473,15 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
+        {table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback && voice}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <TableVolumeSlider />
         <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
+        <PointerNamesItem />
         <TableLabelItems />
         <ShortcutsButtonItem />
         {!isSpectator(table) && (
@@ -460,16 +511,19 @@ export function GameMenu({
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
-        {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
+        {/*
+         * Keyed by the seat and by what the hold does, so a hold started on one seat never departs the seat a trade moved the viewer to,
+         * a leave countdown never turns into ending the game when another player leaves, and the item is ready again once the game has ended.
+         */}
         {!isSpectator(table) && (
           <HoldAction
             shape="menu-item"
-            key={table.viewer.viewerSeat}
+            key={`${table.viewer.viewerSeat}:${endsTheGame(table) ? 'end' : 'leave'}`}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
-            verb="leave"
+            verb={endsTheGame(table) ? 'end' : 'leave'}
             closeMenuOnClick={false}
             disabled={!seated || seatLocked(table)}
-            onConfirm={() => client.command({ kind: 'seat-depart' })}
+            onConfirm={() => client.command(endsTheGame(table) ? { kind: 'result-end' } : { kind: 'seat-depart' })}
           />
         )}
       </Menu.Dropdown>

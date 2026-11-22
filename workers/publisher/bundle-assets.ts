@@ -11,7 +11,7 @@ const IMMUTABLE_BUNDLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 export async function handleBundleAssetRequest(
   request: Request,
   url: URL,
-  assets: Pick<Fetcher, 'fetch'>
+  assets: { fetch(request: Request): Promise<Response> }
 ): Promise<Response | undefined> {
   if (!url.pathname.startsWith(BUNDLE_ASSET_PREFIX)) {
     return undefined;
@@ -48,6 +48,13 @@ export async function handleBundleAssetRequest(
   }
   const delivered = new Response(response.body, response);
   delivered.headers.set('Cache-Control', IMMUTABLE_BUNDLE_CACHE_CONTROL);
+  /* The on-device keyword worker compiles WASM; the document and every other bundle keep their stricter policy. */
+  if (/^\/public\/biddingVoice_worker-[A-Za-z0-9_-]+\.js$/.test(url.pathname)) {
+    delivered.headers.set(
+      'Content-Security-Policy',
+      "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'"
+    );
+  }
   return delivered;
 }
 

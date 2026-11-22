@@ -662,7 +662,8 @@ export function battleCommand(
 /** The caller persists this transition before exposing any revealed contents. */
 export function expireBattle(snapshot: StoredSnapshot, now: number): StoredSnapshot | undefined {
   const battle = snapshot.battleState;
-  if (!battle || battle.stage !== 'countdown') {
+  /* A finished game holds its countdown; continuing resumes it with the time it had left. */
+  if (!battle || battle.stage !== 'countdown' || snapshot.stage === 'finished') {
     return;
   }
   if (battle.deadline === null || now < battle.deadline) {

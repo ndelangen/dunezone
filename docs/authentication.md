@@ -38,6 +38,40 @@ blocks private reads, writes and token refresh before asynchronous cleanup finis
 with a remaining provider creates a usable session. The profile edit page clears its local tokens
 after disconnection.
 
+## Account bans
+
+Administrators manage a ban from `/admin/account/$profileSlug`, reached from the Accounts list.
+The list can show active or banned accounts. The administrator chooses an active replacement owner
+or removal, writes an optional reason visible only to administrators, and holds the Ban control.
+The account and profile become banned in that transaction. The operation records its administrator
+and reuses account deletion's bounded ownership snapshot and application batches.
+
+A ban preserves the account's linked providers and revokes all existing sessions. Open tabs that
+receive the ban status clear their sign-in, and new sign-in attempts through linked providers are
+refused while the ban is active. A minimal session query supplies the ban flag to the root page gate. Public queries remain viewer-independent and
+serve the same anonymous facts to everyone; a ban does not make public catalogue data private.
+Existing Play sessions receive a durable cutoff. The homepage table receives its own cutoff for
+edit leases that were issued before the ban. On a signed-in reload, the app waits for current account
+status before displaying any route. An offline reload therefore shows "Checking account access…"
+until Convex answers, including when a Play table was previously stored on the device. A page that
+was already open retains its last account-status answer during a connection loss.
+
+All directly owned Groups, factions, rulesets and assets follow the ownership choice, including
+already deleted records. Hosted games are always removed, even when other players are seated.
+Their addresses return the normal missing-game result, their rooms are retired, and their Discord
+channels enter the existing deletion queue. In games hosted by others, the account loses access
+while banned and can return after the ban is lifted. The admin page shows operation progress and offers Resume if a
+batch fails. Content cleanup waits for game retirement acknowledgements; Discord
+retries continue independently through the existing channel queue. The admin page reports pending
+Discord deletion separately from content completion, including after the ban is lifted. Once ownership
+is verified, the finalizer checks only the indexed game-delivery queue and waits until its next retry;
+it does not repeat ownership scans while a room is unavailable. If a delivery stays overdue, finalization
+checks slow to five-minute intervals while the existing recovery job repairs the delivery.
+
+An administrator can lift the ban after the operation completes. The person can then sign in again
+with a linked provider. Transferred and removed content stays as it is;
+soft-deleted content can use its existing restore action. Hosted games stay removed.
+
 ## Convex Auth
 
 Production sign-in starts at `https://dune.zone/auth/signin/google` or
@@ -58,6 +92,22 @@ The routing gate checks that sign-in accepts GET only and that both providers'
 cancellation callbacks redirect home without caching. These probes need no credentials
 and create no accounts. A sign-in request with no verifier is unsuitable as a probe:
 the pinned library reports it as a server error.
+
+Steam signs people in with OpenID 2.0, which Convex Auth's OAuth round trip cannot carry. The
+browser leaves for Steam directly and returns to the app page `/auth/steam`, which the Worker does not
+proxy. The tab must hold the random state it left with. The page passes Steam's assertion to the
+`steam` credentials provider in `convex/auth.ts`. The backend accepts only a positive Steam answer
+addressed to `SITE_URL`'s `/auth/steam` page, under five minutes old and signed over the identity,
+return address and nonce. It then asks Steam to confirm it with `check_authentication` and spends the
+nonce once (`steam_openid_nonces`). Steam is offered whenever `SITE_URL` is set. With the optional
+`STEAM_WEB_API_KEY`, new accounts take the player's public Steam name and avatar; without it they start
+unnamed. The key is a Convex environment variable and is never committed. Returning sign-ins keep the
+profile's chosen name. Use Resync in profile settings to refresh it from a linked provider.
+
+`steam_profile_lookups` keeps the latest sign-in lookup outcome and check time for each Steam identity.
+It distinguishes failed requests, missing profile fields, and complete results without storing request
+addresses or exception messages. A failed profile lookup does not prevent sign-in, and snapshots omit
+these diagnostic rows.
 
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old
@@ -122,6 +172,18 @@ A `profiles` document is created in Convex when an auth user is created or updat
 
 If a legacy user has no profile, the client's `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `profiles.session` returns a `userId` whose `profile` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.route.tsx).
 
+Each sign-in also records what the provider reported, by provider, in `linked_account_profiles`
+(`convex/lib/linkedAccountProfiles.ts`): the OAuth callback keeps Google's and Discord's name and picture,
+and the Steam sign-in keeps the player summary. The settings page's toolbar **Resync** action
+(`convex/accountResync.ts`) pulls from those records: Steam is asked live through the Web API, since
+its public profile needs no token from the reader, while Google and Discord offer what they sent at the
+last sign-in with them, because no OAuth token is kept. One method with something to offer is applied
+at once; several are offered on their rows and the reader takes one, which ends the offer. A method whose
+last sign-in came before these records existed has nothing to offer; its row offers a sign-in with it, which
+makes it report and returns to the tab, and nothing is applied on its own while such a method is connected. A provider name is reduced to a display name
+(letters and digits, five to thirty, not all capitals) or left out when it cannot be; a new picture goes
+through the avatar rehost, and a rename records the former address like a save from the form.
+
 **Hooks**: `useCurrentProfile()`, `useDefaultGroupPreference()`, `useProfileBySlug(slug)`,
 `useProfileDirectoryPage(args)`, `useUpdateCurrentProfile()`. Profile lookups are slug-based, never by id.
 
@@ -132,7 +194,8 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 A profile may also have a public BoardGameGeek profile link, edited in the Profile tab and saved
 with the rest of the draft. Its ownership is unverified. It cannot sign anyone in, satisfy the
 last-method guard or authorize a profile merge. Clearing the URL and saving removes the link.
-Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query strings and fragments.
+Only HTTPS BoardGameGeek profile URLs (`/user/<name>` or `/profile/<name>`) are accepted; saves store them
+as `https://boardgamegeek.com/profile/<name>` without query strings or fragments.
 The kept profile retains its own link during a merge.
 
 The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.

@@ -5,6 +5,7 @@ import viteReact from '@vitejs/plugin-react';
 import { defineConfig } from 'vite-plus';
 
 import { browserBundleBudgets } from '../../scripts/lib/browserBundleBudgets';
+import { quietBuildReportInCi } from '../../scripts/lib/quietBuildReport';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -13,11 +14,13 @@ export default defineConfig({
   /* Resolve shared static URLs; assembly supplies these files after the capture build. */
   publicDir: path.join(repositoryRoot, 'public'),
   resolve: { tsconfigPaths: true },
-  plugins: [viteReact(), browserBundleBudgets()],
+  plugins: [viteReact(), browserBundleBudgets(), quietBuildReportInCi()],
   build: {
     copyPublicDir: false,
     outDir: path.join(repositoryRoot, 'workers/publisher/dist'),
     emptyOutDir: true,
+    /* CI hides the per-file report (quietBuildReportInCi), so it skips gzipping every file just to size it. */
+    reportCompressedSize: !process.env.CI,
     rollupOptions: {
       input: path.join(repositoryRoot, 'publisher-capture.html'),
       output: {

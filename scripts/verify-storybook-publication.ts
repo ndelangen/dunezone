@@ -5,7 +5,7 @@ import { chromium, errors } from 'playwright';
 import type { Browser, Page } from 'playwright';
 
 import { rulebookCoverPresetCatalogue } from '../src/shared/rulebooks/coverPresets';
-import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
+import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck, stopProcess } from './storybook-publication-browser';
 import { decodeStoryImage } from './storybook-publication-images';
 
 const repositoryRoot = path.resolve(import.meta.dir, '..');
@@ -54,6 +54,12 @@ function buildEnvironment() {
     NODE_ENV: 'production',
     PATH: process.env.PATH ?? '',
     VITE_CONVEX_URL: 'https://storybook.invalid',
+    /* The workflow's quiet-Wrangler settings, which this fixed environment would otherwise drop. */
+    ...Object.fromEntries(
+      ['WRANGLER_HIDE_BANNER', 'WRANGLER_SEND_METRICS'].flatMap((name) =>
+        process.env[name] === undefined ? [] : [[name, process.env[name]]]
+      )
+    ),
   };
 }
 
@@ -127,24 +133,6 @@ async function waitForServer(process: ReturnType<typeof Bun.spawn>) {
     await Bun.sleep(100);
   }
   throw new Error(`Wrangler did not start ${origin}.`);
-}
-
-async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
-  process.kill();
-  const exited = await Promise.race([
-    process.exited.then(() => true),
-    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
-  ]);
-  if (exited) {
-    return;
-  }
-
-  process.kill('SIGKILL');
-  const killed = await Promise.race([
-    process.exited.then(() => true),
-    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
-  ]);
-  invariant(killed, 'Wrangler did not stop after SIGKILL.');
 }
 
 /**
@@ -457,6 +445,9 @@ async function verifyPublication() {
       'wrangler',
       'dev',
       '--local',
+      /* One request line per asset filled about 2,400 lines of every deploy log; failures still print. */
+      '--log-level',
+      'warn',
       '--ip',
       '127.0.0.1',
       '--port',
@@ -492,7 +483,7 @@ async function verifyPublication() {
     progress('Stopping the non-root static server.');
     await nonRootServer.stop(true);
     progress('Stopping the publication worker.');
-    await stopProcess(wrangler);
+    await stopProcess(wrangler, PROCESS_SHUTDOWN_TIMEOUT_MS, 'Wrangler');
   }
 
   console.log(JSON.stringify({ ok: true, workerPath, origin }));

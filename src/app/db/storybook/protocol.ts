@@ -21,15 +21,40 @@ export type WithSeedReferences<Value> =
           ? { [Key in keyof Value]: WithSeedReferences<Value[Key]> }
           : Value;
 
+/* The fields `insertFaction` writes, which a seeded faction with no parent may leave out. */
+type MadeWithItsFaction = 'family_id' | 'variant_name' | 'variant_slug';
+
+/** A row as a seed writes it: a faction may leave its Faction to be made with it, as `factions.create` makes it. */
+export type SeedRow<TableName extends TableNames> = WithSeedReferences<
+  TableName extends 'factions'
+    ? Omit<WithoutSystemFields<Doc<'factions'>>, MadeWithItsFaction> &
+        Partial<Pick<Doc<'factions'>, MadeWithItsFaction>>
+    : WithoutSystemFields<Doc<TableName>>
+>;
+
 export type SeedDocumentFor<TableName extends TableNames> = {
+  operation?: 'insert';
   key?: string;
   table: TableName;
-  value: WithSeedReferences<WithoutSystemFields<Doc<TableName>>>;
+  value: SeedRow<TableName>;
 };
 
-export type SeedDocument = {
+export type SeedInsertDocument = {
   [TableName in TableNames]: SeedDocumentFor<TableName>;
 }[TableNames];
+
+export type SeedPatchFor<TableName extends TableNames> = {
+  operation: 'patch';
+  key: string;
+  table: TableName;
+  value: Partial<WithSeedReferences<WithoutSystemFields<Doc<TableName>>>>;
+};
+
+export type SeedPatch = {
+  [TableName in TableNames]: SeedPatchFor<TableName>;
+}[TableNames];
+
+export type SeedDocument = SeedInsertDocument | SeedPatch;
 
 export type WorkerIdentity = {
   name?: string;
@@ -85,7 +110,7 @@ export type WorkerRequest =
   | { id: number; operation: 'action'; name: string; args: unknown; identity?: WorkerIdentity }
   | { id: number; operation: 'mutation'; name: string; args: unknown; identity?: WorkerIdentity }
   /* `elapsedMs` is how long after the seeding the story opens: the seeds keep the story clock's creation times, and every later request runs that much later. */
-  | { id: number; operation: 'reset'; seed: SeedDocument[]; elapsedMs?: number }
+  | { id: number; operation: 'reset'; seed: SeedDocument[]; elapsedMs?: number; discordVoice?: boolean }
   /* A seed reference resolved to its id or text, for a story that addresses a route by a generated id. */
   | { id: number; operation: 'resolve'; reference: SeedReference };
 

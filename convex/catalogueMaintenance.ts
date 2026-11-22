@@ -68,6 +68,7 @@ export const catalogueDrift = internalQuery({
   args: {
     kind: v.union(
       v.literal('faction'),
+      v.literal('faction_family'),
       v.literal('asset'),
       v.literal('profile'),
       v.literal('faq'),

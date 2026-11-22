@@ -106,8 +106,10 @@ describe('A real game provisions from its ruleset', () => {
       slug: 'classic',
       name: 'Classic',
     });
-    /* A room that exists refuses another provisioning request and recaptures nothing. */
+    /* A room that exists refuses another provisioning request before asking Convex again, and recaptures nothing. */
+    const validations = reads('playProvisioning:validateProvisioning');
     expect((await provision(runtime)).status).toBe(403);
+    expect(reads('playProvisioning:validateProvisioning')).toBe(validations);
     expect(reads('playCatalogue:rulesetSupply')).toBe(1);
 
     const creator = await admitPlayer(runtime, 'a');

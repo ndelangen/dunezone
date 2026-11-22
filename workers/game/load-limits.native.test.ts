@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { PLAY_CONFIRMATION_RETRY_MS, PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission.ts';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol.ts';
 import type { NativeMessage } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
@@ -59,7 +60,7 @@ describe('isolated load limits in native workerd', () => {
   }
   async function admit() {
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit' as const, pass: await fixturePass('a') });
+    connection.send({ type: 'admit' as const, protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
     await connection.message('view');
     return connection;
   }
@@ -166,7 +167,7 @@ describe('isolated load limits in native workerd', () => {
     expect((await runtime.loadControl()).messages).toBe(2);
     await runtime.restart();
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit' as const, pass: await fixturePass('a') });
+    connection.send({ type: 'admit' as const, protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
     await eventually(() => connection.closed, 'remaining reservation exhausted');
     expect((await runtime.loadControl()).stopped).toBe('messages-budget');
   });

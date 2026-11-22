@@ -1,10 +1,12 @@
-import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Radio, Stack, Switch, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
+import { useStore } from '@tanstack/react-form';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 
 import type { FactionFormApi } from './factionFormTypes';
+import { InheritableControlBlock, useInheritableField } from './FactionInheritance';
 
 function isBlank(value: string | undefined) {
   return value == null || value.trim().length === 0;
@@ -18,12 +20,13 @@ function advisory(blank: boolean, text: string) {
 function SetupFields({ form }: { form: FactionFormApi }) {
   return (
     <Stack component="section" gap="md" aria-label="Setup and revival">
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+      <Stack gap="md">
         <Stack gap="md">
           <form.Field name="rules.startText">
             {(field) => {
               return (
-                <ControlBlock
+                <InheritableControlBlock
+                  field="rules.startText"
                   title="Starting instructions"
                   inputId="rules-start"
                   warning={advisory(isBlank(field.state.value), 'Starting instructions are empty.')}
@@ -48,7 +51,8 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           <form.Field name="rules.revivalText">
             {(field) => {
               return (
-                <ControlBlock
+                <InheritableControlBlock
+                  field="rules.revivalText"
                   title="Revival instructions"
                   inputId="rules-revival"
                   warning={advisory(isBlank(field.state.value), 'Revival instructions are empty.')}
@@ -68,40 +72,68 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           </form.Field>
         </Stack>
 
-        <form.Field name="rules.spiceCount">
-          {(field) => (
-            <ControlBlock
-              title="Starting spice"
-              description="Rendered in At start as “Starting spice: N”; use a positive whole number."
-              inputId="rules-spice"
-              input={(fieldProps) => (
-                <NumberInput
-                  {...fieldProps}
-                  min={1}
-                  step={1}
-                  allowDecimal={false}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(value) =>
-                    field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
-                  }
-                />
-              )}
-            />
-          )}
-        </form.Field>
-      </SimpleGrid>
+        <Stack gap="md">
+          <form.Field name="rules.spiceCount">
+            {(field) => (
+              <InheritableControlBlock
+                field="rules.spiceCount"
+                title="Starting spice"
+                description="Rendered in At start as “Starting spice: N”; use a positive whole number."
+                inputId="rules-spice"
+                input={(fieldProps) => (
+                  <NumberInput
+                    {...fieldProps}
+                    min={1}
+                    step={1}
+                    allowDecimal={false}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(value) =>
+                      field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
+                    }
+                  />
+                )}
+              />
+            )}
+          </form.Field>
+
+          <form.Field name="rules.treacheryTracker">
+            {(field) => (
+              <InheritableControlBlock
+                field="rules.treacheryTracker"
+                title="Treachery tracker"
+                description={
+                  'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
+                }
+                inputId="rules-treachery-tracker"
+                input={(fieldProps) => (
+                  <Switch
+                    {...fieldProps}
+                    checked={field.state.value ?? false}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.checked || undefined)}
+                  />
+                )}
+              />
+            )}
+          </form.Field>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }
 
 function FateFields({ form }: { form: FactionFormApi }) {
+  const label = factionSpecialRuleLabel(useStore(form.store, (state) => state.values.rules.fate.label));
+  const inheritance = useInheritableField('rules.fate', label);
+  if (inheritance.parentValue) {
+    return inheritance.parentValue;
+  }
   return (
     <form.Field name="rules.fate.label">
       {(labelField) => {
-        const label = factionSpecialRuleLabel(labelField.state.value);
         return (
-          <Section title={label}>
+          <Section title={label} action={inheritance.choice}>
             <ControlBlock
               title="Section name"
               description="Used on this faction's page, in Play, and on its sheet and PDF."

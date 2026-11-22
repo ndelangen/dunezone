@@ -3,10 +3,10 @@
 [Separate the hosted Play subscription from local interactions](https://github.com/ndelangen/dunezone/issues/1252)
 records the accepted ownership and recovery contract.
 
-`GameSubscription` owns one authenticated player's received view. It obtains admission tickets,
-opens and retires sockets, validates messages, assembles patches and requests a fresh view when
-an update cannot apply. Old ticket attempts and retired sockets cannot update the current
-subscription. A fresh full view is required before gameplay commands can resume.
+`GameSubscription` owns one authenticated player's received view. It obtains seat passes
+(`requestPlayAdmission` in `src/app/db/play.ts`), opens and retires sockets, validates messages,
+assembles patches and requests a fresh view when an update cannot apply. Old admission attempts and
+retired sockets cannot update the current subscription. A fresh full view is required before gameplay commands can resume.
 
 `TableSession` owns selection, unfinished carries, pending actions, playback and presentation.
 It reads the saved snapshot and viewer from the subscription. It receives command replies and
@@ -35,16 +35,18 @@ browser never fires a close event. `GameSubscription` sends a keepalive ping eve
 Any frame the socket delivers, a pong included, resets the count; a socket that stays silent for a
 whole interval after a ping is closed and replaced. When the browser reports it is back online
 (`GameRuntime.onOnline`), a plain one-second reconnect waiting on its timer starts at once (a
-longer wait the Worker or the ticket answer asked for is kept), and an open socket is pinged at once
+longer wait the Worker or the pass request asked for is kept), and an open socket is pinged at once
 with a whole interval for its answer.
 
 A failure before the table has shown keeps its reason on screen through every retry, until a view
 arrives or the subscription stops: a socket that closes before its view, a dropped silent socket or
-a ticket request that fails reads "The table could not be reached. Reconnecting...", a socket that
-cannot be opened reads "The table could not connect. Reconnecting...", and a ticket the game turns
-away reads "The table is temporarily unavailable." Two answers end the subscription instead of
-retrying: a `not_authorized` ticket answer is denied with "Sign in again to access the table.", and a
-socket closed with 4401 is denied with "This login can no longer access the table." A socket that drops
+a pass request that fails reads "The table could not be reached. Reconnecting...", a socket that
+cannot be opened reads "The table could not connect. Reconnecting...", and a pass request the game
+turns away reads "The table is temporarily unavailable." Three answers end the subscription instead
+of retrying: a `not_authorized` pass answer is denied with "Sign in again to access the table.", a
+socket closed with 4401 is denied with "This login can no longer access the table.", and a socket
+closed with 4426, a page older than the Worker's protocol, is denied with "This table needs a newer
+version of the page. Refresh to continue." ([protocol version](./play-hosted.md#protocol-version)). A socket that drops
 after the table has shown reconnects without keeping a failure line, so a deploy's cold restart does
 not read as an outage.
 

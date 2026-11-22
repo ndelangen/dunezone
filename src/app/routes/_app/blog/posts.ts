@@ -34,7 +34,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'learn-to-play-dune-online': {
     slug: 'learn-to-play-dune-online',
     title: 'Learn to play Dune online in 21 short chapters: inside the dune.zone tutorial',
-    date: '2026-11-07',
+    date: '2026-11-22',
     author: 'Central419',
     summary:
       "The dune.zone tutorial won't let you click Next, on purpose. It's 21 short chapters on the real game table, running in your browser, with practice players who talk back and confetti at the end.",

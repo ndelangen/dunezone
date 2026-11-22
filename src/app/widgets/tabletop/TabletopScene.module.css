@@ -232,7 +232,9 @@
   text-align: center;
 }
 
-:global([data-show-counts="true"]) .pieceCount {
+:global([data-show-counts="true"]) .pieceCount,
+.pieceTag[data-hovered] .pieceCount,
+.pieceTag[data-hovered] .pieceName {
   visibility: visible;
 }
 

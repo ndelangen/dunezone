@@ -6,6 +6,7 @@ import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
@@ -122,7 +123,10 @@ function describeSandbox() {
  * Starts a sandbox at a journey step (0-based) viewed as a seat, and the scripted transport around it.
  * Storybook runs a story's `beforeEach` again on every change of its arguments without unmounting the page, so a page already connected keeps its transport: a new start restarts the table on it, a new seat views it as that seat.
  */
-export function sandboxTransport(place: SandboxStart) {
+export function sandboxTransport(
+  place: SandboxStart,
+  { treacheryDeck = null }: Readonly<{ treacheryDeck?: TreacheryDeckCard[] | null }> = {}
+) {
   if (sandbox.transport?.connected()) {
     const table = sandbox.table!;
     if (table.start !== clampStart(place.start)) {
@@ -140,6 +144,7 @@ export function sandboxTransport(place: SandboxStart) {
   sandbox.table = table;
   const transport = storyTransport(table.seat as Viewer['viewerSeat'], table.frame().snapshot, {
     factions: capturedFactions(),
+    treacheryDeck,
     admitView: () => sandbox.table!.frame(),
     logEntries: () => sandbox.table!.log(),
     receive: (message) => sandbox.table!.receive(message as TableMessage),
@@ -206,11 +211,14 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
 
-/* The seat the recording's deal gave the Emperor, the faction with two kinds of troops; the deal is random, so it differs per recording. */
-const emperorSeat = () =>
+/** The seat the recording's deal gave a faction; the deal is random, so it differs per recording. */
+export const seatOf = (faction: string) =>
   journeySteps()
     .at(-1)!
-    .views['seat-1']!.snapshot.roster!.seats.find((entry) => entry.faction?.id === 'emperor')!.id;
+    .views['seat-1']!.snapshot.roster!.seats.find((entry) => entry.faction?.id === faction)!.id;
+
+/* The Emperor is the faction with two kinds of troops. */
+const emperorSeat = () => seatOf('emperor');
 
 /** A sandbox at Shipment and Movement as the Emperor's seat, its troops in a mess for carrying back to their reserves. */
 export const messyReservesSandbox = {

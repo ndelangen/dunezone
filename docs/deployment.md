@@ -102,7 +102,7 @@ every browser-only path and every unknown URL. The homepage follows this rule, a
 assembly fails if the shell carries any of the three.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
 the shared layout, homepage, faction catalogue and detail, asset catalogue, type listings and detail pages
-also render on the server, as do the Glossary, Future plans and Privacy pages, the media catalogue and
+also render on the server, as do the Glossary, Future plans, Tools and Privacy pages (with each tool below /tools), the media catalogue and
 its eight game galleries, which have no record behind them. Their anonymous page result supplies visible content and metadata.
 The browser hydrates that result, then its existing Convex subscription supplies live content and
 permissions. Management controls wait for that live result. Login-required pages stay browser-only.
@@ -124,23 +124,14 @@ stack traces keep function names, but frames show bundle file and line numbers r
 
 ### Browser files across deployments
 
-A new HTML cache key cannot repair a document already open in a browser. Before deploying, the
-workflow reads the current site's `application-assets.json` and copies older hashed browser files
-into the new Static Assets upload. Files in the previous current build remain available for at
-least seven days after replacement. Subsequent releases carry their original expiry forward, then
-omit them after that window. No request-time R2 lookup or new storage binding is involved.
-
-The manifest lists only hashed `/public/` files. Downloads must match their SHA-256 and byte count;
-a reused URL with different bytes fails the release. The existing Static Assets count and file-size
-gates apply after retention. A missing or corrupt manifest stops deployment once this feature has
-shipped. The initial rollout imports the currently deployed Vite dependency graph from the live shell,
-including dynamic imports, preload maps, stylesheets and their hashed resources. It rejects HTML
-fallbacks masquerading as missing scripts. Tabs already broken before rollout, or left open beyond
-seven days after replacement, may still need a refresh. Stable artwork and font URLs retain their existing delivery rules.
+Each release uploads only its own hashed browser files; older releases' chunks are not kept. A tab
+left open across a deploy may fail to load a lazy chunk and need a refresh. This keeps deploys fast
+and the Static Assets count well under Cloudflare's 20,000-file limit. Stable artwork and font URLs
+retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build, bundle retention and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
+PR CI runs it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment does not repeat it: main only accepts a merge whose PR checks passed on an up-to-date branch, so a normal merge deploys a tree whose publisher inputs CI rehearsed, possibly by reusing an earlier pass on identical inputs (the reasoning that removed the deploy-time verify job in #286). An admin-bypass merge or a direct push to main ships without it. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 
@@ -148,11 +139,8 @@ The live smoke normally makes one public Dream Rulebook request and requires pub
 
 ### Forward fixes
 
-Ship a corrected commit through the normal deployment workflow. Keep the retention step and the
-versioned HTML identity in place; do not replace the current release with an old asset directory.
-If retention fails, leave the current deployment serving traffic, inspect the manifest or failed
-asset digest, and fix the release input before deploying. Do not skip retention to turn a failed
-build green. Verify health's Git SHA and application version, then fetch a public document and one
+Ship a corrected commit through the normal deployment workflow. Keep the versioned HTML identity in
+place; do not replace the current release with an old asset directory. Verify health's Git SHA and application version, then fetch a public document and one
 of its scripts. The combined SEO release has its own live acceptance ticket.
 
 The release checks report both raw and compressed bundle size and measure local startup. Cloudflare's
@@ -196,9 +184,10 @@ Edition HTML/PDF delivery or its latest-ready resolver.
 The public `Asset Temporarily Unavailable` response stays generic. In Workers Logs, filter
 `event = asset_delivery_failure` and the faction's `assetId`, then narrow the incident time.
 Each event records `operation`, `reason`, `result`, the request method and `elapsedMs` for
-the failed operation. A valid `rayId` links the event to the request; Cloudflare's invocation
-metadata supplies the Worker version and request ID. Every emitted delivery-failure event uses
-a sampling rate of one.
+the failed operation. A valid `rayId` links the event to the request; Cloudflare enriches custom
+logs with Worker version and request ID metadata. Every emitted delivery-failure event uses
+a sampling rate of one. A failed HTTP response also emits a compact `publisher_request` event
+with the release identity and Ray ID.
 
 `r2_head` identifies a failed metadata read. `r2_get` identifies a failed object read or
 distinguishes `missing_object`, `missing_body` and `etag_mismatch` after metadata was found.
@@ -212,6 +201,31 @@ Cache failures use `cache_match`, `cache_range_match` or `cache_put`. Their `res
 failure that returns 503 has `result = unavailable`. Ordinary 404 responses for absent
 publications and successful requests emit no delivery-failure event. If the provider supplies
 no detailed cause, the operation and request correlation remain available for investigation.
+
+### Request log collection
+
+The publisher keeps every HTTP error and thrown handler exception. It also keeps responses whose
+runtime-clock elapsed time reaches one second. It samples other responses at 1%, including WebSocket upgrades. The
+`publisher_request` event records `reason`, `sampleRate`, `method`, `route`, `status`, `elapsedMs`,
+`rayId`, `gitSha` and `workerVersionId`. The route is an allowlisted family, never a raw path.
+An exception has no HTTP status because the handler did not return a response.
+Streams, WebSocket lifetimes and background work are not part of this duration.
+Cloudflare advances the deployed runtime clock only after I/O, so this threshold can miss CPU-only
+delays. Use Workers Metrics and CPU profiling for those delays. Local workerd clocks behave
+differently; see [Cloudflare's timing documentation](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+
+`observability.logs.invocation_logs` is false, while `head_sampling_rate` remains one. This removes
+verbose automatic request records without sampling away application diagnostics or publishing
+results. `observability.issues.enabled` keeps native failure detection enabled across deployments.
+Use [Workers Issues](https://developers.cloudflare.com/workers/observability/issues/investigate/)
+and Metrics for failed invocations that application code cannot catch, including resource limits.
+The compact request event does not preserve the automatic record's full metadata.
+
+To verify a rollout, compare equal observation windows on either side of the deployment. Count
+stored events and their bytes for this Worker, and divide both by Worker request counts to avoid
+confusing a traffic change with a logging reduction. Check that `publisher_request` samples and
+unsampled errors, slow requests and `asset_publisher_cron` results arrive. Record the observation
+window and sample size with the result; a short window is not a monthly billing forecast.
 
 ### Hosted gameplay
 
@@ -283,8 +297,8 @@ dispatch through the same action, which skips them when `main`'s tree already ha
 from the last daily run that checked this commit or from the pull request that merged as it when
 that merge was up to date and its diff reached the closure. A red daily run opens or extends one
 issue labelled `hosted-play-daily`.
-Four other verify jobs (`game_release`, `publisher_release`, each story shard and each e2e shard)
-reuse an earlier pass instead of skipping on a diff. Each one hashes the git blobs of the files it
+Every other verify job but `lint` (`test`, `generate_and_build`, `browser_checks`, `game_release`,
+`publisher_release`, each story shard and each e2e shard) reuses an earlier pass instead of skipping on a diff. Each one hashes the git blobs of the files it
 reads, as
 [`scripts/lib/ci-job-inputs.ts`](../scripts/lib/ci-job-inputs.ts) lists them, and its last step
 uploads a `ci-pass-*` record named by that hash, holding its coverage report. On a pull request, a
@@ -293,6 +307,13 @@ skips its checks, and uploads the restored report under its usual flag. Codecov 
 every flag on every full run, and coverage never depends on carryforward from `main`, which uploads none.
 The unit test of that file holds each job's list to the import graph of its suites and entry
 points. A file a job reads without importing it must be listed by hand.
+Prose and the files only agents, editors and other services load (`.agents/`, `.claude/`,
+`skills-lock.json` and the like) count for no job but `lint`, so a pull request that changes only
+those reuses every other job's pass from `main`. The unit test also refuses a script, configuration
+or workflow that names one of those paths, unless it is a lint check or only leaves the path out.
+`test` records a pass only from a full run, since a draft runs only the affected unit tests.
+Chromatic runs only when the merge commit gives the story job another key than the base branch does;
+otherwise `main`'s own build already holds every story as it renders.
 On a draft pull request only `lint`, `test` and `game_release` run, and the closing job reports
 as `ci_draft` instead of `ci_ok`, so a draft's run never satisfies the required check. Codecov
 then receives only the `unit` and `game` flags. Marking the pull request ready for review starts
@@ -420,7 +441,10 @@ deploying. In every other case the `deploy` job runs:
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
    it.
-2. Deploy Convex and run required migrations.
+2. Deploy Convex and run required migrations. Since Convex 1.47, `convex deploy` exits before
+   pushing when it would create or change an index on a table of 100,000 documents or more, because
+   CI cannot answer its confirmation. Stage such an index (`staged: true`) and enable it in a later
+   release once it has backfilled.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
@@ -429,9 +453,9 @@ deploying. In every other case the `deploy` job runs:
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
-8. Remove raster copies served from R2, then retain the previous browser bundles. Check the final
-   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
-   raster copies because its buckets start empty.
+8. Remove raster copies served from R2. Check the final
+   Static Assets file count and reject generated-source drift. Local rehearsals keep the raster
+   copies because their buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
@@ -443,7 +467,9 @@ deploying. In every other case the `deploy` job runs:
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
     seconds. An unexpected refusal stops the check, and a token that never becomes usable fails at
     the deadline. Once ready, `bun run media:publish --rotated-token` uploads the
-    variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
+    variants R2 lacks to `/m`. It HEADs only the variants the `media-verified-*` Actions cache has not
+    already proved: R2 objects are create-only, so a proved variant stays stored, and a cache miss
+    HEADs them all. A failure here leaves the
     previous release serving; see [Media runbooks](./technical/media-runbooks.md).
     During that command's first minute, a write that reaches a stale bearer rechecks readiness and
     retries the identical write. That window is shared by the whole command, and ordinary publishing
@@ -457,8 +483,11 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-13. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
-    smoke its manager, page index, preview entry, CSP, and shared public assets.
+13. A `storybook_build` job, running beside the deploy job after the same gate, builds and verifies the
+    secret-free Storybook artifact. Once the deploy job has finished, steps 14 to 16 included, `storybook_deploy` deploys that
+    artifact to `storybook.dune.zone` and smokes its manager, page index, preview entry, CSP, and shared
+    public assets. It waits because Storybook proxies `/m`, `/image`, `/web` and `/published` to
+    `dune.zone`, which must already serve this release's media. A failure in either job fails the run.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
@@ -520,7 +549,10 @@ and deploys the older commit even over a later release. "Re-run all jobs" asks t
 stops the run once production has a later commit.
 
 To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
-rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+rerun that run. "Re-run failed jobs" picks up at the failed job: after a failed Storybook deploy it
+reruns just `storybook_deploy`, and after a failed Storybook build it reruns the build and then the
+deploy. The built Storybook is kept for seven days, so a later deploy-only retry needs "Re-run all
+jobs" or a new run. "Re-run all jobs" deploys the commit
 again from the start, because the gate stops a commit production already has only on a run's first
 attempt. A dispatched run, or a second push event for the same merge, is a first attempt: while both
 Workers report that commit, it stops at the gate only if an earlier run for the commit finished
@@ -586,8 +618,11 @@ else who calls it directly.
 ## Pull-request Cloudflare drift guard
 
 `.github/workflows/cloudflare-live-drift.yml` compares production Cloudflare state
-with trusted `main` on every pull request. It uses `pull_request_target`, checks out
-only the base SHA, and never executes pull-request-authored code.
+with trusted `main` on every pull request. It runs on `pull_request`, because GitHub
+blocks `pull_request_target` in public repositories from 2 December 2026. It checks out
+the base branch, not the pull request head, so the audit script is always main's. A fork
+pull request gets no secrets, so its audit fails; open such a change from a branch in this
+repository instead.
 
 Configure `CLOUDFLARE_READ_API_TOKEN` with only:
 
@@ -753,7 +788,8 @@ Two Three vendor payloads have separate limits:
 The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
 JavaScript. Their larger budgets preserve the renderer's module resolution. The client build's `three` chunk group
 (`THREE_BUILD`, shared with the budget) holds the three WebGPU modules together, whichever chunks import them. The build reports each
-verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+verified payload and its budget. Vite's own 500 kB advisory is switched off (`chunkSizeWarningLimit`), because these
+budgets already fail any oversized client chunk.
 A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
 
 Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware

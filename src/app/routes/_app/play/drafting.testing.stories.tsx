@@ -4,7 +4,13 @@ import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
 import { windowNamed } from './controls.stories.fixture';
-import { draftingSnapshot, storyPlayer, headerAlert, NOT_READY } from './drafting.stories.fixture';
+import {
+  draftingSnapshot,
+  storyPlayer,
+  headerAlert,
+  NOT_READY,
+  variantDraftingSnapshot,
+} from './drafting.stories.fixture';
 import { drafting, gameMeta, install, lastCommand, MIDWAY, press, session, shows } from './game.stories.fixture';
 import { productTransport, parameters, SIX } from './product.stories.fixture';
 
@@ -188,6 +194,65 @@ export const SearchedFactions = meta.story({
     await expect(list().getByText('Ecaz (Ecaz/Moritani)')).toBeVisible();
     await expect(list().getByText('Moritani (Ecaz/Moritani)')).toBeVisible();
     await expect(page.getByRole('switch', { name: 'Show all factions' })).not.toBeChecked();
+  },
+});
+
+/** A faction's row in the panel's list, found by the whole name its token carries. */
+function factionRow(page: ReturnType<typeof within>, name: string) {
+  const list = within(page.getByRole('list', { name: 'Factions' }));
+  return within(list.getByRole('img', { name }).closest('li') as HTMLElement);
+}
+
+/**
+ * A game deals one variant per Faction: with Atreides drafted as Classic, its other variants say so and cannot be drafted beside it.
+ * A Faction with one variant names no variant, and reads as it did before variants.
+ */
+export const SiblingOfADraftedVariant = meta.story({
+  beforeEach: install(() =>
+    productTransport('seat-2', variantDraftingSnapshot(SIX, 6, { picks: { 'seat-1': ['house-atreides-classic'] } }))
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('list', { name: 'Factions' }));
+    for (const sibling of ['House Atreides · Original', 'House Atreides · Kwisatz Haderach']) {
+      const row = factionRow(page, sibling);
+      await expect(row.getByText('Drafted as Classic')).toBeVisible();
+      const draft = row.getByRole('button', { name: 'Draft' });
+      await expect(draft).toHaveAttribute('aria-disabled', 'true');
+      await expect(draft).toHaveAccessibleDescription('Drafted as Classic.');
+    }
+    /* The drafted variant itself stays open to a second player. */
+    await expect(
+      factionRow(page, 'House Atreides · Classic').getByRole('button', { name: 'Draft' })
+    ).not.toHaveAttribute('aria-disabled');
+    /* Fremen has the one variant, so its row is its name alone. */
+    await expect(factionRow(page, 'Fremen').getByText('Fremen', { exact: true })).toHaveTextContent(/^Fremen$/);
+    await press(() => factionRow(page, 'Fremen').getByRole('button', { name: 'Draft' }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({ type: 'command', action: { kind: 'draft-pick', factionId: 'fremen' } })
+    );
+  },
+});
+
+/** A ban covers the whole Faction: banning one Harkonnen variant shows on the other with who banned it, and that seat lifts its ban from either row. */
+export const BanLiftedFromASibling = meta.story({
+  beforeEach: install(() =>
+    productTransport('seat-3', variantDraftingSnapshot(SIX, 6, { bans: { 'seat-3': ['house-harkonnen-brutal'] } }))
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await shows(() => page.getByRole('list', { name: 'Factions' }));
+    const sibling = () => factionRow(page, 'House Harkonnen · Original');
+    await expect(sibling().getByText('Banned; remove every ban on it first')).toBeVisible();
+    await expect(sibling().getByRole('link', { name: SIX[2]!.name })).toBeVisible();
+    await expect(sibling().getByRole('button', { name: 'Draft' })).toHaveAttribute('aria-disabled', 'true');
+    await press(() => sibling().getByRole('button', { name: 'Banned', pressed: true }));
+    await waitFor(() =>
+      expect(lastCommand()).toMatchObject({
+        type: 'command',
+        action: { kind: 'draft-unban', factionId: 'house-harkonnen' },
+      })
+    );
   },
 });
 

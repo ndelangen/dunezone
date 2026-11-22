@@ -13,6 +13,7 @@ export function isReadRequest(message: ClientMessage) {
     'log-history',
     'conversation-history',
     'faction',
+    'treachery-deck',
     'metrics',
   ].includes(message.type);
 }

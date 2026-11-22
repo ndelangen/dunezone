@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
 describe('asset catalogue', () => {
@@ -81,7 +82,8 @@ describe('deck cardback reference on the page', () => {
       imageScale: 1,
       background: {},
     };
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Deck owner' });
       const base = {
         owner_id: ownerId,
@@ -130,7 +132,7 @@ describe('deck cardback reference on the page', () => {
     expect(wearer?.asset.previewHref).toBe(target.previewHref);
     expect(wearer?.asset.data.cardback.mode).toBe('reference');
     expect(reference.data.cardback.name).toBe('Treachery');
-    const browse = await t.query(api.assets.browsePage, { type: 'deck' });
+    const browse = await t.query(api.assets.catalogue, { type: 'deck' });
     expect(browse.entries.find((entry) => entry.slug === 'wearer')?.previewHref).toBe(target.previewHref);
     const picker = await t.query(api.assets.listByTypes, { types: ['deck'] });
     expect(picker.find((entry) => entry.slug === 'wearer')?.previewHref).toBe(target.previewHref);
@@ -143,10 +145,11 @@ describe('deck cardback reference on the page', () => {
   });
 });
 
-describe('browse page', () => {
-  test('lists the page newest first and owns up to a full page, without deriving membership', async () => {
+describe('catalogue browse', () => {
+  test('lists the page newest first, without deriving membership', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Asset owner' });
       const base = { owner_id: ownerId, group_id: null, is_deleted: false };
       const stamps = { created_at: '2026-08-10T00:00:00.000Z', updated_at: '2026-08-10T00:00:00.000Z' };
@@ -179,12 +182,12 @@ describe('browse page', () => {
       });
     });
 
-    const cards = await t.query(api.assets.browsePage, { type: 'card-treachery' });
+    const cards = await t.query(api.assets.catalogue, { type: 'card-treachery' });
     /* Deck membership left this payload with the tile's meta line (Norbert, 2026-08-21): a browse entry is the listing shape plus member previews, nothing derived. */
     expect(cards.entries.map((entry) => entry.slug)).toEqual(['orphan', 'lasgun']);
-    expect(cards.truncated).toBe(false);
+    expect(cards).toMatchObject({ total: 2, complete: true });
 
-    const decks = await t.query(api.assets.browsePage, { type: 'deck' });
+    const decks = await t.query(api.assets.catalogue, { type: 'deck' });
     expect(decks.entries.map((entry) => entry.slug)).toEqual(['house-treachery']);
   });
 });

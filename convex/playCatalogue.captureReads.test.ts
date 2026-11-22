@@ -11,6 +11,7 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { toStoredHeroKey } from '../src/shared/factions/schema';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 describe('the catalogue reads Play captures from', () => {
   test('a faction reads with its token and leader faces, keeping a face whose replacement is still pending', async () => {
@@ -26,8 +27,8 @@ describe('the catalogue reads Play captures from', () => {
         is_deleted: false,
         group_id: null,
       };
-      const factionId = await ctx.db.insert('factions', { ...row, slug: 'atreides' });
-      const deletedId = await ctx.db.insert('factions', { ...row, slug: 'gone', is_deleted: true });
+      const factionId = await insertFactionRow(ctx, { ...row, slug: 'atreides' });
+      const deletedId = await insertFactionRow(ctx, { ...row, slug: 'gone', is_deleted: true });
       await ctx.db.insert('publication_assets', {
         asset_type: 'faction-token',
         asset_id: factionId,
@@ -74,7 +75,7 @@ describe('the catalogue reads Play captures from', () => {
 
     const definition = await t.query(api.playCatalogue.factionDefinition, { factionId });
     expect(definition).toMatchObject({
-      faction: { id: factionId, slug: 'atreides', name: assetPublishingFaction.name },
+      faction: { id: factionId, slug: 'atreides-original', name: assetPublishingFaction.name },
       data: toStoredHeroKey(assetPublishingFaction),
       cardbacks: {
         traitor: '/published/cardback-presets/traitor/cardback.jpg?v=traitor-1',

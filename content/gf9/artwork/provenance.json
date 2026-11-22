@@ -37,6 +37,70 @@
       "reference": "https://www.gf9games.com/dune/wp-content/uploads/EcazMoritani-Rulebook-LOWRES.pdf",
       "referencePage": 3,
       "promptFile": "duke-prad-vidal-prompt.txt"
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-house-colus.svg",
+      "referenceImages": ["landsraad/colus-reference-1.png", "landsraad/colus-reference-2.png"],
+      "traceInput": "landsraad/trace-input-colus.png",
+      "operation": "AI-assisted bitmap reconstruction from user-supplied promotional screenshots, thresholded at 128 and traced with Potrace 1.16, turdsize 8 and opttolerance 0.15.",
+      "selection": "User selected the earlier flowing Colus design on 2026-11-14.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-house-hagal.svg",
+      "referenceImages": ["landsraad/hagal-reference-1.png"],
+      "traceInput": "landsraad/trace-input-hagal.png",
+      "operation": "AI-assisted bitmap reconstruction from user-supplied promotional screenshots, thresholded at 128 and traced with Potrace 1.16, turdsize 8 and opttolerance 0.15.",
+      "selection": "Seven-rib revision with a continuous bottom hinge.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-house-molay.svg",
+      "referenceImages": ["landsraad/molay-reference-1.png", "landsraad/molay-reference-2.png"],
+      "traceInput": "landsraad/trace-input-molay.png",
+      "operation": "AI-assisted bitmap reconstruction from user-supplied promotional screenshots, thresholded at 128 and traced with Potrace 1.16, turdsize 8 and opttolerance 0.15.",
+      "selection": "Latest reviewed bitmap revision.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-house-thorvald.svg",
+      "referenceImages": ["landsraad/thorvald-reference-1.png", "landsraad/thorvald-reference-2.png"],
+      "traceInput": "landsraad/trace-input-thorvald.png",
+      "operation": "AI-assisted bitmap reconstruction from user-supplied promotional screenshots, thresholded at 128 and traced with Potrace 1.16, turdsize 8 and opttolerance 0.15.",
+      "selection": "Latest reviewed bitmap revision.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-house-vok.svg",
+      "referenceImages": ["landsraad/vok-reference-1.png", "landsraad/vok-reference-2.png"],
+      "traceInput": "landsraad/trace-input-vok.png",
+      "operation": "AI-assisted bitmap reconstruction from user-supplied promotional screenshots, thresholded at 128 and traced with Potrace 1.16, turdsize 8 and opttolerance 0.15.",
+      "selection": "Latest reviewed bitmap revision.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
+    },
+    {
+      "assetKey": "/vector/emblem/landsraad-five-houses.svg",
+      "referenceImages": ["landsraad/combined-reference.png"],
+      "operation": "The five traced house marks arranged as negative cutouts in five disks linked by a thin ring inside a double border, following the promotional Landsraad seal. The individual marks are reused upright for readability.",
+      "source": "Gale Force Nine, Dune: Kwisatz Haderach Edition, Landsraad promotional artwork",
+      "sourceUrl": "https://gamefound.com/en/projects/gf9/dune",
+      "artist": "Individual symbol designer not verified",
+      "approval": "User requested adding the reviewed emblems as a landsraad group with source credit on 2026-11-14."
     }
   ]
 }

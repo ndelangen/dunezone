@@ -5,11 +5,11 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
 import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
 
 import { storedTableText } from '../../../db/tabletop/storedTable';
 import { StorybookPage } from '../../storybook';
 import { gameMeta, install, session } from './game.stories.fixture';
-import { browserGameRuntime } from './multiplayer/gameRuntime';
 import { nativeGetContext, withoutGraphics, expectGraphicsMessage } from './opening.stories.fixture';
 import { tablePage } from './playing.stories.fixture';
 import {
@@ -323,10 +323,10 @@ export const WithoutGraphicsDevice = meta.story({
 });
 
 /*
- * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
- * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ * Once account access is established, an unreachable directory and table leave the saved table locked under the reconnecting bar instead of the unreachable notice (#1746).
+ * This story supplies account access, an auth token naming the transport's viewer and the table stored under it. A fresh signed-in reload without Convex replies waits at the root account-access gate instead.
  */
-export const ReloadedWhileUnreachable = meta.story({
+export const ReloadedWhileGameDirectoryIsUnreachable = meta.story({
   args: { path: `/play/${STORED_GAME}` },
   decorators: [convexNeverAnswers],
   beforeEach: () => {

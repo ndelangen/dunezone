@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionPageAs } from './viewerAccess.test.fixture';
 
 const now = '2026-08-09T00:00:00.000Z';
@@ -58,7 +59,7 @@ async function softDeletionFixture() {
         approved_by: ownerId,
       }),
     };
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: assetOwnerId,
       data: { ...structuredClone(assetPublishingFaction), name: 'Collaborative Faction' },
       slug: 'collaborative-faction',

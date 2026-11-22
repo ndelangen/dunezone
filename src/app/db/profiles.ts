@@ -2,12 +2,13 @@ import { GROUP_STANDINGS_STEP } from '@shared/profiles/catalogueSearch';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
-import { useMutation } from 'convex/react';
+import { useConvexAuth, useMutation } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
+import { storedAuthToken } from '@db/playTables';
 import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
@@ -233,3 +234,23 @@ export function useUpdateCurrentProfile() {
 }
 
 export type { ProfileUserEditInput };
+
+const noHydrationEvents = () => () => {};
+const hydratedSnapshot = () => true;
+const serverSnapshot = () => false;
+
+/**
+ * Blocks signed-in pages until the account's access state is known.
+ * Anonymous server rendering remains public.
+ * Convex Auth reports loading on every first client render, even for a browser that holds no token, so only a stored token makes that wait count: a visitor who never signed in keeps the server's page through hydration rather than watching it swap for the pending line and remount, which also dropped a click made in between.
+ */
+export function useAccountBanState() {
+  const hydrated = useSyncExternalStore(noHydrationEvents, hydratedSnapshot, serverSnapshot);
+  const auth = useConvexAuth();
+  const session = useLiveQuery(api.profiles.session, {});
+  return {
+    pending:
+      hydrated && ((auth.isLoading && storedAuthToken() !== null) || (auth.isAuthenticated && session === undefined)),
+    banned: session?.isBanned ?? false,
+  };
+}

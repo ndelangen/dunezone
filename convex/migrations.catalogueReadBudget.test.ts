@@ -35,17 +35,27 @@ test('catalogue repair and verification stay below 512 KiB for a source in ten l
       .collect()
   );
   expect(entries).toHaveLength(10);
+  /* Each batch is the size the deploy runs, so a variant and its Faction's entries may share one but no batch holds more than its ten entries. */
   for (const migration of [
     internal.migrations.catalogue_entries_prune_v1,
     internal.migrations.catalogue_entries_verify_v1,
   ]) {
-    await expect(
-      t.run((ctx) =>
-        ctx.runMutation(migration, BATCH, {
-          transactionLimits: { bytesRead: 512 * 1024 },
-        })
-      )
-    ).resolves.toMatchObject({ isDone: true });
+    let cursor: string | null = null;
+    for (;;) {
+      const result: MigrationResult = await t.run((ctx) =>
+        ctx.runMutation(
+          migration,
+          { ...BATCH, batchSize: 10, cursor },
+          {
+            transactionLimits: { bytesRead: 512 * 1024 },
+          }
+        )
+      );
+      if (result.isDone) {
+        break;
+      }
+      cursor = result.continueCursor;
+    }
   }
   expect(await t.run((ctx) => ctx.db.get('factions', id))).toEqual(source);
 });

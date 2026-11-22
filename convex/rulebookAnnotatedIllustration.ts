@@ -7,7 +7,6 @@ import {
   parseFactionMemberPublicationId,
 } from '../src/shared/asset-publishing/componentPublication';
 import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
-import { renameLegacyEmblems } from '../src/shared/legacyEmblem';
 import {
   resolveRulebookAnnotatedIllustrationResponseSchema,
   rulebookAnnotatedIllustrationIdentitySchema,
@@ -170,10 +169,7 @@ export const resolveDelivery = internalQuery({
     if (!edition) {
       return { ok: true, status: 'missing' };
     }
-    /* An Edition the emblem rename has not reached yet names its old paths (see src/shared/legacyEmblem.ts). */
-    const parsed = rulebookEditionContentsV1Schema.safeParse(
-      renameLegacyEmblems(await contentsForRulebookEdition(ctx, edition))
-    );
+    const parsed = rulebookEditionContentsV1Schema.safeParse(await contentsForRulebookEdition(ctx, edition));
     const page =
       parsed.success && parsed.data.pageOrder.includes(args.pageId) ? parsed.data.pagesById[args.pageId] : null;
     const block = page?.blocksById[args.blockId];

@@ -95,6 +95,24 @@ export const appContentTheme = createTheme({
         hover: `color-mix(in srgb, ${resolved.background} 88%, var(--color-white))`,
       };
     }
+    if (family === 'discord') {
+      if (input.variant === 'filled') {
+        return {
+          background: 'var(--mantine-color-discord-8)',
+          hover: 'var(--mantine-color-discord-9)',
+          color: 'var(--color-paper)',
+          border: 'transparent',
+        };
+      }
+      if (input.variant === 'light') {
+        return {
+          background: 'rgb(from var(--mantine-color-discord-8) r g b / 0.3)',
+          hover: 'rgb(from var(--mantine-color-discord-8) r g b / 0.42)',
+          color: 'var(--mantine-color-discord-2)',
+          border: 'transparent',
+        };
+      }
+    }
     const signal = ['confirm', 'green', 'lime', 'teal'].includes(family)
       ? '--color-positive'
       : family === 'red' || family === 'pink'

@@ -1,8 +1,8 @@
 /** @vitest-environment jsdom */
 import { expect, test, vi } from 'vite-plus/test';
 
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableSession } from '@app/db/tabletop/TableSession';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 import { predictionReveal } from '@app/routes/_app/play/panels/result/useResultPanel';
 
 import setup from '../setup/setup.json';

@@ -6,12 +6,14 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
-import { syncSeededFactionCards } from './factions.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 
 describe('faction catalogue page', () => {
   test('returns active enriched factions, all active rulesets, and distinct spotlights', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
       const advancedId = await ctx.db.insert('rulesets', {
         name: 'Advanced',
@@ -46,7 +48,7 @@ describe('faction catalogue page', () => {
         is_deleted: true,
         image_cover: null,
       });
-      const arrivalId = await ctx.db.insert('factions', {
+      const arrivalId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'New arrival' },
         slug: 'new-arrival',
@@ -55,7 +57,7 @@ describe('faction catalogue page', () => {
         is_deleted: false,
         group_id: null,
       });
-      const updatedId = await ctx.db.insert('factions', {
+      const updatedId = await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Recently updated' },
         slug: 'recently-updated',
@@ -64,7 +66,7 @@ describe('faction catalogue page', () => {
         is_deleted: false,
         group_id: null,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Deleted faction' },
         slug: 'deleted-faction',
@@ -85,21 +87,85 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
-    const catalogue = await t.query(api.factions.cataloguePage, {});
+    const catalogue = await t.query(api.factions.catalogue, {});
 
-    expect(catalogue.factions.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
+    expect(catalogue.cards.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
     expect(catalogue.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Empty']);
-    expect(catalogue.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced']);
+    expect(catalogue.cards[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced']);
     expect(catalogue.spotlights.newArrival?.data.name).toBe('New arrival');
     expect(catalogue.spotlights.freshlyUpdated?.data.name).toBe('Recently updated');
   });
 
+  test('cites each ruleset on a card with its cover thumb, or null where it has none', async () => {
+    const t = applicationTest();
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
+      const ruleset = (name: string, image_cover: string | null) =>
+        ctx.db.insert('rulesets', {
+          name,
+          about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
+          slug: name.toLowerCase(),
+          created_at: '2026-07-01T00:00:00.000Z',
+          updated_at: '2026-07-01T00:00:00.000Z',
+          owner_id: ownerId,
+          group_id: null,
+          is_deleted: false,
+          image_cover,
+        });
+      const coveredId = await ruleset('Covered', 'https://covers.example/covered.webp');
+      const bareId = await ruleset('Bare', null);
+      const factionId = await insertFactionRow(ctx, {
+        owner_id: ownerId,
+        data: { ...assetPublishingFaction, name: 'Cited' },
+        slug: 'cited',
+        created_at: '2026-07-20T00:00:00.000Z',
+        updated_at: '2026-07-20T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: coveredId, faction_id: factionId, position: 0 });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: factionId, position: 0 });
+      /* An older faction the same search finds, in the bare ruleset alone. */
+      const elsewhereId = await insertFactionRow(ctx, {
+        owner_id: ownerId,
+        data: { ...assetPublishingFaction, name: 'Cited elsewhere' },
+        slug: 'cited-elsewhere',
+        created_at: '2026-07-10T00:00:00.000Z',
+        updated_at: '2026-07-10T00:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: bareId, faction_id: elsewhereId, position: 1 });
+    });
+
+    const cited = [
+      { slug: 'bare', coverThumbUrl: null },
+      { slug: 'covered', coverThumbUrl: 'https://covers.example/covered.webp' },
+    ];
+    const browsed = await t.query(api.factions.catalogue, {});
+    expect(browsed.cards.find((card) => card.data.name === 'Cited')?.rulesets).toMatchObject(cited);
+    expect(browsed.spotlights.newArrival?.rulesets).toMatchObject(cited);
+    /* A search and a ruleset's own list read their cards the same way. */
+    const searched = await t.query(api.factions.catalogue, { q: 'cited', ruleset: 'covered' });
+    expect(searched.cards.map((card) => card.data.name)).toEqual(['Cited']);
+    expect(searched.cards[0]?.rulesets).toMatchObject(cited);
+    /* The same search over the whole catalogue finds both, so the ruleset is what left the other out. */
+    const everywhere = await t.query(api.factions.catalogue, { q: 'cited' });
+    expect(everywhere.cards.map((card) => card.data.name).sort()).toEqual(['Cited', 'Cited elsewhere']);
+    expect(everywhere.cards.find((card) => card.data.name === 'Cited elsewhere')?.rulesets).toMatchObject([
+      { slug: 'bare', coverThumbUrl: null },
+    ]);
+    /* The toolbar's list names and counts a ruleset; it draws no cover. */
+    expect(browsed.rulesets.every((ruleset) => !('coverThumbUrl' in ruleset))).toBe(true);
+  });
+
   test('ships what the catalogue draws and leaves the rest of the blob behind', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Narrowing owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: { ...assetPublishingFaction, name: 'Full blob' },
         slug: 'full-blob',
@@ -110,9 +176,8 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
-    const catalogue = await t.query(api.factions.cataloguePage, {});
-    const row = catalogue.factions[0];
+    const catalogue = await t.query(api.factions.catalogue, {});
+    const row = catalogue.cards[0];
 
     expect(Object.keys(row ?? {}).sort()).toEqual(['_id', 'created_at', 'data', 'rulesets', 'slug', 'updated_at']);
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
@@ -129,9 +194,10 @@ describe('faction catalogue page', () => {
 
   test('rejects malformed faction data at the query boundary', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: ownerId,
         data: {},
         slug: 'malformed',
@@ -142,7 +208,6 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
-    await expect(t.query(api.factions.cataloguePage, {})).rejects.toThrow();
+    await expect(t.query(api.factions.catalogue, {})).rejects.toThrow();
   });
 });

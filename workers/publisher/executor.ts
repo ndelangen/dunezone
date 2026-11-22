@@ -3,10 +3,12 @@ import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicati
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
 import type { CapturedArtifact, PublisherBrowserSession } from './browser';
+import { readReusableCapture } from './capture-reuse';
 import { putComponentEnvelope } from './component-r2';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
+import type { PublicAssetBucket } from './delivery';
 import { assertPublishedJpeg } from './image-encode';
 import type { JpegEncoder } from './image-encode';
 import { ImageInspectionError, pngDimensions } from './image-inspection';
@@ -18,7 +20,8 @@ type BrowserSession = Pick<PublisherBrowserSession, 'capture' | 'close' | 'sessi
 type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;
 
 export type ItemListDependencies = {
-  bucket: AssetBucket;
+  /** Reading is optional: without it, a job Convex marks as reusable is rendered. */
+  bucket: AssetBucket & Partial<Pick<PublicAssetBucket, 'get'>>;
   client: PublisherClient;
   openBrowser: () => Promise<BrowserSession>;
   /**
@@ -31,6 +34,8 @@ export type ItemListDependencies = {
 export type ItemListExecution = {
   assigned: number;
   rendered: number;
+  /** Jobs published by copying an identical finished capture rather than rendering (#2922). */
+  reused: number;
   completed: number;
   failed: number;
   missing: number;
@@ -120,6 +125,7 @@ export async function executeItemList(
   const result: ItemListExecution = {
     assigned: items.length,
     rendered: 0,
+    reused: 0,
     completed: 0,
     failed: 0,
     missing: 0,
@@ -144,45 +150,44 @@ export async function executeItemList(
         break;
       }
       try {
-        const captured = await browser.capture(
-          item.jobId,
-          item.assetType,
-          Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
-        );
-        result.rendered += 1;
-        const publishedBytes = await publishableBytes(
-          captured,
-          item.assetType,
-          item.jobId,
-          config,
-          dependencies,
-          result
-        );
+        let published = await readReusableCapture(dependencies.bucket, item);
+        if (published) {
+          result.reused += 1;
+        } else {
+          const artifact = await browser.capture(
+            item.jobId,
+            item.assetType,
+            Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
+          );
+          result.rendered += 1;
+          const bytes = await publishableBytes(artifact, item.assetType, item.jobId, config, dependencies, result);
+          published = { ...artifact, bytes };
+        }
 
         const cacheToken = crypto.randomUUID();
         if (isComponentAssetType(item.assetType)) {
-          if (!captured.componentGeometry) {
+          if (!published.componentGeometry) {
             throw new TargetRenderError('Component capture has no geometry');
           }
           await putComponentEnvelope(
             dependencies.bucket,
             item,
-            captured.payloadHash,
+            published.payloadHash,
             cacheToken,
-            publishedBytes,
-            captured.componentGeometry
+            published.bytes,
+            published.componentGeometry
           );
         }
         if (item.assetType !== 'faction-leader') {
-          await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
+          await putPublishedAsset(dependencies.bucket, item, published.payloadHash, cacheToken, published.bytes);
         }
         const completion = isComponentAssetType(item.assetType)
           ? await dependencies.client.complete(
               item.jobId,
               cacheToken,
               budget.requestDeadline(),
-              captured.payloadHash,
-              captured.componentGeometry
+              published.payloadHash,
+              published.componentGeometry
             )
           : await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {

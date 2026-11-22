@@ -21,7 +21,7 @@ async function createFaction(page: Page, name: string, factionLeaderName: string
   await page.getByRole('tab', { name: /^Faction leader/ }).click();
   await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionLeaderName);
   await page.getByRole('button', { name: 'Save faction' }).click();
-  await expect(page).toHaveURL(new RegExp(`/factions/${name.toLowerCase()}/edit$`));
+  await expect(page).toHaveURL(new RegExp(`/factions/${name.toLowerCase()}-original/edit$`));
   /* Wait for the destination's controls before interacting with the newly saved draft. */
   await expectFactionEditReady(page, name);
   return page.url();
@@ -57,7 +57,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await page.getByRole('textbox', { name: 'Faction leader name' }).fill(factionALeaderName);
     await page.getByRole('button', { name: 'Save faction' }).click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}-original/edit$`));
     await expectFactionEditReady(page, factionAName);
     factionAEditUrl = page.url();
     await page.goto(`${factionAEditUrl}?notice=default-group-unavailable`);
@@ -66,11 +66,15 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     expect(factionBEditUrl).not.toBe(factionAEditUrl);
   });
 
-  await test.step('loading B into A stays local and Reset restores A', async () => {
+  await test.step('loading B into A stays local under the name of A, and Reset restores A', async () => {
     await page.goto(factionAEditUrl);
     await loadFactionDraft(page, factionBName);
 
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    /* Loading never renames the edited faction, as in every asset editor; only Paste JSON offers to. */
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
+    await page.getByRole('tab', { name: /^Faction leader/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue('');
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
     await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription(/Unsaved changes/);
 
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
@@ -82,8 +86,8 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
   await test.step('warning focus, name blocking, review, and artifact proof use the loaded draft', async () => {
     await loadFactionDraft(page, factionBName);
 
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await expect(page.getByRole('button', { name: /^Faction identity:/ })).toHaveCount(0);
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */
@@ -92,7 +96,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect(factionLeaderName).toBeFocused();
     await factionLeaderName.fill(importedLeaderName);
 
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
     const factionName = page.getByRole('textbox', { name: 'Faction name' });
     await factionName.fill('');
     await expect(page.getByRole('button', { name: 'Save faction' })).toBeDisabled();
@@ -138,7 +142,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
   await test.step('saving the loaded draft mutates A and leaves B unchanged', async () => {
     await page.getByRole('button', { name: 'Save faction' }).click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}-original/edit$`));
     await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription(/^Saved/);
 
     /*
@@ -147,7 +151,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
      */
     await page.getByRole('tab', { name: /^Faction leader/ }).click();
     await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue(importedLeaderName);
-    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
+    await page.getByRole('tab', { name: /^Faction(?! leader)/ }).click();
 
     const savedFactionName = page.getByRole('textbox', { name: 'Faction name' });
     await savedFactionName.fill(`${factionAName} local`);
@@ -179,7 +183,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     /* The section tabs collapse to the picker so the preview can stay beside the form. */
     const sections = page.getByRole('combobox', { name: 'Faction editor sections' });
-    await expect(sections).toContainText('Identity & Appearance');
+    await expect(sections).toContainText('Faction');
     const preview = page.getByRole('region', { name: 'Background composite live preview' });
     await expect(preview).toBeVisible();
     const sectionsBounds = await sections.boundingBox();
@@ -233,7 +237,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expect.poll(() => new URL(page.url()).searchParams.toString()).toBe('sort=updated');
 
     await page.goBack();
-    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}-original/edit$`));
   });
 
   await test.step('the updated target remains discoverable through the catalogue', async () => {
@@ -257,7 +261,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
 
     await page.keyboard.press('Escape');
     await updatedFaction.click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}/?$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${factionAName.toLowerCase()}-original/?$`));
     await expect(page.getByRole('heading', { name: factionAName })).toBeVisible();
     /* The rating reads in the header band: the number shows, and its full phrase is the stat's accessible label. */
     await expect(page.getByText('7/10', { exact: true })).toBeVisible();
@@ -270,7 +274,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     const field = () => page.getByRole('textbox', { name: 'Faction name' });
     const save = () => page.getByRole('button', { name: 'Save faction' });
 
-    for (const address of [slug, `${slug}-1`]) {
+    for (const address of [`${slug}-original`, `${slug}-1-original`]) {
       await page.goto('/factions/create');
       await field().fill(name);
       await expect(page.getByText(/its name is already taken/)).toHaveCount(0);
@@ -283,19 +287,21 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await page.getByRole('textbox', { name: 'Faction leader name' }).fill('Duke Leto');
     await save().click();
     await expect(save()).toHaveAccessibleDescription(/^Saved/);
-    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-1/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-1-original/edit$`));
     await page.reload();
     await expect(field()).toHaveValue(name);
 
     const previousPublicUrl = page.url().replace(/\/edit$/, '');
     await field().fill(`${name} renamed`);
     await save().click();
-    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/edit$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed-original/edit$`));
     await page.goto(previousPublicUrl);
-    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed/?$`));
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-renamed-original/?$`));
     await expect(page.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
 
+    /* The first faction's own address leads to its variant (#2909). */
     await page.goto(`/factions/${slug}`);
+    await expect(page).toHaveURL(new RegExp(`/factions/${slug}-original/?$`));
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   });
 });

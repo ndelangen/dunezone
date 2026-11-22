@@ -12,7 +12,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Compass, GraduationCap, Hand, LogIn, PenLine, Plus, UsersRound } from 'lucide-react';
+import { Compass, GraduationCap, Hand, LogIn, PenLine, Plus, UsersRound, Wrench } from 'lucide-react';
 import {
   lazy,
   Suspense,
@@ -599,6 +599,40 @@ function OrkLeaders() {
   );
 }
 
+function SpiceDeckInvitation() {
+  return (
+    <Section
+      className={styles.editorialCopy}
+      eyebrow="Tools for your table"
+      title="Leave the spice deck to your phone."
+    >
+      <Text size="lg">
+        Playing on a real board? Tap a spice pile and the phone turns over its card, keeps the discard piles and tells
+        you what Shai-Hulud devours.
+      </Text>
+      <Text size="sm" c="dimmed">
+        Pick the spice deck of any Ruleset. It runs in your browser and works signed out.
+      </Text>
+      <Group>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/tools/spice-deck" />}>
+          Open the spice deck
+        </CallToAction>
+        <LabeledAction icon={<Wrench size={16} />} renderRoot={(props) => <Link {...props} to="/tools" />}>
+          All tools
+        </LabeledAction>
+      </Group>
+    </Section>
+  );
+}
+
+function SpiceDeckPicture() {
+  return (
+    <Link to="/tools/spice-deck" className={styles.toolPicture} tabIndex={-1} aria-hidden>
+      <img src="/tools/spice-deck-large.webp" alt="" width={1280} height={800} loading="lazy" decoding="async" />
+    </Link>
+  );
+}
+
 function CommunityCopy() {
   return (
     <Section className={styles.editorialCopy} eyebrow="Made by players" title="Yes, someone put Space Orks on Arrakis.">
@@ -643,6 +677,10 @@ function HomepageChapters({ invitation, viewer }: { invitation: boolean; viewer:
         <Text size="xs" c="dimmed" ta="center">
           A few pages from the demonstration Rulebook.
         </Text>
+      </section>
+      <section className={styles.editorialRow} data-marketing-arrival>
+        <SpiceDeckInvitation />
+        <SpiceDeckPicture />
       </section>
       <section className={styles.cinemaFeature} data-marketing-arrival>
         <div className={styles.centerCopy}>

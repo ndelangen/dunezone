@@ -8,6 +8,7 @@ import { publishingCustomCard } from '../src/shared/assets/fixtures/publishingCu
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { identifiesSomeone } from './lib/provisioningContract';
 
 function prepared() {
@@ -37,7 +38,7 @@ describe('provisioning ownership remap', () => {
         created_by: prodUser,
         is_deleted: false,
       });
-      await ctx.db.insert('factions', {
+      await insertFactionRow(ctx, {
         owner_id: prodUser,
         data: { name: 'House Cloned' },
         slug: 'house-cloned',
@@ -68,7 +69,7 @@ describe('provisioning ownership remap', () => {
     await t.run(async (ctx) => {
       const faction = await ctx.db
         .query('factions')
-        .withIndex('by_slug', (q) => q.eq('slug', 'house-cloned'))
+        .withIndex('by_slug', (q) => q.eq('slug', 'house-cloned-original'))
         .unique();
       expect(faction?.owner_id).toBe(ownerId);
       expect(faction?.owner_id).not.toBe(prodUserId);
@@ -135,6 +136,43 @@ describe('provisioning seed documents', () => {
       const group = await ctx.db.query('groups').unique();
       expect(group?.created_by).toBe(viewer?._id);
       expect(group?.slug).toBe(`group-of-${viewer?._id}`);
+    });
+  });
+
+  test('makes a seeded faction its Faction, and gives a seeded variant its parent’s', async () => {
+    const t = prepared();
+    const faction = (key: string, slug: string, extra: object = {}) => ({
+      key,
+      table: 'factions',
+      value: {
+        owner_id: { $seedRef: 'viewer' },
+        data: { name: slug },
+        slug,
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+        is_deleted: false,
+        group_id: null,
+        ...extra,
+      },
+    });
+    const documents = [
+      { key: 'viewer', table: 'users', value: { name: 'Seeded viewer' } },
+      faction('original', 'atreides'),
+      faction('variant', 'atreides-dreamrules', {
+        parent_id: { $seedRef: 'original' },
+        variant_name: 'Dreamrules',
+        variant_slug: 'dreamrules',
+      }),
+    ];
+
+    await t.mutation(internal.provisioning.insertSeedDocuments, { documents: JSON.stringify(documents) });
+
+    await t.run(async (ctx) => {
+      const [original, variant] = await ctx.db.query('factions').collect();
+      const family = await ctx.db.get(original!.family_id);
+      expect(original).toMatchObject({ slug: 'atreides-original', variant_name: 'Original' });
+      expect(family).toMatchObject({ slug: 'atreides', default_variant_id: original!._id });
+      expect(variant).toMatchObject({ family_id: family!._id, variant_name: 'Dreamrules' });
     });
   });
 });

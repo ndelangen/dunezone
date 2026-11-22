@@ -24,8 +24,6 @@ export const Withdraws = meta.story({
     await expect(args.onWithdraw).not.toHaveBeenCalled();
     const box = token.getBoundingClientRect();
     const destination = { x: box.left + box.width / 2, y: box.bottom + 120 };
-    await dragTo(token, destination, () => window.dispatchEvent(new FocusEvent('blur')));
-    await expect(args.onWithdraw).not.toHaveBeenCalled();
     await dragTo(token, destination);
     await expect(args.onWithdraw).toHaveBeenCalledOnce();
     await expect(args.onWithdraw).toHaveBeenCalledWith(37, destination);

@@ -5,13 +5,14 @@ import { v } from 'convex/values';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
-import { ARRAKIS_MIGRATION_IDS } from './arrakisMigrations';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
-import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
+import { FACTION_MERGE_MIGRATION_IDS } from './factionMergeMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
+import { assertVariantAddress, moveToVariantAddress } from './lib/factionAddresses';
 import { syncFactionCard } from './lib/factionCards';
+import { assertFactionFamily, syncFactionFamily } from './lib/factionFamilies';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -55,8 +56,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
-  ...EMBLEM_MIGRATION_IDS,
-  ...ARRAKIS_MIGRATION_IDS,
+  ...FACTION_MERGE_MIGRATION_IDS,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
@@ -78,6 +78,10 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
   board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
   faction_cards_v1: internal.migrations.faction_cards_v1,
+  faction_families_v1: internal.migrations.faction_families_v1,
+  faction_families_verify_v1: internal.migrations.faction_families_verify_v1,
+  faction_variant_addresses_v1: internal.migrations.faction_variant_addresses_v1,
+  faction_variant_addresses_verify_v1: internal.migrations.faction_variant_addresses_verify_v1,
   standings_profiles_v1: internal.migrations.standings_profiles_v1,
   standings_groups_v1: internal.migrations.standings_groups_v1,
 };
@@ -654,12 +658,59 @@ export const board_readiness_listing_v1 = migrations.define({
   migrateOne: async () => {},
 });
 
-/** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */
+/**
+ * Gives every faction the card faction writes keep, at the current `FACTION_CARD_PROJECTION`;
+ * rerunning it writes nothing.
+ * It is permanent: a snapshot replay rebuilds stale cards through it, which is what lets each later `faction_cards_v*` id be pruned.
+ */
 export const faction_cards_v1 = migrations.define({
   table: 'factions',
   /* Faction text has no length cap, and a rerun reads each faction and its card, so a batch stays small. */
   batchSize: 10,
   migrateOne: async (ctx, faction) => {
     await syncFactionCard(ctx, faction._id, faction);
+  },
+});
+
+/**
+ * Gave every faction, deleted ones included, a family of its own and a variant name (#2925).
+ * Since the narrow (#2933) every row is written with its family, so a replay only brings each family's mirrored fields up to date, and writes nothing over a snapshot production cut.
+ */
+export const faction_families_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, faction) => {
+    await syncFactionFamily(ctx, faction._id, faction);
+  },
+});
+
+/** Proves every faction is a variant of a family that exists and mirrors it, so a partial backfill cannot pass. */
+export const faction_families_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await assertFactionFamily(ctx, faction);
+  },
+});
+
+/**
+ * Moves every variant, deleted ones included, from its faction's address to one of its own under it (#2926, #2909):
+ * `/factions/atreides` becomes the faction's, leading to its default variant, and the variant moves to `/factions/atreides-<variant>`.
+ * Rerunning it writes nothing, and it is permanent like `faction_families_v1`, which a snapshot replay runs first.
+ */
+export const faction_variant_addresses_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await moveToVariantAddress(ctx, faction);
+  },
+});
+
+/** Proves every variant answers at an address of its own under its faction's, so a partial backfill cannot pass. */
+export const faction_variant_addresses_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await assertVariantAddress(ctx, faction);
   },
 });

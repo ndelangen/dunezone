@@ -6,7 +6,7 @@ import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import { tableTerritoryAt } from '@shared/boards/tableTerritories';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
-import { gestureBlockReason, pieceCount } from '@shared/play/model';
+import { pieceCount } from '@shared/play/model';
 import type { TablePiece, TableState, Vector3Tuple } from '@shared/play/model';
 import { peekersOf } from '@shared/play/peeking';
 import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip';
@@ -77,7 +77,7 @@ import { peekMarkerList } from './peekMarkers';
 import { PeekMarkers } from './PeekMarkerTokens';
 import { PieceArrival } from './PieceArrival';
 import { topFaceHref } from './pieceFaceHref';
-import { pieceHasMenu } from './pieceMenu';
+import { offersPieceMenus } from './pieceMenu';
 import type { CameraViewCommand } from './playView';
 import { usePointerSession } from './PointerSessionContext';
 import { POINTER_SELECTION_RING, PointerTokenPlate } from './PointerTokenPlate';
@@ -102,6 +102,7 @@ import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrus
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
+import { PieceMenuContext, useHoverFollowsCamera, usePiecePointerEvents } from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { useTablePointerRay } from './useTablePointerRay';
@@ -776,91 +777,6 @@ function useCanvasName() {
   }, [renderer]);
 }
 
-function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
-  if (interactionBlocked) {
-    return canInteract ? 'not-allowed' : 'default';
-  }
-  return gestureBlocked ? 'not-allowed' : 'grab';
-}
-
-/* Opens a piece's menu at a point. */
-const PieceMenuContext = createContext<((pieceId: string, x: number, y: number) => void) | null>(null);
-
-function usePiecePointerEvents({ piece, interactionBlocked, canHandleTable, carrying }: TablePieceMeshProps) {
-  const { selectPiece, setHoveredPiece } = useTabletopActions();
-  const openPieceMenu = useContext(PieceMenuContext);
-  /* A selector, so a change elsewhere in the scene's store does not render every piece again. */
-  const get = useThree((state) => state.get);
-  const pointerSession = usePointerSession();
-  const gestureBlocked = gestureBlockReason(piece);
-  const hasMenu = !carrying && pieceHasMenu(piece);
-  /* Only a left press handles a piece, and none does while the table blocks it or the paintbrush is on. */
-  const ignoresPress = (event: ThreeEvent<PointerEvent>) => {
-    const notLeftOrBlocked = event.button !== 0 || interactionBlocked;
-    return notLeftOrBlocked || territoryBrush() !== null;
-  };
-  /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
-  const hovered = useRef(false);
-  useEffect(
-    () => () => {
-      if (hovered.current) {
-        setHoveredPiece(null);
-      }
-    },
-    [setHoveredPiece]
-  );
-
-  return {
-    onContextMenu: (event: ThreeEvent<MouseEvent>) => {
-      if (hasMenu && openPieceMenu) {
-        event.stopPropagation();
-        openPieceMenu(piece.id, event.nativeEvent.clientX, event.nativeEvent.clientY);
-      }
-    },
-    /* While the paintbrush is on, a click on a piece paints the territory under it, and the piece is neither picked up nor selected. */
-    onClick: (event: ThreeEvent<MouseEvent>) => {
-      if (!territoryBrush()) {
-        event.stopPropagation();
-      }
-    },
-    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
-      if (ignoresPress(event)) {
-        return;
-      }
-      event.stopPropagation();
-      if (pointerSession.busy) {
-        return;
-      }
-      selectPiece(piece.id);
-      if (gestureBlocked) {
-        return;
-      }
-      pointerSession.press(event.nativeEvent, piece.id);
-    },
-    onPointerEnter: (event: ThreeEvent<PointerEvent>) => {
-      event.stopPropagation();
-      if (!interactionBlocked) {
-        hovered.current = true;
-        setHoveredPiece(piece.id);
-      }
-      if (!pointerSession.busy) {
-        get().renderer.domElement.style.cursor = pieceHoverCursor(
-          canHandleTable,
-          interactionBlocked,
-          Boolean(gestureBlocked)
-        );
-      }
-    },
-    onPointerLeave: () => {
-      hovered.current = false;
-      setHoveredPiece(null);
-      if (!pointerSession.busy) {
-        get().renderer.domElement.style.cursor = 'default';
-      }
-    },
-  };
-}
-
 const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
 
 const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
@@ -1014,7 +930,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
     peekMarkers,
   } = props;
   const { finishPieceFlip } = useTabletopActions();
-  const pointerEvents = usePiecePointerEvents(props);
+  const { handlers: pointerEvents, hovered } = usePiecePointerEvents(props);
   const displayedCount = pieceCount(piece);
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
@@ -1100,6 +1016,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                   owner={owner}
                   peeked={peeked}
                   selected={selected}
+                  hovered={hovered}
                   labelRef={labelRef}
                   badgeRef={badgeRef}
                 />
@@ -1170,6 +1087,7 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
+  useHoverFollowsCamera();
   useCanvasName();
 
   return (
@@ -1250,9 +1168,7 @@ export function TabletopScene({
   const { takeAdditionalFromTarget } = useTabletopCommands();
   /* The frame around the canvas follows only what it shows, so a held piece moving renders the pieces and not the canvas. */
   const hasDraft = useTabletopSelector((table) => table.state.draftMove !== null);
-  const menuAvailable = useTabletopSelector((table) =>
-    [table.deckControls, table.spiceReserveControls, table.peekControls, table.deleteControls].some(Boolean)
-  );
+  const menuAvailable = useTabletopSelector(offersPieceMenus);
   const [pieceMenu, setPieceMenu] = useState<PieceMenuAnchor | null>(null);
   /* One opener for the table's life: a new one on every update would render every piece again. */
   const openPieceMenu = useCallback((pieceId: string, x: number, y: number) => setPieceMenu({ pieceId, x, y }), []);

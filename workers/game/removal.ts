@@ -141,8 +141,12 @@ export class RemovalVotes {
   }
 
   current(): RemovalVote[] {
+    const votes = this.open();
+    if (!votes.length) {
+      return [];
+    }
     const players = this.actors.occupants();
-    return this.open().map((vote) =>
+    return votes.map((vote) =>
       publicVote({
         ...vote,
         target: players.find((player) => player.userId === vote.target.userId) ?? vote.target,

@@ -24,6 +24,7 @@ export const PRIMARY_LINKS: readonly NavLinkItem[] = [
   { label: 'FAQ', to: '/faq' },
   { label: 'Profiles', to: '/profiles' },
   { label: 'Assets', to: '/assets' },
+  { label: 'Tools', to: '/tools' },
   { label: 'Blog', to: '/blog' },
 ];
 

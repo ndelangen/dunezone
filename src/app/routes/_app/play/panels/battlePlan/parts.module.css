@@ -87,6 +87,11 @@
   grid-column: 3;
 }
 
+/* A slider's stops guide the thumb without marking the track. */
+.stop {
+  display: none;
+}
+
 .dialStep {
   grid-column: 4;
 }
@@ -360,4 +365,30 @@
   :global(html:not([data-motion="ok"])) .modeToggle svg {
     transition: none;
   }
+}
+
+/* The total on rolling wheels (`SlidingNumber`): each wheel a column of faces, scrolled to where the wheel stands. */
+.wheels {
+  --wheel-face: 1.2em;
+
+  display: inline-flex;
+}
+
+.wheel {
+  display: inline-block;
+  height: var(--wheel-face);
+  /* The face is taller than the total's tight line, so the figures are never cut; the line keeps its height. */
+  margin-block: calc((1em - var(--wheel-face)) / 2);
+  overflow: hidden;
+}
+
+.wheelFaces {
+  display: flex;
+  flex-direction: column;
+}
+
+.wheelFaces > span {
+  height: var(--wheel-face);
+  line-height: var(--wheel-face);
+  text-align: center;
 }

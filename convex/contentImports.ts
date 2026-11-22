@@ -9,33 +9,47 @@ import {
   validateImportData,
 } from '../src/shared/contentImports/package';
 import type { ContentImportItem } from '../src/shared/contentImports/package';
+import { withStoredComponentIds } from '../src/shared/factions/componentIdentity';
+import { splitSharedFields } from '../src/shared/factions/sharedFields';
+import {
+  normalizeInheritedFields,
+  omittedFields,
+  ownVariantData,
+  withParentFields,
+} from '../src/shared/factions/variantFields';
+import type { InheritableField } from '../src/shared/factions/variantFields';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { api } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { replaceAssetMembers } from './assets';
+import { requireNewVariant } from './factionVariants';
 import { mutation } from './functions';
 import { canonicalJson } from './lib/canonicalJson';
 import {
   requireAssetUpdate,
+  factionSaveCheck,
   requireAssignableGroup,
-  requireFactionUpdate,
+  requireFactionSave,
   requireGroupReassignment,
   requireRulesetMaintenance,
 } from './lib/collaborativeAccess';
+import { liveDefaultVariant } from './lib/factionAddresses';
+import { parseStoredFactionForRead } from './lib/factionInput';
 import { requireAuthUserId } from './lib/policy';
 import { rulebookContentsHash } from './lib/rulebookEditionContents';
+import { slugify } from './lib/utils';
 import type { MutationCtx } from './types';
 
 const targetValidator = v.object({ rulesetSlug: v.string(), groupSlug: v.string() });
 const resultValidator = v.object({
   id: v.string(),
   slug: v.string(),
-  status: v.union(v.literal('created'), v.literal('updated'), v.literal('unchanged')),
+  status: v.union(v.literal('created'), v.literal('updated'), v.literal('linked'), v.literal('unchanged')),
   hash: v.string(),
 });
-type ImportResult = { id: string; slug: string; status: 'created' | 'updated' | 'unchanged'; hash: string };
+type ImportResult = { id: string; slug: string; status: 'created' | 'updated' | 'linked' | 'unchanged'; hash: string };
 type Target = Awaited<ReturnType<typeof targetFor>>;
 type Receipt = Doc<'content_import_receipts'>;
 type Subject = {
@@ -45,6 +59,8 @@ type Subject = {
   groupId: Id<'groups'> | null;
   revision?: number;
   linked?: boolean;
+  /** The fields a variant follows its parent in, whose values are the parent's and not the variant's. */
+  inherited?: InheritableField[];
   slots?: string[];
   members?: { id: string; count: number }[];
 };
@@ -111,7 +127,14 @@ async function subjectById(ctx: MutationCtx, item: ContentImportItem, id: string
       .query('ruleset_factions')
       .withIndex('by_ruleset_faction', (q) => q.eq('ruleset_id', target.ruleset._id).eq('faction_id', row._id))
       .unique();
-    return { id: row._id, slug: row.slug, data: row.data, groupId: row.group_id, linked: link !== null };
+    return {
+      id: row._id,
+      slug: row.slug,
+      data: row.data,
+      groupId: row.group_id,
+      linked: link !== null,
+      ...(row.parent_id && row.inherited?.length ? { inherited: normalizeInheritedFields(row.inherited) } : {}),
+    };
   }
   const normalized = ctx.db.normalizeId('assets', id);
   const row = normalized ? await ctx.db.get('assets', normalized) : null;
@@ -164,74 +187,38 @@ async function findSubject(
     }
     return await subjectById(ctx, item, receipt.subject_id, target);
   }
-  if (!item.existing) {
+  const address = item.existing?.slug ?? (item.kind === 'faction' ? item.variant : undefined);
+  if (!address) {
     return null;
   }
   const row =
     item.kind === 'rulebook'
       ? await ctx.db
           .query('rulebooks')
-          .withIndex('by_ruleset_and_slug', (q) =>
-            q.eq('ruleset_id', target.ruleset._id).eq('slug', item.existing!.slug)
-          )
+          .withIndex('by_ruleset_and_slug', (q) => q.eq('ruleset_id', target.ruleset._id).eq('slug', address))
           .unique()
       : item.kind === 'faction'
         ? await ctx.db
             .query('factions')
-            .withIndex('by_slug', (q) => q.eq('slug', item.existing!.slug))
+            .withIndex('by_slug', (q) => q.eq('slug', address))
             .unique()
         : await ctx.db
             .query('assets')
-            .withIndex('by_type_and_slug', (q) => q.eq('type', item.type).eq('slug', item.existing!.slug))
+            .withIndex('by_type_and_slug', (q) => q.eq('type', item.type).eq('slug', address))
             .unique();
   if (!row) {
-    throw new ConvexError(`Existing ${item.kind} ${item.existing.slug} was not found.`);
+    throw new ConvexError(`Existing ${item.kind} ${address} was not found.`);
   }
   return await subjectById(ctx, item, row._id, target);
 }
 
+/** A variant's own state: what a parent's push-down rewrites is not a change to the variant (#2916). */
 function subjectHash(subject: Subject) {
-  return rulebookContentsHash(subject);
+  return rulebookContentsHash(
+    subject.inherited ? { ...subject, data: ownVariantData(subject.data as object, subject.inherited) } : subject
+  );
 }
 
-/* Receipts are few, one per imported package item; a store past this bound stops the caller rather than reading without limit. */
-const RECEIPT_SCAN_LIMIT = 5000;
-
-/**
- * Keeps package receipts true after Assets were merged outside an import.
- * A receipt naming a key of `moves` follows the Asset to its value, and every receipt naming a moved-to or `touched` Asset records that Asset's current state, so the next preview reads those Assets as unchanged rather than as conflicts.
- * Returns the receipts that would change;
- * `dryRun` writes nothing.
- */
-export async function retargetAssetReceipts(
-  ctx: MutationCtx,
-  moves: ReadonlyMap<string, string>,
-  touched: readonly string[],
-  dryRun: boolean
-) {
-  const receipts = await ctx.db.query('content_import_receipts').take(RECEIPT_SCAN_LIMIT + 1);
-  if (receipts.length > RECEIPT_SCAN_LIMIT) {
-    throw new ConvexError('There are too many import receipts to reconcile in one transaction.');
-  }
-  const refreshed = new Set([...moves.values(), ...touched]);
-  const changed = [];
-  for (const receipt of receipts) {
-    const subjectId = moves.get(receipt.subject_id) ?? receipt.subject_id;
-    if (receipt.kind !== 'asset' || !refreshed.has(subjectId)) {
-      continue;
-    }
-    changed.push({ receipt: receipt._id, packageKey: receipt.package_key, itemKey: receipt.item_key, subjectId });
-    if (dryRun) {
-      continue;
-    }
-    const row = await ctx.db.get('assets', subjectId as Id<'assets'>);
-    const subject = await subjectById(ctx, { kind: 'asset', type: row?.type ?? '' } as ContentImportItem, subjectId, {
-      ruleset: { _id: receipt.ruleset_id },
-    } as Target);
-    await ctx.db.patch(receipt._id, { subject_id: subjectId, state_hash: subjectHash(subject) });
-  }
-  return changed;
-}
 async function destinationFor(
   ctx: MutationCtx,
   target: Target,
@@ -268,13 +255,162 @@ function itemName(data: unknown): string {
     : 'Unnamed';
 }
 
+/** A faction item naming an existing `variant` links it, and writes to it only where the content differs and the importer may edit it (#2916). */
+function linksVariant(item: ContentImportItem) {
+  return item.kind === 'faction' && !!item.variant;
+}
+
+/**
+ * The Faction a `faction` item adds a new variant to, and the variant's name and slug, refused as the variant editor refuses them (#2916).
+ * The variant is named after the target Ruleset unless the item names it.
+ */
+async function newVariantTarget(ctx: MutationCtx, target: Target, item: ContentImportItem) {
+  if (item.kind !== 'faction' || !item.faction) {
+    return null;
+  }
+  const slug = item.faction;
+  const family = await ctx.db
+    .query('faction_families')
+    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .unique();
+  const base = await liveDefaultVariant(ctx, family);
+  if (!family || !base) {
+    throw new ConvexError(`Faction ${slug} was not found.`);
+  }
+  if (!family.data) {
+    throw new ConvexError(`Faction ${slug} cannot be read, so no variant can be added to it.`);
+  }
+  const name = item.variantName ?? target.ruleset.name;
+  return { family, base, name, variantSlug: await requireNewVariant(ctx, family, name) };
+}
+
+/** The variant a `faction` item adds, by Faction and variant slug, as the variant editor tells variants apart. */
+function variantClaim(target: Target, item: ContentImportItem) {
+  return item.kind === 'faction' && item.faction
+    ? `${item.faction}/${slugify(item.variantName ?? target.ruleset.name)}`
+    : null;
+}
+
+/**
+ * The variants earlier items of a package add, so preview refuses a duplicate on a later page as apply would.
+ * An item its receipt already ties to a variant adds none, whatever name it gives now.
+ */
+async function variantClaims(ctx: MutationCtx, target: Target, packageKey: string, items: ContentImportItem[]) {
+  const claims = new Set<string>();
+  for (const item of items) {
+    const claim = variantClaim(target, item);
+    if (claim && !(await receiptFor(ctx, target, packageKey, item.key))) {
+      claims.add(claim);
+    }
+  }
+  return claims;
+}
+
+/** Records the variant an item adds, refusing one an earlier item of the package already adds. */
+function claimVariant(claims: Set<string>, target: Target, item: ContentImportItem, name: string) {
+  const claim = variantClaim(target, item)!;
+  if (claims.has(claim)) {
+    throw new ConvexError(`Another item of this package already adds the variant “${name}”.`);
+  }
+  claims.add(claim);
+}
+
+/** The variant a `parent` names: the one an earlier item of the package imported, else an existing variant at that address. */
+async function variantNamed(ctx: MutationCtx, target: Target, packageKey: string, key: string, byAddress = true) {
+  const receipt = await receiptFor(ctx, target, packageKey, key);
+  const id = receipt?.kind === 'faction' ? ctx.db.normalizeId('factions', receipt.subject_id) : null;
+  const row = id
+    ? await ctx.db.get(id)
+    : byAddress
+      ? await ctx.db
+          .query('factions')
+          .withIndex('by_slug', (q) => q.eq('slug', key))
+          .unique()
+      : null;
+  return row && !row.is_deleted ? row : null;
+}
+
+type ParentLookup = {
+  /** The variant an imported item already is, which keeps the parent it has. */
+  previous: Subject | null;
+  /** The Faction a new variant is added to, which its parent must belong to. */
+  familyId: Id<'faction_families'> | undefined;
+  /** The variant an earlier item of the package imported, or an existing one, under a key or address. */
+  named: (key: string) => Promise<Doc<'factions'> | null>;
+  /** In preview, an earlier item of the package that has yet to import: its Faction's address and its copy. */
+  pending?: (key: string) => Promise<{ faction: string; data: object } | null>;
+};
+
+/**
+ * The parent a `parent` item's variant follows, and its copy (#2916).
+ * An imported variant keeps the parent it has.
+ * A new one follows the variant the item names, which must be of the same Faction.
+ */
+async function parentOf(
+  ctx: MutationCtx,
+  item: ContentImportItem,
+  { previous, familyId, named, pending }: ParentLookup
+): Promise<{ id: Id<'factions'> | null; data: object } | null> {
+  if (item.kind !== 'faction' || !item.parent) {
+    return null;
+  }
+  if (previous) {
+    const row = await ctx.db.get(previous.id as Id<'factions'>);
+    const parent = row?.parent_id ? await ctx.db.get(row.parent_id) : null;
+    if (!parent && omittedFields(item.data as object).length) {
+      throw new ConvexError('This variant no longer follows a parent, so the item must give its whole copy.');
+    }
+    return parent ? { id: parent._id, data: parent.data } : null;
+  }
+  const row = await named(item.parent);
+  const waiting = row ? null : await pending?.(item.parent);
+  if ((row && row.family_id !== familyId) || (waiting && waiting.faction !== item.faction)) {
+    throw new ConvexError('A parent variant must belong to the same faction.');
+  }
+  const data = row?.data ?? waiting?.data;
+  if (!data) {
+    throw new ConvexError(`Parent ${item.parent} was not found. Import that item first, or name an existing variant.`);
+  }
+  return { id: row?._id ?? null, data };
+}
+
+/** The copy with the inheritable fields it leaves out taken from its parent, and those fields, which the variant then follows. */
+function followingParent(parent: { data: object } | null, bound: unknown) {
+  const copy = bound as object;
+  const inherited = parent ? omittedFields(copy) : [];
+  return { copy: parent ? withParentFields(parent.data, copy, inherited) : copy, inherited };
+}
+
+function sharedFieldsOf(data: unknown) {
+  return splitSharedFields(data as Parameters<typeof splitSharedFields>[0]).shared;
+}
+
+/** A `faction` item's copy keeps its Faction's shared fields, which are the Faction's to change and not the package's. */
+function withSharedFieldsOf(item: ContentImportItem, data: unknown, shared: object | null | undefined) {
+  return item.kind === 'faction' && item.faction && shared ? { ...(data as object), ...shared } : data;
+}
+
+/** A faction copy imported onto a stored variant keeps the identities of the members and troops it names (#2931). */
+function withIdentitiesOf(item: ContentImportItem, data: unknown, subject: Subject | null) {
+  return item.kind === 'faction' && subject
+    ? withStoredComponentIds(
+        data as Parameters<typeof withStoredComponentIds>[0],
+        parseStoredFactionForRead(subject.data)
+      )
+    : data;
+}
+
+/**
+ * Refuses an import the importer may not make.
+ * For an item that links a variant it refuses nothing, and answers whether the import also writes the package's copy, links an unchanged variant, or links one the importer may not edit although the copy differs.
+ */
 async function authorizeSubject(
   ctx: MutationCtx,
   target: Target,
   item: ContentImportItem,
   subject: Subject,
   data: unknown
-) {
+): Promise<'write' | 'link' | 'link-blocked' | undefined> {
   if (item.kind === 'rulebook') {
     const row = await ctx.db.get('rulebooks', subject.id as Id<'rulebooks'>);
     if (row?.ruleset_id !== target.ruleset._id) {
@@ -285,8 +421,12 @@ async function authorizeSubject(
     }
     return;
   }
+  if (linksVariant(item)) {
+    const check = await factionSaveCheck(ctx, subject.id as Id<'factions'>, data);
+    return check.unchanged ? 'link' : check.allowed ? 'write' : 'link-blocked';
+  }
   if (item.kind === 'faction') {
-    await requireFactionUpdate(ctx, subject.id as Id<'factions'>, { name: itemName(data) });
+    await requireFactionSave(ctx, subject.id as Id<'factions'>, data);
   } else {
     await requireAssetUpdate(ctx, subject.id as Id<'assets'>, itemName(data));
   }
@@ -316,6 +456,17 @@ export const preview = mutation({
         name: v.string(),
         status: v.union(v.literal('create'), v.literal('update'), v.literal('unchanged'), v.literal('conflict')),
         expectedHash: v.union(v.string(), v.null()),
+        /** What a faction item does: make a new faction, add a variant to `faction`, update a variant, or only link an existing one. */
+        action: v.optional(
+          v.union(
+            v.literal('create-faction'),
+            v.literal('add-variant'),
+            v.literal('update-variant'),
+            v.literal('link-variant')
+          )
+        ),
+        /** The name of the variant an `add-variant` item adds. */
+        variant: v.optional(v.string()),
         message: v.optional(v.string()),
       })
     ),
@@ -330,18 +481,63 @@ export const preview = mutation({
     const maximumEnd = Math.min(cursor + 50, bundle.items.length);
     let end = cursor;
     const entries = [];
+    const adding = await variantClaims(ctx, target, bundle.packageKey, bundle.items.slice(0, cursor));
+    /* A key an item of the package owns names that item, never a variant that happens to answer at the same address. */
+    const named = (key: string) =>
+      variantNamed(ctx, target, bundle.packageKey, key, !bundle.items.some((candidate) => candidate.key === key));
+    const lookup = (previous: Subject | null, familyId: Id<'faction_families'> | undefined): ParentLookup => ({
+      previous,
+      familyId,
+      named,
+      /* The copy an earlier item of the package will import, for a later item that names it as its parent before it exists. */
+      pending: async (key) => {
+        const source = bundle.items.find((candidate) => candidate.key === key);
+        if (source?.kind !== 'faction' || !source.faction) {
+          return null;
+        }
+        const parent = await parentOf(ctx, source, lookup(null, familyId));
+        const bound = bindImportData(source, (dependency) => ({ id: dependency, slug: dependency }));
+        return { faction: source.faction, data: followingParent(parent, bound).copy };
+      },
+    });
     for (const item of bundle.items.slice(cursor, maximumEnd)) {
       try {
-        const data = bindImportData(item, (key) => ({ id: key, slug: key }));
-        validateImportData(item, data);
+        const bound = bindImportData(item, (key) => ({ id: key, slug: key }));
         const receipt = await receiptFor(ctx, target, bundle.packageKey, item.key);
         const subject = await findSubject(ctx, target, item, receipt);
-        if (subject) {
-          await authorizeSubject(ctx, target, item, subject, data);
+        const added = subject ? null : await newVariantTarget(ctx, target, item);
+        const parent = await parentOf(ctx, item, lookup(subject, added?.family._id));
+        const { copy } = followingParent(parent, bound);
+        validateImportData(item, copy);
+        if (added) {
+          claimVariant(adding, target, item, added.name);
         }
+        const data = withIdentitiesOf(
+          item,
+          withSharedFieldsOf(item, copy, subject ? sharedFieldsOf(subject.data) : added?.family.data),
+          subject
+        );
+        const mode = subject ? await authorizeSubject(ctx, target, item, subject, data) : undefined;
+        const linkOnly = mode === 'link' || mode === 'link-blocked';
         const hash = subject ? subjectHash(subject) : null;
+        const action =
+          item.kind !== 'faction'
+            ? undefined
+            : added
+              ? ('add-variant' as const)
+              : !subject
+                ? ('create-faction' as const)
+                : linkOnly
+                  ? ('link-variant' as const)
+                  : ('update-variant' as const);
         const destination = await destinationFor(ctx, target, item, subject);
-        const conflict = !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
+        const conflict = !linkOnly && !!receipt && hash !== receipt.state_hash && item.expectedStateHash !== hash;
+        /* A receipt of a link that wrote nothing still matches once the importer may edit the variant, so a write is never unchanged. */
+        const unchanged =
+          mode !== 'write' &&
+          !item.bindings?.length &&
+          receipt?.item_hash === rulebookContentsHash(item) &&
+          receipt.state_hash === hash;
         entries.push({
           key: item.key,
           kind: item.kind,
@@ -351,16 +547,21 @@ export const preview = mutation({
             ? ('conflict' as const)
             : !subject
               ? ('create' as const)
-              : !item.bindings?.length &&
-                  receipt?.item_hash === rulebookContentsHash(item) &&
-                  receipt.state_hash === hash
+              : unchanged
                 ? ('unchanged' as const)
                 : ('update' as const),
+          ...(action && !conflict && !unchanged ? { action, ...(added ? { variant: added.name } : {}) } : {}),
           ...(conflict
             ? { message: 'This record changed since its last import. Export and review it before continuing.' }
             : destination.message
               ? { message: destination.message }
-              : {}),
+              : /* Preview binds placeholders, so a bound copy always reads as differing. */
+                mode === 'link-blocked' && !item.bindings?.length
+                ? {
+                    message:
+                      'This copy differs from the variant, which you cannot edit, so the variant is linked as it is.',
+                  }
+                : {}),
         });
       } catch (error) {
         entries.push({
@@ -412,9 +613,6 @@ export const applyItem = mutation({
     const inputHash = rulebookContentsHash(item);
     const destination = await destinationFor(ctx, target, item, previous);
     const reviewedReconciliation = item.expectedStateHash === hash && args.expectedHash === destination.expectedHash;
-    if (receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
-      throw new ConvexError('This record changed since its last import. Export and review it before continuing.');
-    }
     const bindings = new Map<string, { id: string; slug: string; dataHash?: string }>();
     const contentDependencies = new Set((item.bindings ?? []).map((binding) => binding.key));
     for (const key of new Set([
@@ -437,8 +635,14 @@ export const applyItem = mutation({
         ...(contentDependencies.has(key) ? { dataHash: rulebookContentsHash('data' in row ? row.data : row) } : {}),
       });
     }
-    const data = validateImportData(
-      item,
+    const added = previous ? null : await newVariantTarget(ctx, target, item);
+    const parent = await parentOf(ctx, item, {
+      previous,
+      familyId: added?.family._id,
+      named: (key) => variantNamed(ctx, target, args.packageKey, key),
+    });
+    const { copy, inherited } = followingParent(
+      parent,
       bindImportData(item, (key) => {
         const binding = bindings.get(key);
         if (!binding) {
@@ -447,11 +651,20 @@ export const applyItem = mutation({
         return binding;
       })
     );
-    if (previous) {
-      await authorizeSubject(ctx, target, item, previous, data);
+    const bound = validateImportData(item, copy);
+    const data = withIdentitiesOf(
+      item,
+      withSharedFieldsOf(item, bound, previous ? sharedFieldsOf(previous.data) : null),
+      previous
+    );
+    const mode = previous ? await authorizeSubject(ctx, target, item, previous, data) : undefined;
+    const linkOnly = mode === 'link' || mode === 'link-blocked';
+    if (!linkOnly && receipt && receipt.state_hash !== hash && !reviewedReconciliation) {
+      throw new ConvexError('This record changed since its last import. Export and review it before continuing.');
     }
     const resolvedHash = rulebookContentsHash([...bindings.entries()]);
     if (
+      mode !== 'write' &&
       receipt?.item_hash === inputHash &&
       receipt.resolved_hash === resolvedHash &&
       receipt.state_hash === hash &&
@@ -466,15 +679,30 @@ export const applyItem = mutation({
     if (item.kind === 'faction') {
       if (previous) {
         id = previous.id;
-        await ctx.runMutation(api.factions.update, { id: id as Id<'factions'>, data });
-        if (previous.groupId !== target.group._id) {
+        if (!linkOnly) {
+          await ctx.runMutation(api.factions.update, {
+            id: id as Id<'factions'>,
+            data,
+            ...(parent ? { inherited } : {}),
+          });
+        }
+        if (!linksVariant(item) && previous.groupId !== target.group._id) {
           await ctx.runMutation(api.factions.setGroup, { id: id as Id<'factions'>, group_id: target.group._id });
         }
+      } else if (added) {
+        const created = await ctx.runMutation(api.factionVariants.create, {
+          faction_id: added.base._id,
+          name: added.name,
+          group_id: target.group._id,
+          data,
+          ...(parent?.id ? { parent_id: parent.id, inherited } : {}),
+        });
+        id = created.id;
       } else {
         const created = await ctx.runMutation(api.factions.create, { data, group_id: target.group._id });
         id = created._id;
       }
-      if (item.link) {
+      if (item.link || linksVariant(item)) {
         await ctx.runMutation(api.rulesets.addFaction, {
           ruleset_id: target.ruleset._id,
           faction_id: id as Id<'factions'>,
@@ -553,7 +781,12 @@ export const applyItem = mutation({
     } else {
       await ctx.db.insert('content_import_receipts', value);
     }
-    return { id, slug: current.slug, status: previous ? 'updated' : 'created', hash: savedHash };
+    return {
+      id,
+      slug: current.slug,
+      status: !previous ? 'created' : linkOnly ? 'linked' : 'updated',
+      hash: savedHash,
+    };
   },
 });
 

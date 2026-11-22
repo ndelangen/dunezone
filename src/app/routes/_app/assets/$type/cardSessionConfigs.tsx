@@ -74,6 +74,7 @@ import {
 } from '@game/data/objects';
 
 import { layeredCardTokenPicker } from '../layeredCardTokenPicker';
+import { NexusFactionRead } from '../nexusFactionLink';
 import { SpiceBoardRead, spiceBoardSelect } from '../spiceCardBoard';
 import { memoryDraftSession, plainDraftSession } from './cardDrafts';
 import type { DraftState, MemoryState, RememberEvent } from './cardDrafts';
@@ -208,7 +209,14 @@ export const nexusCardSession: CardSessionConfig<
       : status;
   },
   warnings: nexusDraftWarnings,
-  renderEditor: (slot) => <NexusCardEditor {...cardEditorProps(slot)} {...memoryEditorProps(slot)} />,
+  renderEditor: (slot) => (
+    <NexusFactionRead
+      draft={slot.state.data}
+      render={(linked) => (
+        <NexusCardEditor {...cardEditorProps(slot)} {...memoryEditorProps(slot)} linkedFaction={linked ?? undefined} />
+      )}
+    />
+  ),
 };
 
 export const strongholdCardSession: CardSessionConfig<

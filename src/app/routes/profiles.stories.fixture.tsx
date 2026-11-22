@@ -54,3 +54,15 @@ export function seedLeaderboards(baseline: StorybookDatabase) {
     }
   }
 }
+
+/**
+ * A Faction of the viewer's left without a live variant, as when someone else deletes the last variant of an open Faction (#2928).
+ * A trigger makes the Faction when its variant is inserted, and deleting that variant afterwards leaves the Faction live.
+ */
+export function seedEmptyFaction(baseline: StorybookDatabase) {
+  baseline.factions.push({
+    ...faction({ name: 'House Vernius' }),
+    $key: 'faction:house-vernius',
+    $patch: { is_deleted: true },
+  });
+}

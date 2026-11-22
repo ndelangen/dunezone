@@ -1,6 +1,10 @@
 /*
  * The single definition of the pane treatment. Nothing else in the codebase should re-declare
  * this combination. Extend `Surface` instead.
+ *
+ * The one sanctioned variation is `--surface-backdrop`: a region full of panes, such as a catalogue grid, sets it to `none` so its panes keep the glass but drop the live blur.
+ * Each blurred pane is redrawn on every scroll frame as it slides over the fixed background, and twenty-odd of them made the tutorial page and its band video stutter (2026-11-02).
+ * Set on the region, it reaches every pane inside, Cards and other composites included.
  */
 .surface {
   box-sizing: border-box;
@@ -8,7 +12,7 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--mantine-radius-md);
   box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(8px);
+  backdrop-filter: var(--surface-backdrop, blur(8px));
 }
 
 .borderless {
@@ -21,19 +25,38 @@
 }
 
 .sm {
+  --surface-inset: var(--space-sm);
+
   padding: var(--space-sm);
 }
 
 .md {
+  --surface-inset: var(--space-md);
+
   padding: var(--space-md);
 }
 
 .lg {
+  --surface-inset: var(--space-lg);
+
   padding: var(--space-lg);
 }
 
 .xl {
+  --surface-inset: var(--space-xl);
+
   padding: var(--space-xl);
+}
+
+/*
+ * A rule dividing the pane's content runs from border to border, the way the pane's own edge does;
+ * stopped at the padding it reads as an underline of the text above it.
+ * It reaches the rules that are the pane's own children or sit in the Stack that lays its content out, which is how a pane is divided.
+ * Card extends it to its body.
+ */
+.surface > :global(.mantine-Divider-root[data-orientation="horizontal"]),
+.surface > :global(.mantine-Stack-root) > :global(.mantine-Divider-root[data-orientation="horizontal"]) {
+  margin-inline: calc(-1 * var(--surface-inset, 0px));
 }
 
 .interactive {

@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 
 const at = '2026-10-21T00:00:00.000Z';
 
@@ -51,7 +52,7 @@ async function fixture() {
       updated_at: at,
       accepted_answer_id: null,
     });
-    const faction = await ctx.db.insert('factions', {
+    const faction = await insertFactionRow(ctx, {
       owner_id: outsider,
       group_id: null,
       slug: 'atreides',

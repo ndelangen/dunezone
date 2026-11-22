@@ -8,11 +8,13 @@ import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
+import { GF9_NEXUS_CARDS } from '../src/shared/assets/gf9Nexus';
 import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import { api, internal } from './_generated/api';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { factionTest } from './factions.test.fixture';
 import guards from './migration-guards.json';
 
@@ -82,24 +84,25 @@ describe('a snapshot load', () => {
           asset('token-disc', `token-${mode}`, { front: publishingTokenFace, back })
         ),
       ];
-      /* A Spice card in its moved shape: linked to a board, without the old highlight list. */
+      /* A Spice card as production stores it: linked to a board, without the old highlight list. */
       const spice = await ctx.db.insert('assets', {
         ...owned,
         type: 'card-spice',
         slug: 'moved-spice',
         data: { ...publishingSpiceCard, board: { asset_id: token, tints: [], tokens: [] } },
       });
-      return [
-        deck,
-        token,
-        spice,
-        ...(await Promise.all(modeRows)),
-        await ctx.db.insert('factions', {
-          ...owned,
-          slug: 'retuned',
-          data: { ...assetPublishingFaction, decals: [retunedDecal] },
-        }),
-      ];
+      const faction = await insertFactionRow(ctx, {
+        ...owned,
+        slug: 'retuned',
+        data: { ...assetPublishingFaction, decals: [retunedDecal] },
+      });
+      const { family_id } = (await ctx.db.get(faction))!;
+      /* A Nexus card as production stores it since the 15 November 2026 move (#2959): linked to the Faction. */
+      const nexus = await asset('card-nexus', 'linked-nexus', {
+        ...GF9_NEXUS_CARDS[0],
+        factionLink: { id: family_id, slug: 'retuned' },
+      });
+      return [deck, token, spice, ...(await Promise.all(modeRows)), faction, family_id!, nexus];
     });
     const rows = () => t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
     const loaded = await rows();
@@ -148,7 +151,7 @@ describe('a snapshot load', () => {
         const ownerId = await ctx.db.insert('users', placeholderOwner.user());
         await ctx.db.insert('profiles', placeholderOwner.profile(ownerId));
         const owned = { owner_id: ownerId, group_id: null, is_deleted: false, created_at: STAMP, updated_at: STAMP };
-        await ctx.db.insert('factions', { ...owned, slug: 'published', data: assetPublishingFaction });
+        await insertFactionRow(ctx, { ...owned, slug: 'published', data: assetPublishingFaction });
         const rulesetId = await ctx.db.insert('rulesets', {
           ...owned,
           name: 'Published rules',

@@ -17,16 +17,24 @@ export function FactionFormSectionBackground({
   form,
   modeMemory,
   onModeMemoryChange,
+  disabled = false,
 }: {
   form: FactionFormApi;
   modeMemory: BackgroundModeMemory;
   onModeMemoryChange: (memory: BackgroundModeMemory) => void;
+  /** The viewer may not change the background, which the Faction shares with every variant. */
+  disabled?: boolean;
 }) {
   return (
     <form.Field name="background">
       {(field) => (
         <Stack gap="sm">
-          <BackgroundPicker label="Background preset" value={field.state.value} onPick={field.handleChange} />
+          <BackgroundPicker
+            label="Background preset"
+            value={field.state.value}
+            onPick={field.handleChange}
+            disabled={disabled}
+          />
           {field.state.value.source?.kind !== 'preset' ? (
             <BackgroundComposer
               value={field.state.value}
@@ -34,6 +42,7 @@ export function FactionFormSectionBackground({
               usedOn="faction sheet · faction token · leader tokens · troops · alliance card"
               modeMemory={modeMemory}
               onModeMemoryChange={onModeMemoryChange}
+              disabled={disabled}
             />
           ) : null}
         </Stack>

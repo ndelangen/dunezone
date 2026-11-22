@@ -1,7 +1,9 @@
 import type { TestContext } from 'vite-plus/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { PLAY_PENDING_TIMEOUT_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import { PLAY_SEAT_PASS_TTL_MS } from '../../src/shared/play/seatPass.ts';
 import { spiceBankSlot } from '../../src/shared/play/spiceBank.ts';
@@ -12,6 +14,7 @@ import {
   createRuntime,
   eventually,
   fixturePass,
+  gameId,
   isFullView,
   openGame,
   provision,
@@ -54,6 +57,65 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
+  it('lets one address hold only a quarter of the places that wait for admission', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'game', { APPLICATION_ORIGIN: 'https://dune.zone' });
+    expect((await provision(runtime)).status).toBe(200);
+    const sockets: { close(): void }[] = [];
+    const open = async (address: string) => {
+      const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
+        headers: { Origin: runtime.origin, Upgrade: 'websocket', 'CF-Connecting-IP': address },
+      });
+      if (response.webSocket) {
+        response.webSocket.accept();
+        sockets.push(response.webSocket);
+      } else {
+        await response.body?.cancel();
+      }
+      return response.status;
+    };
+    try {
+      for (let index = 0; index < 4; index++) {
+        expect(await open('203.0.113.7')).toBe(101);
+      }
+      expect(await open('203.0.113.7')).toBe(403);
+      /* Another visitor still reaches the table, and a player is still admitted. */
+      expect(await open('2001:db8::7')).toBe(101);
+      await admit();
+    } finally {
+      for (const socket of sockets) {
+        socket.close();
+      }
+    }
+  });
+
+  it('closes a socket that never admits with 4408 once its wait runs out, and leaves an admitted one open', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: admitted } = await admit();
+    const silent = await openGame(runtime);
+    /* In the native harness a socket that has sent nothing never receives the room's close frame; a keepalive, which a waiting page may send, opens that path. */
+    silent.keepalive();
+    await eventually(() => silent.keepalives, 'keepalive answer');
+    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
+    /* Nothing else is sent, so only the one-second sweep can close it. */
+    await eventually(() => silent.closed, 'pending socket closed');
+    expect(silent.closeCode).toBe(4408);
+    expect(admitted.closed).toBe(false);
+    await metrics(admitted);
+  });
+
+  it('closes a socket whose pass arrives after the wait with 4408 and sends it no view', async () => {
+    /* The sweep and the admission check both close it; this pins the outcome, not which one saw it first. */
+    expect((await provision(runtime)).status).toBe(200);
+    const late = await openGame(runtime);
+    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
+    late.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
+    await eventually(() => late.closed, 'late socket closed');
+    expect(late.closeCode).toBe(4408);
+    expect(late.messages.some((message) => message.type === 'view')).toBe(false);
+  });
+
   it('answers a keepalive without treating it as a message', async () => {
     expect((await provision(runtime)).status).toBe(200);
     const { connection } = await admit();
@@ -76,6 +138,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
     expect(metrics.motionReceived + required(metrics.motionDropped)).toBe(200);
     expect(metrics.motionDropped).toBeGreaterThan(0);
+    await eventually(
+      async () => (await syncView(connection)).pointers.some((pointer) => pointer.sourceSeq === 199),
+      'the final pointer sample being delivered'
+    );
     for (let seq = 200; seq < 500; seq++) {
       connection.send({ type: 'pointer', seq, position: [seq / 100, 0, 0] });
     }
@@ -130,7 +196,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       action: { kind: 'rotate', pieceId: piece.id, direction: 1 },
       expectedRevision: view.snapshot.revision,
     });
-    await connection.message('view', (message) => message.completedCommandId === 'durable-rotate');
+    const committed = await connection.message('view', (message) => message.completedCommandId === 'durable-rotate');
     await eventually(async () => {
       connection.messages.length = 0;
       connection.send({ type: 'metrics' });
@@ -143,10 +209,17 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
     expect(stalls).toEqual([]);
     /*
-     * The sweep runs only while something can expire, so a pointer keeps it going.
+     * The sweep runs while a held piece can expire.
      * Once a sweep has run, moving the room's clock two seconds on makes the next one late by as much.
      */
-    connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    connection.send({
+      type: 'begin',
+      carryId: 'stall-carry',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: committed.snapshot.versions['harkonnen-force-stack'],
+      pickup: 'top',
+    });
+    await connection.message('carry');
     await new Promise((resolve) => setTimeout(resolve, 1100));
     await runtime.clock(2000);
     await eventually(async () => {
@@ -327,7 +400,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
 
     await runtime.restart();
     const restored = await openGame(runtime);
-    restored.send({ type: 'admit', pass: await fixturePass('a') });
+    restored.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
     expect((await restored.message('view')).snapshot).toEqual(boundary.snapshot);
     restored.send(spawnTen);
     expect((await restored.message('view', (message) => message.completedCommandId === 'spawn-ten')).snapshot).toEqual(
@@ -421,7 +494,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     });
     await first.connection.message('carry');
     const second = await openGame(runtime);
-    second.send({ type: 'admit', pass: await fixturePass('b') });
+    second.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('b') });
     const joined = await second.message('view');
     const originalCarry = joined.carries[0];
     expect(originalCarry.id).toBe('across-phase');
@@ -480,7 +553,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
 
     await runtime.restart();
     const restored = await openGame(runtime);
-    restored.send({ type: 'admit', pass: await fixturePass('b') });
+    restored.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('b') });
     const restoredView = await restored.message('view');
     expect(restoredView.snapshot).toEqual({ ...dropped.snapshot, bank: { factionId: 'atreides', balance: 0 } });
     expect(restoredView.carries).toEqual([]);
@@ -503,7 +576,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     await first.connection.message('carry');
     const beforeMessages = first.connection.messages.length;
     const second = await openGame(runtime);
-    second.send({ type: 'admit', pass: await fixturePass('b') });
+    second.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('b') });
     const joined = await second.message('view');
     expect(joined.carries).toHaveLength(1);
     /* A view the first connection asks for arrives behind anything the join sent it. */
@@ -521,7 +594,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
   /** A second player at the table, whose socket shows what the holder's messages send to other viewers. */
   async function admitWatcher() {
     const connection = await openGame(runtime);
-    connection.send({ type: 'admit', pass: await fixturePass('b') });
+    connection.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('b') });
     const view = await connection.message('view');
     return { connection, view };
   }
@@ -562,7 +635,12 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     /* The network died without a close frame, so the Worker still holds the old socket when the page reconnects. */
     const before = watcher.messages.length;
     const reconnected = await openGame(runtime);
-    reconnected.send({ type: 'admit', pass: await fixturePass('a'), replaces: view.viewer.connectionId });
+    reconnected.send({
+      type: 'admit',
+      protocol: PLAY_PROTOCOL_VERSION,
+      pass: await fixturePass('a'),
+      replaces: view.viewer.connectionId,
+    });
     const rejoined = await reconnected.message('view');
     expect(rejoined.carries).toEqual([]);
     expect(rejoined.pointers).toEqual([]);
@@ -571,7 +649,12 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(watcher.messages.slice(before).filter((message) => message.type === 'admission')).toEqual([]);
     /* A page can name only a connection of its own player. */
     const other = await openGame(runtime);
-    other.send({ type: 'admit', pass: await fixturePass('a'), replaces: watching.viewer.connectionId });
+    other.send({
+      type: 'admit',
+      protocol: PLAY_PROTOCOL_VERSION,
+      pass: await fixturePass('a'),
+      replaces: watching.viewer.connectionId,
+    });
     await other.message('view');
     await syncView(watcher);
     expect(watcher.closed).toBe(false);
@@ -757,6 +840,21 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await begin(reconnected, 'carry-after-reconnect')).type).toBe('carry');
   }, 60_000);
 
+  const provisioningCalls = (name: string) =>
+    peer.requests.filter((request) => request.function === `playProvisioning:${name}`).length;
+
+  it('refuses a validation that expired before initialization, and leaves the room free for a fresh attempt', async () => {
+    peer.provisionExpiresAt = Date.now() - 1;
+    expect((await provision(runtime)).status).toBe(403);
+    /* An expired attempt never becomes a game, so nothing waits for confirmation. */
+    expect(provisioningCalls('confirmProvisioning')).toBe(0);
+    expect((await runtime.alarm()).scheduledAt).toBeNull();
+
+    peer.provisionExpiresAt = Date.now() + 60_000;
+    expect((await provision(runtime)).status).toBe(200);
+    expect((await admit()).view.snapshot.revision).toBe(0);
+  });
+
   async function confirmationRequest(index: number) {
     return eventually(
       () => peer.requests.filter((request) => request.function === 'playProvisioning:confirmProvisioning')[index],
@@ -930,7 +1028,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const restored = await openGame(runtime);
     restored.send({ type: 'metrics' });
     restored.send({ type: 'history', step: 1 });
-    restored.send({ type: 'admit', pass: await fixturePass('a') });
+    restored.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
     const restoredView = await restored.message('view');
     expect(restoredView.snapshot).toEqual(committed.snapshot);
     expect(restoredView.viewer.viewerSeat).toBe(first.view.viewer.viewerSeat);

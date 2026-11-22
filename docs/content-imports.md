@@ -36,6 +36,14 @@ Each item has one of these shapes. The examples below describe payload fields; u
 
 A faction's `data` follows [`FactionWriteSchema`](../src/shared/factions/schema.ts). `link: true` also adds it to the Ruleset. Its member and troop IDs remain stable across edits.
 
+A faction item without the fields below creates a new faction with one variant. To reuse a variant that already exists, for example one that another Ruleset imported, add `"variant": "<variant address>"`. The address is the variant's `/factions/` path segment. The import links that variant to the Ruleset and creates no new faction. It updates the variant only when the package's copy differs and you may edit the variant; otherwise it links the variant as it is, and the preview says so. The variant keeps its Group. Name a variant with `variant` or with `existing`, not both: `existing` updates the record and requires edit access.
+
+To add the item as a new variant of an existing faction instead, add `"faction": "<faction address>"`, the faction's own `/factions/` address. The faction must be open, or you must own it or belong to its Group. The variant is named after the target Ruleset unless the item gives `"variantName"`, and no other variant of that faction may already have the name. The variant takes the faction's shared fields (name, emblem, background, theme colour and colours), whatever the item's copy says, so a package cannot change the faction itself. `faction` cannot be combined with `variant` or `existing`. Once the variant is imported, the receipt ties the item to it: importing the item again updates that variant, and a changed `faction` or `variantName` is ignored. Use a new item key to add another variant.
+
+A new variant may also follow a parent variant: add `"parent"`, either the key of an earlier item of the same package or an existing variant's address. The parent must be a variant of the same faction. An earlier item named as a parent must itself add a variant with `faction`; to follow a variant that an item links with `variant` or `existing`, give that variant's address instead. Any inheritable field the item's copy leaves out (leaders, decals, planets, troops, the rule texts, spice, the treachery tracker, advantages, fate, alliance, Extras, extra phases and manual complexity) follows the parent, and keeps following it when the parent changes. To give a variant an empty optional field of its own while it follows a parent, give the field an empty value instead of leaving it out. A variant keeps the parent it was imported with; importing the item again does not move it to another parent. A change that reaches the variant from its parent is not a change to the variant, so it never makes the item conflict on its next import.
+
+The preview's Action column says what each faction item does: create faction, add variant (with the new variant's name), update variant or link existing variant.
+
 ```json
 {
   "key": "nexus-deck",
@@ -106,6 +114,8 @@ Local and production database IDs differ. Declare explicit bindings for fields t
 ```
 
 This fragment illustrates the bindings only; the card still needs every required Nexus field. The importer rewrites those two fields and leaves other strings alone. Put `atreides` before this card. The same mechanism handles faction references in Rulebook blocks, saved board and token IDs, card backs, and faction extras that refer to asset slugs. Stock artwork keeps its catalogue path and needs no binding.
+
+A Nexus card links a whole faction. A faction item is imported as one variant, so the card binds that variant, and the asset writer stores the variant's faction instead: the saved `factionLink` holds the faction's own ID and address, not the bound ones.
 
 Bindings must point to existing fields. Dependency cycles and forward references fail package validation. Do not paste local database IDs into a production package without replacing their references.
 

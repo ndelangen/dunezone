@@ -8,7 +8,12 @@ import {
   sitemapPageSchema,
 } from '../../src/shared/publicDiscovery';
 import type { SitemapArgs, SitemapPage } from '../../src/shared/publicDiscovery';
-import { TUTORIAL_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+import {
+  TUTORIAL_PAGES,
+  MEDIA_PUBLIC_PAGES,
+  RECORDLESS_PUBLIC_PAGES,
+  TOOL_PAGES,
+} from '../../src/shared/recordlessPublicPages';
 import { readBoundedJson, runWithDeadline } from './http';
 import { publicCachedResponse, PUBLIC_CACHE_SECONDS } from './public-cache';
 import type { PublicCache } from './public-cache';
@@ -150,6 +155,7 @@ export async function handlePublicDiscovery(
               ...SITEMAP_ASSET_COLLECTIONS.map((type) => `/assets/${type}`),
               ...RECORDLESS_PUBLIC_PAGES,
               ...TUTORIAL_PAGES,
+              ...TOOL_PAGES,
               ...LISTED_BLOG_POST_PAGES,
               ...MEDIA_PUBLIC_PAGES,
             ]

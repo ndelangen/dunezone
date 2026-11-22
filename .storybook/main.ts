@@ -116,8 +116,16 @@ export default defineMain({
       titlePrefix: 'Widgets/Leader Strength',
     },
     {
+      directory: '../src/app/widgets/faction-seating',
+      titlePrefix: 'Widgets',
+    },
+    {
       directory: '../src/app/widgets/group-form',
       titlePrefix: 'Widgets/Group Form',
+    },
+    {
+      directory: '../src/app/pickers',
+      titlePrefix: 'Pickers',
     },
     {
       directory: '../src/app/ui/block',

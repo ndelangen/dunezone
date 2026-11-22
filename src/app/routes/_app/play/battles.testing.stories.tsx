@@ -6,6 +6,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { territoryAtTable } from '@shared/play/territoryPlacement';
 import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
+import { useEffect } from 'react';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
@@ -21,6 +22,7 @@ import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './co
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
+import { ReplayButton } from './replayButton.stories.fixture';
 import { dragOnto } from './sortable.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -683,5 +685,121 @@ export const RevealedPieces = meta.story({
       },
       { timeout: 30_000 }
     );
+  },
+});
+
+/*
+ * The battle panel's build-up and claims, played out on a quiet table. The table opens with no battle, so its own intro plays out first.
+ * A few seconds later, or on "Start battle", a battle is marked with both sides open; then the left side is claimed, then the right.
+ */
+function quietTable(): GameSnapshot {
+  return { ...battleStory('preparing'), battle: null, battlePlan: null };
+}
+/* The battle with only the first `count` sides taken, as the table shows it while the factions claim. */
+function claimedSides(count: number): GameSnapshot {
+  const snapshot = battleStory('preparing');
+  const battle = snapshot.battle!;
+  return {
+    ...snapshot,
+    battlePlan: count > 0 ? snapshot.battlePlan : null,
+    battle: { ...battle, sides: [count > 0 ? battle.sides[0]! : null, count > 1 ? battle.sides[1]! : null] },
+  };
+}
+
+let replay = { frames: [] as number[], timers: [] as ReturnType<typeof setTimeout>[] };
+
+function stopReplay() {
+  replay.frames.forEach(cancelAnimationFrame);
+  replay.timers.forEach(clearTimeout);
+  replay = { frames: [], timers: [] };
+}
+
+/* Takes the battle away, marks it again two frames later with both sides open, then claims them one at a time. */
+function replayBattle() {
+  const { transport } = session;
+  if (!transport.connected()) {
+    return;
+  }
+  stopReplay();
+  const deliver = (snapshot: GameSnapshot) => transport.deliver(transport.view(snapshot));
+  deliver(quietTable());
+  const opened = () => {
+    deliver(claimedSides(0));
+    replay.timers.push(
+      setTimeout(() => deliver(claimedSides(1)), 1600),
+      setTimeout(() => deliver(claimedSides(2)), 2600)
+    );
+  };
+  replay.frames.push(requestAnimationFrame(() => replay.frames.push(requestAnimationFrame(opened))));
+}
+
+function BattleReplay() {
+  useEffect(() => {
+    /* Long enough for the table's own arrival to finish; a table still connecting is checked again until it is up. */
+    const start = () => {
+      if (session.transport.connected()) {
+        replayBattle();
+      } else {
+        replay.timers.push(setTimeout(start, 500));
+      }
+    };
+    replay.timers.push(setTimeout(start, 4000));
+    return stopReplay;
+  }, []);
+  return <ReplayButton onClick={replayBattle}>⚔ Start battle</ReplayButton>;
+}
+
+/** By hand: the panel springs up, its pointer reaches down to the marker, the open sides charge in, and each claimed token drops in. */
+export const BuildUpAndClaims = meta.story({
+  globals: { motion: 'on' },
+  beforeEach: install(() => productTransport('seat-2', quietTable())),
+  decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <BattleReplay />
+      </>
+    ),
+  ],
+});
+
+/* The hint opens the Battle plan, and goes once it is open (#2984). */
+export const PlannerHintOpensPlan = meta.story({
+  beforeEach: install(() => productTransport('seat-2', battleStory('preparing'))),
+  play: async ({ canvasElement }) => {
+    /* The battle opens the planner for a side's player; closing it is what the hints answer. */
+    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    const page = await openPanel(canvasElement, 'Hand');
+    const hand = within(windowNamed(page, 'Hand')!);
+    await userEvent.click(await hand.findByRole('button', { name: 'Open battle plan' }, WAIT));
+    await waitFor(() => expect(windowNamed(page, 'Battle plan')).toBeVisible(), WAIT);
+    await waitFor(() => expect(page.queryAllByRole('button', { name: 'Open battle plan' })).toHaveLength(0));
+  },
+});
+
+/** A seated player watching a battle between others gets no Battle plan hint (Norbert, 2026-11-17). */
+export const PlannerHintNeedsASide = meta.story({
+  beforeEach: install(() => {
+    const snapshot = battleStory('preparing');
+    const [harkonnen, atreides] = snapshot.battle!.sides;
+    snapshot.battle!.sides = [{ ...harkonnen!, factionId: 'fremen' }, atreides!];
+    return productTransport('seat-2', snapshot);
+  }),
+  play: async ({ canvasElement }) => {
+    const page = await openPanel(canvasElement, 'Hand');
+    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await expect(page.queryByRole('button', { name: 'Battle plan' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
+  },
+});
+
+/** Once both plans are locked in, there is nothing left to pick, so the Hand points nowhere. */
+export const PlannerHintEndsWithPlanning = meta.story({
+  beforeEach: install(() => productTransport('seat-2', battleStory('countdown'))),
+  play: async ({ canvasElement }) => {
+    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    const page = await openPanel(canvasElement, 'Hand');
+    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
   },
 });

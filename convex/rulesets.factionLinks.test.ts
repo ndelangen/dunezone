@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { insertFactionRow } from './factionRows.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
 
 const DESCRIPTION = 'A house ruleset used to prove faction links attach and detach under the right permissions.';
@@ -42,7 +43,7 @@ async function linkFixture({ cards = true }: { cards?: boolean } = {}) {
         approved_by: ownerId,
       });
     }
-    const factionId = await ctx.db.insert('factions', {
+    const factionId = await insertFactionRow(ctx, {
       owner_id: ownerId,
       data: assetPublishingFaction,
       slug: 'linkable-faction',
@@ -87,14 +88,14 @@ describe('ruleset faction links', () => {
     await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
     await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
 
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction-original']);
   });
 
   test('an active member of the maintaining group may attach and detach', async () => {
     const { t, ids, member, ruleset } = await linkFixture();
 
     await member.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction-original']);
 
     await member.mutation(api.rulesets.removeFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
     await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual([]);
@@ -125,8 +126,8 @@ describe('ruleset faction links', () => {
     await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
     await owner.mutation(api.rulesets.addFaction, { ruleset_id: second._id, faction_id: ids.factionId });
 
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
-    await expect(linkedSlugs(t, second.slug)).resolves.toEqual(['linkable-faction']);
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction-original']);
+    await expect(linkedSlugs(t, second.slug)).resolves.toEqual(['linkable-faction-original']);
   });
 
   test('the page draws a linked faction from its card', async () => {
@@ -164,6 +165,6 @@ describe('ruleset faction links', () => {
 
     await owner.mutation(api.rulesets.addFaction, { ruleset_id: ruleset._id, faction_id: ids.factionId });
 
-    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction']);
+    await expect(linkedSlugs(t, ruleset.slug)).resolves.toEqual(['linkable-faction-original']);
   });
 });

@@ -1,5 +1,6 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
@@ -19,7 +20,8 @@ import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPh
 import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
-import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
+import { waitForTableOpen } from './mapView.stories.fixture';
+import { expectHeaderPhase, openTab, phaseControls, waitForPlayCamera } from './playing.stories.fixture';
 import {
   messyReservesSandbox,
   piece,
@@ -131,6 +133,209 @@ export const Sandbox = meta.story({
     await expect(shown().hand ?? []).toHaveLength(handSize);
   },
 });
+
+/**
+ * Hovering a stack shows its count and its name, as Alt and Control would, for that stack alone (#2988).
+ * The pointer rests on a troop stack: its tag shows the count and the name, every other count stays hidden, and leaving the stack hides them again.
+ */
+export const HoverShowsNameAndCount = meta.story({
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement);
+  },
+});
+
+/**
+ * A stack carried away from under a still pointer takes no hover tag along, since the table looks again only when the pointer moves.
+ * Where it lands, the stack shows its name and count once the pointer comes back to it.
+ */
+export const HoverTagStaysBehindAMovedStack = meta.story({
+  play: async ({ canvasElement }) => {
+    const { count, tag } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const table = sandbox.table!;
+    const stackId = count.dataset.pieceId!;
+    table.receive({
+      type: 'begin',
+      carryId: 'hover-carry',
+      sourcePieceId: stackId,
+      expectedVersion: shown().versions[stackId]!,
+      pickup: 'whole',
+    });
+    table.receive({
+      type: 'drop',
+      commandId: 'hover-drop',
+      carryId: 'hover-carry',
+      position: [0, 0.4, 1.5],
+      orientation: 0,
+    });
+    await expect(table.refusal).toBeUndefined();
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'), { timeout: 10_000 });
+    await waitFor(() => expect(count).not.toBeVisible());
+  },
+});
+
+/**
+ * A camera that moves under a still pointer takes the hover with it: the stack that slides away loses its tag.
+ * The view changes from the camera dial without a pointer event on the table, as a pan key would.
+ */
+export const HoverFollowsTheCamera = meta.story({
+  play: async ({ canvasElement }) => {
+    const { tag } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const dial = within(within(canvasElement.ownerDocument.body).getByRole('group', { name: 'Table view' }));
+    dial.getByRole('button', { name: /^Focus on left/ }).click();
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'), { timeout: 10_000 });
+  },
+});
+
+/**
+ * A wheel zoom looks again with the pointer's own last move, so no second piece stays hovered.
+ * The wheel turns over another stack, and once the pointer moves off the pieces no tag stays shown.
+ */
+export const HoverSurvivesAWheelZoom = meta.story({
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const { count } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const canvas = document.querySelector('canvas')!;
+    const edge = canvas.getBoundingClientRect();
+    const inView = (candidate: HTMLElement) => {
+      const box = candidate.getBoundingClientRect();
+      return (
+        box.top > edge.top + 120 &&
+        box.bottom < edge.bottom - 120 &&
+        box.left > edge.left + 80 &&
+        box.right < edge.right - 80
+      );
+    };
+    const other = Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-count')).find(
+      (candidate) => candidate !== count && inView(candidate)
+    )!;
+    const spot = other.getBoundingClientRect();
+    const before = where(count);
+    canvas.dispatchEvent(
+      new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaY: -240,
+        clientX: spot.left + spot.width / 2,
+        clientY: spot.bottom + 12,
+      })
+    );
+    /* The zoom eases over several frames: wait until the camera has moved, then until it has come to rest. */
+    await waitForFrame(() => expect(where(count)).not.toBe(before));
+    await waitForFrame(() => cameraAtRest(count), { timeout: 30_000 });
+    await expect(document.querySelectorAll('.scene-piece-tag[data-hovered]').length).toBeLessThanOrEqual(1);
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: edge.left + 4,
+        clientY: edge.top + 4,
+      })
+    );
+    await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
+  },
+});
+
+/** Where a badge sits on screen, to see the camera move. */
+function where(element: HTMLElement) {
+  const box = element.getBoundingClientRect();
+  return `${Math.round(box.left)},${Math.round(box.top)}`;
+}
+
+/**
+ * Resolves once a badge has held still for ten drawn frames in a row.
+ * Counted in animation frames, not time, so a runner that draws no frames cannot pass it early.
+ * Run inside `waitForFrame`, which keeps frames coming and bounds the wait.
+ */
+async function cameraAtRest(element: HTMLElement) {
+  let last = where(element);
+  let still = 0;
+  while (still < 10) {
+    await new Promise((next) => requestAnimationFrame(next));
+    const now = where(element);
+    still = now === last ? still + 1 : 0;
+    last = now;
+  }
+}
+
+/** A spectator, who may not move pieces, sees a hovered stack's name and count too. */
+export const HoverShowsNameAndCountToSpectators = meta.story({
+  args: { seat: 'neutral' },
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement);
+  },
+});
+
+async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true } = {}) {
+  await sandboxReady(within(canvasElement.ownerDocument.body));
+  const document = canvasElement.ownerDocument;
+  await waitForPlayCamera(document);
+  await waitForTableOpen(document);
+  const view = document.defaultView!;
+  const counts = () => Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-count'));
+  /* A troop stack of several, in view, so the pointer can rest on it. */
+  const onScreen = (count: HTMLElement) => {
+    const box = count.getBoundingClientRect();
+    return box.top > 120 && box.bottom < view.innerHeight - 120 && box.left > 80 && box.right < view.innerWidth - 80;
+  };
+  const troopIds = new Set(
+    shown()
+      .table.pieces.filter((candidate) => candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1)
+      .map((candidate) => candidate.id)
+  );
+  const count = await waitFor(async () => {
+    const found = counts().find((candidate) => troopIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
+    await expect(found).toBeDefined();
+    return found!;
+  });
+  const tag = count.closest<HTMLElement>('.scene-piece-tag')!;
+  const name = tag.querySelector<HTMLElement>('.scene-piece-name')!;
+  await expect(count).not.toBeVisible();
+  await expect(name).not.toBeVisible();
+
+  /* The table hears the pointer on its canvas, whatever page chrome lies over the spot. */
+  const canvas = document.querySelector('canvas')!;
+  const pointAt = (clientX: number, clientY: number) =>
+    canvas.dispatchEvent(
+      new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
+    );
+  /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
+  const settle = async (ms: number) => {
+    const until = performance.now() + ms;
+    while (!tag.hasAttribute('data-hovered') && performance.now() < until) {
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+  };
+  /* A busy runner answers late, so the pointer sweeps down the stack until the table hears it, for up to twenty seconds. */
+  const deadline = performance.now() + 20_000;
+  while (!tag.hasAttribute('data-hovered') && performance.now() < deadline) {
+    for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
+      const box = count.getBoundingClientRect();
+      pointAt(box.left + box.width / 2, box.bottom + below);
+      await settle(400);
+    }
+  }
+  await expect(tag).toHaveAttribute('data-hovered', 'true');
+  await waitFor(() => expect(count).toBeVisible());
+  await expect(name).toBeVisible();
+  await expect(name).toHaveTextContent(
+    shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label
+  );
+  for (const other of counts().filter((candidate) => candidate !== count)) {
+    await expect(other).not.toBeVisible();
+  }
+
+  if (!leave) {
+    return { count, tag };
+  }
+  /* Off the stack, in the table's empty corner, no tag shows. */
+  const edge = canvas.getBoundingClientRect();
+  pointAt(edge.left + 4, edge.top + 4);
+  await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
+  await waitFor(() => expect(count).not.toBeVisible());
+  await expect(name).not.toBeVisible();
+  return { count, tag };
+}
 
 /**
  * Seat 1 turns "Camera follows phase" off in the game menu, looks at the left bay and moves on to Revival: the camera keeps the view the player chose instead of moving to the bottom shelf.

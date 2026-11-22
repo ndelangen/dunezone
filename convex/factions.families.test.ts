@@ -1,0 +1,143 @@
+// @vitest-environment edge-runtime
+
+import { describe, expect, test, vi } from 'vite-plus/test';
+
+import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
+import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
+import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
+import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
+import { assertFactionFamily } from './lib/factionFamilies';
+
+const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
+const STAMP = '2026-01-01T00:00:00.000Z';
+const SHARED = {
+  name: assetPublishingFaction.name,
+  emblem: assetPublishingFaction.emblem,
+  background: assetPublishingFaction.background,
+  themeColor: assetPublishingFaction.themeColor,
+  colors: assetPublishingFaction.colors,
+};
+
+async function familiesFixture() {
+  const t = applicationTest();
+  const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Faction author' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const ruleset = (name: string, is_deleted = false) =>
+    t.run(
+      async (ctx) =>
+        await ctx.db.insert('rulesets', {
+          name,
+          slug: name.toLowerCase().replaceAll(' ', '-'),
+          about: '',
+          created_at: STAMP,
+          updated_at: STAMP,
+          owner_id: ownerId,
+          group_id: null,
+          is_deleted,
+          image_cover: null,
+        })
+    );
+  const link = (rulesetId: Id<'rulesets'>, factionId: Id<'factions'>) =>
+    t.run(
+      async (ctx) =>
+        await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId, position: 0 })
+    );
+  const variant = (id: Id<'factions'>) => t.run(async (ctx) => await ctx.db.get(id));
+  const familyOf = (id: Id<'factions'>) =>
+    t.run(async (ctx) => {
+      const faction = await ctx.db.get(id);
+      return faction ? await ctx.db.get(faction.family_id) : null;
+    });
+  const migrate = async () => {
+    vi.useFakeTimers();
+    const ids = ['faction_families_v1', 'faction_families_verify_v1'];
+    await t.mutation(internal.migrations.runRequired, { ids });
+    await t.finishAllScheduledFunctions(vi.runAllTimers, 100);
+    vi.useRealTimers();
+    return await t.query(internal.migrations.assertReadyForNarrow, { required: ids });
+  };
+  return { t, ownerId, owner, ruleset, link, variant, familyOf, migrate };
+}
+
+describe('Faction families', () => {
+  test('a new faction is the single, default variant of a closed family that mirrors it', async () => {
+    const { owner, ownerId, variant, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+
+    expect(await variant(faction._id)).toMatchObject({ variant_name: 'Original', variant_slug: 'original' });
+    const family = await familyOf(faction._id);
+    expect(faction.slug).toBe(`${family?.slug}-original`);
+    expect(family).toMatchObject({
+      data: SHARED,
+      owner_id: ownerId,
+      group_id: null,
+      default_variant_id: faction._id,
+      is_open: false,
+      is_deleted: false,
+    });
+  });
+
+  test('rerunning the migration changes nothing', async () => {
+    const { owner, variant, familyOf, migrate } = await familiesFixture();
+    const { _id: id } = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    await migrate();
+    const before = [await variant(id), await familyOf(id)];
+
+    await migrate();
+
+    expect([await variant(id), await familyOf(id)]).toEqual(before);
+  });
+
+  test('the verify step refuses a family that no longer mirrors its variant', async () => {
+    const { t, owner, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const family = (await familyOf(faction._id))!;
+    await t.run(async (ctx) => await ctx.db.patch(family._id, { updated_at: 'drifted' }));
+    await expect(
+      t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!))
+    ).rejects.toThrow(/does not mirror/);
+  });
+
+  test('a variant moved to another Group leaves its Faction with the Group it started with', async () => {
+    const { t, owner, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const groupId = await t.run(
+      async (ctx) =>
+        await ctx.db.insert('groups', {
+          name: 'Later group',
+          slug: 'later-group',
+          created_at: STAMP,
+          created_by: faction.owner_id,
+          is_deleted: false,
+        })
+    );
+    await t.run(async (ctx) => {
+      await applicationTriggers.wrapDB(ctx as unknown as MutationCtx).db.patch(faction._id, { group_id: groupId });
+    });
+
+    expect(await familyOf(faction._id)).toMatchObject({ group_id: null });
+    await t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!));
+  });
+
+  test('edits and deletion of the variant reach its family, and a later ruleset link keeps the variant name', async () => {
+    const { owner, ruleset, link, variant, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    await link(await ruleset('Advanced Dune'), faction._id);
+
+    await owner.mutation(api.factions.update, {
+      id: faction._id,
+      data: { ...assetPublishingFaction, name: 'Renamed house', themeColor: '#123456' },
+    });
+    expect(await familyOf(faction._id)).toMatchObject({
+      slug: 'renamed-house',
+      data: { name: 'Renamed house', themeColor: '#123456' },
+    });
+    expect(await variant(faction._id)).toMatchObject({ variant_name: 'Original' });
+
+    await owner.mutation(api.factions.softDelete, { id: faction._id });
+    expect(await familyOf(faction._id)).toMatchObject({ is_deleted: true });
+  });
+});

@@ -4,6 +4,9 @@
  * An original or variant stays while any release record lists it, prepared or deployed, because published HTML may reference it forever.
  * It also stays while the lock on main or on any open pull request references it, or while it is younger than the minimum age.
  * Only what is left is a candidate, and this plan never deletes anything itself.
+ *
+ * The same listing also proves the opposite direction (`missingVariants`): every variant a release record lists is still stored, at the size it was published with.
+ * Deploys trust that, because R2 objects are create-only and nothing deletes them, so they only ask R2 about variants no earlier deploy proved.
  */
 import type { RasterLock } from '../../src/shared/media/rasterLock';
 
@@ -15,8 +18,63 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type StoredObject = { key: string; bytes: number; uploaded: string };
 
-/** The part of a release record retention reads: each variant's name and the original it was encoded from. */
-export type ReleaseVariant = { name: string; source: string };
+/** The part of a release record these checks read: each variant's name, the original it was encoded from, and its size. */
+export type ReleaseVariant = { name: string; source: string; bytes: number };
+
+/** A variant some release record lists that the variant bucket lacks, or stores at another size. */
+export type MissingVariant = { name: string; bytes: number; stored: number | null };
+
+const RECORD_KEY = /^releases\/(.+)\.json$/;
+const DEPLOYED_KEY = /^releases\/(.+)\.deployed$/;
+
+/**
+ * Why the release ledger cannot vouch for what production serves, or none when it can.
+ * The stored-variant check trusts the records it reads, so an empty ledger, an empty record, or a deployed marker whose record is gone would let it pass while proving nothing.
+ */
+export function ledgerProblems(
+  ledgerKeys: readonly string[],
+  records: readonly { key: string; variants: readonly ReleaseVariant[] }[]
+): string[] {
+  const problems: string[] = [];
+  if (records.length === 0) {
+    problems.push('the release ledger holds no release record');
+  }
+  for (const record of records) {
+    if (record.variants.length === 0) {
+      problems.push(`${record.key} lists no variants`);
+    }
+  }
+  const recorded = new Set(ledgerKeys.flatMap((key) => RECORD_KEY.exec(key)?.[1] ?? []));
+  for (const key of ledgerKeys) {
+    const release = DEPLOYED_KEY.exec(key)?.[1];
+    if (release !== undefined && !recorded.has(release)) {
+      problems.push(`${key} marks a release deployed whose record releases/${release}.json is gone`);
+    }
+  }
+  return problems;
+}
+
+/** Every variant a release record lists that the bucket listing lacks or holds at a different size, each name once. */
+export function missingVariants(
+  variants: readonly StoredObject[],
+  releases: readonly (readonly ReleaseVariant[])[]
+): MissingVariant[] {
+  const stored = new Map<string, number>();
+  for (const object of variants) {
+    const name = VARIANT_KEY.exec(object.key)?.[1];
+    if (name !== undefined) {
+      stored.set(name, object.bytes);
+    }
+  }
+  const missing = new Map<string, MissingVariant>();
+  for (const variant of releases.flat()) {
+    const bytes = stored.get(variant.name);
+    if (bytes !== variant.bytes) {
+      missing.set(variant.name, { name: variant.name, bytes: variant.bytes, stored: bytes ?? null });
+    }
+  }
+  return [...missing.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
 
 export type GcInputs = {
   sources: readonly StoredObject[];

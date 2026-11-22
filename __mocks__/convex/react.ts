@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { fn } from 'storybook/test';
 
+export { useConvexAuth } from '../@convex-dev/auth/react';
+
 const unconfigured = (operation: string) =>
   fn(async () => {
     throw new Error(`Unconfigured Storybook Convex ${operation}`);
