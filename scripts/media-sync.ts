@@ -38,15 +38,18 @@ const pulled = await eachWithCounts(distinctOriginals(previous, missing), pull);
 const lock = await buildRasterLock(previous);
 const { changed, removed } = lockChanges(previous, lock);
 
-/* Originals R2 already holds go in the machine's store for the next worktree. The store only saves downloads, so a failure here is a warning. */
-try {
-  const unchanged = Object.keys(lock).filter((key) => previous[key]?.sha256 === lock[key].sha256);
-  for (const original of distinctOriginals(lock, unchanged)) {
+/* Every original R2 holds goes in the machine's store for the next worktree. The store only saves downloads, so a failure is a warning. */
+function seed(original: Original) {
+  try {
     seedStore(original, sourcePath(original.key));
+  } catch (error) {
+    console.warn(
+      `Could not keep ${original.key} in the originals store: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
-} catch (error) {
-  console.warn(`Could not fill the originals store: ${error instanceof Error ? error.message : String(error)}`);
 }
+const unchanged = Object.keys(lock).filter((key) => previous[key]?.sha256 === lock[key].sha256);
+distinctOriginals(lock, unchanged).forEach(seed);
 const pending = distinctOriginals(lock, changed);
 
 /* A file the encoder would refuse is refused here, before it reaches R2 or the lock. */
@@ -68,7 +71,9 @@ if (unencodable.length > 0) {
 }
 
 async function push(original: Original) {
-  return await upload(original, new Uint8Array(readFileSync(sourcePath(original.key))), token as string);
+  const outcome = await upload(original, new Uint8Array(readFileSync(sourcePath(original.key))), token as string);
+  seed(original);
+  return outcome;
 }
 
 let pushed: Awaited<ReturnType<typeof eachWithCounts>> = {};
