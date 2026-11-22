@@ -10,6 +10,22 @@ export function snapshotWeekStart(now: Date): Date {
   return new Date(midnight - ((now.getUTCDay() + 6) % 7) * DAY);
 }
 
+/** Cloud dev reloads the snapshot once every this many weeks; the weeks between export only the local snapshot. */
+export const DEV_REFRESH_EVERY_WEEKS = 4;
+
+/* Cloud dev last reloaded on Monday 16 November 2026; the four-week periods count from that week. */
+const DEV_REFRESH_ANCHOR = Date.UTC(2026, 10, 16);
+
+/**
+ * Whether this week's snapshot also reloads cloud dev.
+ * A reload replays every required migration over the whole snapshot, which read 160 to 190 MB of dev database I/O each week in November 2026, about a third of the month's usage, so cloud dev reloads on every fourth week and its data can be up to four weeks old (Norbert, 22 November 2026).
+ * The week is the same one `snapshotRefreshDue` settles, so a failed Monday that recovers later that week still reloads dev.
+ */
+export function devRefreshWeek(now: Date): boolean {
+  const weeks = Math.round((snapshotWeekStart(now).getTime() - DEV_REFRESH_ANCHOR) / (7 * DAY));
+  return ((weeks % DEV_REFRESH_EVERY_WEEKS) + DEV_REFRESH_EVERY_WEEKS) % DEV_REFRESH_EVERY_WEEKS === 0;
+}
+
 /**
  * A daily tick refreshes only until one run succeeds in the week, so a Monday run stopped by a failed release recovers the next day.
  * A run counts only when it finished every step, which includes the upload and the cloud dev refresh.
@@ -44,9 +60,19 @@ if (import.meta.main) {
   if (!GITHUB_REPOSITORY || !GITHUB_TOKEN || !GITHUB_OUTPUT || !GITHUB_STEP_SUMMARY) {
     throw new Error('The snapshot schedule check requires a GitHub Actions environment');
   }
-  /* A manual dispatch always refreshes. */
-  const due =
-    GITHUB_EVENT_NAME !== 'schedule' || (await snapshotRefreshDue(GITHUB_REPOSITORY, GITHUB_TOKEN, new Date()));
-  appendFileSync(GITHUB_OUTPUT, `due=${due}\n`);
+  /* A manual dispatch always refreshes, cloud dev included. */
+  const manual = GITHUB_EVENT_NAME !== 'schedule';
+  const now = new Date();
+  const due = manual || (await snapshotRefreshDue(GITHUB_REPOSITORY, GITHUB_TOKEN, now));
+  const devDue = due && (manual || devRefreshWeek(now));
+  appendFileSync(GITHUB_OUTPUT, `due=${due}\ndev_due=${devDue}\n`);
   appendFileSync(GITHUB_STEP_SUMMARY, due ? 'Snapshot refresh is due.\n' : 'This week already has a snapshot.\n');
+  if (due) {
+    appendFileSync(
+      GITHUB_STEP_SUMMARY,
+      devDue
+        ? 'Cloud dev reloads from it.\n'
+        : `Cloud dev keeps its data; it reloads every ${DEV_REFRESH_EVERY_WEEKS} weeks.\n`
+    );
+  }
 }

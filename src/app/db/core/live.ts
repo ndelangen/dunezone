@@ -1,4 +1,5 @@
-import { useConvex, useMutation as useConvexMutation, useQueries, useQuery } from 'convex/react';
+import { useConvex, useMutation as useConvexMutation, usePaginatedQuery, useQueries, useQuery } from 'convex/react';
+import type { PaginatedQueryArgs, PaginatedQueryReference, UsePaginatedQueryReturnType } from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { convexToJson, jsonToConvex } from 'convex/values';
@@ -93,6 +94,45 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
     setHeld({ key, data: result });
   }
   return result;
+}
+
+/**
+ * A paginated page query whose first page is one cached answer for every visitor.
+ *
+ * `usePaginatedQuery` adds a per-tab id to `paginationOpts` on purpose, so its answers are never shared: not with the route loader that rendered the same first page, nor with anyone else looking at it.
+ * Here the first page is a plain held subscription with exactly the loader's arguments (`numItems`, `cursor: null`), which the server render, the hydrated page and every other visitor share until something it read changes.
+ * Pagination starts only when someone loads more: the paginated query then reads the first two pages afresh, and the first page's answer stays on screen until it arrives.
+ */
+export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
+  query: Query,
+  args: PaginatedQueryArgs<Query>,
+  options: { initialNumItems: number }
+): UsePaginatedQueryReturnType<Query> {
+  const { initialNumItems } = options;
+  const firstArgs = { ...args, paginationOpts: { numItems: initialNumItems, cursor: null } } as FunctionArgs<Query>;
+  const { key, subscription } = useWarmHold(query, firstArgs);
+  /* Keyed by the arguments, so a new address starts on its shared first page again. */
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const expanded = expandedKey === key;
+  const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems: initialNumItems * 2 });
+  const paginating = expanded && paginated.status !== 'LoadingFirstPage';
+  const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as
+    | FunctionReturnType<Query>
+    | undefined;
+  if (paginating) {
+    return paginated;
+  }
+  const results = (first?.page ?? []) as UsePaginatedQueryReturnType<Query>['results'];
+  const loadMore = () => setExpandedKey(key);
+  if (first === undefined) {
+    return { results, loadMore, status: 'LoadingFirstPage', isLoading: true };
+  }
+  if (expanded) {
+    return { results, loadMore, status: 'LoadingMore', isLoading: true };
+  }
+  return first.isDone
+    ? { results, loadMore, status: 'Exhausted', isLoading: false }
+    : { results, loadMore, status: 'CanLoadMore', isLoading: false };
 }
 
 /** Holds a page query warm after its page lets go of it, and returns its stable subscription and key. */

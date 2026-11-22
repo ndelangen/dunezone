@@ -1,10 +1,10 @@
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
-import { usePaginatedQuery, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLivePaginatedQuery, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -188,17 +188,13 @@ export type AssetDetailInitialPage = NonNullable<AssetPublicPage> & { relatedFaq
 
 /** The public detail and its first range of related questions travel together. */
 export async function loadAssetDetailPage(type: string, slug: string): Promise<AssetDetailInitialPage | null> {
-  const result = await db.query(
-    api.assets.detailPage,
-    { type, slug, paginationOpts: { numItems: 12, cursor: null } },
-    { hold: false }
-  );
+  const result = await db.query(api.assets.detailPage, { type, slug, paginationOpts: { numItems: 12, cursor: null } });
   const first = result.page[0];
   return first.detail ? { ...first.detail, relatedFaq: first.items } : null;
 }
 
 export function useAssetDetailPage(type: string, slug: string, options: { initialData: AssetDetailInitialPage }) {
-  const query = usePaginatedQuery(api.assets.detailPage, { type, slug }, { initialNumItems: 12 });
+  const query = useLivePaginatedQuery(api.assets.detailPage, { type, slug }, { initialNumItems: 12 });
   const first = query.results[0];
   const page = first === undefined ? options.initialData : first.detail;
   return {

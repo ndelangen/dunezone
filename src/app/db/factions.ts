@@ -19,7 +19,7 @@ export { isPublicPageNotFound as isFactionNotFound } from '@db/core/publicPage';
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 
 import { parseClientBoundary } from '@app/db/core/clientBoundary';
-import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLivePaginatedQuery, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -571,17 +571,13 @@ export function loadPublicFactionDetail(slug: string): Promise<FactionDetailInit
 }
 
 async function loadFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
-  const result = await db.query(
-    api.factions.detailPage,
-    { slug, paginationOpts: { numItems: 12, cursor: null } },
-    { hold: false }
-  );
+  const result = await db.query(api.factions.detailPage, { slug, paginationOpts: { numItems: 12, cursor: null } });
   const first = result.page[0];
   return first.detail ? { ...toFactionDetailPageData(first.detail), relatedFaq: first.items } : null;
 }
 
 export function useFactionDetail(slug: string, options: { initialData: FactionDetailInitialPage }) {
-  const query = usePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: 12 });
+  const query = useLivePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: 12 });
   const first = query.results[0];
   const page = first === undefined ? options.initialData : first.detail ? toFactionDetailPageData(first.detail) : null;
   return {

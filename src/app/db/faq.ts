@@ -2,14 +2,13 @@ import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import { faqQuestionPageForViewer } from '@shared/faq/questionPageAccess';
 import type { FaqTag } from '@shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '@shared/faq/validation';
-import { usePaginatedQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useMemo } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
 import type { FactionCatalogueEntry } from '@db/factions';
-import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLivePaginatedQuery, useLiveQuery } from '@app/db/core/live';
 import type { LiveMutationResult } from '@app/db/core/live';
 import { useAssetAccess, useViewerUserId, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
@@ -159,14 +158,10 @@ export function useGlobalFaqPage(args: GlobalFaqArgs, options?: { initialData?: 
 
 /** The question route's loader, paired with `useFaqQuestionPage`. */
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
-  const result = await db.query(
-    api.faq.questionPage,
-    {
-      ...locator,
-      paginationOpts: { numItems: 12, cursor: null },
-    },
-    { hold: false }
-  );
+  const result = await db.query(api.faq.questionPage, {
+    ...locator,
+    paginationOpts: { numItems: 12, cursor: null },
+  });
   const first = result.page[0];
   return first.detail ? { ...first.detail, references: referencePreviews(first.items) } : null;
 }
@@ -176,7 +171,7 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
-  const referencesQuery = usePaginatedQuery(api.faq.questionPage, locator, { initialNumItems: 12 });
+  const referencesQuery = useLivePaginatedQuery(api.faq.questionPage, locator, { initialNumItems: 12 });
   const first = referencesQuery.results[0];
   const livePage = first === undefined ? undefined : first.detail;
   const publicPage = livePage === undefined ? options?.initialPage : livePage;

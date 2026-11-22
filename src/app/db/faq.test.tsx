@@ -72,6 +72,9 @@ function serveQueries(viewer: { userId: string | null; answered: boolean | undef
         return 'none';
       case getFunctionName(api.faq.viewerAnswered):
         return viewer.answered;
+      /* The first page is a plain subscription; pagination starts only on loading more. */
+      case getFunctionName(api.faq.questionPage):
+        return { page: [{ detail: serverPage, items: [] }], isDone: true, continueCursor: '' };
       default:
         return serverPage;
     }

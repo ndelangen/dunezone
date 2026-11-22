@@ -53,12 +53,12 @@ describe('anonymised snapshot job', () => {
     });
   });
 
-  test('refreshes cloud dev from the same checked snapshot after uploading it', () => {
-    const refresh = stepNamed('Refresh cloud dev from the weekly anonymised snapshot');
+  test('refreshes cloud dev from the same checked snapshot after uploading it, on its own four-weekly schedule', () => {
+    const refresh = stepNamed('Refresh cloud dev from the anonymised snapshot every fourth week');
     expect(refresh).toBeGreaterThan(stepNamed('Upload the anonymised snapshot'));
     expect(refresh).toBeLessThan(stepNamed('Delete the export and the snapshot from the runner'));
     expect(steps[refresh]).toMatchObject({
-      if: "success() && env.SNAPSHOT_UPLOAD == 'true'",
+      if: "success() && env.SNAPSHOT_UPLOAD == 'true' && needs.due.outputs.dev_due == 'true'",
       run: `bun run provision dev --stage data --snapshot-file "\${RUNNER_TEMP}/${JOB_DIRECTORY}/${SNAPSHOT_FILE}"`,
       env: { CONVEX_DEV_DEPLOY_KEY: '${{ secrets.CONVEX_DEV_DEPLOY_KEY }}' },
     });

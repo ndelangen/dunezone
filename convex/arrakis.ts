@@ -5,7 +5,7 @@ import { componentGeometrySchema } from '../src/shared/asset-publishing/componen
 import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { BoardAsset, BoardDefinition } from '../src/shared/boards/schema';
 import { publicQuery } from './functions';
-import { resolveRulebookAsset } from './lib/rulebookReferences';
+import { resolveLoadedRulebookAsset } from './lib/rulebookReferences';
 import type { QueryCtx } from './types';
 
 /**
@@ -20,7 +20,7 @@ async function savedArrakisFace(ctx: QueryCtx) {
     .withIndex('by_type_and_slug', (q) => q.eq('type', 'board').eq('slug', ARRAKIS_BOARD_SLUG))
     .take(8);
   const row = rows.find((candidate) => !candidate.is_deleted);
-  const face = row ? await resolveRulebookAsset(ctx, row._id, false) : null;
+  const face = row ? await resolveLoadedRulebookAsset(ctx, row, false) : null;
   return row && face?.imageUrl && face.geometry
     ? { row, assetId: face.assetId, name: face.name, imageUrl: face.imageUrl, geometry: face.geometry }
     : null;
