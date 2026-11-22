@@ -295,7 +295,8 @@ export const HoverTagHoldsThroughASlip = meta.story({
     }
     watch.disconnect();
     await expect(blinks).toEqual([]);
-    await expect(tag.querySelector('.scene-piece-name')).toBeVisible();
+    /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
+    await waitFor(() => expect(tag.querySelector('.scene-piece-name')).toBeVisible());
     /* Off the stack for good, the tag goes after its moment. */
     pointAt(edge.left + 4, edge.top + 4);
     await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'));
@@ -312,6 +313,7 @@ export const HoverTagStaysWhileHeld = meta.story({
     const document = canvasElement.ownerDocument;
     const canvas = document.querySelector('canvas')!;
     const label = tag.querySelector<HTMLElement>('.scene-piece-name__label')!.innerText.trim();
+    const shownTags = () => Array.from(document.querySelectorAll('.scene-piece-tag[data-hovered]'));
     const shownLabels = () =>
       Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-tag[data-hovered] .scene-piece-name__label')).map(
         (shown) => shown.innerText.trim()
@@ -333,8 +335,10 @@ export const HoverTagStaysWhileHeld = meta.story({
     await waitFor(() => expect(canvas.style.cursor).toBe('grabbing'));
     for (let frame = 0; frame < 30; frame++) {
       await new Promise((next) => requestAnimationFrame(next));
-      await expect(shownLabels()).toEqual([label]);
+      await expect(shownTags()).toEqual([tag]);
     }
+    /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
+    await waitFor(() => expect(shownLabels()).toEqual([label]));
     press('pointerup');
     /* Set down under the still pointer. */
     await waitFor(() => expect(canvas.style.cursor).not.toBe('grabbing'));
