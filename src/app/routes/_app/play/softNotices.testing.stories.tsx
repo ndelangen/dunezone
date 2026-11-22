@@ -21,6 +21,7 @@ import {
   changeTable,
   holdNotices,
   noticeLog,
+  noticesListening,
   noticeSetup,
   otherSeat,
   ownFaction,
@@ -204,6 +205,10 @@ export const ChatNotificationsOff = meta.story({
     });
     const { log } = noticeLog(page);
     await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
+    /* Turning them back on brings no late notice for what arrived while they were off. */
+    setChatNotices(true);
+    await noticesListening();
     await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
   },
 });

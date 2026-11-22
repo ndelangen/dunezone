@@ -35,6 +35,7 @@ import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { CameraLookContext } from '@app/widgets/tabletop/cameraLook';
+import type { CameraLook } from '@app/widgets/tabletop/cameraLook';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -81,6 +82,7 @@ import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
 import { useNoticeFeeds } from './noticeFeed';
+import type { NoticeFeeds } from './noticeFeed';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
 import { OwnFactionNotice } from './OwnFaction';
@@ -170,14 +172,41 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
  * The notices start afresh with each notice start, while the faction notice keeps its state until a tutorial run starts over, so a Reset can tell the faction again.
  * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
  */
-function PlayNotices(
-  props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
-) {
+/* The notices hear the table's chat and pings through its feeds, and a notice about a spot on the table, such as a ping, has the camera look there. */
+function PlayNotices({
+  feeds,
+  ...props
+}: Omit<ComponentProps<typeof TableSoftNotices>, 'subscribeMessages' | 'subscribePings' | 'onLookAt'> & {
+  openPanel: (key: string, seat?: string) => void;
+  feeds: NoticeFeeds;
+}) {
   const epoch = useContext(CompassEpochContext);
   return (
     <OwnFactionNotice key={epoch} inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)}>
-      {(toast) => <TableNotices key={props.start?.epoch} {...props} lead={toast} />}
+      {(toast) => (
+        <TableNotices
+          key={props.start?.epoch}
+          {...props}
+          lead={toast}
+          subscribeMessages={feeds.messages.subscribe}
+          subscribePings={feeds.pings.subscribe}
+          onLookAt={feeds.cameraLook.lookAt}
+        />
+      )}
     </OwnFactionNotice>
+  );
+}
+
+/* What the compass shows of the table beyond its panels (the players, the chats and its commands), and the camera look the notices ask to look somewhere. */
+function TableContexts({
+  compassTable,
+  cameraLook,
+  children,
+}: Readonly<{ compassTable: CompassTable; cameraLook: CameraLook; children: ReactNode }>) {
+  return (
+    <CameraLookContext value={cameraLook}>
+      <CompassTableContext value={compassTable}>{children}</CompassTableContext>
+    </CameraLookContext>
   );
 }
 
@@ -913,8 +942,7 @@ function ConnectedTable({
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
-  /* A notice about a spot on the table, such as a ping, has the camera look there. */
-  const feeds = useNoticeFeeds(client, useContext(CameraLookContext));
+  const feeds = useNoticeFeeds(client);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -941,9 +969,7 @@ function ConnectedTable({
         <TabletopSessionProvider session={client}>
           {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
           <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-            {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-            <CameraLookContext value={feeds.cameraLook}>
-              <CompassTableContext value={compassTable}>
+            <TableContexts compassTable={compassTable} cameraLook={feeds.cameraLook}>
                 <GameTable
                   readOnly={readOnly}
                   onSceneReady={onReady}
@@ -1015,14 +1041,11 @@ function ConnectedTable({
                       inert={inert}
                       openPanel={openNoticePanel}
                       openBattlePlan={noticeBattleOpener}
-                      subscribeMessages={feeds.messages.subscribe}
-                      subscribePings={feeds.pings.subscribe}
-                      onLookAt={feeds.cameraLook.lookAt}
+                      feeds={feeds}
                     />
                   )}
                 />
-              </CompassTableContext>
-            </CameraLookContext>
+            </TableContexts>
             {tracker ? (
               <Suspense fallback={null}>
                 <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />

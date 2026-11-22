@@ -204,9 +204,12 @@ function useChatMessageNotices(
     setShownFor(own);
     setNotices([]);
   }
-  /* A message is read against the table as it is when it arrives. */
+  /*
+   * A message is read against the table as it is when it arrives.
+   * The notices listen even while chat notifications are off or before the viewer has a seat, and drop what they hear then, so it never turns into a late notice.
+   */
   const hear = useEffectEvent((peerId: string, message: ConversationMessage) => {
-    if (isViewingConversation(peerId)) {
+    if (!own || !enabled || isViewingConversation(peerId)) {
       return;
     }
     const notice = chatNotice(table, peerId, message, performance.now());
@@ -215,11 +218,11 @@ function useChatMessageNotices(
     }
   });
   useEffect(() => {
-    if (!own || !subscribeMessages || !enabled) {
+    if (!subscribeMessages) {
       return;
     }
     return subscribeMessages(hear);
-  }, [subscribeMessages, own, enabled]);
+  }, [subscribeMessages]);
   return notices;
 }
 

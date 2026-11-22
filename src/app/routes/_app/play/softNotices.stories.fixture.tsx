@@ -162,7 +162,7 @@ export function ownPiecesSpot(snapshot: GameSnapshot): Vector3Tuple {
 }
 
 /* The notices hear chat messages and pings from the frame after they show; one sent before that is one nobody was there to hear. */
-function noticesListening() {
+export function noticesListening() {
   return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 

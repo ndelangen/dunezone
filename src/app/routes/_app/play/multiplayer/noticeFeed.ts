@@ -1,9 +1,9 @@
 import type { ConversationMessage } from '@shared/play/conversations';
 import type { TablePing } from '@shared/play/protocol';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import type { TableSession } from '../../../../db/tabletop/TableSession';
-import { createCameraLook } from '../../../../widgets/tabletop/cameraLook';
+import { CameraLookContext, createCameraLook } from '../../../../widgets/tabletop/cameraLook';
 import type { CameraLook } from '../../../../widgets/tabletop/cameraLook';
 
 /* What is kept while nobody listens: the newest few, and only for a few seconds, so a listener that comes late hears what it just missed and nothing stale. */
@@ -58,9 +58,10 @@ export type NoticeFeeds = Readonly<{
 
 /**
  * What the soft notices hear from the live table: chat messages and pings, heard from when the table shows rather than from when the notices' lazily loaded code arrives, so nothing in between is lost.
- * The camera look is the one a story or an outer page provides, else the table's own.
+ * The camera look is the one a story or an outer page provides through its context, else the table's own.
  */
-export function useNoticeFeeds(client: TableSession, outerLook: CameraLook | null): NoticeFeeds {
+export function useNoticeFeeds(client: TableSession): NoticeFeeds {
+  const outerLook = useContext(CameraLookContext);
   const [feeds] = useState(() => ({
     messages: bufferedSource<[string, ConversationMessage]>(),
     pings: bufferedSource<[TablePing]>(),
