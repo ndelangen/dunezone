@@ -65,6 +65,10 @@ export function createHoverTag() {
      */
     leave(pieceId: string, gone: () => void) {
       if (current !== pieceId) {
+        /* No tag shows, such as one a press already took down: what ends with the hover ends now, as no tag will take it along. */
+        if (current === null) {
+          gone();
+        }
         return;
       }
       cancelHide();
