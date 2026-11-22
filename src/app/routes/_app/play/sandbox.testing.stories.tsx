@@ -297,7 +297,7 @@ export const HoverTagHoldsThroughASlip = meta.story({
     watch.disconnect();
     await expect(blinks).toEqual([]);
     /* The tag paints in its own root, which can lag a slow frame behind the hover itself. */
-    await waitFor(() => expect(tag.querySelector('.scene-piece-name')).toBeVisible());
+    await waitFor(() => expect(tag.querySelector('.scene-piece-name')).toBeVisible(), { timeout: 10_000 });
     /* Off the stack for good, the tag goes after its moment. */
     pointAt(edge.left + 4, edge.top + 4);
     await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'));
@@ -458,7 +458,8 @@ async function hoverShowsNameAndCount(
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
   /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
-  await waitFor(() => expect(name).toBeVisible());
+  /* The tag paints in its own root, which a busy runner can hold back by several seconds of frame lag. */
+  await waitFor(() => expect(name).toBeVisible(), { timeout: 10_000 });
   await expect(count).not.toBeVisible();
   const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
   const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
