@@ -292,9 +292,13 @@ CI also passes `--skip-generate`, Playwright's full Chromium as `--browser` and
 `--expect-renderer webgl2-swiftshader`, the renderer of its Linux runner; a local run can leave them
 out. A local run is optional and never required before merging.
 
-The `hosted_play_webgpu` job, also required by `ci_ok`, runs the `regular` shard a second time on a
-standard macOS runner. There full Chromium draws the table with WebGPU on the runner's Metal device,
-and the job passes `--expect-renderer webgpu` in place of `webgl2-swiftshader`. Reverting the fix
+The `hosted_play_webgpu` job, also required by `ci_ok`, runs on a standard macOS runner. There full
+Chromium draws the table with WebGPU on the runner's Metal device, and the job passes
+`--expect-renderer webgpu` in place of `webgl2-swiftshader`. On a pull request it runs the `webgpu`
+shard, whose `render` flow draws the table, a held token, a spice stack, every phase's view and a
+Mentat recall checkpoint once each. Seats, reloads, sign-out and the observer do not depend on the
+renderer, so they stay with the Linux shards. The daily run draws the whole `regular` shard with
+WebGPU, and a pull request's run never stands in for it. Reverting the fix
 for [#1272](https://github.com/ndelangen/dunezone/issues/1272), a vertex buffer validation error only
 WebGPU reports, turned most of this job's runs red while the Linux shards stayed green.
 

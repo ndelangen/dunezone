@@ -155,6 +155,9 @@ jobs:
       - name: Decide whether WebGPU runs
         id: closure
         uses: ./.github/actions/play-closure
+        with:
+          # A pull request draws only the render check with WebGPU, so its run never stands for the daily run's whole regular shard.
+          merged-pull-request-counts: "false"
       - name: Require a valid WebGPU decision
         env:
           RUN_WEBGPU: ${{ steps.closure.outputs.run }}
@@ -197,11 +200,13 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # The regular flow once more, on macOS, where full Chromium draws the Play table with WebGPU on the
-  # runner's Metal device (#1322). The Linux shards draw WebGL2 on SwiftShader, so they pass a defect
-  # that only WebGPU shows, such as #1272's vertex buffer validation error.
+  # On macOS, full Chromium draws the Play table with WebGPU on the runner's Metal device (#1322). The
+  # Linux shards draw WebGL2 on SwiftShader, so they pass a defect that only WebGPU shows, such as #1272's
+  # vertex buffer validation error. A pull request runs the webgpu shard's render check, which draws each
+  # thing the table shows once; the daily run draws the whole regular shard. The full regular flow here
+  # failed mostly on timing unrelated to WebGPU (#2032, #2091, #1592, #2379) for 433 s of a runner.
   hosted_play_webgpu:
-    name: hosted_play_webgpu (regular)
+    name: hosted_play_webgpu (${{ inputs.hosted_only && 'regular' || 'webgpu' }})
     needs: hosted_play_webgpu_decision
     # A standard runner, which costs nothing on a public repository; a larger macOS runner is billed even
     # there. Pinned rather than macos-latest, because the WebGPU adapter comes with the image.
@@ -236,22 +241,24 @@ jobs:
           path: ~/.cache/dunezone/convex-backend
           key: convex-backend-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/verify-hosted-play-stack.ts') }}
           restore-keys: convex-backend-${{ runner.os }}-${{ runner.arch }}-
-      - name: Run the regular flow expecting WebGPU
+      - name: Run the ${{ inputs.hosted_only && 'regular' || 'webgpu' }} shard expecting WebGPU
         # The generated-images step above already wrote the image and vector output.
-        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --stop-on-failure --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
+        env:
+          SHARD: ${{ inputs.hosted_only && 'regular' || 'webgpu' }}
+        run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --stop-on-failure --shard "$SHARD" --browser-only --browser "$CHROMIUM" --expect-renderer webgpu
       - name: Summarise each flow
         # As in hosted_play: always() for a timed-out job, and the summary never changes the job's result.
         if: always()
         continue-on-error: true
         uses: ./.github/actions/hosted-play-summary
         with:
-          heading: hosted_play_webgpu regular
-          shard: regular
+          heading: hosted_play_webgpu ${{ inputs.hosted_only && 'regular' || 'webgpu' }}
+          shard: ${{ inputs.hosted_only && 'regular' || 'webgpu' }}
       - name: Retain hosted game integration evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: hosted-play-evidence-${{ github.run_id }}-webgpu-regular
+          name: hosted-play-evidence-${{ github.run_id }}-webgpu
           path: |
             test-results/hosted-play/*.log
             test-results/hosted-play/cold-*.json

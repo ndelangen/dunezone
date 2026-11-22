@@ -12,6 +12,7 @@ interface Step {
   id?: string;
   uses?: string;
   run?: string;
+  with?: Record<string, string>;
   env?: Record<string, string>;
   'continue-on-error'?: boolean;
 }
@@ -61,7 +62,13 @@ function requestsMac(run: string, result = 'success', draft = false) {
 }
 
 /** Run the action without dependencies installed, replacing only GitHub's API responses. */
-function decide(event: string, responses: Record<string, unknown> = {}, force = '', brokenScript = false) {
+function decide(
+  event: string,
+  responses: Record<string, unknown> = {},
+  force = '',
+  brokenScript = false,
+  mergedPullRequestCounts = 'true'
+) {
   const directory = mkdtempSync(join(tmpdir(), 'play-scheduling-'));
   try {
     const workspace = join(directory, 'workspace');
@@ -102,6 +109,7 @@ process.stdout.write(JSON.stringify(response));
         SHA: 'tip',
         FORCE: force,
         WORKFLOW_REF: 'owner/repo/.github/workflows/hosted-play-daily.yml@refs/heads/main',
+        MERGED_PULL_REQUEST_COUNTS: mergedPullRequestCounts,
       },
       encoding: 'utf8',
     });
@@ -202,6 +210,22 @@ describe('daily and forced WebGPU scheduling', () => {
         [comparison]: { ...files(filename), status: 'ahead' },
       })
     ).toEqual({ status: 0, run });
+  });
+
+  /* A pull request draws only the webgpu shard's render check, so its run does not stand for the daily run's regular shard. */
+  test('the WebGPU decision runs the daily regular shard after a merge that reached the closure', () => {
+    const step = decisionJob.steps.find((candidate) => candidate.uses === './.github/actions/play-closure');
+    expect(step?.with?.['merged-pull-request-counts']).toBe('false');
+    const merged = {
+      [dailyRuns]: { workflow_runs: [] },
+      'repos/owner/repo/commits/tip': { parents: [{ sha: 'base' }, { sha: 'head' }] },
+      [comparison]: { ...files('workers/game/index.ts'), status: 'ahead' },
+    };
+    expect(decide('schedule', merged, '', false, 'false')).toEqual({ status: 0, run: 'true' });
+    expect(decide('schedule', { [dailyRuns]: { workflow_runs: [{ head_sha: 'tip' }] } }, '', false, 'false')).toEqual({
+      status: 0,
+      run: 'false',
+    });
   });
 
   test('an unreadable daily history and merge-group events still run', () => {

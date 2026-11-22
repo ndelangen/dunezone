@@ -75,6 +75,19 @@ export const browserFlows = {
     startsInPlay: true,
     shard: 'protocol',
   },
+  /*
+   * The WebGPU check on pull requests: two seated players draw the table, a held token, a spice stack (#1272), every phase's view and a Mentat recall checkpoint.
+   * What it leaves out is renderer-independent and runs on SwiftShader in the Linux shards; the daily run draws the whole regular shard with WebGPU.
+   */
+  render: {
+    timeoutMs: 480_000,
+    separateBrowserPeer: null,
+    keepsFrames: false,
+    needsCatalogue: false,
+    checksPhaseCooldown: false,
+    startsInPlay: true,
+    shard: 'webgpu',
+  },
 } satisfies Record<
   string,
   {
@@ -99,8 +112,9 @@ export const browserFlows = {
     /**
      * The `hosted_play` CI shard that runs the flow, which the launcher's `--shard` selects.
      * A shard seeds the public catalogue when one of its flows needs it, so the flows that need it share `catalogue`.
+     * `webgpu` has no Linux shard: only the macOS `hosted_play_webgpu` job runs it, on pull requests.
      */
-    shard: 'regular' | 'catalogue' | 'protocol';
+    shard: 'regular' | 'catalogue' | 'protocol' | 'webgpu';
   }
 >;
 

@@ -86,6 +86,7 @@ const flows = {
   battles: verifyBattles,
   decks: verifyDecks,
   results: verifyResults,
+  render: verifyRender,
 };
 assert.deepEqual(
   new Set(Object.keys(flows)),
@@ -2411,6 +2412,31 @@ async function verifyRegular() {
   leavingSocket.documentReplaced = true;
   await b.page.getByRole('heading', { name: 'Play Dune!' }).waitFor();
   passed('Lobby exit removes public presence before pointer expiry');
+}
+
+/**
+ * The pull request WebGPU check: each thing the table draws, drawn once, with the pixel checks the regular flow uses.
+ * Seats, reloads, sign-out and the observer are renderer-independent, so the Linux shards keep them.
+ */
+async function verifyRender() {
+  const a = await account('player-a');
+  await createGame(a);
+  const b = await account('player-b');
+  await enter(b);
+  await seatThrough(a, b);
+  await playReady([a, b], []);
+  samePublicView(a, b);
+  passed('Two seated players open the same table in play');
+  await visibleActivity(a, b, 'player-a-to-player-b');
+  await sharedSpiceRoundTrip(a, b, 3, () => spiceBankShortcut(a, '3'), 'spice-key-3');
+  await openTab(a, 'Phase');
+  await pinWindow(b, 'Phase', 'left');
+  while (phaseAt(requireView(a).snapshot.phase).id !== 'mentat-pause') {
+    await phaseStep(a, b);
+  }
+  passed('Each phase up to Mentat Pause draws its view for both players');
+  await readyBeforeAdvance(a, b);
+  await verifyTableReview(a, b);
 }
 
 try {
