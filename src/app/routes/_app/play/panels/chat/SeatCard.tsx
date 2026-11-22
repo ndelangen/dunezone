@@ -4,7 +4,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { Info, MessagesSquare } from 'lucide-react';
 
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
-import type { Mention } from './mentions';
+import type { Mention } from '../../multiplayer/mentions';
 import styles from './SeatCard.module.css';
 
 const FACE = 20;

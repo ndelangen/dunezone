@@ -1,8 +1,16 @@
 import { idleBidding } from '@shared/play/bidding';
+import { TABLE_CONVERSATION } from '@shared/play/conversations';
+import type { Vector3Tuple } from '@shared/play/model';
+import { MOVEMENT_PHASE_ID } from '@shared/play/movement';
 import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
 import type { Decorator } from '@storybook/tanstack-react';
+import { useState } from 'react';
 import { within } from 'storybook/test';
+
+import { STORYBOOK_NOW } from '@db/storybook';
+import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
 
 import { install } from './game.stories.fixture';
 import { NoticeLifetime } from './multiplayer/noticeLifetime';
@@ -99,4 +107,127 @@ export function holdGlowLit(glow: HTMLElement) {
     animation.pause();
     animation.currentTime = 1000;
   }
+}
+
+let chatSequence = 0;
+
+/**
+ * Another faction writes in a conversation the viewer's faction is part of, as the room delivers it live: the table chat when `peerId` is '@table', else a private chat (named by its writer, as the viewer sees it).
+ */
+export async function writeToViewer(senderFactionId: string, text: string, peerId = TABLE_CONVERSATION) {
+  const { snapshot, transport } = live!;
+  await noticesListening();
+  chatSequence += 1;
+  transport.deliver({
+    type: 'conversation-message',
+    factionId: ownFaction(snapshot).id,
+    peerId: peerId === TABLE_CONVERSATION ? peerId : senderFactionId,
+    message: {
+      sequence: chatSequence,
+      requestId: `story-chat-${chatSequence}`,
+      senderFactionId,
+      author: 'Story player',
+      text,
+      savedAt: STORYBOOK_NOW,
+    },
+  });
+}
+
+/** Every other seat's faction at the story table. */
+export function otherFactions(snapshot: GameSnapshot) {
+  return snapshot
+    .roster!.seats.filter((seat) => seat.id !== NOTICE_VIEWER && seat.faction)
+    .map((seat) => seat.faction!);
+}
+
+/** A favour asked in the table chat, naming the viewer's faction after an @. */
+export function askViewer(snapshot: GameSnapshot) {
+  return `@${ownFaction(snapshot).name} can you spare 3 spice for my shipment to Arrakeen? I will pay you back next turn.`;
+}
+
+/** The live story table, for a story that reads it after setup. */
+export function liveSnapshot() {
+  return live!.snapshot;
+}
+
+/** A spot on the board where the viewer's own pieces lie, in a territory where there is one. */
+export function ownPiecesSpot(snapshot: GameSnapshot): Vector3Tuple {
+  const own = ownFaction(snapshot).id;
+  const pieces = snapshot.table.pieces.filter((piece) => piece.owner === own);
+  const piece = pieces.find((candidate) => candidate.zoneId) ?? pieces[0];
+  if (!piece) {
+    throw new Error('The viewer has no pieces on the story table.');
+  }
+  return piece.position;
+}
+
+/* The notices hear chat messages and pings from the frame after they show; one sent before that is one nobody was there to hear. */
+export function noticesListening() {
+  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+/** Another seat's player pings the table at `position`, as the room relays a ping to everyone. */
+export async function pingFromOtherSeat(position: Vector3Tuple) {
+  const { snapshot, transport } = live!;
+  await noticesListening();
+  const seat = snapshot.roster!.seats.find((entry) => entry.id !== NOTICE_VIEWER && entry.faction)!;
+  transport.deliver({
+    type: 'ping',
+    ping: {
+      connectionId: 'story-pinger',
+      viewerSeat: seat.id,
+      displayName: 'Story pinger',
+      color: '#5fa8d3',
+      position,
+    },
+  });
+  return seat.faction!.name;
+}
+
+/** Opens Shipment and Movement with the viewer's faction first to move. */
+export function movementReachesViewer(snapshot: GameSnapshot) {
+  const own = ownFaction(snapshot).id;
+  snapshot.phase = (snapshot.phases ?? STANDARD_PHASES).findIndex((entry) => entry.id === MOVEMENT_PHASE_ID);
+  snapshot.movement = { done: [], order: [own, ...otherFactions(snapshot).map((faction) => faction.id)] };
+}
+
+/* Where the stories' table was asked to look, newest last. */
+let looks: Vector3Tuple[] = [];
+
+/** Stands in for the table's camera look, so a story can see where a notice asked it to look; the table's own camera still follows. */
+export const recordLooks: Decorator = (Story) => {
+  const [look] = useState(() => {
+    const own = createCameraLook();
+    looks = [];
+    return {
+      lookAt: (spot: Vector3Tuple) => {
+        looks.push(spot);
+        own.lookAt(spot);
+      },
+      subscribe: own.subscribe,
+    };
+  });
+  return (
+    <CameraLookContext value={look}>
+      <Story />
+    </CameraLookContext>
+  );
+};
+
+/** Where the stories' table was last asked to look. */
+export const lastLook = () => looks.at(-1);
+
+/** The territory the viewer's pieces lie in on the story table, as a ping there names it. */
+export function ownPiecesTerritory(snapshot: GameSnapshot) {
+  const name = territoryAtTable({ board: snapshot.board?.definition }, ownPiecesSpot(snapshot))?.name;
+  if (!name) {
+    throw new Error("The viewer's pieces lie in no territory on the story table.");
+  }
+  return name;
+}
+
+/** A toast's accessible name: its line, then the words quoted under it, matched whole. */
+export function toastName(line: string, quote?: string) {
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escape(line)}${quote === undefined ? '' : `\\s*${escape(quote)}`}$`);
 }

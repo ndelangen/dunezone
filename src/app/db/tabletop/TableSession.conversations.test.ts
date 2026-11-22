@@ -430,3 +430,28 @@ test('a clear lost with the connection goes out again once the summaries are bac
   summaries(2);
   expect(client.conversations.clearedThrough('two')).toBe(2);
 });
+
+test("another faction's message is heard once as it arrives, in any order; the viewer's own messages are not", async () => {
+  const client = await connect();
+  const heard: [string, string][] = [];
+  client.conversations.subscribeMessages((peerId, message) => heard.push([peerId, message.text]));
+  const from = (sequence: number, senderFactionId: string, text: string) => ({
+    ...saved(`request-${sequence}`),
+    sequence,
+    senderFactionId,
+    text,
+  });
+  socket().deliver({ type: 'conversation-message', factionId: 'one', peerId: 'two', message: from(1, 'two', 'Hi') });
+  socket().deliver({ type: 'conversation-message', factionId: 'one', peerId: 'two', message: from(1, 'two', 'Hi') });
+  socket().deliver({ type: 'conversation-message', factionId: 'one', peerId: 'two', message: from(2, 'one', 'Mine') });
+  socket().deliver({
+    type: 'conversation-message',
+    factionId: 'one',
+    peerId: '@table',
+    message: from(3, 'two', '@One'),
+  });
+  expect(heard).toEqual([
+    ['two', 'Hi'],
+    ['@table', '@One'],
+  ]);
+});

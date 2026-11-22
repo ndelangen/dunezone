@@ -1,4 +1,5 @@
-import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import type { FactionToken } from './FactionTokenFace';
 
 /** A seat a table chat message can name after an @: found by its faction's or its player's name, and always written as the faction's. */
 export type Mention = Readonly<{
@@ -139,4 +140,36 @@ export function completeMention({ text, caret }: Draft, { at }: MentionQuery, ch
   const spaced = after.startsWith(' ');
   const mention = `@${chosen.label}${spaced ? '' : ' '}`;
   return { text: text.slice(0, at) + mention + after, caret: at + mention.length + (spaced ? 1 : 0) };
+}
+
+/**
+ * Who an @ at the table can name: every seat, as its faction with its player beside it and the seat's token.
+ * The viewer's own seat is named in messages but never suggested;
+ * `peers` are the factions the viewer can chat with.
+ */
+export function tableMentions(
+  table: TableProjection | null | undefined,
+  tokens: Readonly<Record<string, FactionToken>>,
+  peers: readonly string[] = []
+): Mention[] {
+  const viewerSeat = table?.viewer.viewerSeat;
+  const players = table?.snapshot.controls?.players ?? [];
+  return (table?.snapshot.roster?.seats ?? []).flatMap((seat) => {
+    const faction = seat.faction;
+    if (!faction) {
+      return [];
+    }
+    const player = players.find((entry) => entry.seat === seat.id);
+    return [
+      {
+        id: seat.id,
+        label: faction.name,
+        detail: player?.name ?? null,
+        avatar: player?.avatar ?? null,
+        token: tokens[faction.id] ?? { id: faction.id, name: faction.name },
+        own: seat.id === viewerSeat,
+        chattable: seat.id !== viewerSeat && peers.includes(faction.id),
+      },
+    ];
+  });
 }

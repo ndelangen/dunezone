@@ -2,8 +2,8 @@ import { HoverCard } from '@mantine/core';
 import { cloneElement } from 'react';
 import type { KeyboardEvent, ReactElement } from 'react';
 
-import { splitMentions } from './mentions';
-import type { Mention } from './mentions';
+import { splitMentions } from '../../multiplayer/mentions';
+import type { Mention } from '../../multiplayer/mentions';
 import styles from './MentionText.module.css';
 import { SeatCard } from './SeatCard';
 

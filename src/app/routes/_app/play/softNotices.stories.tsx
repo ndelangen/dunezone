@@ -4,7 +4,12 @@ import { expect } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
 import {
+  askViewer,
   biddingReachesViewer,
+  liveSnapshot,
+  otherFactions,
+  toastName,
+  writeToViewer,
   changeTable,
   holdGlowLit,
   holdNotices,
@@ -47,6 +52,21 @@ export const YourTurnGlows = meta.story({
     holdGlowLit(lit);
     await expect(getComputedStyle(lit).opacity).toBe('1');
     const toast = await waitForFrame(() => log.getByRole('button', { name: /Your turn to bid/ }));
+    await expect(finishTransitions(toast)).toBeVisible();
+  },
+});
+
+/* Another faction names the viewer's faction in the table chat: a toast says who, with their words quieter under it. */
+export const MentionedInTableChat = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const snapshot = liveSnapshot();
+    const [asker] = otherFactions(snapshot);
+    await writeToViewer(asker!.id, askViewer(snapshot));
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() =>
+      log.getByRole('button', { name: toastName(`${asker!.name} mentioned you`, askViewer(snapshot)) })
+    );
     await expect(finishTransitions(toast)).toBeVisible();
   },
 });

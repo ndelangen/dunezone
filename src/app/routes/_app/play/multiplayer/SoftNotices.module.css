@@ -82,6 +82,11 @@
   min-width: 0;
 }
 
+/* A chat message's words under the notice's line, quieter than it. */
+.quote {
+  color: var(--color-muted);
+}
+
 .icon {
   flex-shrink: 0;
   color: var(--color-muted);
