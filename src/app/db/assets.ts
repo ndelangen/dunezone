@@ -1,10 +1,10 @@
 import { assetSubjectFacts } from '@shared/access/collaborativeAccess';
 import type { AssetViewerAccess } from '@shared/access/collaborativeAccess';
-import { usePaginatedQuery, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
-import { toLiveQueryResult, useLiveMutation, useLiveQuery } from '@app/db/core/live';
+import { toLiveQueryResult, useLiveMutation, useLivePaginatedQuery, useLiveQuery } from '@app/db/core/live';
 import { useAssetAccess, useViewerAssignableGroups, useViewerIsAdmin, UNAVAILABLE_SUBJECT } from '@app/db/viewerAccess';
 
 import { api } from '../../../convex/_generated/api';
@@ -186,19 +186,23 @@ export function useSpiceCardBoard(boardId: string, tokenIds: string[]) {
 type AssetDetailChunk = FunctionReturnType<typeof api.assets.detailPage>['page'][number];
 export type AssetDetailInitialPage = NonNullable<AssetPublicPage> & { relatedFaq: AssetDetailChunk['items'] };
 
+/* How many related questions a page shows at first and adds per "load more"; the loader and the live first page must agree on it to share one cached answer. */
+const RELATED_FAQ_PAGE = 12;
+
 /** The public detail and its first range of related questions travel together. */
+
 export async function loadAssetDetailPage(type: string, slug: string): Promise<AssetDetailInitialPage | null> {
-  const result = await db.query(
-    api.assets.detailPage,
-    { type, slug, paginationOpts: { numItems: 12, cursor: null } },
-    { hold: false }
-  );
+  const result = await db.query(api.assets.detailPage, {
+    type,
+    slug,
+    paginationOpts: { numItems: RELATED_FAQ_PAGE, cursor: null },
+  });
   const first = result.page[0];
   return first.detail ? { ...first.detail, relatedFaq: first.items } : null;
 }
 
 export function useAssetDetailPage(type: string, slug: string, options: { initialData: AssetDetailInitialPage }) {
-  const query = usePaginatedQuery(api.assets.detailPage, { type, slug }, { initialNumItems: 12 });
+  const query = useLivePaginatedQuery(api.assets.detailPage, { type, slug }, { initialNumItems: RELATED_FAQ_PAGE });
   const first = query.results[0];
   const page = first === undefined ? options.initialData : first.detail;
   return {
@@ -206,6 +210,6 @@ export function useAssetDetailPage(type: string, slug: string, options: { initia
     isPending: first === undefined,
     relatedFaq: first ? query.results.flatMap((chunk) => chunk.items) : options.initialData.relatedFaq,
     faqStatus: query.status,
-    loadMoreFaq: () => query.loadMore(12),
+    loadMoreFaq: () => query.loadMore(RELATED_FAQ_PAGE),
   };
 }

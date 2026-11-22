@@ -441,11 +441,12 @@ export const detailPage = publicQuery({
 
 /** The live asset at one address; a soft-deleted asset keeps its slug reserved and reads as absent. */
 export async function liveAsset(ctx: QueryCtx, type: string, slug: string) {
+  /* The type is part of the index range, so assets of other types that share the slug are never read. */
   const holders = await ctx.db
     .query('assets')
-    .withIndex('by_slug', (q) => q.eq('slug', slug))
+    .withIndex('by_type_and_slug', (q) => q.eq('type', type).eq('slug', slug))
     .take(50);
-  return holders.find((candidate) => candidate.type === type && !candidate.is_deleted) ?? null;
+  return holders.find((candidate) => !candidate.is_deleted) ?? null;
 }
 
 /**
