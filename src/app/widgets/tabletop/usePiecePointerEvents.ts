@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
-import { createContext, useContext, useEffect, useRef, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Matrix4 } from 'three';
 
 import { pieceHasMenu } from './pieceMenu';
@@ -193,11 +193,38 @@ export function usePiecePointerEvents({
       });
     },
   };
+  const dragged = useDraggedFar(locallyCarried);
   /*
-   * The piece the viewer holds keeps its tag for as long as the button is down.
+   * The piece the viewer holds keeps its tag while the button is down, until it is dragged: a moving piece shows none.
    * While something is held, the pieces it passes over show none, and a piece in someone else's hand shows none either.
    */
-  return { handlers, hovered: locallyCarried || (tagged && !carrying && !remoteCarried) };
+  return { handlers, hovered: locallyCarried ? !dragged : tagged && !carrying && !remoteCarried };
+}
+
+/* How far, in screen pixels, a held piece moves before it counts as dragged. */
+const DRAG_TAG_SLOP_PX = 4;
+
+/* Whether the pointer has moved a held piece further than a hand's tremor since it was picked up. */
+function useDraggedFar(held: boolean) {
+  const [dragged, setDragged] = useState(false);
+  useEffect(() => {
+    if (!held) {
+      return;
+    }
+    let origin: { x: number; y: number } | null = null;
+    const move = (event: PointerEvent) => {
+      origin ??= { x: event.clientX, y: event.clientY };
+      if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > DRAG_TAG_SLOP_PX) {
+        setDragged(true);
+      }
+    };
+    window.addEventListener('pointermove', move);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      setDragged(false);
+    };
+  }, [held]);
+  return held && dragged;
 }
 
 /* How long the table keeps looking under a still pointer after its pieces change, while a moved piece glides to its place. */

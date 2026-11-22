@@ -343,6 +343,36 @@ export const HoverTagStaysWhileHeld = meta.story({
   },
 });
 
+/** A held stack that is dragged shows no tooltip while it moves. */
+export const HoverTagHidesWhileDragging = meta.story({
+  play: async ({ canvasElement }) => {
+    const { spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const shownTags = () => document.querySelectorAll('.scene-piece-tag[data-hovered]').length;
+    const pointer = (type: 'pointerdown' | 'pointermove' | 'pointerup', x: number, y: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          clientX: x,
+          clientY: y,
+        })
+      );
+    pointer('pointerdown', spot.x, spot.y);
+    await waitFor(() => expect(shownTags()).toBe(1));
+    for (let step = 1; step <= 20; step++) {
+      pointer('pointermove', spot.x + step * 3, spot.y);
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+    await waitFor(() => expect(shownTags()).toBe(0));
+    pointer('pointerup', spot.x + 60, spot.y);
+  },
+});
+
 /** A faction token is one of a kind: hovered, it shows its name, but no count. */
 export const HoverFactionTokenShowsNoCount = meta.story({
   play: async ({ canvasElement }) => {
