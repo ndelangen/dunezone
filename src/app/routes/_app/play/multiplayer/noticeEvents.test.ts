@@ -3,7 +3,7 @@ import { STANDARD_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { expect, test, vi } from 'vite-plus/test';
 
-import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
+import { factionTokenSpot, noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 
 /* Storm order reads the faction tokens' sectors; these tables carry no pieces, so the viewer moves first. */
 vi.mock('@shared/play/stormSector', () => ({ stormOrder: () => [OWN, OTHER] }));
@@ -236,4 +236,16 @@ test('only the exact movement order the viewer asked for counts as their own', (
   expect(ownMovementOrder([OWN, OTHER], order([OWN, OTHER]))).toBe(true);
   expect(ownMovementOrder([OWN, OTHER], order([OWN, OTHER, 'house-fremen']))).toBe(false);
   expect(ownMovementOrder(null, order([OWN, OTHER]))).toBe(false);
+});
+
+test('the turn to ship looks at the viewer’s own faction token, not another faction’s or a troop of theirs', () => {
+  const piece = (id: string, owner: string, stackKey: string, position: [number, number, number]) =>
+    ({ id, owner, kind: 'force', stackKey, position }) as GameSnapshot['table']['pieces'][number];
+  const pieces = [
+    piece('other-token', OTHER, `faction-token:${OTHER}`, [1, 0, 1]),
+    piece('own-troops', OWN, `troops:${OWN}:0`, [2, 0, 2]),
+    piece('own-token', OWN, `faction-token:${OWN}`, [3, 0, 3]),
+  ];
+  expect(factionTokenSpot(table({ table: { ...table().table, pieces } }), OWN)).toEqual([3, 0, 3]);
+  expect(factionTokenSpot(table(), OWN)).toBeUndefined();
 });

@@ -638,6 +638,29 @@ export function cameraZoomAfterWheelAt(
   return next;
 }
 
+/* How close a look at a spot comes, as a share of the view's distance, unless the look is closer already. */
+const CAMERA_LOOK_SCALE = 0.5;
+
+/**
+ * A close look centred on a spot on the table, such as where a ping landed: as close as the look already is, or a little closer.
+ * `poseAt` is the view's pose at a tilt;
+ * a spot off the board centres as near it as a look may.
+ */
+export function cameraZoomLookingAt(
+  zoom: CameraZoom,
+  poseAt: (tilt: number) => CameraPose,
+  spot: Vector3Tuple
+): CameraZoom {
+  const scale = Math.min(zoom.scale, CAMERA_LOOK_SCALE);
+  const base = poseAt(cameraTiltForZoom({ scale, offset: [0, 0, 0] }));
+  const offset: Vector3Tuple = [
+    spot[0] - base.target[0] * scale,
+    spot[1] - base.target[1] * scale,
+    spot[2] - base.target[2] * scale,
+  ];
+  return keepZoomOverBoard(base, { scale, offset });
+}
+
 /* How quickly a close look follows the wheel: the share of the way left after a second's glide is e^(-1/τ). */
 const CAMERA_GLIDE_TIME_CONSTANT_S = 0.07;
 

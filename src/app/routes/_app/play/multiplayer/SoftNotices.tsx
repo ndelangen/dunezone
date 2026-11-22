@@ -1,25 +1,33 @@
 import { Text } from '@mantine/core';
+import { TABLE_CONVERSATION, conversationsAvailable } from '@shared/play/conversations';
+import type { ConversationMessage } from '@shared/play/conversations';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
+import type { TablePing } from '@shared/play/protocol';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
-import { Coins, Gavel, Handshake, Sailboat, Swords } from 'lucide-react';
+import { AtSign, Coins, Gavel, Handshake, MapPin, MessageCircle, Sailboat, Swords } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { ownStep } from '../../../../db/tabletop/OwnChanges';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
+import { isViewingConversation } from '../panels/chat/viewingConversations';
+import { useChatNotices } from './chatNotices';
 import type { FactionToken } from './FactionTokenFace';
 import { FactionTokenFace, snapshotFactionToken } from './FactionTokenFace';
-import { noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
+import { splitMentions, tableMentions } from './mentions';
+import { factionTokenSpot, noticeStillHolds, noticesBetween, onlyReordered, ownMovementOrder } from './noticeEvents';
 import type { NoticeDraft, SoftNoticeKind } from './noticeEvents';
 import { NoticeLifetime } from './noticeLifetime';
 import type { NoticeStart } from './noticeStart';
 import styles from './SoftNotices.module.css';
-import { stageInPlay } from './tableFactions';
+import { actingFaction, stageInPlay } from './tableFactions';
 
 type SoftNotice = Readonly<{
   id: string;
@@ -30,7 +38,16 @@ type SoftNotice = Readonly<{
   from: FactionToken | null;
   /** When it arrived, on this page's own clock (`performance.now()`): a notice is the page's, not the table's. */
   at: number;
+  /** A chat message's words, shown quieter under the line. */
+  quote?: string;
+  /** The panel it opens, where that is not its kind's: the chat a message came in. */
+  opens?: string;
+  /** The spot on the table it is about, which the camera looks at when it is opened: where a ping landed. */
+  spot?: Vector3Tuple;
 }>;
+
+/* How near one of the viewer's pieces a ping lands to be about them, in table units: about a troop stack's width. */
+const PING_NEAR = 0.25;
 
 const ICONS: Record<SoftNoticeKind, LucideIcon> = {
   bid: Gavel,
@@ -38,6 +55,9 @@ const ICONS: Record<SoftNoticeKind, LucideIcon> = {
   battle: Swords,
   spice: Coins,
   alliance: Handshake,
+  mention: AtSign,
+  message: MessageCircle,
+  ping: MapPin,
 };
 
 /** The viewer's own turns, which the screen's edge glows for as well. */
@@ -132,6 +152,147 @@ function useSoftNotices(table: TableProjection, start: NoticeStart | null): read
   }, [own, start, snapshot, mine, playing]);
   return notices;
 }
+
+/* The notice a chat message raises for the viewer, if any: the table chat when it names their seat after an @, and any message in a private chat (Norbert, 2026-11-21). */
+function chatNotice(
+  table: TableProjection,
+  peerId: string,
+  message: ConversationMessage,
+  at: number
+): SoftNotice | null {
+  const snapshot = table.confirmedSnapshot ?? table.snapshot;
+  const names = snapshotFactionLabels(snapshot);
+  const sender = names[message.senderFactionId] ?? message.senderFactionId;
+  const from = snapshotFactionToken(snapshot, message.senderFactionId, names);
+  const id = `chat-${peerId}-${message.sequence}`;
+  if (peerId === TABLE_CONVERSATION) {
+    const segments = splitMentions(message.text, tableMentions(table, {}));
+    if (!segments.some((segment) => segment.seats?.some((seat) => seat.own))) {
+      return null;
+    }
+    return { id, kind: 'mention', text: `${sender} mentioned you`, from, at, quote: message.text, opens: 'table-chat' };
+  }
+  /* Only a private chat is named by the faction on its other side; the table's and a recall's start with an @. */
+  if (peerId.startsWith('@')) {
+    return null;
+  }
+  const seat = snapshot.roster?.seats.find((entry) => entry.faction?.id === message.senderFactionId)?.id;
+  return {
+    id,
+    kind: 'message',
+    text: `${sender} wrote to you`,
+    from,
+    at,
+    quote: message.text,
+    ...(seat && { opens: `player:${seat}` }),
+  };
+}
+
+/**
+ * The notices chat messages raise for the viewer as they arrive: a mention of their seat in the table chat, or a private message.
+ * A conversation the viewer is reading already raises none, none at all while they turned chat notices off in the game menu, and acting for another faction starts afresh.
+ */
+function useChatMessageNotices(
+  table: TableProjection,
+  subscribeMessages: SubscribeMessages | undefined,
+  own: string | undefined
+): readonly SoftNotice[] {
+  const enabled = useChatNotices();
+  const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
+  const [shownFor, setShownFor] = useState(own);
+  if (shownFor !== own) {
+    setShownFor(own);
+    setNotices([]);
+  }
+  /*
+   * A message is read against the table as it is when it arrives.
+   * The notices listen even while chat notifications are off or before the viewer has a seat, and drop what they hear then, so it never turns into a late notice.
+   */
+  const hear = useEffectEvent((peerId: string, message: ConversationMessage) => {
+    if (!own || !enabled || isViewingConversation(peerId)) {
+      return;
+    }
+    const notice = chatNotice(table, peerId, message, performance.now());
+    if (notice) {
+      setNotices((all) => [...all.filter((kept) => kept.id !== notice.id), notice].slice(-KEPT));
+    }
+  });
+  useEffect(() => {
+    if (!subscribeMessages) {
+      return;
+    }
+    return subscribeMessages(hear);
+  }, [subscribeMessages]);
+  return notices;
+}
+
+/*
+ * The notice another player's ping raises for the viewer: only one that lands on their own pieces, naming the territory there (Norbert, 2026-11-21).
+ * Other pings show as they always have, by their ripple and the edge arrow.
+ */
+function pingNotice(table: TableProjection, ping: TablePing, at: number): SoftNotice | null {
+  const snapshot = table.confirmedSnapshot ?? table.snapshot;
+  const own = table.viewer.viewerSeat ? seatFactionId(snapshot, table.viewer.viewerSeat) : undefined;
+  const pinger = seatFactionId(snapshot, ping.viewerSeat);
+  if (!own || !pinger || pinger === own) {
+    return null;
+  }
+  const [x, , z] = ping.position;
+  const onOwn = snapshot.table.pieces.some(
+    (piece) => piece.owner === own && Math.hypot(piece.position[0] - x, piece.position[2] - z) <= PING_NEAR
+  );
+  if (!onOwn) {
+    return null;
+  }
+  const names = snapshotFactionLabels(snapshot);
+  const place = territoryAtTable({ board: snapshot.board?.definition }, ping.position)?.name;
+  return {
+    id: `ping-${pinger}-${at}`,
+    kind: 'ping',
+    text: `${names[pinger] ?? pinger} pinged your pieces${place ? ` in ${place}` : ''}`,
+    from: snapshotFactionToken(snapshot, pinger, names),
+    at,
+    spot: ping.position,
+  };
+}
+
+const seatFactionId = (snapshot: GameSnapshot, seat: string) =>
+  snapshot.roster?.seats.find((entry) => entry.id === seat)?.faction?.id;
+
+/* The notices other players' pings raise: one at a time from each player, the newest replacing the last. */
+function usePingNotices(
+  table: TableProjection,
+  subscribePings: SubscribePings | undefined,
+  own: string | undefined
+): readonly SoftNotice[] {
+  const [notices, setNotices] = useState<readonly SoftNotice[]>([]);
+  const [shownFor, setShownFor] = useState(own);
+  if (shownFor !== own) {
+    setShownFor(own);
+    setNotices([]);
+  }
+  const hear = useEffectEvent((ping: TablePing) => {
+    if (ping.connectionId === table.viewer.connectionId) {
+      return;
+    }
+    const notice = pingNotice(table, ping, performance.now());
+    if (notice) {
+      const sameSender = (kept: SoftNotice) => kept.from?.id === notice.from?.id;
+      setNotices((all) => [...all.filter((kept) => !sameSender(kept)), notice].slice(-KEPT));
+    }
+  });
+  useEffect(() => {
+    if (!own || !subscribePings) {
+      return;
+    }
+    return subscribePings(hear);
+  }, [subscribePings, own]);
+  return notices;
+}
+
+type SubscribePings = (listener: (ping: TablePing) => void) => () => void;
+
+type SubscribeMessages = (listener: (peerId: string, message: ConversationMessage) => void) => () => void;
 
 /**
  * The viewer's soft notifications (#2981), laid over the table inside its shell: small toasts under the phase header, each with the token of the faction it came from and one line, that fade after a few seconds.
@@ -232,11 +393,28 @@ function Toast({
       renderRoot={(props) => <button type="button" {...props} disabled={held} onClick={() => onOpen(notice)} />}
     >
       {notice.from && <FactionTokenFace token={notice.from} size={28} aria-hidden />}
+      <NoticeWords notice={notice} />
+      <Icon size={16} aria-hidden className={styles.icon} />
+    </Surface>
+  );
+}
+
+/* A toast's words: the caller owns the notice; this owns laying out its line, with a chat message's words quieter under it, up to two lines. */
+function NoticeWords({ notice }: Readonly<{ notice: SoftNotice }>) {
+  if (!notice.quote) {
+    return (
       <Text size="sm" className={styles.line}>
         {notice.text}
       </Text>
-      <Icon size={16} aria-hidden className={styles.icon} />
-    </Surface>
+    );
+  }
+  return (
+    <div className={styles.line}>
+      <Text size="sm">{notice.text}</Text>
+      <Text size="xs" lineClamp={2} className={styles.quote}>
+        {notice.quote}
+      </Text>
+    </div>
   );
 }
 
@@ -257,23 +435,49 @@ export function TableSoftNotices({
   openPanel,
   openBattlePlan,
   lead,
+  subscribeMessages,
+  subscribePings,
+  onLookAt,
 }: Readonly<{
   table: TableProjection;
   start: NoticeStart | null;
   /** A toast that stands above the notices, such as the viewer's dealt faction. */
   lead?: ReactNode;
+  /** Each chat message another faction writes to the viewer, as it arrives. */
+  subscribeMessages?: SubscribeMessages;
+  /** Each ping at the table, as it lands. */
+  subscribePings?: SubscribePings;
+  /** The viewer opened a notice about a spot on the table; the caller decides what looking there means. */
+  onLookAt?: (spot: Vector3Tuple) => void;
   /** Whether a board gesture holds the pointer, when no notice may be opened. */
   inert: boolean;
   openPanel: (key: string) => void;
   openBattlePlan: (() => void) | null;
 }>) {
   const open = (notice: SoftNotice) => {
-    const panel = PANELS[notice.kind];
-    if (panel) {
+    const panel = notice.opens ?? PANELS[notice.kind];
+    /* The turn to ship and move is played on the table: the camera goes to the viewer's faction token, where their shipment starts (Norbert, 2026-11-21). */
+    const spot =
+      notice.kind === 'ship' && start?.own
+        ? factionTokenSpot(table.confirmedSnapshot ?? table.snapshot, start.own)
+        : notice.spot;
+    if (spot) {
+      onLookAt?.(spot);
+    } else if (panel) {
       openPanel(panel);
     } else if (notice.kind === 'battle') {
       openBattlePlan?.();
     }
   };
-  return <SoftNotices notices={useSoftNotices(table, start)} inert={inert} onOpen={open} lead={lead} />;
+  const fromTable = useSoftNotices(table, start);
+  /* Chats stay open after play ends, so their notices follow the faction the viewer chats as, not the table's turns. */
+  const chatting =
+    conversationsAvailable(table.snapshot.stage) && !table.reconnecting ? actingFaction(table) : undefined;
+  const fromChat = useChatMessageNotices(table, subscribeMessages, chatting);
+  const fromPings = usePingNotices(table, subscribePings, start?.own);
+  const notices =
+    fromChat.length || fromPings.length
+      ? [...fromTable, ...fromChat, ...fromPings].toSorted((a, b) => a.at - b.at)
+      : fromTable;
+  return <SoftNotices notices={notices} inert={inert} onOpen={open} lead={lead} />;
 }

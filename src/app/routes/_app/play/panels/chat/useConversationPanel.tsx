@@ -8,10 +8,12 @@ import type { TableProjection, TableSession } from '../../../../../db/tabletop/T
 import { CompassWindowsContext } from '../../compass/compassWindows';
 import { snapshotFactionToken } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import { tableMentions } from '../../multiplayer/mentions';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
-import type { Mention } from './mentions';
+
+export { tableMentions };
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
 function senderNames(context: ConversationView['context']): Record<string, string> {
@@ -30,38 +32,6 @@ function senderTokens(
 ): Record<string, FactionToken> {
   const names = senderNames(context);
   return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
-}
-
-/**
- * Who an @ at the table can name: every seat, as its faction with its player beside it and the seat's token.
- * The viewer's own seat is named in messages but never suggested;
- * `peers` are the factions the viewer can chat with.
- */
-export function tableMentions(
-  table: TableProjection | null | undefined,
-  tokens: Readonly<Record<string, FactionToken>>,
-  peers: readonly string[] = []
-): Mention[] {
-  const viewerSeat = table?.viewer.viewerSeat;
-  const players = table?.snapshot.controls?.players ?? [];
-  return (table?.snapshot.roster?.seats ?? []).flatMap((seat) => {
-    const faction = seat.faction;
-    if (!faction) {
-      return [];
-    }
-    const player = players.find((entry) => entry.seat === seat.id);
-    return [
-      {
-        id: seat.id,
-        label: faction.name,
-        detail: player?.name ?? null,
-        avatar: player?.avatar ?? null,
-        token: tokens[faction.id] ?? { id: faction.id, name: faction.name },
-        own: seat.id === viewerSeat,
-        chattable: seat.id !== viewerSeat && peers.includes(faction.id),
-      },
-    ];
-  });
 }
 
 /** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */

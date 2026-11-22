@@ -59,10 +59,11 @@ export const Windows = meta.story({
       await expect(page.queryByRole('heading', { name: 'Spice reserve' })).toBeNull();
     });
     await openTab(page, 'Spice transfers');
-    await expect(page.getByRole('region', { name: 'Public spice transfers' })).toBeVisible();
+    /* The spice transfers and the game length load when first opened. */
+    await expect(await page.findByRole('region', { name: 'Public spice transfers' })).toBeVisible();
     await expect(page.queryByRole('region', { name: 'Spice reserve' })).toBeNull();
     await openTab(page, 'Settings');
-    await expect(page.getByRole('textbox', { name: 'Last turn' })).toBeVisible();
+    await expect(await page.findByRole('textbox', { name: 'Last turn' })).toBeVisible();
     await openTab(page, 'Hand');
     /* The phase controls stay in the header, outside the windows. */
     await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
@@ -110,7 +111,8 @@ export const SettingsRefusal = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Settings');
-    const turn = page.getByRole('textbox', { name: 'Last turn' });
+    /* The game length loads when first opened. */
+    const turn = await page.findByRole('textbox', { name: 'Last turn' });
     await userEvent.clear(turn);
     await userEvent.type(turn, '6');
     await userEvent.tab();

@@ -40,6 +40,9 @@ export type ConversationView = {
   pending: PendingView[];
 };
 
+/* How many told messages are remembered, so a repeat is told once. */
+const HEARD_KEPT = 500;
+
 /** Owns session-only outgoing messages and private history; the caller supplies current authority and transport. */
 export class ConversationSession {
   readonly drafts = new Map<string, string>();
@@ -54,12 +57,21 @@ export class ConversationSession {
   private readonly clears = new Map<string, { peerId: string; through: number }>();
   /* Clears the room has not taken yet, by conversation: refused while the table resynced, or lost with a connection; sent again until it confirms them. */
   private readonly unsent = new Map<string, number>();
+  /* Who hears each message another faction writes as it arrives, and the messages already told, by conversation and sequence, so one is told once whatever order they come in. */
+  private readonly messageListeners = new Set<(peerId: string, message: ConversationMessage) => void>();
+  private readonly heard = new Set<string>();
 
   constructor(
     private readonly send: (request: Request) => boolean,
     private readonly changed: () => void,
     private readonly monotonicNow: () => number
   ) {}
+
+  /** Each message another faction writes to the viewer's faction as it arrives live; nothing is replayed, so a listener hears only what comes after it subscribes. */
+  subscribeMessages = (listener: (peerId: string, message: ConversationMessage) => void) => {
+    this.messageListeners.add(listener);
+    return () => this.messageListeners.delete(listener);
+  };
 
   view(): ConversationView {
     return {
@@ -162,6 +174,7 @@ export class ConversationSession {
     this.reads.clear();
     this.clears.clear();
     this.unsent.clear();
+    this.heard.clear();
   }
 
   receive(message: ServerMessage): boolean {
@@ -244,6 +257,7 @@ export class ConversationSession {
       this.reads.clear();
       this.clears.clear();
       this.unsent.clear();
+      this.heard.clear();
     }
     this.generation = message.generation;
     this.summaries = message.entries.filter(
@@ -300,6 +314,18 @@ export class ConversationSession {
     }
     if (message.message.senderFactionId === this.context!.factionId) {
       this.pending = this.pending.filter((entry) => entry.request.requestId !== message.message.requestId);
+      return;
+    }
+    const key = `${message.peerId}:${message.message.sequence}`;
+    if (!this.heard.has(key)) {
+      /* Only the newest are kept: a message told long ago is never sent again. */
+      this.heard.add(key);
+      if (this.heard.size > HEARD_KEPT) {
+        this.heard.delete(this.heard.values().next().value!);
+      }
+      for (const listener of this.messageListeners) {
+        listener(message.peerId, message.message);
+      }
     }
   }
 

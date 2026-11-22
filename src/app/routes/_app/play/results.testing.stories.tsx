@@ -212,7 +212,7 @@ export const Finished = meta.story({
     ).resolves.toBeVisible();
     /* History keeps the finished game's record. */
     await openTab(page, 'Battles');
-    await expect(page.getByText('No agreed battle results yet.')).toBeVisible();
+    await expect(await page.findByText('No agreed battle results yet.')).toBeVisible();
     /* Continue playing sits where Next phase did. */
     await userEvent.click(within(header).getByRole('button', { name: 'Continue playing' }));
     await expect(lastCommand()?.action).toEqual({ kind: 'result-continue' });

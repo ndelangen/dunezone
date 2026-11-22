@@ -6,6 +6,7 @@ import type { ComponentRef } from 'react';
 import { Fog, Vector3 } from 'three';
 import type { Camera } from 'three';
 
+import { CameraLookContext } from './cameraLook';
 import {
   CAMERA_CLOSEST_DISTANCE,
   CAMERA_TOP_VIEW_POLAR_ANGLE,
@@ -14,6 +15,7 @@ import {
   cameraPoseFor,
   cameraViewTransitionProgress,
   cameraTiltForZoom,
+  cameraZoomLookingAt,
   CAMERA_PAN_AT_REST,
   cameraPanMotionAfter,
   cameraZoomAfterPanMotion,
@@ -257,6 +259,24 @@ function useCloseLook(enabled: boolean, viewKey: string, poseAt: PoseAt): WheelV
     surface.addEventListener('wheel', onWheel, { passive: false });
     return () => surface.removeEventListener('wheel', onWheel);
   }, [enabled, poseAt, surface]);
+
+  /* A look asked for from outside the scene, such as a notice about a ping, glides to that spot as a wheel turn would. */
+  const look = useContext(CameraLookContext);
+  useEffect(() => {
+    if (!enabled || !look) {
+      return;
+    }
+    return look.subscribe((spot) => {
+      setView((current) => {
+        const at = poseAt.current;
+        if (!at) {
+          return current;
+        }
+        return { zoom: cameraZoomLookingAt(current.zoom, at, spot), zoomRevision: current.zoomRevision + 1 };
+      });
+      invalidate();
+    });
+  }, [enabled, invalidate, look, poseAt]);
 
   /* The cursor over the scene gives the table the keys, ahead of a control the last click left focused. */
   useEffect(() => {

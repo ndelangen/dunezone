@@ -3,11 +3,25 @@ import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { gameMeta } from './game.stories.fixture';
+import { setChatNotices } from './multiplayer/chatNotices';
+import { factionTokenSpot } from './multiplayer/noticeEvents';
 import {
+  askViewer,
   biddingReachesViewer,
+  liveSnapshot,
+  movementReachesViewer,
+  otherFactions,
+  ownPiecesSpot,
+  ownPiecesTerritory,
+  recordLooks,
+  lastLook,
+  toastName,
+  pingFromOtherSeat,
+  writeToViewer,
   changeTable,
   holdNotices,
   noticeLog,
+  noticesListening,
   noticeSetup,
   otherSeat,
   ownFaction,
@@ -140,6 +154,143 @@ export const OpponentCompletesBattle = meta.story({
     });
     const { log } = noticeLog(page);
     const toast = await waitForFrame(() => log.getByRole('button', { name: 'Your battle in Arrakeen is up' }));
+    await expect(finishTransitions(toast)).toBeVisible();
+  },
+});
+
+/* A mention's toast opens the table chat, where the message is answered. */
+export const MentionOpensTableChat = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const snapshot = liveSnapshot();
+    const [asker] = otherFactions(snapshot);
+    await writeToViewer(asker!.id, askViewer(snapshot));
+    const { log } = noticeLog(page);
+    await userEvent.click(
+      await waitForFrame(() => log.getByRole('button', { name: new RegExp(`${asker!.name} mentioned you`) }))
+    );
+    await expect(await page.findByRole('textbox', { name: 'Message' })).toBeVisible();
+  },
+});
+
+/* A table chat message that names another faction is not about the viewer, so it raises nothing; a payment after it shows notices still arrive. */
+export const OtherMentionRaisesNothing = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const [asker, other] = otherFactions(liveSnapshot());
+    await writeToViewer(asker!.id, `@${other!.name} your turn to pay up.`);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /mentioned you/ })).toBeNull();
+  },
+});
+
+/* With chat notifications turned off in the game menu, a private message raises nothing; a payment after it shows notices still arrive. */
+export const ChatNotificationsOff = meta.story({
+  beforeEach: () => {
+    setChatNotices(false);
+    return () => setChatNotices(true);
+  },
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const [, writer] = otherFactions(liveSnapshot());
+    await writeToViewer(writer!.id, 'Want to team up against the Emperor this turn?', writer!.id);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
+    /* Turning them back on brings no late notice for what arrived while they were off. */
+    setChatNotices(true);
+    await noticesListening();
+    await expect(log.queryByRole('button', { name: /wrote to you/ })).toBeNull();
+  },
+});
+
+/* A ping away from the viewer's pieces is not about them, so it raises nothing; a payment after it shows notices still arrive. */
+export const PingElsewhereRaisesNothing = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    /* The polar sink, in the board's middle, where the story table has no pieces of the viewer's. */
+    await pingFromOtherSeat([0, 0.02, 0]);
+    let giver = '';
+    changeTable((snapshot) => {
+      giver = payViewer(snapshot);
+    });
+    const { log } = noticeLog(page);
+    await waitForFrame(() => log.getByRole('button', { name: `${giver} paid you 3 spice` }));
+    await expect(log.queryByRole('button', { name: /pinged/ })).toBeNull();
+  },
+});
+
+/* Another faction writes to the viewer in their private chat: a toast says who, with the message under it, and opens that chat. */
+export const PrivateMessage = meta.story({
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const [, writer] = otherFactions(liveSnapshot());
+    const words = 'Want to team up against the Emperor this turn?';
+    await writeToViewer(writer!.id, words, writer!.id);
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() =>
+      log.getByRole('button', { name: toastName(`${writer!.name} wrote to you`, words) })
+    );
+    await userEvent.click(toast);
+    await expect(await page.findByRole('textbox', { name: 'Message' })).toBeVisible();
+  },
+});
+
+/* Another player pings the viewer's own pieces: a toast names who, and the territory; clicking it asks the camera to look where the ping landed. */
+export const PingOnYourPieces = meta.story({
+  decorators: [recordLooks],
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    const snapshot = liveSnapshot();
+    const spot = ownPiecesSpot(snapshot);
+    const pinger = await pingFromOtherSeat(spot);
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() =>
+      log.getByRole('button', { name: toastName(`${pinger} pinged your pieces in ${ownPiecesTerritory(snapshot)}`) })
+    );
+    await userEvent.click(toast);
+    await expect(lastLook()).toEqual(spot);
+  },
+});
+
+/* Shipment and Movement reaches the viewer: clicking their turn's toast asks the camera to look at their faction token. */
+export const ShipToastLooksAtToken = meta.story({
+  decorators: [recordLooks],
+  play: async ({ canvasElement }) => {
+    const page = await tableShown(canvasElement);
+    changeTable(movementReachesViewer);
+    const { log } = noticeLog(page);
+    await userEvent.click(await waitForFrame(() => log.getByRole('button', { name: /Your turn to ship and move/ })));
+    const snapshot = liveSnapshot();
+    await expect(lastLook()).toEqual(factionTokenSpot(snapshot, ownFaction(snapshot).id));
+    await expect(lastLook()).toBeDefined();
+  },
+});
+
+/* Chats stay open once the game is finished, and a mention there still toasts. */
+export const MentionAfterTheGame = meta.story({
+  beforeEach: noticeSetup((snapshot) => {
+    snapshot.stage = 'finished';
+  }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('log', { name: 'Notifications' }, { timeout: 30_000 });
+    const snapshot = liveSnapshot();
+    const [asker] = otherFactions(snapshot);
+    await writeToViewer(asker!.id, askViewer(snapshot));
+    const { log } = noticeLog(page);
+    const toast = await waitForFrame(() =>
+      log.getByRole('button', { name: toastName(`${asker!.name} mentioned you`, askViewer(snapshot)) })
+    );
     await expect(finishTransitions(toast)).toBeVisible();
   },
 });

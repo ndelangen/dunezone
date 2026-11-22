@@ -34,6 +34,8 @@ import type { ComponentProps, ReactNode } from 'react';
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
+import { CameraLookContext } from '@app/widgets/tabletop/cameraLook';
+import type { CameraLook } from '@app/widgets/tabletop/cameraLook';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -52,7 +54,6 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
-import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
@@ -63,11 +64,9 @@ import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
-import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -82,6 +81,8 @@ import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall, recalledBattle } from './MentatRecall';
+import { useNoticeFeeds } from './noticeFeed';
+import type { NoticeFeeds } from './noticeFeed';
 import { useNoticeStart } from './noticeStart';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
 import { OwnFactionNotice } from './OwnFaction';
@@ -124,6 +125,29 @@ const ConnectedKeyboardShortcutsPanel = lazy(() =>
 const ConnectedTerritoryTintsPanel = lazy(() =>
   import('../panels/tints/useTerritoryTintsPanel').then((module) => ({ default: module.ConnectedTerritoryTintsPanel }))
 );
+/* The game length, the battle history and the spice transfers are opened now and then, so they load when opened as well. */
+const ConnectedGameLengthPanel = lazy(() =>
+  import('../panels/settings/useGameLengthPanel').then((module) => ({ default: module.ConnectedGameLengthPanel }))
+);
+const ConnectedBattleHistoryPanel = lazy(() =>
+  import('../panels/battles/useBattleHistoryPanel').then((module) => ({ default: module.ConnectedBattleHistoryPanel }))
+);
+const ConnectedSpiceTransfersPanel = lazy(() =>
+  import('../panels/transfers/useSpiceTransfersPanel').then((module) => ({
+    default: module.ConnectedSpiceTransfersPanel,
+  }))
+);
+
+/* A panel whose code loads when it is opened: it says it is loading meanwhile, and asks for a reload if its code never arrives. */
+function OnDemandPanel({ name, children }: Readonly<{ name: string; children: ReactNode }>) {
+  return (
+    <OptionalChunkBoundary
+      fallback={<LoadError title={`${name} could not be loaded`}>Reload the page to try again.</LoadError>}
+    >
+      <Suspense fallback={<Pending>{`Loading ${name.toLowerCase()}`}</Pending>}>{children}</Suspense>
+    </OptionalChunkBoundary>
+  );
+}
 
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
@@ -148,14 +172,41 @@ function TableNotices(props: ComponentProps<typeof TableSoftNotices>) {
  * The notices start afresh with each notice start, while the faction notice keeps its state until a tutorial run starts over, so a Reset can tell the faction again.
  * The faction toast asks the notices' panel opener for Faction info on the viewer's seat.
  */
-function PlayNotices(
-  props: ComponentProps<typeof TableSoftNotices> & { openPanel: (key: string, seat?: string) => void }
-) {
+/* The notices hear the table's chat and pings through its feeds, and a notice about a spot on the table, such as a ping, has the camera look there. */
+function PlayNotices({
+  feeds,
+  ...props
+}: Omit<ComponentProps<typeof TableSoftNotices>, 'subscribeMessages' | 'subscribePings' | 'onLookAt'> & {
+  openPanel: (key: string, seat?: string) => void;
+  feeds: NoticeFeeds;
+}) {
   const epoch = useContext(CompassEpochContext);
   return (
     <OwnFactionNotice key={epoch} inert={props.inert} onOpenFactionInfo={(seat) => props.openPanel(FACTION_INFO, seat)}>
-      {(toast) => <TableNotices key={props.start?.epoch} {...props} lead={toast} />}
+      {(toast) => (
+        <TableNotices
+          key={props.start?.epoch}
+          {...props}
+          lead={toast}
+          subscribeMessages={feeds.messages.subscribe}
+          subscribePings={feeds.pings.subscribe}
+          onLookAt={feeds.cameraLook.lookAt}
+        />
+      )}
     </OwnFactionNotice>
+  );
+}
+
+/* What the compass shows of the table beyond its panels (the players, the chats and its commands), and the camera look the notices ask to look somewhere. */
+function TableContexts({
+  compassTable,
+  cameraLook,
+  children,
+}: Readonly<{ compassTable: CompassTable; cameraLook: CameraLook; children: ReactNode }>) {
+  return (
+    <CameraLookContext value={cameraLook}>
+      <CompassTableContext value={compassTable}>{children}</CompassTableContext>
+    </CameraLookContext>
   );
 }
 
@@ -553,15 +604,9 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
               ...PANEL_WINDOWS.tints,
               content: withTableError(
                 error,
-                <OptionalChunkBoundary
-                  fallback={
-                    <LoadError title="Territory tints could not be loaded">Reload the page to try again.</LoadError>
-                  }
-                >
-                  <Suspense fallback={<Pending>Loading territory tints</Pending>}>
-                    <ConnectedTerritoryTintsPanel client={client} table={table} />
-                  </Suspense>
-                </OptionalChunkBoundary>
+                <OnDemandPanel name="Territory tints">
+                  <ConnectedTerritoryTintsPanel client={client} table={table} />
+                </OnDemandPanel>
               ),
             },
           ]
@@ -570,7 +615,12 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         ? [
             {
               ...PANEL_WINDOWS.settings,
-              content: withTableError(error, <ConnectedGameLengthPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <OnDemandPanel name="Game length">
+                  <ConnectedGameLengthPanel client={client} table={table} />
+                </OnDemandPanel>
+              ),
             },
           ]
         : []),
@@ -633,10 +683,21 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
       { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
-            { ...PANEL_WINDOWS.battles, content: <ConnectedBattleHistoryPanel table={table} /> },
+            {
+              ...PANEL_WINDOWS.battles,
+              content: (
+                <OnDemandPanel name="Battles">
+                  <ConnectedBattleHistoryPanel table={table} />
+                </OnDemandPanel>
+              ),
+            },
             {
               ...PANEL_WINDOWS.transfers,
-              content: <ConnectedSpiceTransfersPanel client={client} table={table} />,
+              content: (
+                <OnDemandPanel name="Spice transfers">
+                  <ConnectedSpiceTransfersPanel client={client} table={table} />
+                </OnDemandPanel>
+              ),
             },
           ]
         : []),
@@ -857,6 +918,15 @@ type ConnectedTableProps = ConnectionControlsProps &
     reportsEnabled: boolean;
   }>;
 
+/* Each faction's emblem, which the prediction shows. */
+function usePredictionEmblems(table: TableProjection) {
+  const factionArtwork = table.snapshot.factionArtwork;
+  return useMemo(
+    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
+    [factionArtwork]
+  );
+}
+
 function ConnectedTable({
   client,
   table,
@@ -881,6 +951,7 @@ function ConnectedTable({
   const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
+  const feeds = useNoticeFeeds(client);
   const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
   const openNoticePanel = useNoticePanelOpener(client, openWindow);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
@@ -896,19 +967,14 @@ function ConnectedTable({
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
-  const factionArtwork = table.snapshot.factionArtwork;
-  const predictionEmblems = useMemo(
-    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
-    [factionArtwork]
-  );
+  const predictionEmblems = usePredictionEmblems(table);
   return (
     <PredictionEmblemsContext value={predictionEmblems}>
       <BattlePlanOpenerContext value={battlePlanOpener}>
         <TabletopSessionProvider session={client}>
           {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
           <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
-            {/* What the compass shows of the table beyond its panels: the players, the chats and its commands. */}
-            <CompassTableContext value={compassTable}>
+            <TableContexts compassTable={compassTable} cameraLook={feeds.cameraLook}>
               <GameTable
                 readOnly={readOnly}
                 onSceneReady={onReady}
@@ -980,10 +1046,11 @@ function ConnectedTable({
                     inert={inert}
                     openPanel={openNoticePanel}
                     openBattlePlan={noticeBattleOpener}
+                    feeds={feeds}
                   />
                 )}
               />
-            </CompassTableContext>
+            </TableContexts>
             {tracker ? (
               <Suspense fallback={null}>
                 <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
