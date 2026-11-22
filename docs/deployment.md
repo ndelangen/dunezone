@@ -657,8 +657,10 @@ which exports production the way `dev-rebuild.yml` does, anonymises the export t
 `scripts/snapshot-anonymise.ts`, and scans the written snapshot. Its schedule ticks daily, and
 `scripts/snapshot-refresh-due.ts` skips every tick after the first run that succeeds since Monday 00:00 UTC,
 so a run stopped by a failed release recovers the next day. A manual dispatch always runs.
-Cloud dev reloads from the snapshot only every fourth week (`devRefreshWeek` in the same script)
-and on a manual dispatch: a reload replays every required migration over the whole snapshot, which
+Cloud dev reloads from the snapshot only when no successful run reloaded it in the last 25 days
+(`devRefreshDue` in the same script, which reads each run's reload step), so every fourth week, and
+on a manual dispatch. A reload that fails stays due until one succeeds.
+The reason: a reload replays every required migration over the whole snapshot, which
 read 160 to 190 MB of dev database I/O each week in November 2026, about a third of the month's
 Convex usage (Norbert, 22 November 2026). Cloud dev data can therefore be up to four weeks old; the
 local snapshot artifact stays weekly.

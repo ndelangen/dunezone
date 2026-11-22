@@ -104,7 +104,8 @@ jobs:
           if-no-files-found: error
 
       # Reuse this export for cloud dev, after the anonymised artifact is safely uploaded.
-      # Only every fourth week (scripts/snapshot-refresh-due.ts): a reload replays every migration over the snapshot,
+      # Only when no successful run reloaded dev in the last 25 days (scripts/snapshot-refresh-due.ts), so every fourth
+      # week, retried until it succeeds. A reload replays every migration over the snapshot,
       # which was about a third of November 2026's Convex usage (Norbert, 22 November 2026).
       - name: Refresh cloud dev from the anonymised snapshot every fourth week
         if: success() && env.SNAPSHOT_UPLOAD == 'true' && needs.due.outputs.dev_due == 'true'

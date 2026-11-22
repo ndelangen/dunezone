@@ -108,27 +108,44 @@ export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
   args: PaginatedQueryArgs<Query>,
   options: { initialNumItems: number }
 ): UsePaginatedQueryReturnType<Query> {
+  type Result = FunctionReturnType<Query>;
   const { initialNumItems } = options;
   const firstArgs = { ...args, paginationOpts: { numItems: initialNumItems, cursor: null } } as FunctionArgs<Query>;
   const { key, subscription } = useWarmHold(query, firstArgs);
-  /* Keyed by the arguments, so a new address starts on its shared first page again. */
+  /* The arguments that pressed "load more"; another address, or coming back to this one, starts on the shared first page again. */
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  if (expandedKey !== null && expandedKey !== key) {
+    setExpandedKey(null);
+  }
   const expanded = expandedKey === key;
   const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems: initialNumItems * 2 });
   const paginating = expanded && paginated.status !== 'LoadingFirstPage';
-  const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as
-    | FunctionReturnType<Query>
-    | undefined;
+  const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as Result | undefined;
+  /*
+   * A first page that grew past what one read may scan comes back cut short and asks to be split.
+   * Only `usePaginatedQuery` can split it, so the hook hands over to it and keeps the last whole answer on screen meanwhile.
+   */
+  const [whole, setWhole] = useState<{ key: string; data: Result } | null>(null);
+  const splitRequired = first?.pageStatus === 'SplitRequired';
+  if (first !== undefined && !splitRequired && (whole?.key !== key || whole.data !== first)) {
+    setWhole({ key, data: first });
+  }
+  if (splitRequired && !expanded) {
+    setExpandedKey(key);
+  }
   if (paginating) {
     return paginated;
   }
-  const results = (first?.page ?? []) as UsePaginatedQueryReturnType<Query>['results'];
+  const shown = splitRequired ? (whole?.key === key ? whole.data : undefined) : first;
+  const results = (shown?.page ?? []) as UsePaginatedQueryReturnType<Query>['results'];
   const loadMore = () => setExpandedKey(key);
+  if (expanded || splitRequired) {
+    return shown === undefined
+      ? { results, loadMore, status: 'LoadingFirstPage', isLoading: true }
+      : { results, loadMore, status: 'LoadingMore', isLoading: true };
+  }
   if (first === undefined) {
     return { results, loadMore, status: 'LoadingFirstPage', isLoading: true };
-  }
-  if (expanded) {
-    return { results, loadMore, status: 'LoadingMore', isLoading: true };
   }
   return first.isDone
     ? { results, loadMore, status: 'Exhausted', isLoading: false }

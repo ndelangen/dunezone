@@ -95,6 +95,53 @@ test("the first page subscribes with exactly the loader's arguments, so every vi
     answer(harkonnen, page({ detail: 'Harkonnen', items: [] }, true));
     expect(result.current.status).toBe('Exhausted');
     expect(result.current.results).toEqual([{ detail: 'Harkonnen', items: [] }]);
+
+    /* Coming back starts on the shared first page again, without another paginated read. */
+    const paginatedReads = () => new Set(subscribed.filter((args) => args.paginationOpts.id !== undefined).map(keyOf));
+    const readsBefore = paginatedReads().size;
+    rerender({ slug: 'atreides' });
+    expect(result.current.status).toBe('CanLoadMore');
+    expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
+    expect(paginatedReads().size).toBe(readsBefore);
+
+    /* Leaving while a load more is pending drops it too. */
+    act(() => result.current.loadMore(12));
+    expect(result.current.status).toBe('LoadingMore');
+    rerender({ slug: 'harkonnen' });
+    rerender({ slug: 'atreides' });
+    expect(result.current.status).toBe('CanLoadMore');
+  } finally {
+    unmount();
+    await client.close();
+  }
+});
+
+test('a first page cut short by a required split hands over to pagination and keeps the last whole answer on screen', async () => {
+  const { subscribed, answer, wrapper, client } = fakeClient();
+  const { result, unmount } = renderHook(
+    () => useLivePaginatedQuery(query, { slug: 'atreides' }, { initialNumItems: 12 }),
+    {
+      wrapper,
+    }
+  );
+  try {
+    const firstArgs = { slug: 'atreides', paginationOpts: { numItems: 12, cursor: null } };
+    answer(firstArgs, page({ detail: 'Atreides', items: ['q1', 'q2'] }));
+    expect(result.current.status).toBe('CanLoadMore');
+
+    answer(firstArgs, {
+      ...page({ detail: 'Atreides', items: ['q1'] }),
+      pageStatus: 'SplitRequired',
+      splitCursor: 'q1',
+    });
+    expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
+    expect(result.current.status).toBe('LoadingMore');
+    const paginatedArgs = subscribed.find((args) => args.paginationOpts.id !== undefined);
+    expect(paginatedArgs?.paginationOpts).toMatchObject({ numItems: 24, cursor: null });
+
+    answer(paginatedArgs!, page({ detail: 'Atreides', items: ['q1', 'q2', 'q3'] }, true));
+    expect(result.current.status).toBe('Exhausted');
+    expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2', 'q3'] }]);
   } finally {
     unmount();
     await client.close();

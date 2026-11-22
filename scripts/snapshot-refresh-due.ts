@@ -10,20 +10,66 @@ export function snapshotWeekStart(now: Date): Date {
   return new Date(midnight - ((now.getUTCDay() + 6) % 7) * DAY);
 }
 
-/** Cloud dev reloads the snapshot once every this many weeks; the weeks between export only the local snapshot. */
-export const DEV_REFRESH_EVERY_WEEKS = 4;
+/**
+ * A snapshot reloads cloud dev only when no successful run reloaded it within this many days, so with weekly exports dev reloads every fourth week.
+ * A reload replays every required migration over the whole snapshot, which read 160 to 190 MB of dev database I/O each week in November 2026, about a third of the month's usage (Norbert, 22 November 2026: cloud dev data can be up to four weeks old).
+ * Twenty-five days leaves room for a weekly run that slips a day or two.
+ */
+export const DEV_REFRESH_AFTER_DAYS = 25;
 
-/* Cloud dev last reloaded on Monday 16 November 2026; the four-week periods count from that week. */
-const DEV_REFRESH_ANCHOR = Date.UTC(2026, 10, 16);
+/* Matches the step's current name and the weekly name it had before. */
+const DEV_REFRESH_STEP = /^Refresh cloud dev /;
+
+type RunJobs = { jobs?: { steps?: { name?: string; conclusion?: string | null }[] }[] };
+
+async function readGitHub<T>(url: string, token: string, request: typeof fetch, failure: string): Promise<T> {
+  const response = await request(url, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    signal: AbortSignal.timeout(10_000),
+    redirect: 'error',
+  });
+  if (!response.ok) {
+    throw new Error(failure);
+  }
+  return (await response.json()) as T;
+}
 
 /**
- * Whether this week's snapshot also reloads cloud dev.
- * A reload replays every required migration over the whole snapshot, which read 160 to 190 MB of dev database I/O each week in November 2026, about a third of the month's usage, so cloud dev reloads on every fourth week and its data can be up to four weeks old (Norbert, 22 November 2026).
- * The week is the same one `snapshotRefreshDue` settles, so a failed Monday that recovers later that week still reloads dev.
+ * Whether this snapshot should also reload cloud dev: no successful run reloaded it within `DEV_REFRESH_AFTER_DAYS`.
+ * It reads the reload step of each successful run, not a calendar, so a reload that failed stays due until one succeeds.
  */
-export function devRefreshWeek(now: Date): boolean {
-  const weeks = Math.round((snapshotWeekStart(now).getTime() - DEV_REFRESH_ANCHOR) / (7 * DAY));
-  return ((weeks % DEV_REFRESH_EVERY_WEEKS) + DEV_REFRESH_EVERY_WEEKS) % DEV_REFRESH_EVERY_WEEKS === 0;
+export async function devRefreshDue(
+  repository: string,
+  token: string,
+  now: Date,
+  request: typeof fetch = fetch
+): Promise<boolean> {
+  const failure = 'Cannot read the recent cloud dev reloads; dev data was not touched';
+  const created = encodeURIComponent('>=' + new Date(now.getTime() - DEV_REFRESH_AFTER_DAYS * DAY).toISOString());
+  const { workflow_runs: runs = [] } = await readGitHub<{ workflow_runs?: (SnapshotRun & { id?: number })[] }>(
+    `https://api.github.com/repos/${repository}/actions/workflows/anonymised-snapshot.yml/runs?branch=main&status=success&per_page=100&created=${created}`,
+    token,
+    request,
+    failure
+  );
+  for (const run of runs) {
+    if (run.head_repository?.full_name !== repository || run.id === undefined) {
+      continue;
+    }
+    const { jobs = [] } = await readGitHub<RunJobs>(
+      `https://api.github.com/repos/${repository}/actions/runs/${run.id}/jobs?per_page=100`,
+      token,
+      request,
+      failure
+    );
+    const reloaded = jobs.some((job) =>
+      (job.steps ?? []).some((step) => DEV_REFRESH_STEP.test(step.name ?? '') && step.conclusion === 'success')
+    );
+    if (reloaded) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -64,7 +110,7 @@ if (import.meta.main) {
   const manual = GITHUB_EVENT_NAME !== 'schedule';
   const now = new Date();
   const due = manual || (await snapshotRefreshDue(GITHUB_REPOSITORY, GITHUB_TOKEN, now));
-  const devDue = due && (manual || devRefreshWeek(now));
+  const devDue = due && (manual || (await devRefreshDue(GITHUB_REPOSITORY, GITHUB_TOKEN, now)));
   appendFileSync(GITHUB_OUTPUT, `due=${due}\ndev_due=${devDue}\n`);
   appendFileSync(GITHUB_STEP_SUMMARY, due ? 'Snapshot refresh is due.\n' : 'This week already has a snapshot.\n');
   if (due) {
@@ -72,7 +118,7 @@ if (import.meta.main) {
       GITHUB_STEP_SUMMARY,
       devDue
         ? 'Cloud dev reloads from it.\n'
-        : `Cloud dev keeps its data; it reloads every ${DEV_REFRESH_EVERY_WEEKS} weeks.\n`
+        : `Cloud dev keeps its data: a run reloaded it within the last ${DEV_REFRESH_AFTER_DAYS} days.\n`
     );
   }
 }
