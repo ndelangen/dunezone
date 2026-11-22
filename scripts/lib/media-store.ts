@@ -17,6 +17,10 @@ export function checkoutStoreRoot(repoRoot: string): string {
   return path.join(repoRoot, '.cache/media/local/v');
 }
 
+function cacheHome(env: Environment, home: string): string {
+  return env.XDG_CACHE_HOME?.trim() || path.join(home, '.cache');
+}
+
 /** The variant store: MEDIA_STORE_DIR when set, the checkout's own store on CI, otherwise one store for the whole machine. */
 export function mediaStoreRoot(repoRoot: string, env: Environment = process.env, home = homedir()): string {
   const configured = env.MEDIA_STORE_DIR?.trim();
@@ -26,8 +30,16 @@ export function mediaStoreRoot(repoRoot: string, env: Environment = process.env,
   if (env.CI === 'true' || env.GITHUB_ACTIONS === 'true') {
     return checkoutStoreRoot(repoRoot);
   }
-  const cacheHome = env.XDG_CACHE_HOME?.trim() || path.join(home, '.cache');
-  return path.join(cacheHome, 'dunezone/media/v');
+  return path.join(cacheHome(env, home), 'dunezone/media/v');
+}
+
+/**
+ * The originals store: one per machine, keeping each raster original once under its SHA-256, so every worktree's media/ is filled from it.
+ * Only `media:sync` uses it, which runs on a maintainer machine, never on CI.
+ * MEDIA_STORE_DIR moves the variant store, not this one.
+ */
+export function originalsStoreRoot(env: Environment = process.env, home = homedir()): string {
+  return path.join(cacheHome(env, home), 'dunezone/media/src');
 }
 
 /** Whether the store is the checkout's own, which `--prune` may trim without touching another checkout's variants. */

@@ -3,8 +3,10 @@
  *
  * Bun run media:sync
  *
- * Pull: downloads every original the lock lists that is missing locally, verifying its SHA-256.
+ * Pull: fills in every original the lock lists that is missing locally, verifying its SHA-256.
+ * It comes from the machine's originals store when another worktree already has it, and is downloaded otherwise.
  * It never replaces a file that is already there, and needs no token.
+ * Every synced original checked out here is kept in the store too, so the next worktree needs no download (scripts/lib/media-originals-store.ts).
  * Push: a file that is new or differs from the lock is uploaded through ingest with MEDIA_UPLOAD_TOKEN, and the lock and map are written only once every upload is confirmed, so the lock never names an original R2 lacks.
  * Before anything is uploaded, every new or changed file must be one the encoder accepts: under a category the rules cover, and opaque where its category is declared opaque.
  * Otherwise nothing is pushed and the lock is left as it was.
@@ -14,11 +16,11 @@
  * An original that cannot be fetched is listed, and the run carries on and fails at the end, so being offline only costs the art that is missing.
  * New art then still needs `bun run generate` for its collection membership (docs/technical/stock-artwork.md).
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 
-import { distinctOriginals, download, eachWithCounts, mediaOrigin, upload } from './lib/media-originals';
+import { distinctOriginals, eachWithCounts, mediaOrigin, upload } from './lib/media-originals';
 import type { Original } from './lib/media-originals';
+import { checkOutOriginal, seedStore } from './lib/media-originals-store';
 import { buildRasterLock, lockChanges, readRasterLock, sourcePath, writeRasterLock } from './lib/raster-lock';
 import { assertEncodable } from './media-variants';
 
@@ -28,17 +30,23 @@ const previous = readRasterLock();
 /* Pull first, so the lock below is built over a complete tree and an absent file is never read as a removal. */
 const missing = Object.keys(previous).filter((key) => !existsSync(sourcePath(key)));
 async function pull(original: Original) {
-  const bytes = await download(original);
-  for (const key of missing.filter((candidate) => previous[candidate].sha256 === original.hash)) {
-    mkdirSync(path.dirname(sourcePath(key)), { recursive: true });
-    writeFileSync(sourcePath(key), bytes, { flag: 'wx' });
-  }
-  return 'pulled' as const;
+  const keys = missing.filter((candidate) => previous[candidate].sha256 === original.hash);
+  return await checkOutOriginal(original, keys.map(sourcePath));
 }
 const pulled = await eachWithCounts(distinctOriginals(previous, missing), pull);
 
 const lock = await buildRasterLock(previous);
 const { changed, removed } = lockChanges(previous, lock);
+
+/* Originals R2 already holds go in the machine's store for the next worktree. The store only saves downloads, so a failure here is a warning. */
+try {
+  const unchanged = Object.keys(lock).filter((key) => previous[key]?.sha256 === lock[key].sha256);
+  for (const original of distinctOriginals(lock, unchanged)) {
+    seedStore(original, sourcePath(original.key));
+  }
+} catch (error) {
+  console.warn(`Could not fill the originals store: ${error instanceof Error ? error.message : String(error)}`);
+}
 const pending = distinctOriginals(lock, changed);
 
 /* A file the encoder would refuse is refused here, before it reaches R2 or the lock. */

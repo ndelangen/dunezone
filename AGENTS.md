@@ -620,8 +620,8 @@ git ignores the `.png`, `.jpg` and `.jpeg` raster files under `media/`. Everythi
 and `public/web/**` is generated output (gitignored), apart from the committed files named in
 `COMMITTED_WEB_FILES` (`src/shared/assetRules.ts`, read by both the generator and
 `scripts/verify-images.ts`). The committed colour map `src/shared/media/map.generated.ts` is derived
-from the lock. `bun run media:sync` downloads every original the lock lists into `media/` at its
-asset path, and uploads new or changed originals through ingest with `MEDIA_UPLOAD_TOKEN` before it
+from the lock. `bun run media:sync` puts every original the lock lists into `media/` at its
+asset path (from the machine's originals store, shared by every worktree, or downloaded), and uploads new or changed originals through ingest with `MEDIA_UPLOAD_TOKEN` before it
 writes the lock and the map. `generate:images` also downloads any original it needs that is missing.
 A locked key is permanent: deleting its file locally changes nothing. Art not synced yet is a
 draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedMediaPreview.ts`),
