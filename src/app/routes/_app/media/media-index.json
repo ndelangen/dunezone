@@ -11983,6 +11983,34 @@
     "credit": "blog-picture",
     "sourceHash": "92d963f04706e2abeceebbf90431df485fe35194af1a5a344f1d0d67dd02b44d"
   },
+  "/web/blog/learn-to-play-dune-online/meet-arrakis.jpg": {
+    "description": "The Welcome chapter of the dune.zone tutorial, with the task list on the left and an arrow pointing at the centre of the Arrakis board.",
+    "tags": ["dune.zone", "tutorial", "game table", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "64330a1aed131e81fb52ea11430ab4a2a34dcb706b20cdb33ad687e6ddaa614d"
+  },
+  "/web/blog/learn-to-play-dune-online/chat-reply.jpg": {
+    "description": "A private chat in the dune.zone tutorial, where a practice player has replied to the learner's message.",
+    "tags": ["dune.zone", "tutorial", "chat", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "2875c647ff065fab0f6c25c24d0e0f034c3990b686a6c9cab6b80c24093c874a"
+  },
+  "/web/blog/learn-to-play-dune-online/meet-in-arrakeen.jpg": {
+    "description": "The Battle chapter of the dune.zone tutorial, asking the learner to bring troops into Arrakeen.",
+    "tags": ["dune.zone", "tutorial", "game table", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "d26fc679a53acb3dffb7bf29d48e68758c3831935da0e635c2a78c45f4de242a"
+  },
+  "/web/blog/learn-to-play-dune-online/chapter-complete.jpg": {
+    "description": "The end of the Welcome chapter of the dune.zone tutorial: a Chapter complete card listing what the player learned.",
+    "tags": ["dune.zone", "tutorial", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "0a917925f9b072ce66ee6ce473ac76293cf6101052034b05011e682a2d661900"
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
     "tags": ["factions", "colours", "blog"],

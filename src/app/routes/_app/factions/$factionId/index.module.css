@@ -22,36 +22,6 @@
   inset: 0;
 }
 
-.horizontalLane {
-  --lane-bleed: min(var(--space-xl), var(--app-shell-inline-gutter));
-
-  display: flex;
-  flex-flow: row nowrap;
-  gap: var(--space-md);
-  min-width: 0;
-  margin: calc(var(--space-xs) - var(--space-xl)) calc(-1 * var(--lane-bleed));
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--color-shadow) var(--lane-bleed),
-    var(--color-shadow) calc(100% - var(--lane-bleed)),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--color-shadow) var(--lane-bleed),
-    var(--color-shadow) calc(100% - var(--lane-bleed)),
-    transparent
-  );
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: thin;
-  scroll-snap-type: none;
-  padding: var(--space-xl) var(--lane-bleed);
-}
-
 .leaderTile {
   position: relative;
   flex: 0 0 auto;
