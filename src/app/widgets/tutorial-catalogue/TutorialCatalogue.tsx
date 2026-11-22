@@ -7,6 +7,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ScrollLane, fadingItemClass } from '@ui/list/ScrollLane';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -25,7 +26,7 @@ import styles from './TutorialCatalogue.module.css';
  */
 
 /** One tile, whichever catalogue it belongs to. The tools catalogue at /tools wears the same tiles (Norbert, 2026-11-09), without numbers or minutes. */
-type CatalogueTile = Readonly<{
+export type CatalogueTile = Readonly<{
   slug: string;
   /** The tutorial's place on the path; tools have none, since they are not read in order. */
   number?: number;
@@ -57,7 +58,11 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
  * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are; a tutorial's opens nothing, a tool's opens its placeholder.
  * A tile with a link has a title that covers the whole tile, so the tile opens and reads as one link.
  */
-function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
+function CatalogueTileView({
+  tile,
+  eager,
+  className,
+}: Readonly<{ tile: CatalogueTile; eager: boolean; className?: string }>) {
   const titleId = useId();
   const built = tile.built ?? tile.link !== undefined;
   const newTab = tile.link?.target === '_blank';
@@ -74,7 +79,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
-        className={clsx(styles.tile, tile.link && styles.linked)}
+        className={clsx(styles.tile, tile.link && styles.linked, className)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
@@ -163,6 +168,27 @@ function TutorialRows({ rows, blur }: Readonly<{ rows: readonly CatalogueRow[]; 
 }
 
 /**
+ * The same tiles on one line that scrolls sideways, for a page that shows the catalogue in passing (Norbert, 2026-11-07: a blog post needs one line, not every row).
+ * Every tile keeps the width it has on the catalogue page at five across, so the line shows the first few and the edge of the next, and the list scrolls and snaps tile by tile.
+ * The line is the kit's `ScrollLane`, the fading lane the leaders on a faction's page scroll in.
+ * The tiles keep the panes' live blur of the page, as on the catalogue pages (Norbert, 2026-11-08: blur like surfaces).
+ * A blurred pane cannot fade under the lane's mask, which would make the lane its backdrop, so each tile fades itself (`fade="items"`).
+ * The list takes the focus so a keyboard moves it, and `label` names it to a reader.
+ * The pictures stay lazy: the line sits down a page, never above its fold.
+ */
+export function TutorialTileStrip({ tiles, label }: Readonly<{ tiles: readonly CatalogueTile[]; label: string }>) {
+  return (
+    <div className={styles.stripFrame}>
+      <ScrollLane as="ol" aria-label={label} start={tiles[0]?.number} focusable fade="items">
+        {tiles.map((tile) => (
+          <CatalogueTileView key={tile.slug} tile={tile} eager={false} className={fadingItemClass} />
+        ))}
+      </ScrollLane>
+    </div>
+  );
+}
+
+/**
  * A tutorial catalogue page, whole: its title band, the toolbar that moves between the two tracks, and the tiles in rows by part.
  * The two tracks are one page with different words and tiles, so the route hands over its words, its track and its rows.
  */
@@ -173,7 +199,7 @@ export function TutorialCatalogue({
   lede,
   rows,
   footer,
-  blur = false,
+  blur = true,
 }: Readonly<{
   /** The tutorial track, whose toolbar moves between the two; the tools catalogue has none. */
   track?: CatalogueTrack;
@@ -184,7 +210,7 @@ export function TutorialCatalogue({
   rows: readonly CatalogueRow[];
   /** Anything after the rows, such as the tools catalogue's request for the next tool. */
   footer?: ReactNode;
-  /** Keep the panes' live blur; only for a short catalogue, since many blurred panes make scrolling stutter (#2652). */
+  /** Keep the panes' live blur, as every surface does (Norbert, 2026-11-08: blur like surfaces, on every page); `false` drops it for a catalogue long enough to make scrolling stutter (#2652). */
   blur?: boolean;
 }>) {
   return (

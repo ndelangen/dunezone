@@ -43,6 +43,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { EntityLinkList } from '@ui/list/EntityLinkList';
 import { RulesetCovers } from '@ui/list/RulesetCovers';
+import { ScrollLane } from '@ui/list/ScrollLane';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -934,7 +935,7 @@ function FactionDetailContent({
             <Box miw={0} style={{ flex: '1 1 auto' }}>
               <Stack gap="xl">
                 <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
-                  <div className={styles.horizontalLane}>
+                  <ScrollLane room="shadow">
                     {/* Position disambiguates: an author may field two identical leaders, and a
                     faction's lists carry no ids of their own. */}
                     {data.leaders.map((leader, index) => (
@@ -945,7 +946,7 @@ function FactionDetailContent({
                         emblem={data.emblem}
                       />
                     ))}
-                  </div>
+                  </ScrollLane>
                 </Section>
 
                 <FactionTroops troops={data.troops} background={data.background} />

@@ -9,6 +9,7 @@ import styles from './ChapterConfetti.module.css';
  * A burst of foil over the whole page as a chapter is done: two streams from the window's lower corners that arc in and flutter down.
  * The same foil colours as a game's result, drawn flat on a canvas above the page, so it never touches the table.
  * It plays once and ignores the pointer; where the site's motion preference is off the foil just lies still.
+ * A burst the reader asked for by pressing something flies all the same: a press is an explicit request, where a chapter's end arrives on its own.
  */
 
 const PIECES = 220;
@@ -99,10 +100,16 @@ function play(context: CanvasRenderingContext2D, width: number, height: number) 
   return () => cancelAnimationFrame(frame);
 }
 
-export function ChapterConfetti() {
+export function ChapterConfetti({
+  requested = false,
+}: Readonly<{
+  /** True when the reader pressed for this burst, so it flies whatever the motion preference says. */
+  requested?: boolean;
+}>) {
   const canvas = useRef<HTMLCanvasElement>(null);
   /* The site's own motion preference: the profile's switch wins over the system's reduced-motion hint. */
   const motion = useMotionAllowed();
+  const flies = requested || motion;
 
   useEffect(() => {
     const context = canvas.current?.getContext('2d');
@@ -115,13 +122,13 @@ export function ChapterConfetti() {
     context.canvas.width = width * scale;
     context.canvas.height = height * scale;
     context.scale(scale, scale);
-    /* Anyone who asked for less motion gets the foil lying still across the page instead of a burst. */
-    if (!motion) {
+    /* Anyone who asked for less motion gets the foil lying still across the page instead of a burst, unless they asked for the burst itself. */
+    if (!flies) {
       scatter(context, width, height);
       return;
     }
     return play(context, width, height);
-  }, [motion]);
+  }, [flies]);
 
   return <canvas ref={canvas} className={styles.confetti} aria-hidden data-chapter-confetti />;
 }

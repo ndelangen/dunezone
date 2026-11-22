@@ -7,9 +7,9 @@ import { useEffect, useId, useRef } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
+import { ChapterConfetti } from '@app/widgets/chapter-confetti/ChapterConfetti';
 
 import styles from './ChapterComplete.module.css';
-import { ChapterConfetti } from './ChapterConfetti';
 
 /*
  * The end of a chapter (Norbert, 2026-10-23): the table stops taking input under a veil, confetti flies,

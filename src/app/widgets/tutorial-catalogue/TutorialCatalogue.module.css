@@ -111,6 +111,31 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The strip: the same tiles on one line that scrolls sideways, in the kit's fading lane.
+ * A tile keeps about the width it has on the catalogue page at five across, and comes down a step where the line has less than a phone's width of room, so the next tile always shows its edge and says the line scrolls.
+ * The frame is the strip's own container, so the step reads the room the strip is given rather than the page.
+ * The strip's tiles keep the panes' live blur, as the rows' do, so the lane fades them one by one.
+ */
+.stripFrame {
+  container: tile-strip / inline-size;
+  width: 100%;
+}
+
+/* A tile in the strip holds its width and snaps to the lane's edge. */
+.stripFrame .cell {
+  --strip-tile: 15.5rem;
+
+  flex: 0 0 var(--strip-tile);
+  scroll-snap-align: start;
+}
+
+@container tile-strip (width < 30rem) {
+  .stripFrame .cell {
+    --strip-tile: 13rem;
+  }
+}
+
 /* A tool has no number, so its title and line take the whole width. */
 .words.unnumbered {
   grid-template-columns: minmax(0, 1fr);
@@ -125,7 +150,7 @@
   height: 100%;
 }
 
-/* Twenty-odd panes over the fixed starfield: their live blur made scrolling stutter (#2652), so the tutorial rows keep the glass without it. The ten tool tiles keep the blur (Norbert, 2026-11-09). */
+/* The tiles blur like every other pane (Norbert, 2026-11-08). A catalogue long enough to make scrolling stutter (#2652) can opt out with `blur={false}` and keep the glass without the blur. */
 .unblurred {
   --surface-backdrop: none;
 }

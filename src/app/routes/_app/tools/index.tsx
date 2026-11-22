@@ -48,7 +48,6 @@ function ToolsPage() {
       subtitle="Helpers for your Dune table"
       lede="Small, free tools for a game of Dune at a real table. Made for your phone, no account needed, and they follow the Ruleset you play."
       rows={ROWS}
-      blur
       footer={<ToolSuggestion />}
     />
   );
