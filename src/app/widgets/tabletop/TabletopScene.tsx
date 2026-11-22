@@ -106,7 +106,7 @@ import {
   createHoverTag,
   HoverTagContext,
   PieceMenuContext,
-  useHoverFollowsCamera,
+  useHoverFollowsTable,
   usePiecePointerEvents,
 } from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
@@ -1094,7 +1094,7 @@ function SceneContents({
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
   useCanvasHoverReset();
-  useHoverFollowsCamera();
+  useHoverFollowsTable();
   useCanvasName();
   /* Each table keeps its own hover tag, so two tables on one page never share one. */
   const [hoverTag] = useState(createHoverTag);

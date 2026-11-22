@@ -302,6 +302,47 @@ export const HoverTagHoldsThroughASlip = meta.story({
   },
 });
 
+/**
+ * Holding the button down on a stack picks it up, and its tooltip stays for as long as the button is held.
+ * Set down under the still pointer, it keeps its tooltip.
+ */
+export const HoverTagStaysWhileHeld = meta.story({
+  play: async ({ canvasElement }) => {
+    const { tag, spot } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const label = tag.querySelector<HTMLElement>('.scene-piece-name__label')!.innerText.trim();
+    const shownLabels = () =>
+      Array.from(document.querySelectorAll<HTMLElement>('.scene-piece-tag[data-hovered] .scene-piece-name__label')).map(
+        (shown) => shown.innerText.trim()
+      );
+    const press = (type: 'pointerdown' | 'pointerup') =>
+      canvas.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          pointerId: 1,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: type === 'pointerdown' ? 1 : 0,
+          clientX: spot.x,
+          clientY: spot.y,
+        })
+      );
+    press('pointerdown');
+    const heldUntil = performance.now() + 1500;
+    while (performance.now() < heldUntil) {
+      await new Promise((next) => requestAnimationFrame(next));
+      await expect(shownLabels()).toEqual([label]);
+    }
+    press('pointerup');
+    const restUntil = performance.now() + 1500;
+    while (performance.now() < restUntil) {
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+    await waitFor(() => expect(shownLabels()).toEqual([label]));
+  },
+});
+
 /** A faction token is one of a kind: hovered, it shows its name, but no count. */
 export const HoverFactionTokenShowsNoCount = meta.story({
   play: async ({ canvasElement }) => {
