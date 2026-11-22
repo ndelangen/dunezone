@@ -43,7 +43,7 @@ export function PieceBadge({
           data-selected={selected || undefined}
         >
           <span className={`scene-piece-name ${classNames.pieceName}`}>
-            {/* The name alone while only names show; with the count it reads as one line, "10 Harkonnen Troops". */}
+            {/* The name alone while only names show; with the count it reads as one line, "Harkonnen Troop ×10". */}
             <span className="scene-piece-name__label">
               {counted ? (
                 <>

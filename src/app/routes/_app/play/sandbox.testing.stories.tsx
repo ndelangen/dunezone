@@ -458,7 +458,7 @@ async function hoverShowsNameAndCount(
     }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
-  /* Name and count read as one tooltip, "10 Harkonnen Troops"; a faction token, one of a kind, shows its name alone. */
+  /* Name and count read as one tooltip, "Harkonnen Troop ×10"; a faction token, one of a kind, shows its name alone. */
   await waitFor(() => expect(name).toBeVisible());
   await expect(count).not.toBeVisible();
   const piece = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!;
