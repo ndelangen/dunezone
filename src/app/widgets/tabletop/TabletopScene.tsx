@@ -916,6 +916,7 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceName: styles.pieceName,
   pieceNameOwner: styles.pieceNameOwner,
   pieceNamePeeked: styles.pieceNamePeeked,
+  pieceNameCount: styles.pieceNameCount,
   pieceCount: styles.pieceCount,
   pieceCountSelected: styles.pieceCountSelected,
 };

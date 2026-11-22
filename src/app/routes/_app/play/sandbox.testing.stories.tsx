@@ -272,7 +272,7 @@ export const HoverShowsNameAndCountToSpectators = meta.story({
  */
 export const HoverTagHoldsThroughASlip = meta.story({
   play: async ({ canvasElement }) => {
-    const { count, tag, spot: onStack } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const { tag, spot: onStack } = await hoverShowsNameAndCount(canvasElement, { leave: false });
     const document = canvasElement.ownerDocument;
     const canvas = document.querySelector('canvas')!;
     const blinks: string[] = [];
@@ -295,7 +295,7 @@ export const HoverTagHoldsThroughASlip = meta.story({
     }
     watch.disconnect();
     await expect(blinks).toEqual([]);
-    await expect(count).toBeVisible();
+    await expect(tag.querySelector('.scene-piece-name')).toBeVisible();
     /* Off the stack for good, the tag goes after its moment. */
     pointAt(edge.left + 4, edge.top + 4);
     await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'));
@@ -369,15 +369,13 @@ async function hoverShowsNameAndCount(
     }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
-  if (target === 'faction-token') {
-    await waitFor(() => expect(name).toBeVisible());
-    await expect(count).not.toBeVisible();
-  } else {
-    await waitFor(() => expect(count).toBeVisible());
-    await expect(name).toBeVisible();
-  }
-  await expect(name).toHaveTextContent(
-    shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label
+  /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
+  await waitFor(() => expect(name).toBeVisible());
+  await expect(count).not.toBeVisible();
+  const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
+  const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
+  await waitFor(() =>
+    expect(shownLabel.innerText.trim()).toBe(target === 'faction-token' ? label : `${count.textContent} ${label}`)
   );
   for (const other of counts().filter((candidate) => candidate !== count)) {
     await expect(other).not.toBeVisible();

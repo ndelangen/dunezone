@@ -230,13 +230,36 @@
 }
 
 :global([data-show-counts="true"]) .pieceCount,
-.pieceTag[data-hovered] .pieceCount,
 .pieceTag[data-hovered] .pieceName {
   visibility: visible;
 }
 
-/* A faction token is one of a kind: it keeps the count's room, so its name sits where others do, but never shows a number. */
+/* A faction token is one of a kind: it never shows a number. */
 .pieceTag .pieceCount[data-uncounted] {
+  visibility: hidden;
+}
+
+/*
+ * Name and count together read as one tooltip at the count's place, "10 Harkonnen troops": on the piece under the pointer, or with both keys held.
+ * A faction token shows no count, so its name always takes the count's place.
+ */
+.pieceNameCount {
+  display: none;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceNameCount,
+.pieceTag[data-hovered] .pieceNameCount {
+  display: inline;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceName,
+.pieceTag[data-hovered] .pieceName,
+.pieceTag[data-uncounted] .pieceName {
+  bottom: 0;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceCount,
+.pieceTag[data-hovered] .pieceCount {
   visibility: hidden;
 }
 
