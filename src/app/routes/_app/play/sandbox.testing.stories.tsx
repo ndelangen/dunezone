@@ -17,7 +17,6 @@ import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
-import { countedLabel } from '../../../widgets/tabletop/countedLabel';
 import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
@@ -470,7 +469,11 @@ async function hoverShowsNameAndCount(
         pointAtStack(hit);
       }
       await expect(shownLabel.innerText.trim()).toBe(
-        target === 'faction-token' ? piece.label : countedLabel(piece, Number(count.textContent))
+        target === 'faction-token'
+          ? piece.label
+          : piece.kind === 'card'
+            ? `${piece.label.trim()}, ${count.textContent} cards`
+            : `${piece.label.trim()} ×${count.textContent}`
       );
     },
     { timeout: 10_000 }

@@ -8,7 +8,6 @@ import { restingPositionAt, stackTopHeight } from '@shared/play/tableGeometry';
 import { TRACKER_DISC_TOP_Y } from '@shared/play/tableTrackers';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { countedLabel } from '../../../widgets/tabletop/countedLabel';
 import { tableOverlayRects } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { mapViewPoint, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
@@ -213,7 +212,7 @@ export const PieceNames = meta.story({
       await expect(counter).not.toBeVisible();
     }
     await expect(troopLabel.innerText.trim()).toBe(
-      troop.items.length > 1 ? countedLabel(troop, troop.items.length) : troop.label
+      troop.items.length > 1 ? `${troop.label.trim()} ×${troop.items.length}` : troop.label
     );
     await user.keyboard('{/Alt}');
     await expect(troopLabel.innerText.trim()).toBe(troop.label);

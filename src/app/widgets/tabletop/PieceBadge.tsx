@@ -47,7 +47,7 @@ export function PieceBadge({
             <span className="scene-piece-name__label">
               {counted ? (
                 <>
-                  <span className={`scene-piece-name__alone ${classNames.pieceNameAlone}`}>{piece.label}</span>
+                  <span className={`scene-piece-name__alone ${classNames.pieceNameAlone}`}>{piece.label.trim()}</span>
                   <span className={`scene-piece-name__count ${classNames.pieceNameCount}`}>{counted}</span>
                 </>
               ) : (

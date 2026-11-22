@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 
 import { countedLabel } from './countedLabel';
 
@@ -15,6 +15,11 @@ describe('countedLabel', () => {
   it('counts a deck’s cards after its name', () => {
     expect(countedLabel({ kind: 'card', label: 'Spice deck' }, 25)).toBe('Spice deck, 25 cards');
     expect(countedLabel({ kind: 'card', label: '' }, 3)).toBe('3 cards');
+  });
+
+  it('counts a pile already named for its cards like any other stack', () => {
+    expect(countedLabel({ kind: 'card', label: 'Treachery card' }, 2)).toBe('Treachery card ×2');
+    expect(countedLabel({ kind: 'card', label: 'Synthetic cards' }, 25)).toBe('Synthetic cards ×25');
   });
 
   it('shows the count alone for a piece without a name', () => {
