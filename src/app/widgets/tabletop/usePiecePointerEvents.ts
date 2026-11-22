@@ -60,8 +60,11 @@ export function createHoverTag() {
       cancelHide();
       set({ pieceId, pose });
     },
-    /* The pointer left the piece: its tag goes after a moment, unless the pointer comes back or reaches another piece first. */
-    leave(pieceId: string) {
+    /*
+     * The pointer left the piece: its tag goes after a moment, unless the pointer comes back or reaches another piece first.
+     * What else ends with the hover, such as the hand cursor, goes with the tag, so it does not blink either.
+     */
+    leave(pieceId: string, gone: () => void) {
       if (current?.pieceId !== pieceId) {
         return;
       }
@@ -70,6 +73,7 @@ export function createHoverTag() {
         hide = undefined;
         if (current?.pieceId === pieceId) {
           set(null);
+          gone();
         }
       }, HOVER_TAG_GRACE_MS);
     },
@@ -116,6 +120,8 @@ export function usePiecePointerEvents({
   };
   /* A piece that leaves the table under a still cursor hears no pointer leave, so its hover would keep the keys aimed at a piece that is gone. */
   const hovered = useRef(false);
+  /* The cursor this piece put up on the canvas, taken down when its hover ends. */
+  const shownCursor = useRef<string | null>(null);
   /*
    * Whether the pointer rests on the piece, so its tag shows its name and count (#2988).
    * Kept apart from the table's hover, which aims the keys and only follows pieces the viewer may handle: a spectator sees the tag too.
@@ -174,22 +180,22 @@ export function usePiecePointerEvents({
         setHoveredPiece(piece.id);
       }
       if (!pointerSession.busy) {
-        get().renderer.domElement.style.cursor = pieceHoverCursor(
-          canHandleTable,
-          interactionBlocked,
-          Boolean(gestureBlocked)
-        );
+        shownCursor.current = pieceHoverCursor(canHandleTable, interactionBlocked, Boolean(gestureBlocked));
+        get().renderer.domElement.style.cursor = shownCursor.current;
       }
     },
     /* The table keeps a hovered piece hovered without a new enter, so a stack nudged under the pointer takes its new place here. */
     onPointerMove: () => hoverTag.show(piece.id, pose),
     onPointerLeave: () => {
-      hoverTag.leave(piece.id);
       hovered.current = false;
       setHoveredPiece(null);
-      if (!pointerSession.busy) {
-        get().renderer.domElement.style.cursor = 'default';
-      }
+      hoverTag.leave(piece.id, () => {
+        /* Only the cursor this piece put up: something the pointer reached meanwhile, such as the spice bank, keeps its own. */
+        const canvas = get().renderer.domElement;
+        if (!pointerSession.busy && canvas.style.cursor === shownCursor.current) {
+          canvas.style.cursor = 'default';
+        }
+      });
     },
   };
   /* A piece in someone's hand, or the viewer's own, moves out from under a still pointer, so it shows no hover tag. */
