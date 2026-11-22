@@ -74,6 +74,8 @@ export function ScrollLane({
         data-fade={fade}
         aria-label={ariaLabel}
         start={Tag === 'ol' ? start : undefined}
+        /* Safari drops the list role from a list without markers; a reader should still hear a list. */
+        role={Tag === 'div' ? undefined : 'list'}
         tabIndex={focusable ? 0 : undefined}
       >
         {children}

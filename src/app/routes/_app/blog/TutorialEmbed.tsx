@@ -37,8 +37,13 @@ export function TutorialEmbed({ src, title }: Readonly<{ src: string; title: str
 
 /* How close the reader has to be for the page to load: within about a screen of the frame. */
 const LOAD_WITHIN = '400px 0px';
-/* How far they have to be for it to unload: more than a screen and a half past it, so reading the paragraph under a frame never restarts its chapter. */
-const UNLOAD_BEYOND = '150% 0px';
+/*
+ * How far they have to be for it to unload: more than a screen and a half past it, so reading the paragraph under a frame never restarts its chapter.
+ * Never nearer than the load edge, or on a short screen the frame could empty inside the band where it loads and never fill again.
+ */
+function unloadBeyond() {
+  return `${Math.max(800, Math.round(window.innerHeight * 1.5))}px 0px`;
+}
 
 /*
  * Whether the reader is near the frame, with room between the two edges so the frame does not fill and empty as they linger around one of them.
@@ -52,20 +57,21 @@ function useNear(rootRef: RefObject<HTMLElement | null>) {
       return;
     }
     const arriving = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
+      (entries) => {
+        if (entries.at(-1)?.isIntersecting) {
           setNear(true);
         }
       },
       { rootMargin: LOAD_WITHIN }
     );
     const leaving = new IntersectionObserver(
-      ([entry]) => {
+      (entries) => {
+        const entry = entries.at(-1);
         if (entry && !entry.isIntersecting) {
           setNear(false);
         }
       },
-      { rootMargin: UNLOAD_BEYOND }
+      { rootMargin: unloadBeyond() }
     );
     arriving.observe(root);
     leaving.observe(root);
