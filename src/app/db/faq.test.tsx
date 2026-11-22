@@ -57,6 +57,8 @@ const serverPage = {
   ],
 };
 
+const firstPage = { page: [{ detail: serverPage, items: [] }], isDone: true, continueCursor: '' };
+
 /** Answers the page, the session and the viewer's answered flag by function name, as Convex would for each subscription. */
 function serveQueries(viewer: { userId: string | null; answered: boolean | undefined }) {
   mocks.usePaginatedQuery.mockReturnValue({
@@ -72,6 +74,9 @@ function serveQueries(viewer: { userId: string | null; answered: boolean | undef
         return 'none';
       case getFunctionName(api.faq.viewerAnswered):
         return viewer.answered;
+      /* The first page is a plain subscription; pagination starts only on loading more. Convex hands back the same object until the answer changes. */
+      case getFunctionName(api.faq.questionPage):
+        return firstPage;
       default:
         return serverPage;
     }

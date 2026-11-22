@@ -13,6 +13,12 @@ const root = join(import.meta.dirname, '..');
 const dbRoot = join(root, 'src', 'app', 'db');
 /* The Storybook stand-in for Convex's own hooks, which has to accept `'skip'` because the hooks it replaces do. */
 const storybookRuntime = join(dbRoot, 'storybook', 'runtime.tsx');
+/*
+ * The shared live-query primitives, not a domain module.
+ * `useLivePaginatedQuery` swaps its shared first-page subscription for `usePaginatedQuery` on the first "load more", and a hook cannot mount a child component to do that.
+ * Domain modules still may not skip: they call the primitive with real arguments.
+ */
+const livePrimitives = join(dbRoot, 'core', 'live.ts');
 
 async function* walk(dir: string): AsyncGenerator<string> {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -25,6 +31,7 @@ async function* walk(dir: string): AsyncGenerator<string> {
       /\.tsx?$/.test(e.name) &&
       !e.name.endsWith('.d.ts') &&
       p !== storybookRuntime &&
+      p !== livePrimitives &&
       !e.name.includes('.test.') &&
       !e.name.includes('.spec.')
     ) {

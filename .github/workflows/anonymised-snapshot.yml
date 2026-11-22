@@ -37,6 +37,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       due: ${{ steps.week.outputs.due }}
+      dev_due: ${{ steps.week.outputs.dev_due }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -103,8 +104,11 @@ jobs:
           if-no-files-found: error
 
       # Reuse this export for cloud dev, after the anonymised artifact is safely uploaded.
-      - name: Refresh cloud dev from the weekly anonymised snapshot
-        if: success() && env.SNAPSHOT_UPLOAD == 'true'
+      # Only when no successful run reloaded dev in the last 25 days (scripts/snapshot-refresh-due.ts), so every fourth
+      # week, retried until it succeeds. A reload replays every migration over the snapshot,
+      # which was about a third of November 2026's Convex usage (Norbert, 22 November 2026).
+      - name: Refresh cloud dev from the anonymised snapshot every fourth week
+        if: success() && env.SNAPSHOT_UPLOAD == 'true' && needs.due.outputs.dev_due == 'true'
         run: bun run provision dev --stage data --snapshot-file "${RUNNER_TEMP}/anonymised-snapshot/snapshot.zip"
         env:
           CONVEX_DEV_DEPLOY_KEY: ${{ secrets.CONVEX_DEV_DEPLOY_KEY }}

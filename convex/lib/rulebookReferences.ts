@@ -16,6 +16,7 @@ import type {
 import { collectRulebookReferenceIds } from '../../src/shared/rulebooks/references';
 import { rulebookFactionSheetSchema } from '../../src/shared/rulebooks/sources';
 import type { RulebookResolvedSource } from '../../src/shared/rulebooks/sources';
+import type { Doc } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
 import { assetDisplayName } from './assetInput';
 import { resolveBackgrounds } from './backgroundPresets';
@@ -72,9 +73,22 @@ export async function resolveRulebookAsset(
 ): Promise<RulebookResolvedAssetsById[string] | null> {
   const id = ctx.db.normalizeId('assets', assetId);
   const asset = id ? await ctx.db.get('assets', id) : null;
-  if (!asset || asset.is_deleted) {
+  return asset ? await resolveLoadedRulebookAsset(ctx, asset, withBoardData) : null;
+}
+
+/**
+ * The same for an asset row the caller already holds, so a board's large row is not read a second time.
+ * Convex bills each read of a document, repeated ones too.
+ */
+export async function resolveLoadedRulebookAsset(
+  ctx: ReadCtx,
+  asset: Doc<'assets'>,
+  withBoardData: boolean
+): Promise<RulebookResolvedAssetsById[string] | null> {
+  if (asset.is_deleted) {
     return null;
   }
+  const assetId: string = asset._id;
   const publication = isPublicationAssetType(asset.type)
     ? await ctx.db
         .query('publication_assets')
