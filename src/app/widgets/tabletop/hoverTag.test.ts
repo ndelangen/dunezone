@@ -58,3 +58,21 @@ test('a dropped piece or a cleared table loses its tag at once', () => {
   expect(tag.shows('stack')).toBe(false);
   expect(changes).toHaveBeenCalledTimes(4);
 });
+
+test('a tag on its way out that is cleared or dropped still takes what ends with it', () => {
+  vi.useFakeTimers();
+  const tag = createHoverTag();
+  const cleared = vi.fn();
+  tag.show('stack');
+  tag.leave('stack', cleared);
+  tag.clear();
+  expect(cleared).toHaveBeenCalledOnce();
+  const dropped = vi.fn();
+  tag.show('stack');
+  tag.leave('stack', dropped);
+  tag.drop('stack');
+  expect(dropped).toHaveBeenCalledOnce();
+  vi.advanceTimersByTime(HOVER_TAG_GRACE_MS * 2);
+  expect(cleared).toHaveBeenCalledOnce();
+  expect(dropped).toHaveBeenCalledOnce();
+});

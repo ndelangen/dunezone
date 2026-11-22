@@ -7,6 +7,8 @@ export const HOVER_TAG_GRACE_MS = 160;
 export function createHoverTag() {
   let current: string | null = null;
   let hide: ReturnType<typeof setTimeout> | undefined;
+  /* What ends with the tag that is on its way out, run when it goes however it goes. */
+  let pendingGone: (() => void) | undefined;
   const listeners = new Set<() => void>();
   const set = (next: typeof current) => {
     if (current === next) {
@@ -20,6 +22,14 @@ export function createHoverTag() {
   const cancelHide = () => {
     clearTimeout(hide);
     hide = undefined;
+    pendingGone = undefined;
+  };
+  /* The tag goes now: what was waiting to end with it ends too. */
+  const hideNow = () => {
+    const gone = pendingGone;
+    cancelHide();
+    set(null);
+    gone?.();
   };
   return {
     subscribe: (listener: () => void) => {
@@ -42,24 +52,23 @@ export function createHoverTag() {
         return;
       }
       cancelHide();
+      pendingGone = gone;
       hide = setTimeout(() => {
-        hide = undefined;
         if (current === pieceId) {
-          set(null);
-          gone();
+          hideNow();
         }
       }, HOVER_TAG_GRACE_MS);
     },
     /* No pointer rests on the table: any tag goes at once. */
     clear() {
-      cancelHide();
-      set(null);
+      if (current !== null) {
+        hideNow();
+      }
     },
     /* The piece is gone from the table: its tag goes at once. */
     drop(pieceId: string) {
       if (current === pieceId) {
-        cancelHide();
-        set(null);
+        hideNow();
       }
     },
   };

@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { isFactionToken } from '@shared/play/factionToken';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { spiceBankSlot, createSpiceStack } from '@shared/play/spiceBank';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
@@ -110,8 +111,15 @@ export const Controls = meta.story({
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
     /* Faction tokens are one of a kind, so they never show a count, not even with Alt held. */
     const uncounted = counters.filter((counter) => counter.hasAttribute('data-uncounted'));
+    const factionTokenIds = playingSnapshot()
+      .table.pieces.filter((piece) => isFactionToken(piece))
+      .map((piece) => piece.id)
+      .sort((a, b) => a.localeCompare(b));
+    await expect(factionTokenIds.length).toBeGreaterThan(0);
+    await expect(uncounted.map((counter) => counter.dataset.pieceId ?? '').sort((a, b) => a.localeCompare(b))).toEqual(
+      factionTokenIds
+    );
     await expect(counters.length).toBeGreaterThan(uncounted.length);
-    await expect(uncounted.length).toBeGreaterThan(0);
     for (const counter of counters) {
       await expect(counter).not.toBeVisible();
     }

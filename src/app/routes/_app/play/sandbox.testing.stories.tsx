@@ -336,6 +336,8 @@ export const HoverTagStaysWhileHeld = meta.story({
       await expect(shownLabels()).toEqual([label]);
     }
     press('pointerup');
+    /* Set down under the still pointer. */
+    await waitFor(() => expect(canvas.style.cursor).not.toBe('grabbing'));
     await waitFor(() => expect(shownLabels()).toEqual([label]));
   },
 });
@@ -359,13 +361,21 @@ export const HoverTagHidesWhileDragging = meta.story({
           clientY: y,
         })
       );
+    const frame = () => new Promise((next) => requestAnimationFrame(next));
     pointer('pointerdown', spot.x, spot.y);
     await waitFor(() => expect(shownTags()).toBe(1));
-    for (let step = 1; step <= 20; step++) {
-      pointer('pointermove', spot.x + step * 3, spot.y);
-      await new Promise((next) => requestAnimationFrame(next));
-    }
+    /* A tremor under the drag threshold is no drag: the tooltip stays. */
+    pointer('pointermove', spot.x + 3, spot.y);
+    await frame();
+    await expect(shownTags()).toBe(1);
+    /* Past the threshold the stack is dragged, and no tooltip shows for any step of the drag. */
+    pointer('pointermove', spot.x + 6, spot.y);
     await waitFor(() => expect(shownTags()).toBe(0));
+    for (let step = 3; step <= 20; step++) {
+      pointer('pointermove', spot.x + step * 3, spot.y);
+      await frame();
+      await expect(shownTags()).toBe(0);
+    }
     pointer('pointerup', spot.x + 60, spot.y);
   },
 });

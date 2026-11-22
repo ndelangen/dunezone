@@ -65,20 +65,25 @@ export function usePiecePointerEvents({
    */
   const hoverTag = useContext(HoverTagContext);
   const tagged = useSyncExternalStore(hoverTag.subscribe, () => hoverTag.shows(piece.id));
+  /*
+   * A piece that leaves the table takes its tag, the cursor it put up and the keys' aim with it at once.
+   * A piece that moves out from under a still pointer hears no pointer leave either, so this is also where its hover ends.
+   */
   useEffect(
     () => () => {
+      if (hoverTag.shows(piece.id)) {
+        const canvas = get().renderer.domElement;
+        if (!pointerSession.busy && canvas.style.cursor === shownCursor.current) {
+          canvas.style.cursor = 'default';
+        }
+      }
       hoverTag.drop(piece.id);
-    },
-    [hoverTag, piece.id]
-  );
-  useEffect(
-    () => () => {
-      /* Only while its tag is still up: once another piece took the tag, the keys are aimed at that one. */
-      if (hovered.current && hoverTag.shows(piece.id)) {
+      if (hovered.current) {
+        hovered.current = false;
         setHoveredPiece(null);
       }
     },
-    [setHoveredPiece, hoverTag, piece.id]
+    [hoverTag, piece.id, get, pointerSession, setHoveredPiece]
   );
 
   const handlers = {
@@ -122,13 +127,13 @@ export function usePiecePointerEvents({
     },
     /* The table keeps a hovered piece hovered without a new enter, so the pointer coming back within the grace keeps its tag. */
     onPointerMove: () => hoverTag.show(piece.id),
-    /* The keys stay aimed at the piece for as long as its tag stays up, so they act on the piece the tag names. */
+    /* The keys let go of the piece at once; only the tag and cursor hold through the grace, so a key never acts on a piece the pointer left. */
     onPointerLeave: () => {
+      if (hovered.current) {
+        hovered.current = false;
+        setHoveredPiece(null);
+      }
       hoverTag.leave(piece.id, () => {
-        if (hovered.current) {
-          hovered.current = false;
-          setHoveredPiece(null);
-        }
         /* Only the cursor this piece put up: something the pointer reached meanwhile, such as the spice bank, keeps its own. */
         const canvas = get().renderer.domElement;
         if (!pointerSession.busy && canvas.style.cursor === shownCursor.current) {
