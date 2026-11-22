@@ -8,11 +8,15 @@ import type * as MiniflareModule from 'miniflare';
 import sharp from 'sharp';
 import { expect, test } from 'vite-plus/test';
 
+import rootPackageJson from '../package.json';
+
 const wranglerRequire = createRequire(import.meta.resolve('wrangler/package.json'));
 const { Miniflare, convertV4MiniflareOptions } = wranglerRequire('miniflare') as typeof MiniflareModule;
 
 test('the Wrangler-resolved Images encoder preserves fit, progressive JPEG and requested quality', async () => {
-  expect(wranglerRequire('miniflare/package.json').version).toBe('5.20261104.0-beta');
+  /* Our Images quality patch must follow every Wrangler bump to its bundled miniflare. */
+  const { version } = wranglerRequire('miniflare/package.json') as { version: string };
+  expect(rootPackageJson.patchedDependencies).toHaveProperty([`miniflare@${version}`]);
   const runtime = new Miniflare(
     convertV4MiniflareOptions({
       modules: true,
