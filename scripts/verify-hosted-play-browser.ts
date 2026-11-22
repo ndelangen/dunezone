@@ -2434,7 +2434,7 @@ async function verifyRender() {
   while (phaseAt(requireView(a).snapshot.phase).id !== 'mentat-pause') {
     await phaseStep(a, b);
   }
-  passed('Each phase up to Mentat Pause draws its view for both players');
+  passed('Both players step through each phase up to Mentat Pause');
   await readyBeforeAdvance(a, b);
   await verifyTableReview(a, b);
 }

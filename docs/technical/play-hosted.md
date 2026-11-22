@@ -295,7 +295,7 @@ out. A local run is optional and never required before merging.
 The `hosted_play_webgpu` job, also required by `ci_ok`, runs on a standard macOS runner. There full
 Chromium draws the table with WebGPU on the runner's Metal device, and the job passes
 `--expect-renderer webgpu` in place of `webgl2-swiftshader`. On a pull request it runs the `webgpu`
-shard, whose `render` flow draws the table, a held token, a spice stack, every phase's view and a
+shard, whose `render` flow draws the table, a held token, a spice stack, each phase change and a
 Mentat recall checkpoint once each. Seats, reloads, sign-out and the observer do not depend on the
 renderer, so they stay with the Linux shards. The daily run draws the whole `regular` shard with
 WebGPU, and a pull request's run never stands in for it. Reverting the fix

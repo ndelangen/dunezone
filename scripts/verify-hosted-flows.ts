@@ -76,7 +76,8 @@ export const browserFlows = {
     shard: 'protocol',
   },
   /*
-   * The WebGPU check on pull requests: two seated players draw the table, a held token, a spice stack (#1272), every phase's view and a Mentat recall checkpoint.
+   * The WebGPU check on pull requests: two seated players draw the table, a held token, a spice stack (#1272), each phase change and a Mentat recall checkpoint.
+   * Its pixel checks are the held token and the spice stack; an uncaptured WebGPU error fails any step.
    * What it leaves out is renderer-independent and runs on SwiftShader in the Linux shards; the daily run draws the whole regular shard with WebGPU.
    */
   render: {
