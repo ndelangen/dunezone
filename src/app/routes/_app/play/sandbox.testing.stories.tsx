@@ -1,7 +1,7 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { factionTokenOf } from '@shared/play/factionToken';
+import { factionTokenOf, isFactionToken } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
 import { SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
@@ -266,7 +266,17 @@ export const HoverShowsNameAndCountToSpectators = meta.story({
   },
 });
 
-async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true } = {}) {
+/** A faction token is one of a kind: hovered, it shows its name, but no count. */
+export const HoverFactionTokenShowsNoCount = meta.story({
+  play: async ({ canvasElement }) => {
+    await hoverShowsNameAndCount(canvasElement, { target: 'faction-token' });
+  },
+});
+
+async function hoverShowsNameAndCount(
+  canvasElement: HTMLElement,
+  { leave = true, target = 'troops' }: { leave?: boolean; target?: 'troops' | 'faction-token' } = {}
+) {
   await sandboxReady(within(canvasElement.ownerDocument.body));
   const document = canvasElement.ownerDocument;
   await waitForPlayCamera(document);
@@ -278,13 +288,17 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true
     const box = count.getBoundingClientRect();
     return box.top > 120 && box.bottom < view.innerHeight - 120 && box.left > 80 && box.right < view.innerWidth - 80;
   };
-  const troopIds = new Set(
+  const targetIds = new Set(
     shown()
-      .table.pieces.filter((candidate) => candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1)
+      .table.pieces.filter((candidate) =>
+        target === 'faction-token'
+          ? isFactionToken(candidate)
+          : candidate.stackKey?.startsWith('troops:') && candidate.items.length > 1
+      )
       .map((candidate) => candidate.id)
   );
   const count = await waitFor(async () => {
-    const found = counts().find((candidate) => troopIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
+    const found = counts().find((candidate) => targetIds.has(candidate.dataset.pieceId ?? '') && onScreen(candidate));
     await expect(found).toBeDefined();
     return found!;
   });
@@ -316,8 +330,13 @@ async function hoverShowsNameAndCount(canvasElement: HTMLElement, { leave = true
     }
   }
   await expect(tag).toHaveAttribute('data-hovered', 'true');
-  await waitFor(() => expect(count).toBeVisible());
-  await expect(name).toBeVisible();
+  if (target === 'faction-token') {
+    await waitFor(() => expect(name).toBeVisible());
+    await expect(count).not.toBeVisible();
+  } else {
+    await waitFor(() => expect(count).toBeVisible());
+    await expect(name).toBeVisible();
+  }
   await expect(name).toHaveTextContent(
     shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label
   );

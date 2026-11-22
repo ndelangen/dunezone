@@ -108,14 +108,21 @@ export const Controls = meta.story({
     await expect(header.contains(focused), `Tab reaches ${focused?.outerHTML.slice(0, 80)} first`).toBe(true);
 
     const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
-    await expect(counters.length).toBeGreaterThan(0);
+    /* Faction tokens are one of a kind, so they never show a count, not even with Alt held. */
+    const uncounted = counters.filter((counter) => counter.hasAttribute('data-uncounted'));
+    await expect(counters.length).toBeGreaterThan(uncounted.length);
+    await expect(uncounted.length).toBeGreaterThan(0);
     for (const counter of counters) {
       await expect(counter).not.toBeVisible();
     }
     await userEvent.keyboard('{Alt>}');
     await expect(shell).toHaveAttribute('data-show-counts', 'true');
     for (const counter of counters) {
-      await expect(counter).toBeVisible();
+      if (uncounted.includes(counter)) {
+        await expect(counter).not.toBeVisible();
+      } else {
+        await expect(counter).toBeVisible();
+      }
     }
     window.dispatchEvent(new Event('blur'));
     await waitFor(() => expect(shell).toHaveAttribute('data-show-counts', 'false'));
@@ -173,7 +180,7 @@ export const PieceNames = meta.story({
     const troop = playingSnapshot().table.pieces.find((entry) => entry.id === troopId)!;
     const troopName = nameOf(troopId);
     const deckName = nameOf('treachery-deck');
-    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count'));
+    const counters = Array.from(shell.querySelectorAll<HTMLElement>('.scene-piece-count:not([data-uncounted])'));
 
     await expect(troopName).not.toBeVisible();
     await user.keyboard('{Control>}');

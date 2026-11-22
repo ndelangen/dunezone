@@ -238,6 +238,11 @@
   visibility: visible;
 }
 
+/* A faction token is one of a kind: it keeps the count's room, so its name sits where others do, but never shows a number. */
+.pieceTag .pieceCount[data-uncounted] {
+  visibility: hidden;
+}
+
 .pieceCountSelected {
   color: var(--color-ink);
   background: var(--color-brand-strong);
