@@ -176,6 +176,9 @@
 
 /* A piece's projected tag: its count, with its name hung above so the count keeps its place. Both wear the table's tooltip surface (the --tip- tokens), so the table and its panels show one kind of tooltip. */
 .pieceTag {
+  /* Half the smallest step, the same inset as the UI's tooltips, so table tags and UI tooltips are one style. */
+  --piece-tip-padding-block: calc(var(--space-xs) / 2);
+
   position: relative;
   display: inline-block;
 }
@@ -192,7 +195,7 @@
   user-select: none;
   white-space: nowrap;
   visibility: hidden;
-  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
+  padding: var(--piece-tip-padding-block) var(--space-xs);
   border-radius: var(--mantine-radius-sm);
   color: var(--color-text);
   background: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));
@@ -219,7 +222,7 @@
   white-space: nowrap;
   visibility: hidden;
   min-width: 2rem;
-  padding: calc(var(--mantine-spacing-xs) / 2) var(--mantine-spacing-xs);
+  padding: var(--piece-tip-padding-block) var(--space-xs);
   border-radius: 999px;
   color: var(--color-text);
   background: var(--tip-surface, rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha)));

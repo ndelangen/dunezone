@@ -276,12 +276,13 @@ export const HoverTagHoldsThroughASlip = meta.story({
     const document = canvasElement.ownerDocument;
     const canvas = document.querySelector('canvas')!;
     const blinks: string[] = [];
-    const watch = new MutationObserver(() => {
-      if (!tag.hasAttribute('data-hovered')) {
+    /* Records arrive after the events that made them, so a tag taken off and put back in one go shows only in the records. */
+    const watch = new MutationObserver((records) => {
+      if (records.some((record) => record.oldValue === null) || tag.dataset.hovered === undefined) {
         blinks.push('hidden');
       }
     });
-    watch.observe(tag, { attributes: true, attributeFilter: ['data-hovered'] });
+    watch.observe(tag, { attributes: true, attributeFilter: ['data-hovered'], attributeOldValue: true });
     const edge = canvas.getBoundingClientRect();
     const pointAt = (clientX: number, clientY: number) =>
       canvas.dispatchEvent(
