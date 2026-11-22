@@ -18,7 +18,7 @@ export function snapshotWeekStart(now: Date): Date {
 export const DEV_REFRESH_AFTER_DAYS = 25;
 
 /* Matches the step's current name and the weekly name it had before. */
-const DEV_REFRESH_STEP = /^Refresh cloud dev /;
+export const DEV_REFRESH_STEP = /^Refresh cloud dev /;
 
 type RunJobs = { jobs?: { steps?: { name?: string; conclusion?: string | null }[] }[] };
 

@@ -62,54 +62,87 @@ const page = (chunk: Chunk, isDone = false): PaginationResult<Chunk> => ({
   continueCursor: 'next',
 });
 
-test("the first page subscribes with exactly the loader's arguments, so every visitor shares its cached answer", async () => {
-  const { subscribed, answer, wrapper, client } = fakeClient();
-  const { result, rerender, unmount } = renderHook(
-    ({ slug }) => useLivePaginatedQuery(query, { slug }, { initialNumItems: 12 }),
-    { wrapper, initialProps: { slug: 'atreides' } }
-  );
-  try {
-    const firstArgs = { slug: 'atreides', paginationOpts: { numItems: 12, cursor: null } };
-    expect(new Set(subscribed.map(keyOf))).toEqual(new Set([keyOf(firstArgs)]));
-    expect(result.current.status).toBe('LoadingFirstPage');
+const firstArgs = (slug: string) => ({ slug, paginationOpts: { numItems: 12, cursor: null } });
+const paginatedReads = (subscribed: Args[]) => subscribed.filter((args) => args.paginationOpts.id !== undefined);
 
-    answer(firstArgs, page({ detail: 'Atreides', items: ['q1', 'q2'] }));
+function renderDetail(slug = 'atreides') {
+  const fake = fakeClient();
+  const hook = renderHook(({ slug }) => useLivePaginatedQuery(query, { slug }, { initialNumItems: 12 }), {
+    wrapper: fake.wrapper,
+    initialProps: { slug },
+  });
+  return { ...fake, ...hook };
+}
+
+test("the first page subscribes with exactly the loader's arguments, so every visitor shares its cached answer", async () => {
+  const { subscribed, answer, result, unmount, client } = renderDetail();
+  try {
+    expect(new Set(subscribed.map(keyOf))).toEqual(new Set([keyOf(firstArgs('atreides'))]));
+    expect(result.current.status).toBe('LoadingFirstPage');
+    answer(firstArgs('atreides'), page({ detail: 'Atreides', items: ['q1', 'q2'] }));
     expect(result.current.status).toBe('CanLoadMore');
     expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
+  } finally {
+    unmount();
+    await client.close();
+  }
+});
 
+test('load more hands over to pagination: the first page once more, then the asked-for page after it', async () => {
+  const { subscribed, answer, result, unmount, client } = renderDetail();
+  try {
+    answer(firstArgs('atreides'), page({ detail: 'Atreides', items: ['q1', 'q2'] }));
     act(() => result.current.loadMore(12));
-    const paginatedArgs = subscribed.find((args) => args.paginationOpts.id !== undefined);
-    expect(paginatedArgs?.paginationOpts).toMatchObject({ numItems: 24, cursor: null });
-    /* The shared first page stays on screen until the paginated read answers. */
+    const [paginatedFirst] = paginatedReads(subscribed);
+    expect(paginatedFirst?.paginationOpts).toMatchObject({ numItems: 12, cursor: null });
+    /* The shared first page stays on screen until pagination has its own. */
     expect(result.current.status).toBe('LoadingMore');
     expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
 
-    answer(paginatedArgs!, page({ detail: 'Atreides', items: ['q1', 'q2', 'q3'] }, true));
-    expect(result.current.status).toBe('Exhausted');
-    expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2', 'q3'] }]);
+    answer(paginatedFirst!, page({ detail: 'Atreides', items: ['q1', 'q2'] }));
+    const following = paginatedReads(subscribed).find((args) => args.paginationOpts.cursor === 'next');
+    expect(following?.paginationOpts).toMatchObject({ numItems: 12, cursor: 'next' });
+    expect(result.current.status).toBe('LoadingMore');
 
-    /* Another address starts on its own shared first page again. */
+    answer(following!, page({ detail: null, items: ['q3'] }, true));
+    expect(result.current.status).toBe('Exhausted');
+    expect(result.current.results.flatMap((chunk) => chunk.items)).toEqual(['q1', 'q2', 'q3']);
+  } finally {
+    unmount();
+    await client.close();
+  }
+});
+
+test('another address, or coming back to this one, starts on the shared first page again', async () => {
+  const { subscribed, answer, result, rerender, unmount, client } = renderDetail();
+  try {
+    answer(firstArgs('atreides'), page({ detail: 'Atreides', items: ['q1', 'q2'] }));
+    act(() => result.current.loadMore(12));
+    expect(result.current.status).toBe('LoadingMore');
+
     rerender({ slug: 'harkonnen' });
-    const harkonnen = { slug: 'harkonnen', paginationOpts: { numItems: 12, cursor: null } };
-    expect(subscribed.map(keyOf)).toContain(keyOf(harkonnen));
-    answer(harkonnen, page({ detail: 'Harkonnen', items: [] }, true));
+    answer(firstArgs('harkonnen'), page({ detail: 'Harkonnen', items: [] }, true));
     expect(result.current.status).toBe('Exhausted');
     expect(result.current.results).toEqual([{ detail: 'Harkonnen', items: [] }]);
 
-    /* Coming back starts on the shared first page again, without another paginated read. */
-    const paginatedReads = () => new Set(subscribed.filter((args) => args.paginationOpts.id !== undefined).map(keyOf));
-    const readsBefore = paginatedReads().size;
+    const readsBefore = new Set(paginatedReads(subscribed).map(keyOf)).size;
     rerender({ slug: 'atreides' });
     expect(result.current.status).toBe('CanLoadMore');
     expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
-    expect(paginatedReads().size).toBe(readsBefore);
+    expect(new Set(paginatedReads(subscribed).map(keyOf)).size).toBe(readsBefore);
+  } finally {
+    unmount();
+    await client.close();
+  }
+});
 
-    /* Leaving while a load more is pending drops it too. */
+test('load more does nothing once the first page holds everything', async () => {
+  const { subscribed, answer, result, unmount, client } = renderDetail();
+  try {
+    answer(firstArgs('atreides'), page({ detail: 'Atreides', items: ['q1'] }, true));
     act(() => result.current.loadMore(12));
-    expect(result.current.status).toBe('LoadingMore');
-    rerender({ slug: 'harkonnen' });
-    rerender({ slug: 'atreides' });
-    expect(result.current.status).toBe('CanLoadMore');
+    expect(result.current.status).toBe('Exhausted');
+    expect(paginatedReads(subscribed)).toEqual([]);
   } finally {
     unmount();
     await client.close();
@@ -137,7 +170,7 @@ test('a first page cut short by a required split hands over to pagination and ke
     expect(result.current.results).toEqual([{ detail: 'Atreides', items: ['q1', 'q2'] }]);
     expect(result.current.status).toBe('LoadingMore');
     const paginatedArgs = subscribed.find((args) => args.paginationOpts.id !== undefined);
-    expect(paginatedArgs?.paginationOpts).toMatchObject({ numItems: 24, cursor: null });
+    expect(paginatedArgs?.paginationOpts).toMatchObject({ numItems: 12, cursor: null });
 
     answer(paginatedArgs!, page({ detail: 'Atreides', items: ['q1', 'q2', 'q3'] }, true));
     expect(result.current.status).toBe('Exhausted');

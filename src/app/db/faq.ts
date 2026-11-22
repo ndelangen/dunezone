@@ -156,11 +156,15 @@ export function useGlobalFaqPage(args: GlobalFaqArgs, options?: { initialData?: 
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 
+/* How many references a page shows at first and adds per "load more"; the loader and the live first page must agree on it to share one cached answer. */
+const REFERENCES_PAGE = 12;
+
 /** The question route's loader, paired with `useFaqQuestionPage`. */
+
 export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<FaqQuestionPublicPage> {
   const result = await db.query(api.faq.questionPage, {
     ...locator,
-    paginationOpts: { numItems: 12, cursor: null },
+    paginationOpts: { numItems: REFERENCES_PAGE, cursor: null },
   });
   const first = result.page[0];
   return first.detail ? { ...first.detail, references: referencePreviews(first.items) } : null;
@@ -171,7 +175,7 @@ export async function loadFaqQuestionPage(locator: FaqQuestionLocator): Promise<
  * The loader's result goes in as `initialPage`, not `initialData`: this hook returns commands beside the query, so its options do not match the plain read hooks elsewhere in this layer.
  */
 export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { initialPage?: FaqQuestionPublicPage }) {
-  const referencesQuery = useLivePaginatedQuery(api.faq.questionPage, locator, { initialNumItems: 12 });
+  const referencesQuery = useLivePaginatedQuery(api.faq.questionPage, locator, { initialNumItems: REFERENCES_PAGE });
   const first = referencesQuery.results[0];
   const livePage = first === undefined ? undefined : first.detail;
   const publicPage = livePage === undefined ? options?.initialPage : livePage;
@@ -241,7 +245,7 @@ export function useFaqQuestionPage(locator: FaqQuestionLocator, options?: { init
     page,
     references,
     referencesStatus: referencesQuery.status,
-    loadMoreReferences: () => referencesQuery.loadMore(12),
+    loadMoreReferences: () => referencesQuery.loadMore(REFERENCES_PAGE),
     hasAnswered: viewerResolved && viewerId !== null && answered,
     canManageReferences:
       viewerResolved &&

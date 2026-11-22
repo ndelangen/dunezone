@@ -99,9 +99,9 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
 /**
  * A paginated page query whose first page is one cached answer for every visitor.
  *
- * `usePaginatedQuery` adds a per-tab id to `paginationOpts` on purpose, so its answers are never shared: not with the route loader that rendered the same first page, nor with anyone else looking at it.
+ * `usePaginatedQuery` adds a per-tab counter to `paginationOpts` on purpose, as a cache-buster, so its answers never match the route loader's read of the same first page and rarely match another visitor's.
  * Here the first page is a plain held subscription with exactly the loader's arguments (`numItems`, `cursor: null`), which the server render, the hydrated page and every other visitor share until something it read changes.
- * Pagination starts only when someone loads more: the paginated query then reads the first two pages afresh, and the first page's answer stays on screen until it arrives.
+ * Pagination starts only when someone loads more: `usePaginatedQuery` then reads the first page once more and the asked-for page after it, and the shared first page stays on screen until they arrive.
  */
 export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
   query: Query,
@@ -112,18 +112,34 @@ export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
   const { initialNumItems } = options;
   const firstArgs = { ...args, paginationOpts: { numItems: initialNumItems, cursor: null } } as FunctionArgs<Query>;
   const { key, subscription } = useWarmHold(query, firstArgs);
-  /* The arguments that pressed "load more"; another address, or coming back to this one, starts on the shared first page again. */
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  if (expandedKey !== null && expandedKey !== key) {
-    setExpandedKey(null);
+  /*
+   * The arguments that handed over to pagination, and how many more items the "load more" that did it asked for.
+   * Another address, or coming back to this one, starts on the shared first page again.
+   */
+  const [expansion, setExpansion] = useState<{ key: string; more: number | null } | null>(null);
+  if (expansion !== null && expansion.key !== key) {
+    setExpansion(null);
   }
-  const expanded = expandedKey === key;
-  const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems: initialNumItems * 2 });
+  const expanded = expansion?.key === key;
+  const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems });
   const paginating = expanded && paginated.status !== 'LoadingFirstPage';
+  /*
+   * The page the "load more" asked for follows once pagination has its own first page, and only then:
+   * a handover with one range loaded and more to load is the one state that asks for it.
+   */
+  const more = expanded ? (expansion?.more ?? null) : null;
+  const awaitingMore = more !== null && paginated.status === 'CanLoadMore' && paginated.results.length === 1;
+  const loadPaginated = paginated.loadMore;
+  useEffect(() => {
+    if (awaitingMore && more !== null) {
+      loadPaginated(more);
+    }
+  }, [awaitingMore, more, loadPaginated]);
   const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as Result | undefined;
   /*
-   * A first page that grew past what one read may scan comes back cut short and asks to be split.
-   * Only `usePaginatedQuery` can split it, so the hook hands over to it and keeps the last whole answer on screen meanwhile.
+   * Defensive: a first page that grew past what one read may scan could come back cut short and ask to be split.
+   * Only `usePaginatedQuery` can split it, so the hook would hand over to it and keep the last whole answer on screen meanwhile.
+   * A re-run reads up to the page's journalled end, so the backend is not expected to send this for a plain subscription.
    */
   const [whole, setWhole] = useState<{ key: string; data: Result } | null>(null);
   const splitRequired = first?.pageStatus === 'SplitRequired';
@@ -131,14 +147,18 @@ export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
     setWhole({ key, data: first });
   }
   if (splitRequired && !expanded) {
-    setExpandedKey(key);
+    setExpansion({ key, more: null });
   }
   if (paginating) {
-    return paginated;
+    return awaitingMore ? { ...paginated, status: 'LoadingMore', isLoading: true } : paginated;
   }
   const shown = splitRequired ? (whole?.key === key ? whole.data : undefined) : first;
   const results = (shown?.page ?? []) as UsePaginatedQueryReturnType<Query>['results'];
-  const loadMore = () => setExpandedKey(key);
+  const loadMore = (numItems: number) => {
+    if (first !== undefined && !first.isDone && !expanded) {
+      setExpansion({ key, more: numItems });
+    }
+  };
   if (expanded || splitRequired) {
     return shown === undefined
       ? { results, loadMore, status: 'LoadingFirstPage', isLoading: true }

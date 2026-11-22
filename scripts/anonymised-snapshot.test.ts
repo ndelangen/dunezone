@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vite-plus/test';
 import { parse } from 'yaml';
 
 import { JOB_DIRECTORY, jobEnvironment, SNAPSHOT_FILE, summaryMarkdown } from './anonymised-snapshot';
+import { DEV_REFRESH_STEP } from './snapshot-refresh-due';
 
 interface Step {
   name?: string;
@@ -55,6 +56,9 @@ describe('anonymised snapshot job', () => {
 
   test('refreshes cloud dev from the same checked snapshot after uploading it, on its own four-weekly schedule', () => {
     const refresh = stepNamed('Refresh cloud dev from the anonymised snapshot every fourth week');
+    /* The due check finds past reloads by this step's name, so a rename would quietly bring back weekly reloads. */
+    expect(steps[refresh]!.name).toMatch(DEV_REFRESH_STEP);
+    expect(steps.filter((step) => DEV_REFRESH_STEP.test(step.name ?? ''))).toHaveLength(1);
     expect(refresh).toBeGreaterThan(stepNamed('Upload the anonymised snapshot'));
     expect(refresh).toBeLessThan(stepNamed('Delete the export and the snapshot from the runner'));
     expect(steps[refresh]).toMatchObject({

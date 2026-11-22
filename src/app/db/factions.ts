@@ -570,14 +570,20 @@ export function loadPublicFactionDetail(slug: string): Promise<FactionDetailInit
   return loadPublicPage(loadFactionDetail(slug));
 }
 
+/* How many related questions a page shows at first and adds per "load more"; the loader and the live first page must agree on it to share one cached answer. */
+const RELATED_FAQ_PAGE = 12;
+
 async function loadFactionDetail(slug: string): Promise<FactionDetailInitialPage | null> {
-  const result = await db.query(api.factions.detailPage, { slug, paginationOpts: { numItems: 12, cursor: null } });
+  const result = await db.query(api.factions.detailPage, {
+    slug,
+    paginationOpts: { numItems: RELATED_FAQ_PAGE, cursor: null },
+  });
   const first = result.page[0];
   return first.detail ? { ...toFactionDetailPageData(first.detail), relatedFaq: first.items } : null;
 }
 
 export function useFactionDetail(slug: string, options: { initialData: FactionDetailInitialPage }) {
-  const query = useLivePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: 12 });
+  const query = useLivePaginatedQuery(api.factions.detailPage, { slug }, { initialNumItems: RELATED_FAQ_PAGE });
   const first = query.results[0];
   const page = first === undefined ? options.initialData : first.detail ? toFactionDetailPageData(first.detail) : null;
   return {
@@ -586,6 +592,6 @@ export function useFactionDetail(slug: string, options: { initialData: FactionDe
     isLoading: first === undefined,
     relatedFaq: first ? query.results.flatMap((chunk) => chunk.items) : options.initialData.relatedFaq,
     faqStatus: query.status,
-    loadMoreFaq: () => query.loadMore(12),
+    loadMoreFaq: () => query.loadMore(RELATED_FAQ_PAGE),
   };
 }

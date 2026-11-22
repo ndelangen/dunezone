@@ -236,26 +236,33 @@ function FaqDetailPage() {
   const item = page?.question;
   const answers = useMemo(() => page?.answers ?? [], [page?.answers]);
 
+  /*
+   * Keyed by the question and its answers' anchors, not by object identity:
+   * loading more related items hands the page over to a fresh copy of the same answers, which must not scroll the reader back to the hashed answer.
+   */
+  const itemId = item?.id;
+  const answerAnchors = JSON.stringify(answers.map((row) => [row.id, row.author?.slug ?? null]));
   useEffect(() => {
-    if (!item) {
+    if (!itemId) {
       return;
     }
+    const anchors = JSON.parse(answerAnchors) as [string, string | null][];
     const scrollToHash = () => {
       const targetSlug = window.location.hash.slice(1).trim();
       if (!targetSlug) {
         return;
       }
-      const answer = answers.find((row) => row.author?.slug === targetSlug);
+      const answer = anchors.find(([, slug]) => slug === targetSlug);
       if (!answer) {
         return;
       }
-      const node = document.getElementById(`faq-answer-${answer.id}`);
+      const node = document.getElementById(`faq-answer-${answer[0]}`);
       node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     scrollToHash();
     window.addEventListener('hashchange', scrollToHash);
     return () => window.removeEventListener('hashchange', scrollToHash);
-  }, [item, answers]);
+  }, [itemId, answerAnchors]);
 
   if (!item) {
     return <FaqQuestionPending />;
