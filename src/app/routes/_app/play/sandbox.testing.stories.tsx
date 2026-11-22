@@ -266,6 +266,42 @@ export const HoverShowsNameAndCountToSpectators = meta.story({
   },
 });
 
+/**
+ * A pointer that slips off a stack for a moment, across a seam between its layers or the gap to a neighbour, keeps the tag up.
+ * The tag stays through the slip and never blinks.
+ */
+export const HoverTagHoldsThroughASlip = meta.story({
+  play: async ({ canvasElement }) => {
+    const { count, tag, spot: onStack } = await hoverShowsNameAndCount(canvasElement, { leave: false });
+    const document = canvasElement.ownerDocument;
+    const canvas = document.querySelector('canvas')!;
+    const blinks: string[] = [];
+    const watch = new MutationObserver(() => {
+      if (!tag.hasAttribute('data-hovered')) {
+        blinks.push('hidden');
+      }
+    });
+    watch.observe(tag, { attributes: true, attributeFilter: ['data-hovered'] });
+    const edge = canvas.getBoundingClientRect();
+    const pointAt = (clientX: number, clientY: number) =>
+      canvas.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
+      );
+    for (let slip = 0; slip < 5; slip++) {
+      pointAt(edge.left + 4, edge.top + 4);
+      await new Promise((next) => requestAnimationFrame(next));
+      pointAt(onStack.x, onStack.y);
+      await new Promise((next) => requestAnimationFrame(next));
+    }
+    watch.disconnect();
+    await expect(blinks).toEqual([]);
+    await expect(count).toBeVisible();
+    /* Off the stack for good, the tag goes after its moment. */
+    pointAt(edge.left + 4, edge.top + 4);
+    await waitFor(() => expect(tag).not.toHaveAttribute('data-hovered'));
+  },
+});
+
 /** A faction token is one of a kind: hovered, it shows its name, but no count. */
 export const HoverFactionTokenShowsNoCount = meta.story({
   play: async ({ canvasElement }) => {
@@ -309,10 +345,13 @@ async function hoverShowsNameAndCount(
 
   /* The table hears the pointer on its canvas, whatever page chrome lies over the spot. */
   const canvas = document.querySelector('canvas')!;
-  const pointAt = (clientX: number, clientY: number) =>
+  let spot = { x: 0, y: 0 };
+  const pointAt = (clientX: number, clientY: number) => {
+    spot = { x: clientX, y: clientY };
     canvas.dispatchEvent(
       new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientX, clientY })
     );
+  };
   /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
   const settle = async (ms: number) => {
     const until = performance.now() + ms;
@@ -345,7 +384,7 @@ async function hoverShowsNameAndCount(
   }
 
   if (!leave) {
-    return { count, tag };
+    return { count, tag, spot };
   }
   /* Off the stack, in the table's empty corner, no tag shows. */
   const edge = canvas.getBoundingClientRect();
@@ -353,7 +392,7 @@ async function hoverShowsNameAndCount(
   await waitFor(() => expect(document.querySelector('.scene-piece-tag[data-hovered]')).toBeNull());
   await waitFor(() => expect(name).not.toBeVisible());
   await expect(count).not.toBeVisible();
-  return { count, tag };
+  return { count, tag, spot };
 }
 
 /**

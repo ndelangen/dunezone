@@ -102,7 +102,13 @@ import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrus
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
-import { PieceMenuContext, useHoverFollowsCamera, usePiecePointerEvents } from './usePiecePointerEvents';
+import {
+  createHoverTag,
+  HoverTagContext,
+  PieceMenuContext,
+  useHoverFollowsCamera,
+  usePiecePointerEvents,
+} from './usePiecePointerEvents';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
 import { useTablePointerRay } from './useTablePointerRay';
@@ -1089,9 +1095,11 @@ function SceneContents({
   useCanvasHoverReset();
   useHoverFollowsCamera();
   useCanvasName();
+  /* Each table keeps its own hover tag, so two tables on one page never share one. */
+  const [hoverTag] = useState(createHoverTag);
 
   return (
-    <>
+    <HoverTagContext.Provider value={hoverTag}>
       {presentation !== 'preview' && (
         <>
           <color attach="background" args={[palette.ground]} />
@@ -1144,7 +1152,7 @@ function SceneContents({
         </Suspense>
       )}
       <SelectionRingWarmup />
-    </>
+    </HoverTagContext.Provider>
   );
 }
 
