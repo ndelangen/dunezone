@@ -17,11 +17,13 @@ test('what is heard before anyone listens reaches the first listener, unless it 
   expect(heard).toEqual(['fresh', 'live']);
 });
 
-test('what was handed to one listener is not handed again to the next', () => {
+test('once a listener has come, nothing heard while none listens is kept for a later one', () => {
   const source = bufferedSource<[string]>(() => 0);
   source.push('once');
   const first: string[] = [];
   source.subscribe((event) => first.push(event))();
+  /* Heard while chat notices are turned off. */
+  source.push('while off');
   const second: string[] = [];
   source.subscribe((event) => second.push(event));
   expect(first).toEqual(['once']);

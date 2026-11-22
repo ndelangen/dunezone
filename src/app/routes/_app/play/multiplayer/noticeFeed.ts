@@ -16,22 +16,29 @@ export type BufferedSource<Args extends unknown[]> = Readonly<{
   subscribe: (listener: (...args: Args) => void) => () => void;
 }>;
 
-/** A source that keeps what it hears while it has no listener, for at most a few seconds, and hands that over when one subscribes. */
+/**
+ * A source that keeps what it hears until its first listener subscribes, for at most a few seconds, and hands that over.
+ * Once a listener has come, what arrives while none listens is dropped: a listener that left, as chat notices turned off, wants none of it later.
+ */
 export function bufferedSource<Args extends unknown[]>(
   now: () => number = () => performance.now()
 ): BufferedSource<Args> {
   const listeners = new Set<(...args: Args) => void>();
   let kept: { at: number; args: Args }[] = [];
+  let heardOnce = false;
   return {
     push: (...args) => {
       if (listeners.size > 0) {
         listeners.forEach((listener) => listener(...args));
         return;
       }
-      kept = [...kept, { at: now(), args }].slice(-KEPT);
+      if (!heardOnce) {
+        kept = [...kept, { at: now(), args }].slice(-KEPT);
+      }
     },
     subscribe: (listener) => {
       listeners.add(listener);
+      heardOnce = true;
       const missed = kept.filter((entry) => now() - entry.at <= KEPT_MS);
       kept = [];
       missed.forEach((entry) => listener(...entry.args));

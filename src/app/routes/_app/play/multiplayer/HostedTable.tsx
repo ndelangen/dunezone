@@ -53,7 +53,6 @@ import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
-import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
 import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
@@ -64,11 +63,9 @@ import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
-import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
-import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
@@ -126,6 +123,29 @@ const ConnectedKeyboardShortcutsPanel = lazy(() =>
 const ConnectedTerritoryTintsPanel = lazy(() =>
   import('../panels/tints/useTerritoryTintsPanel').then((module) => ({ default: module.ConnectedTerritoryTintsPanel }))
 );
+/* The game length, the battle history and the spice transfers are opened now and then, so they load when opened as well. */
+const ConnectedGameLengthPanel = lazy(() =>
+  import('../panels/settings/useGameLengthPanel').then((module) => ({ default: module.ConnectedGameLengthPanel }))
+);
+const ConnectedBattleHistoryPanel = lazy(() =>
+  import('../panels/battles/useBattleHistoryPanel').then((module) => ({ default: module.ConnectedBattleHistoryPanel }))
+);
+const ConnectedSpiceTransfersPanel = lazy(() =>
+  import('../panels/transfers/useSpiceTransfersPanel').then((module) => ({
+    default: module.ConnectedSpiceTransfersPanel,
+  }))
+);
+
+/* A panel whose code loads when it is opened: it says it is loading meanwhile, and asks for a reload if its code never arrives. */
+function OnDemandPanel({ name, children }: Readonly<{ name: string; children: ReactNode }>) {
+  return (
+    <OptionalChunkBoundary
+      fallback={<LoadError title={`${name} could not be loaded`}>Reload the page to try again.</LoadError>}
+    >
+      <Suspense fallback={<Pending>{`Loading ${name.toLowerCase()}`}</Pending>}>{children}</Suspense>
+    </OptionalChunkBoundary>
+  );
+}
 
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
@@ -555,15 +575,9 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
               ...PANEL_WINDOWS.tints,
               content: withTableError(
                 error,
-                <OptionalChunkBoundary
-                  fallback={
-                    <LoadError title="Territory tints could not be loaded">Reload the page to try again.</LoadError>
-                  }
-                >
-                  <Suspense fallback={<Pending>Loading territory tints</Pending>}>
-                    <ConnectedTerritoryTintsPanel client={client} table={table} />
-                  </Suspense>
-                </OptionalChunkBoundary>
+                <OnDemandPanel name="Territory tints">
+                  <ConnectedTerritoryTintsPanel client={client} table={table} />
+                </OnDemandPanel>
               ),
             },
           ]
@@ -572,7 +586,12 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
         ? [
             {
               ...PANEL_WINDOWS.settings,
-              content: withTableError(error, <ConnectedGameLengthPanel client={client} table={table} />),
+              content: withTableError(
+                error,
+                <OnDemandPanel name="Game length">
+                  <ConnectedGameLengthPanel client={client} table={table} />
+                </OnDemandPanel>
+              ),
             },
           ]
         : []),
@@ -635,10 +654,21 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
       { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
-            { ...PANEL_WINDOWS.battles, content: <ConnectedBattleHistoryPanel table={table} /> },
+            {
+              ...PANEL_WINDOWS.battles,
+              content: (
+                <OnDemandPanel name="Battles">
+                  <ConnectedBattleHistoryPanel table={table} />
+                </OnDemandPanel>
+              ),
+            },
             {
               ...PANEL_WINDOWS.transfers,
-              content: <ConnectedSpiceTransfersPanel client={client} table={table} />,
+              content: (
+                <OnDemandPanel name="Spice transfers">
+                  <ConnectedSpiceTransfersPanel client={client} table={table} />
+                </OnDemandPanel>
+              ),
             },
           ]
         : []),
