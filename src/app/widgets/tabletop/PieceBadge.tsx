@@ -33,7 +33,7 @@ export function PieceBadge({
         {/*
          * The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held.
          * When name and count show together, on the piece under the pointer or with both keys held, they read as one tooltip
-         * at the count's place, "10 Harkonnen troops", so a player finds a stack's size without knowing the keys (#2988).
+         * at the count's place, "Harkonnen Troop ×10", so a player finds a stack's size without knowing the keys (#2988).
          * A faction token is one of a kind, so its count never shows, and its name takes the count's place.
          */}
         <span
