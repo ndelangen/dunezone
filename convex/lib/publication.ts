@@ -329,7 +329,8 @@ export async function enqueueAssetPublication(
       if (hasStyledTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, minimum))) {
         return null;
       }
-      const leaderRevision = asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_LEADER_TOKEN_REVISION : STORM_CARD_LEADER_TOKEN_REVISION;
+      const leaderRevision =
+        asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_LEADER_TOKEN_REVISION : STORM_CARD_LEADER_TOKEN_REVISION;
       if (hasLeaderTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, leaderRevision))) {
         return null;
       }
