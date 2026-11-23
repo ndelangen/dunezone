@@ -515,7 +515,8 @@ Production and the shared cloud dev integration deployment update through the po
 
 Dune card/faction rendering and Storybook stories live in `src/game`. **Source** artwork lives in
 `media/**`: vectors are in git, raster originals are in R2 and listed in `media/raster.lock.json`
-(#1888). `bun run media:sync` downloads them into `media/` and uploads new or changed ones.
+(#1888). `bun run media:sync` puts them in `media/` (from the machine's shared originals store in
+`~/.cache/dunezone/media/src` when another worktree already has them) and uploads new or changed ones.
 Everything under `public/m/**`, `public/image/**` and `public/web/**` is generated output and
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
 (`src/shared/assetRules.ts`). `app:dev`, `storybook` and `play:local` bring it up to date on start
