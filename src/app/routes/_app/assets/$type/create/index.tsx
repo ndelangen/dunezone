@@ -67,7 +67,6 @@ function CreateAssetPage() {
     case 'token-pointer':
     case 'token-plate':
       return <TokenCreatePage type={type} />;
-    /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
     case 'token-leader':
       return <CardTypeCreatePage key={type} config={leaderTokenSession} />;
     case 'deck':

@@ -18,6 +18,9 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
 /** The token types, the set every back rule ranges over. */
 export const TOKEN_ASSET_TYPES = new Set(['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance']);
 
+/** The types a card can draw as a layer or a placed token: every token, and the leader a retired enhance layer was swapped to (#3013). */
+export const CARD_DRAWN_TOKEN_TYPES = new Set([...TOKEN_ASSET_TYPES, 'token-leader']);
+
 /** A token's stored back, read without trusting the row to satisfy the current schema. */
 export function tokenBackOf(data: unknown): { mode?: unknown; asset_id?: unknown } | null {
   const back = (data as { back?: unknown } | null | undefined)?.back;

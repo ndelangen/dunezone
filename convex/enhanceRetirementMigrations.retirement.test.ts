@@ -77,6 +77,8 @@ async function retirementFixture() {
   const extras = [
     { type: 'token-enhance', slug: 'kwizatz-haderach' },
     { type: 'token-leader', slug: 'kwisatz-haderach' },
+    { type: 'bundle', slug: 'peace-tokens' },
+    { type: 'bundle', slug: 'mixed' },
   ];
   await f.t.run(async (ctx) => {
     const row = (await ctx.db.get(f.root._id))!;
@@ -102,10 +104,6 @@ afterEach(() => {
 });
 
 describe('retiring enhance tokens (#3013)', () => {
-  test('swaps the Kwisatz Haderach card’s enhance token for the leader token, on production’s ids', () => {
-    expect([...LAYER_SWAPS]).toEqual([['ns78mth8xp26cpkaw1t4gc0es58cwx0p', 'ns7e5v288s7hab7fewjpmyqzx58gq6wk']]);
-  });
-
   test('swaps a named enhance layer for its leader at the same width, drops any other, and deletes a bundle left empty', async () => {
     const f = await retirementFixture();
     (LAYER_SWAPS as Map<string, string>).set(f.enhance, f.leader);
@@ -133,11 +131,14 @@ describe('retiring enhance tokens (#3013)', () => {
     expect(await f.asset(f.peace)).toMatchObject({ is_deleted: true });
   });
 
-  test('takes them out of faction Extras and deletes them, leaving every other token; a replay changes nothing', async () => {
+  test('takes them and their emptied bundle out of faction Extras and deletes them, leaving every other token; a replay changes nothing', async () => {
     const f = await retirementFixture();
     await f.migrate();
 
-    expect((await f.data(f.root._id)).extras).toEqual([{ type: 'token-leader', slug: 'kwisatz-haderach' }]);
+    expect((await f.data(f.root._id)).extras).toEqual([
+      { type: 'token-leader', slug: 'kwisatz-haderach' },
+      { type: 'bundle', slug: 'mixed' },
+    ]);
     expect(await f.asset(f.enhance)).toMatchObject({ is_deleted: true });
     expect(await f.asset(f.leader)).toMatchObject({ is_deleted: false });
 

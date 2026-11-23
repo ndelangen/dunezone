@@ -9,7 +9,7 @@ export const layeredCardTokenPicker: NonNullable<ComponentProps<typeof CustomCar
   onCancel
 ) => (
   <AssetPicker
-    types={['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-leader']}
+    types={['token-disc', 'token-tech', 'token-plate', 'token-pointer']}
     copy={{
       searchLabel: 'Find a token',
       searchPlaceholder: 'Name, shape or creator',

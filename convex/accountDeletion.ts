@@ -13,7 +13,7 @@ import {
   optionalActiveUserId,
 } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
-import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
+import { CARD_DRAWN_TOKEN_TYPES } from './lib/assetBacks';
 import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator, pickableProfileValidator } from './lib/collaborativeAccessValidators';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
@@ -664,7 +664,7 @@ async function ensureReplacementOwnerMembership(
 
 /** A token's deletion or return changes the cards that embed it, as `assets.softDelete` does. */
 async function refreshTokenEmbeddings(ctx: MutationCtx, asset: Doc<'assets'>) {
-  if (TOKEN_ASSET_TYPES.has(asset.type)) {
+  if (CARD_DRAWN_TOKEN_TYPES.has(asset.type)) {
     await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: asset._id, cursor: null });
     await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
       dependencyId: asset._id,

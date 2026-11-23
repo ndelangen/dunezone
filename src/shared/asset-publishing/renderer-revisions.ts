@@ -1,5 +1,6 @@
 import { CARD_FRONT_PUBLICATION_REVISIONS } from '../assets/cardFrontPresets';
 import {
+  CUSTOM_CARD_LEADER_TOKEN_REVISION,
   ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   STORM_CARD_STYLED_TOKEN_REVISION,
   TREACHERY_TEXT_ONLY_REVISION,
@@ -48,7 +49,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* One more draws the classic highlight and dashed sectors on every card's board map (#1971). */
   [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE] + 1,
   /* Revision 4 retains styled token faces in Custom Cards. */
-  [CUSTOM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[CUSTOM_CARD_ASSET_TYPE],
+  /* Revision 6 draws a leader token layer (#3013). */
+  [CUSTOM_CARD_ASSET_TYPE]: CUSTOM_CARD_LEADER_TOKEN_REVISION,
   /* Revision 4 captures the shared Leader Skill front preset. */
   [LEADER_SKILL_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[LEADER_SKILL_ASSET_TYPE] + 1,
   /* Revision 3 aligns Homeworld effects and gives the removed type line's space to the rules. */

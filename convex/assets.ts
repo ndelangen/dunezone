@@ -35,6 +35,7 @@ import {
   authoredDeckCardback,
   deckCardbackOf,
   resolveBackHref,
+  CARD_DRAWN_TOKEN_TYPES,
   TOKEN_ASSET_TYPES,
   ownPublishedFace,
   tokenBackOf,
@@ -821,7 +822,7 @@ export const softDelete = mutation({
 
 /** Cards that draw a token or a board redraw when it is saved or deleted. */
 export async function refreshDependentCards(ctx: MutationCtx, type: string, id: Id<'assets'>) {
-  if (TOKEN_TYPES.has(type)) {
+  if (CARD_DRAWN_TOKEN_TYPES.has(type)) {
     await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: id, cursor: null });
     await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
       dependencyId: id,

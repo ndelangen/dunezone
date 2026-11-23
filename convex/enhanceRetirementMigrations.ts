@@ -1,8 +1,6 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
-import type { z } from 'zod';
 
-import { CustomCardAsset } from '../src/shared/assets/schema';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { refreshDependentCards } from './assets';
@@ -44,22 +42,30 @@ async function liveOfType(ctx: Pick<MutationCtx, 'db'>, raw: string, type: strin
   return row && !row.is_deleted && row.type === type ? row : null;
 }
 
-type CardLayer = z.infer<typeof CustomCardAsset>['layers'][number];
+/** A stored layer, read without trusting the row to satisfy the current schema. */
+type StoredLayer = { kind?: unknown; asset_id?: unknown };
+
+/** The cards whose layers can draw a token: Custom and Storm cards share the layer list. */
+const LAYERED_CARD_TYPES = new Set(['card-custom', 'card-storm']);
 
 /**
  * The card's layers with each enhance token swapped or dropped, or null when none drew one.
  * A swapped layer keeps its place, turn, opacity and width.
  */
-async function withoutRetiredLayers(ctx: Pick<MutationCtx, 'db'>, layers: CardLayer[]): Promise<CardLayer[] | null> {
+async function withoutRetiredLayers(
+  ctx: Pick<MutationCtx, 'db'>,
+  layers: StoredLayer[]
+): Promise<StoredLayer[] | null> {
   let changed = false;
-  const kept: CardLayer[] = [];
+  const kept: StoredLayer[] = [];
   for (const layer of layers) {
-    if (layer.kind !== 'token' || !(await liveOfType(ctx, layer.asset_id, RETIRED))) {
+    const assetId = typeof layer.asset_id === 'string' ? layer.asset_id : null;
+    if (layer.kind !== 'token' || !assetId || !(await liveOfType(ctx, assetId, RETIRED))) {
       kept.push(layer);
       continue;
     }
     changed = true;
-    const swap = LAYER_SWAPS.get(layer.asset_id);
+    const swap = LAYER_SWAPS.get(assetId);
     if (swap && (await liveOfType(ctx, swap, 'token-leader'))) {
       /* The same scale gives the leader the rectangle's width, the size of the round counters beside it (Norbert, 23 November 2026). */
       kept.push({ ...layer, asset_id: swap });
@@ -69,26 +75,23 @@ async function withoutRetiredLayers(ctx: Pick<MutationCtx, 'db'>, layers: CardLa
 }
 
 /**
- * Takes every enhance token off the cards that draw one, before the tokens go.
+ * Takes every enhance token off the Custom and Storm cards that draw one, before the tokens go.
  * The card republishes as a save would.
+ * A Spice card's placed enhance token is left to the token's deletion, which redraws the card as any owner's delete does.
  */
 export const enhance_retire_1_cards_v1 = migrations.define({
   table: 'assets',
   batchSize: 8,
   migrateOne: async (ctx, row) => {
-    /* Production's survey found enhance layers on custom cards only. */
-    if (row.is_deleted || row.type !== 'card-custom') {
+    const stored = row.data as { layers?: unknown } | null;
+    if (row.is_deleted || !LAYERED_CARD_TYPES.has(row.type) || !Array.isArray(stored?.layers)) {
       return;
     }
-    const parsed = CustomCardAsset.safeParse(row.data);
-    if (!parsed.success) {
-      return;
-    }
-    const layers = await withoutRetiredLayers(ctx, parsed.data.layers);
+    const layers = await withoutRetiredLayers(ctx, stored.layers as StoredLayer[]);
     if (!layers) {
       return;
     }
-    const data = { ...(row.data as Record<string, unknown>), layers };
+    const data = { ...stored, layers };
     await ctx.db.patch(row._id, { data, updated_at: nowIso() });
     await syncCustomCardTokenRelations(ctx, row._id, data);
     await enqueueAssetPublication(ctx, { _id: row._id, type: row.type, slug: row.slug, data });
@@ -96,33 +99,60 @@ export const enhance_retire_1_cards_v1 = migrations.define({
   },
 });
 
+/**
+ * True when the bundle has members and every one is an enhance token, live unless `deletedToo`.
+ * It stops reading at the first other member.
+ */
+async function holdsOnlyRetired(
+  ctx: Pick<MutationCtx, 'db'>,
+  bundleId: Id<'assets'>,
+  deletedToo = false
+): Promise<boolean> {
+  let members = 0;
+  for await (const member of ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', bundleId).eq('kind', 'bundle-token'))) {
+    const token = await ctx.db.get('assets', member.to_asset_id);
+    if (token?.type !== RETIRED || (token.is_deleted && !deletedToo)) {
+      return false;
+    }
+    members += 1;
+  }
+  return members > 0;
+}
+
 /** Deletes a bundle that holds nothing but enhance tokens, which would otherwise be left empty. */
 export const enhance_retire_2_bundles_v1 = migrations.define({
   table: 'assets',
   batchSize: 8,
   migrateOne: async (ctx, row) => {
-    if (row.is_deleted || row.type !== 'bundle') {
+    if (row.is_deleted || row.type !== 'bundle' || !(await holdsOnlyRetired(ctx, row._id))) {
       return;
-    }
-    const members = await ctx.db
-      .query('asset_relations')
-      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', 'bundle-token'))
-      .take(256);
-    if (!members.length) {
-      return;
-    }
-    for (const member of members) {
-      if (!(await liveOfType(ctx, member.to_asset_id as Id<'assets'>, RETIRED))) {
-        return;
-      }
     }
     await ctx.db.patch(row._id, { is_deleted: true, updated_at: nowIso() });
     console.log(`Deleted bundle ${row.slug}, which held only enhance tokens.`);
   },
 });
 
+/** True for an Extra the retirement takes away: an enhance token, or a bundle the step before deleted for holding only enhance tokens. */
+async function retiredExtra(ctx: Pick<MutationCtx, 'db'>, extra: { type?: unknown; slug?: unknown }): Promise<boolean> {
+  if (extra.type === RETIRED) {
+    return true;
+  }
+  if (extra.type !== 'bundle' || typeof extra.slug !== 'string') {
+    return false;
+  }
+  const slug = extra.slug;
+  const bundle = await ctx.db
+    .query('assets')
+    .withIndex('by_type_and_slug', (q) => q.eq('type', 'bundle').eq('slug', slug))
+    .first();
+  return !!bundle?.is_deleted && (await holdsOnlyRetired(ctx, bundle._id, true));
+}
+
 /**
- * Takes every enhance token out of each faction's Extras.
+ * Takes every enhance token, and every bundle of only enhance tokens, out of each faction's Extras.
+ * The raw Extras are checked first, so a row older than today's faction schema is only parsed when it has something to lose.
  * A live variant saves through `storeVariantData`, so its sheet recaptures and its children follow.
  * A deleted one only has its data cleaned.
  */
@@ -130,19 +160,30 @@ export const enhance_retire_3_extras_v1 = migrations.define({
   table: 'factions',
   batchSize: 10,
   migrateOne: async (ctx, row) => {
-    const data = parseStoredFactionForRead(row.data);
-    const extras = data.extras ?? [];
-    const kept = extras.filter((extra) => extra.type !== RETIRED);
-    if (kept.length === extras.length) {
+    const raw = (row.data as { extras?: unknown } | null)?.extras;
+    if (!Array.isArray(raw)) {
       return;
     }
-    const cleaned = { ...data, extras: kept };
-    if (row.is_deleted) {
-      await ctx.db.patch(row._id, { data: cleaned });
-    } else {
-      await storeVariantData(ctx, row, cleaned);
+    const doomed = new Set<number>();
+    for (const [index, extra] of raw.entries()) {
+      if (extra && typeof extra === 'object' && (await retiredExtra(ctx, extra))) {
+        doomed.add(index);
+      }
     }
-    console.log(`Removed ${extras.length - kept.length} enhance token(s) from the Extras of faction ${row.slug}.`);
+    if (!doomed.size) {
+      return;
+    }
+    if (row.is_deleted) {
+      await ctx.db.patch(row._id, { data: { ...row.data, extras: raw.filter((_, index) => !doomed.has(index)) } });
+    } else {
+      const data = parseStoredFactionForRead(row.data);
+      const gone = new Set([...doomed].map((index) => `${raw[index].type}/${raw[index].slug}`));
+      await storeVariantData(ctx, row, {
+        ...data,
+        extras: (data.extras ?? []).filter((extra) => !gone.has(`${extra.type}/${extra.slug}`)),
+      });
+    }
+    console.log(`Removed ${doomed.size} retired Extra(s) from faction ${row.slug}.`);
   },
 });
 
