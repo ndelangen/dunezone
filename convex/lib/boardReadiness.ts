@@ -21,7 +21,11 @@ export async function syncBoardReadiness(ctx: MutationCtx, id: Id<'assets'>, ass
     }
     return;
   }
-  const fields = boardReadinessFields(asset);
+  const publication = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', asset._id))
+    .unique();
+  const fields = { ...boardReadinessFields(asset), publication_token: publication?.cache_token };
   if (!previous) {
     await ctx.db.insert('board_readiness', fields);
     return;
@@ -64,6 +68,15 @@ export function registerBoardReadinessTriggers(triggers: Triggers<DataModel, Mut
   triggers.register('assets', async (ctx, change) => {
     if (change.oldDoc?.type === 'board' || change.newDoc?.type === 'board') {
       await syncBoardReadiness(ctx, change.id, change.newDoc);
+    }
+  });
+  /* A publication changes the board's token, which the saved Arrakis board's revision names. */
+  triggers.register('publication_assets', async (ctx, change) => {
+    const assetId = (change.newDoc ?? change.oldDoc)?.asset_id;
+    const type = (change.newDoc ?? change.oldDoc)?.asset_type;
+    const id = type === 'board' && assetId ? ctx.db.normalizeId('assets', assetId) : null;
+    if (id) {
+      await syncBoardReadiness(ctx, id, await ctx.db.get(id));
     }
   });
 }

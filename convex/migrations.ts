@@ -84,6 +84,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_variant_addresses_verify_v1: internal.migrations.faction_variant_addresses_verify_v1,
   standings_profiles_v1: internal.migrations.standings_profiles_v1,
   standings_groups_v1: internal.migrations.standings_groups_v1,
+  board_readiness_publication_token_v1: internal.migrations.board_readiness_publication_token_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -536,6 +537,19 @@ export const board_readiness_v1 = migrations.define({
     if (asset.type === 'board') {
       await syncBoardReadiness(ctx, asset._id, asset);
     }
+  },
+});
+
+/**
+ * Gives existing boards' rows their publication token, which live writes and publications now keep, so the saved Arrakis reference reads its row alone.
+ * It walks the small board rows rather than every asset;
+ * rerunning it writes nothing.
+ */
+export const board_readiness_publication_token_v1 = migrations.define({
+  table: 'board_readiness',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await syncBoardReadiness(ctx, row.asset_id, await ctx.db.get(row.asset_id));
   },
 });
 

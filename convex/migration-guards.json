@@ -102,6 +102,11 @@
       "requires": []
     },
     {
+      "id": "board_readiness_publication_token_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
       "id": "rulebook_edition_artifacts_v1",
       "phase": "widen",
       "requires": []
