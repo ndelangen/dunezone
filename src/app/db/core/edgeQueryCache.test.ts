@@ -29,7 +29,7 @@ function storage() {
 
 const answering = (payload: unknown, status = 200) => vi.fn<Fetch>(async () => Response.json(payload, { status }));
 
-test('answers a repeated anonymous query from the edge, for a quarter of an hour', async () => {
+test('answers a repeated anonymous query from the edge, for ten minutes', async () => {
   const cache = storage();
   const base = answering({ status: 'success', value: { name: 'Atreides' } });
   const cachedFetch = edgeCachedFetch(cache, base);
@@ -63,6 +63,11 @@ test.each([
 
 test.each([
   ['a failed query', { status: 'error', errorMessage: 'nope' }, 200],
+  [
+    'an answer that found nothing, which a page would show as missing until it expires',
+    { status: 'success', value: null },
+    200,
+  ],
   ['a server error', { message: 'down' }, 500],
 ])('does not keep %s', async (_, payload, status) => {
   const cache = storage();
@@ -90,4 +95,11 @@ test('a broken cache only costs the cache', async () => {
     }),
   };
   expect((await (await edgeCachedFetch(broken, base)(url, query())).json()).value).toBe(1);
+});
+
+test('never keeps a local backend’s answers, whose data changes under the same source version', async () => {
+  const cache = storage();
+  const base = answering({ status: 'success', value: 1 });
+  await edgeCachedFetch(cache, base)('http://127.0.0.1:3210/api/query', query());
+  expect(cache.put).not.toHaveBeenCalled();
 });

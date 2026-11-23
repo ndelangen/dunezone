@@ -3,12 +3,12 @@ import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
 /**
  * Public query answers kept at the edge for a while, so server rendering and signed-out visitors read Convex at most once per answer and edge location in that time.
  * Convex's own cache holds an answer only while someone asks for it again within about five minutes, which this site's traffic rarely does.
- * Signed-out visitors may see an answer up to `EDGE_QUERY_SECONDS` old;
- * signed-in visitors subscribe live and never read these.
+ * Together with the five minutes the Worker keeps a page's HTML, a signed-out visitor's first paint is at most a quarter of an hour old;
+ * the page's live subscriptions bring it up to date once it hydrates.
  */
-export const EDGE_QUERY_SECONDS = 900;
+export const EDGE_QUERY_SECONDS = 600;
 
-/** The Convex functions behind an answer: a deploy that changes them, or the shared code they import, starts afresh. */
+/** The Convex functions behind an answer: a deploy that changes them, the shared code they import or their packages, starts afresh. */
 const SOURCE_VERSION: string = import.meta.env.VITE_CONVEX_SOURCE_VERSION ?? 'unversioned';
 
 /**
@@ -20,7 +20,23 @@ function sharedQueryUrl(input: RequestInfo | URL, init?: RequestInit): string | 
     return null;
   }
   const url = input instanceof URL ? input.href : input;
-  return new URL(url).pathname === '/api/query' && !new Headers(init.headers).has('Authorization') ? url : null;
+  const { hostname, pathname } = new URL(url);
+  /* A local backend's data changes under the same source version, so a local Worker never keeps its answers. */
+  const local = hostname === 'localhost' || hostname === '127.0.0.1';
+  return pathname === '/api/query' && !local && !new Headers(init.headers).has('Authorization') ? url : null;
+}
+
+/**
+ * Convex answers a failed query with 200 and `status: "error"`, so only successes are kept.
+ * A `null` answer is not kept either: a page that finds nothing renders "not found" without a live subscription to correct it, so something created a moment ago would stay missing.
+ */
+function keepsAnswer(body: string): boolean {
+  try {
+    const envelope = JSON.parse(body) as { status?: unknown; value?: unknown };
+    return envelope.status === 'success' && envelope.value !== null;
+  } catch {
+    return false;
+  }
 }
 
 async function keyFor(url: string, body: string): Promise<Request> {
@@ -56,14 +72,7 @@ export function edgeCachedFetch(
       return response;
     }
     const body = await response.text();
-    /* Convex answers a failed query with 200 and `status: "error"`; only successes are kept. */
-    let success = false;
-    try {
-      success = (JSON.parse(body) as { status?: unknown }).status === 'success';
-    } catch {
-      success = false;
-    }
-    if (success) {
+    if (keepsAnswer(body)) {
       const stored = new Response(body, {
         headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${EDGE_QUERY_SECONDS}` },
       });
