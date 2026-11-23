@@ -55,6 +55,7 @@
       "/__play",
       "/__play/*",
       "/sitemap*",
+      "/data/arrakis-board/*",
       "/factions",
       "/factions/*",
       "/rulesets",

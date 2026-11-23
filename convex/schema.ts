@@ -410,9 +410,13 @@ export default defineSchema({
     updated_at: v.string(),
     is_deleted: v.boolean(),
     asset_creation_time: v.number(),
+    /** The board's publication cache token, so the saved Arrakis board's revision is known without reading its publication row and geometry. Absent until the board's next write or publication. */
+    publication_token: v.optional(v.string()),
   })
     .index('by_asset', ['asset_id'])
-    .index('by_deleted_created', ['is_deleted', 'asset_creation_time']),
+    .index('by_deleted_created', ['is_deleted', 'asset_creation_time'])
+    /* The saved Arrakis board's reference row, found by slug without reading the board itself. */
+    .index('by_slug_and_deleted', ['slug', 'is_deleted']),
   /*
    * One card-sized row per faction, kept by a trigger on every faction write, so list pages never read the authored blob.
    * `data` is the catalogue projection of the faction at version `projection` (see `FACTION_CARD_PROJECTION`), or null while the stored faction fails to parse.
@@ -523,6 +527,8 @@ export default defineSchema({
     })
   )
     .index('by_job', ['job_id'])
+    /* Whether an asset has capture work, read from small rows instead of the jobs' full asset copies. */
+    .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_created_at_job_creation_time', ['status', 'created_at', 'job_creation_time'])
     .index('by_asset_type_status_created_at_job_creation_time', [
       'asset_type',

@@ -1,5 +1,10 @@
 import { useConvex, useMutation as useConvexMutation, usePaginatedQuery, useQueries, useQuery } from 'convex/react';
-import type { PaginatedQueryArgs, PaginatedQueryReference, UsePaginatedQueryReturnType } from 'convex/react';
+import type {
+  OptionalRestArgsOrSkip,
+  PaginatedQueryArgs,
+  PaginatedQueryReference,
+  UsePaginatedQueryReturnType,
+} from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { convexToJson, jsonToConvex } from 'convex/values';
@@ -37,6 +42,7 @@ export type LiveMutationResult<TVariables, TResult> = {
  *
  * There is no `enabled` argument and there was never a caller for one: every one of the twenty-two call sites passed the literal `true`, so the flag only ever ANDed with a constant.
  * A subscription that should not run is not disabled here, it is not mounted, which is the contract Pickers already follow.
+ * The one exception is `useFallbackQuery` below, for a subscription that only opens when a cheaper source has missed.
  */
 export function toLiveQueryResult<TData>(
   liveData: TData | undefined,
@@ -305,4 +311,16 @@ export function useMappedLiveMutation<TVariables, TRawVariables, TRawResult, TRe
     mutate,
     mutateAsync,
   };
+}
+
+/**
+ * A subscription that opens only while `needed` holds, for a hook that answers from somewhere cheaper first (the edge's copy of a revision) and needs Convex only when that has nothing.
+ * Domain modules may not pass `'skip'` themselves, and a hook cannot mount a child component, so the fallback comes through here.
+ */
+export function useFallbackQuery<Query extends FunctionReference<'query'>>(
+  query: Query,
+  args: FunctionArgs<Query>,
+  needed: boolean
+): FunctionReturnType<Query> | undefined {
+  return useQuery(query, ...((needed ? [args] : ['skip']) as OptionalRestArgsOrSkip<Query>));
 }

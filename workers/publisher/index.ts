@@ -5,6 +5,7 @@ import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifac
 import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
 import { biddingPathPattern } from '../../src/shared/tools/biddingTransport';
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
+import { handleArrakisBoardRequest } from './arrakis-board';
 import { handleAuthRequest } from './auth';
 import { openPublisherBrowser } from './browser';
 import { handleBundleAssetRequest } from './bundle-assets';
@@ -144,6 +145,10 @@ async function handleRequest(request: Request, env: Env, ctx: ExecutionContext):
   const game = await handleGameIngress(request, url, env);
   if (game) {
     return game;
+  }
+  const arrakisBoard = await handleArrakisBoardRequest(request, env, caches.default);
+  if (arrakisBoard) {
+    return arrakisBoard;
   }
   const discovery = await handlePublicDiscovery(request, env, {
     storage: caches.default,

@@ -2,11 +2,11 @@ import { ARRAKIS_BOARD_SLUG } from '@shared/boards/arrakisOfficial';
 import type { Board } from '@shared/boards/schema';
 import type { BoardCapture } from '@shared/play/capture';
 import type { FunctionReturnType } from 'convex/server';
-import { createContext, createElement, useContext, useMemo } from 'react';
+import { createContext, createElement, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { db } from '@db/core';
-import { useLiveQuery } from '@app/db/core/live';
+import { useFallbackQuery, useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -66,17 +66,81 @@ export function ArrakisBoardSeedProvider({
   return createElement(SeedContext.Provider, { value: seed }, children);
 }
 
+/** Fetches in flight, by revision, so pages mounting together share one; a finished answer is left to the browser's HTTP cache. */
+const boardFetches = new Map<string, Promise<ArrakisBoardSeed | undefined>>();
+
+/** How long a page waits for the edge before it subscribes to the whole board instead. */
+const ARRAKIS_EDGE_WAIT_MS = 5000;
+
+/** The edge's copy of `arrakis.board` for one revision, or `undefined` where the edge has none (Storybook, local dev, a revision it no longer serves) or does not answer in time. */
+function fetchBoardRevision(revision: string): Promise<ArrakisBoardSeed | undefined> {
+  let found = boardFetches.get(revision);
+  if (!found) {
+    found = fetch(arrakisBoardDataHref(revision), { signal: AbortSignal.timeout(ARRAKIS_EDGE_WAIT_MS) })
+      .then(async (response) => {
+        const value = response.ok ? ((await response.json()) as ArrakisBoardSeed) : undefined;
+        return value?.revision === revision ? value : undefined;
+      })
+      .catch(() => undefined)
+      .finally(() => boardFetches.delete(revision));
+    boardFetches.set(revision, found);
+  }
+  return found;
+}
+
+/** Where the publisher Worker serves the saved Arrakis board's data for one revision. */
+function arrakisBoardDataHref(revision: string) {
+  return `/data/arrakis-board/${encodeURIComponent(revision)}.json`;
+}
+
 /**
- * The saved Arrakis board, live, for pages that show Arrakis without a game board of their own: the homepage, the glossary and the tutorial.
- * A page whose loader embedded it (`ArrakisBoardSeedProvider`) draws that copy until the live query answers;
+ * The saved Arrakis board, for pages that show Arrakis without a game board of their own: the homepage, the glossary and the tutorial.
+ * The page subscribes only to the board's small reference row, and fetches the board's data for that revision from the edge, so a visit reads a few small rows from Convex instead of the whole board.
+ * Where the edge has no copy, the page subscribes to the whole board instead.
+ * A page whose loader embedded it (`ArrakisBoardSeedProvider`) draws that copy until a newer one arrives;
  * `undefined` while it loads;
  * `null` when the site has none, or it has not been published with its territories yet.
  */
 export function useArrakisBoard(): ArrakisBoard | null | undefined {
-  const live = useLiveQuery(api.arrakis.board, {});
+  const reference = useLiveQuery(api.arrakis.reference, {});
   const seed = useContext(SeedContext);
-  /* Strictly undefined: a live null means the site has no saved Arrakis, which outranks the embedded copy. */
-  const found = live === undefined ? seed : live;
+  const revision = reference?.revision;
+  const [fetched, setFetched] = useState<{ revision: string; board: ArrakisBoardSeed | undefined }>();
+  useEffect(() => {
+    if (!revision || seed?.revision === revision) {
+      return;
+    }
+    let current = true;
+    void fetchBoardRevision(revision).then((board) => {
+      if (current) {
+        setFetched({ revision, board });
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [revision, seed?.revision]);
+  const fetchedBoard = fetched && fetched.revision === revision ? fetched.board : undefined;
+  const edgeMissed = revision !== undefined && fetched?.revision === revision && fetchedBoard === undefined;
+  const live = useFallbackQuery(api.arrakis.board, {}, edgeMissed);
+  /* Strictly undefined: a null reference means the site has no saved Arrakis, which outranks the embedded copy. */
+  const current: ArrakisBoardSeed | undefined =
+    reference === null
+      ? null
+      : reference === undefined
+        ? seed
+        : seed?.revision === revision
+          ? seed
+          : fetchedBoard !== undefined
+            ? fetchedBoard
+            : /* Strictly undefined again: a live null (the board became unavailable) outranks an older copy. */
+              live;
+  /* While a new revision is on its way, the board already drawn stays, wherever it came from, so a running tutorial table is not torn down. */
+  const [drawn, setDrawn] = useState<ArrakisBoardSeed | undefined>(current ?? undefined);
+  if (current && current !== drawn) {
+    setDrawn(current);
+  }
+  const found = current === undefined ? (drawn ?? seed) : current;
   return useMemo(() => {
     if (!found) {
       return found;

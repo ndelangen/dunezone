@@ -257,6 +257,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/__play',
         '/__play/*',
         '/sitemap*',
+        '/data/arrakis-board/*',
         '/factions',
         '/factions/*',
         '/rulesets',

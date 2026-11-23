@@ -135,6 +135,8 @@ export const snapshotPolicy = {
       updated_at: 'keep',
       is_deleted: 'keep',
       asset_creation_time: 'keep',
+      /* Publication records stay in production, so their tokens do too. */
+      publication_token: 'drop',
     },
     /* A deleted board's row is left out with its board. */
     rows: notDeleted,

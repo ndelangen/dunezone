@@ -8,7 +8,7 @@ import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { FACTION_MERGE_MIGRATION_IDS } from './factionMergeMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
-import { syncBoardReadiness } from './lib/boardReadiness';
+import { syncBoardPublicationToken, syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { assertVariantAddress, moveToVariantAddress } from './lib/factionAddresses';
 import { syncFactionCard } from './lib/factionCards';
@@ -84,6 +84,7 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   faction_variant_addresses_verify_v1: internal.migrations.faction_variant_addresses_verify_v1,
   standings_profiles_v1: internal.migrations.standings_profiles_v1,
   standings_groups_v1: internal.migrations.standings_groups_v1,
+  board_readiness_publication_token_v1: internal.migrations.board_readiness_publication_token_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -536,6 +537,24 @@ export const board_readiness_v1 = migrations.define({
     if (asset.type === 'board') {
       await syncBoardReadiness(ctx, asset._id, asset);
     }
+  },
+});
+
+/**
+ * Gives existing boards' rows their publication token, which live writes and publications now keep, so the saved Arrakis reference reads its row alone.
+ * It walks the small board rows rather than every asset;
+ * rerunning it writes nothing.
+ */
+export const board_readiness_publication_token_v1 = migrations.define({
+  table: 'board_readiness',
+  /* Each row reads its board's publication, which holds the board's geometry. */
+  batchSize: 5,
+  migrateOne: async (ctx, row) => {
+    const publication = await ctx.db
+      .query('publication_assets')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', row.asset_id))
+      .unique();
+    await syncBoardPublicationToken(ctx, row.asset_id, publication?.cache_token);
   },
 });
 

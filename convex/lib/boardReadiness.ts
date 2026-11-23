@@ -21,7 +21,8 @@ export async function syncBoardReadiness(ctx: MutationCtx, id: Id<'assets'>, ass
     }
     return;
   }
-  const fields = boardReadinessFields(asset);
+  /* The publication trigger keeps the token; an asset write carries it over rather than reading the publication and its geometry. */
+  const fields = { ...boardReadinessFields(asset), publication_token: previous?.publication_token };
   if (!previous) {
     await ctx.db.insert('board_readiness', fields);
     return;
@@ -66,4 +67,25 @@ export function registerBoardReadinessTriggers(triggers: Triggers<DataModel, Mut
       await syncBoardReadiness(ctx, change.id, change.newDoc);
     }
   });
+  /* A publication changes the board's token, which the saved Arrakis board's revision names; only the token is written, so the board itself is not read. */
+  triggers.register('publication_assets', async (ctx, change) => {
+    const publication = change.newDoc ?? change.oldDoc;
+    if (publication?.asset_type === 'board') {
+      await syncBoardPublicationToken(ctx, publication.asset_id, change.newDoc?.cache_token);
+    }
+  });
+}
+
+/** Writes a board's publication token onto its readiness row, when the row exists and holds another. */
+export async function syncBoardPublicationToken(ctx: MutationCtx, assetId: string, token: string | undefined) {
+  const id = ctx.db.normalizeId('assets', assetId);
+  const row = id
+    ? await ctx.db
+        .query('board_readiness')
+        .withIndex('by_asset', (q) => q.eq('asset_id', id))
+        .unique()
+    : null;
+  if (row && row.publication_token !== token) {
+    await ctx.db.patch(row._id, { publication_token: token });
+  }
 }

@@ -171,6 +171,7 @@ describe('scheduled production deployment shape', () => {
       '/__play',
       '/__play/*',
       '/sitemap*',
+      '/data/arrakis-board/*',
       '/factions',
       '/factions/*',
       '/rulesets',

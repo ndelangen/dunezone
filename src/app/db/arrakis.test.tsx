@@ -2,13 +2,24 @@
 
 import { arrakisBoard } from '@shared/boards/geometry';
 import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-const mocks = vi.hoisted(() => ({ live: undefined as unknown, query: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  reference: undefined as unknown,
+  fallback: undefined as unknown,
+  fallbackNeeded: [] as boolean[],
+  query: vi.fn(),
+}));
 
-vi.mock('@app/db/core/live', () => ({ useLiveQuery: () => mocks.live }));
+vi.mock('@app/db/core/live', () => ({
+  useLiveQuery: () => mocks.reference,
+  useFallbackQuery: (_query: unknown, _args: unknown, needed: boolean) => {
+    mocks.fallbackNeeded.push(needed);
+    return needed ? mocks.fallback : undefined;
+  },
+}));
 vi.mock('@db/core', () => ({ db: { query: mocks.query } }));
 
 import { ARRAKIS_SSR_WAIT_MS, ArrakisBoardSeedProvider, loadArrakisBoard, useArrakisBoard } from './arrakis';
@@ -19,9 +30,20 @@ const answer = {
   name: 'Arrakis Official',
   imageUrl: ARRAKIS_OFFICIAL.imageUrl,
   geometry: ARRAKIS_OFFICIAL.geometry,
-  publicationRevision: ARRAKIS_OFFICIAL.revision,
   board: arrakisBoard(),
+  revision: 'token-1.2026-10-01',
 } as unknown as NonNullable<ArrakisBoardSeed>;
+const referenceTo = (board: NonNullable<ArrakisBoardSeed>) => ({
+  assetId: board.assetId,
+  name: board.name,
+  revision: board.revision,
+});
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal('fetch', fetchMock);
+const edgeAnswers = (board: NonNullable<ArrakisBoardSeed> | undefined) =>
+  fetchMock.mockImplementation(async () =>
+    board ? Response.json(board) : new Response('<!doctype html>', { status: 200 })
+  );
 
 const seeded =
   (seed: ArrakisBoardSeed | undefined) =>
@@ -30,7 +52,10 @@ const seeded =
   );
 
 beforeEach(() => {
-  mocks.live = undefined;
+  mocks.reference = undefined;
+  mocks.fallback = undefined;
+  mocks.fallbackNeeded = [];
+  fetchMock.mockReset();
   mocks.query.mockReset();
   vi.unstubAllEnvs();
 });
@@ -69,32 +94,106 @@ describe('the loader that embeds the saved Arrakis board', () => {
 });
 
 describe('the saved Arrakis board', () => {
-  test('is loading on a page that embedded none, until the live query answers', () => {
+  test('is loading on a page that embedded none, until the reference answers', () => {
     expect(renderHook(() => useArrakisBoard()).result.current).toBeUndefined();
   });
 
-  test('draws the copy the page embedded before the live query answers', () => {
-    const { result } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
+  test('draws the copy the page embedded, and fetches nothing while that copy is current', () => {
+    const { result, rerender } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
     expect(result.current?.assetId).toBe('arrakis-board');
     expect(result.current?.capture.asset.name).toBe('Arrakis Official');
+    mocks.reference = referenceTo(answer);
+    rerender();
+    expect(result.current?.assetId).toBe('arrakis-board');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.fallbackNeeded).not.toContain(true);
   });
 
-  test('follows the live answer once it arrives, even when it says the site has none', () => {
-    mocks.live = null;
+  test('follows the reference when it says the site has none, over the embedded copy', () => {
+    mocks.reference = null;
     expect(renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) }).result.current).toBeNull();
   });
 
-  test('moves from the embedded copy to a newer live board when it arrives', () => {
-    const newer = { ...answer, assetId: 'newer-board', name: 'Arrakis Revised', board: arrakisBoard() };
+  test('fetches a newer revision from the edge, without subscribing to the whole board', async () => {
+    const newer = {
+      ...answer,
+      assetId: 'newer-board',
+      name: 'Arrakis Revised',
+      board: arrakisBoard(),
+      revision: 'token-2.2026-10-02',
+    };
+    edgeAnswers(newer);
     const { result, rerender } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
-    expect(result.current?.assetId).toBe('arrakis-board');
-    mocks.live = newer;
+    mocks.reference = referenceTo(newer);
     rerender();
-    expect(result.current).toMatchObject({ assetId: 'newer-board', geometry: newer.geometry });
-    expect(result.current?.definition).toBe(newer.board);
+    await waitFor(() => expect(result.current?.assetId).toBe('newer-board'));
+    expect(fetchMock.mock.calls[0]![0]).toBe('/data/arrakis-board/token-2.2026-10-02.json');
+    expect(result.current?.definition).toBe(result.current?.board);
     expect(result.current?.capture).toEqual({
       asset: { id: 'newer-board', slug: 'arrakis-official', name: 'Arrakis Revised' },
       definition: newer.board,
     });
+    expect(mocks.fallbackNeeded).not.toContain(true);
   });
+
+  test('subscribes to the whole board where the edge has no copy (Storybook, local dev)', async () => {
+    const elsewhere = { ...answer, revision: 'token-3.2026-10-03' };
+    edgeAnswers(undefined);
+    mocks.reference = referenceTo(elsewhere);
+    mocks.fallback = elsewhere;
+    const { result } = renderHook(() => useArrakisBoard());
+    await waitFor(() => expect(result.current?.revision).toBe('token-3.2026-10-03'));
+    expect(mocks.fallbackNeeded).toContain(true);
+  });
+});
+
+describe('the saved Arrakis board when its data becomes unavailable', () => {
+  test('follows the live null over an older embedded copy', async () => {
+    const unavailable = { ...answer, revision: 'token-4.2026-10-04' };
+    edgeAnswers(undefined);
+    mocks.reference = referenceTo(unavailable);
+    mocks.fallback = null;
+    const { result } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
+    await waitFor(() => expect(result.current).toBeNull());
+  });
+
+  test('subscribes to the whole board when the edge does not answer', async () => {
+    const stalled = { ...answer, revision: 'token-5.2026-10-05' };
+    fetchMock.mockImplementation(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    });
+    mocks.reference = referenceTo(stalled);
+    mocks.fallback = stalled;
+    const { result } = renderHook(() => useArrakisBoard());
+    await waitFor(() => expect(result.current?.revision).toBe('token-5.2026-10-05'));
+    expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+});
+
+test('keeps drawing the board it has while the next revision is on its way', async () => {
+  const first = { ...answer, revision: 'token-6.2026-10-06' };
+  const second = { ...answer, assetId: 'second', revision: 'token-7.2026-10-07' };
+  edgeAnswers(first);
+  mocks.reference = referenceTo(first);
+  const { result, rerender } = renderHook(() => useArrakisBoard());
+  await waitFor(() => expect(result.current?.revision).toBe('token-6.2026-10-06'));
+  fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+  mocks.reference = referenceTo(second);
+  rerender();
+  expect(result.current?.revision).toBe('token-6.2026-10-06');
+});
+
+test('keeps drawing a board the live query brought while the next revision is on its way', async () => {
+  const first = { ...answer, revision: 'token-8.2026-10-08' };
+  const second = { ...answer, assetId: 'second', revision: 'token-9.2026-10-09' };
+  edgeAnswers(undefined);
+  mocks.reference = referenceTo(first);
+  mocks.fallback = first;
+  const { result, rerender } = renderHook(() => useArrakisBoard());
+  await waitFor(() => expect(result.current?.revision).toBe('token-8.2026-10-08'));
+  fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+  mocks.fallback = undefined;
+  mocks.reference = referenceTo(second);
+  rerender();
+  expect(result.current?.revision).toBe('token-8.2026-10-08');
 });
