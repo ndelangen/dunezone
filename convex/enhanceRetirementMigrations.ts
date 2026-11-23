@@ -48,6 +48,23 @@ type StoredLayer = { kind?: unknown; asset_id?: unknown };
 /** The cards whose layers can draw a token: Custom and Storm cards share the layer list. */
 const LAYERED_CARD_TYPES = new Set(['card-custom', 'card-storm']);
 
+/** The enhance token a layer draws, or null when it draws anything else. */
+async function retiredLayerToken(ctx: Pick<MutationCtx, 'db'>, layer: StoredLayer): Promise<string | null> {
+  if (layer.kind !== 'token' || typeof layer.asset_id !== 'string') {
+    return null;
+  }
+  return (await liveOfType(ctx, layer.asset_id, RETIRED)) ? layer.asset_id : null;
+}
+
+/** A live Custom or Storm card's stored layers, or null for any other row. */
+function storedLayers(row: Doc<'assets'>): StoredLayer[] | null {
+  if (row.is_deleted || !LAYERED_CARD_TYPES.has(row.type)) {
+    return null;
+  }
+  const layers = (row.data as { layers?: unknown } | null)?.layers;
+  return Array.isArray(layers) ? (layers as StoredLayer[]) : null;
+}
+
 /**
  * The card's layers with each enhance token swapped or dropped, or null when none drew one.
  * A swapped layer keeps its place, turn, opacity and width.
@@ -59,8 +76,8 @@ async function withoutRetiredLayers(
   let changed = false;
   const kept: StoredLayer[] = [];
   for (const layer of layers) {
-    const assetId = typeof layer.asset_id === 'string' ? layer.asset_id : null;
-    if (layer.kind !== 'token' || !assetId || !(await liveOfType(ctx, assetId, RETIRED))) {
+    const assetId = await retiredLayerToken(ctx, layer);
+    if (!assetId) {
       kept.push(layer);
       continue;
     }
@@ -83,21 +100,22 @@ export const enhance_retire_1_cards_v1 = migrations.define({
   table: 'assets',
   batchSize: 8,
   migrateOne: async (ctx, row) => {
-    const stored = row.data as { layers?: unknown } | null;
-    if (row.is_deleted || !LAYERED_CARD_TYPES.has(row.type) || !Array.isArray(stored?.layers)) {
-      return;
-    }
-    const layers = await withoutRetiredLayers(ctx, stored.layers as StoredLayer[]);
+    const stored = storedLayers(row);
+    const layers = stored && (await withoutRetiredLayers(ctx, stored));
     if (!layers) {
       return;
     }
-    const data = { ...stored, layers };
+    const data = { ...(row.data as Record<string, unknown>), layers };
     await ctx.db.patch(row._id, { data, updated_at: nowIso() });
     await syncCustomCardTokenRelations(ctx, row._id, data);
     await enqueueAssetPublication(ctx, { _id: row._id, type: row.type, slug: row.slug, data });
     console.log(`Took the enhance token layers off card ${row.slug}.`);
   },
 });
+
+function countsAsRetired(token: Doc<'assets'> | null, deletedToo: boolean): boolean {
+  return token?.type === RETIRED && (deletedToo || !token.is_deleted);
+}
 
 /**
  * True when the bundle has members and every one is an enhance token, live unless `deletedToo`.
@@ -112,8 +130,7 @@ async function holdsOnlyRetired(
   for await (const member of ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', bundleId).eq('kind', 'bundle-token'))) {
-    const token = await ctx.db.get('assets', member.to_asset_id);
-    if (token?.type !== RETIRED || (token.is_deleted && !deletedToo)) {
+    if (!countsAsRetired(await ctx.db.get('assets', member.to_asset_id), deletedToo)) {
       return false;
     }
     members += 1;
@@ -126,7 +143,8 @@ export const enhance_retire_2_bundles_v1 = migrations.define({
   table: 'assets',
   batchSize: 8,
   migrateOne: async (ctx, row) => {
-    if (row.is_deleted || row.type !== 'bundle' || !(await holdsOnlyRetired(ctx, row._id))) {
+    const liveBundle = !row.is_deleted && row.type === 'bundle';
+    if (!liveBundle || !(await holdsOnlyRetired(ctx, row._id))) {
       return;
     }
     await ctx.db.patch(row._id, { is_deleted: true, updated_at: nowIso() });
@@ -150,6 +168,36 @@ async function retiredExtra(ctx: Pick<MutationCtx, 'db'>, extra: { type?: unknow
   return !!bundle?.is_deleted && (await holdsOnlyRetired(ctx, bundle._id, true));
 }
 
+/** The positions of the raw Extras the retirement takes away. */
+async function retiredExtraIndexes(ctx: Pick<MutationCtx, 'db'>, raw: unknown[]): Promise<Set<number>> {
+  const doomed = new Set<number>();
+  for (const [index, extra] of raw.entries()) {
+    if (extra && typeof extra === 'object' && (await retiredExtra(ctx, extra))) {
+      doomed.add(index);
+    }
+  }
+  return doomed;
+}
+
+/** Saves the faction without those Extras: a deleted row is only cleaned, a live variant saves as an edit would. */
+async function dropExtras(
+  ctx: MutationCtx,
+  row: Doc<'factions'>,
+  raw: { type?: unknown; slug?: unknown }[],
+  doomed: Set<number>
+) {
+  if (row.is_deleted) {
+    await ctx.db.patch(row._id, { data: { ...row.data, extras: raw.filter((_, index) => !doomed.has(index)) } });
+    return;
+  }
+  const data = parseStoredFactionForRead(row.data);
+  const gone = new Set([...doomed].map((index) => JSON.stringify([raw[index].type, raw[index].slug])));
+  await storeVariantData(ctx, row, {
+    ...data,
+    extras: (data.extras ?? []).filter((extra) => !gone.has(JSON.stringify([extra.type, extra.slug]))),
+  });
+}
+
 /**
  * Takes every enhance token, and every bundle of only enhance tokens, out of each faction's Extras.
  * The raw Extras are checked first, so a row older than today's faction schema is only parsed when it has something to lose.
@@ -161,28 +209,11 @@ export const enhance_retire_3_extras_v1 = migrations.define({
   batchSize: 10,
   migrateOne: async (ctx, row) => {
     const raw = (row.data as { extras?: unknown } | null)?.extras;
-    if (!Array.isArray(raw)) {
-      return;
-    }
-    const doomed = new Set<number>();
-    for (const [index, extra] of raw.entries()) {
-      if (extra && typeof extra === 'object' && (await retiredExtra(ctx, extra))) {
-        doomed.add(index);
-      }
-    }
+    const doomed = Array.isArray(raw) ? await retiredExtraIndexes(ctx, raw) : new Set<number>();
     if (!doomed.size) {
       return;
     }
-    if (row.is_deleted) {
-      await ctx.db.patch(row._id, { data: { ...row.data, extras: raw.filter((_, index) => !doomed.has(index)) } });
-    } else {
-      const data = parseStoredFactionForRead(row.data);
-      const gone = new Set([...doomed].map((index) => `${raw[index].type}/${raw[index].slug}`));
-      await storeVariantData(ctx, row, {
-        ...data,
-        extras: (data.extras ?? []).filter((extra) => !gone.has(`${extra.type}/${extra.slug}`)),
-      });
-    }
+    await dropExtras(ctx, row, raw as { type?: unknown; slug?: unknown }[], doomed);
     console.log(`Removed ${doomed.size} retired Extra(s) from faction ${row.slug}.`);
   },
 });
