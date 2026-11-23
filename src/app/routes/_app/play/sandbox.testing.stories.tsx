@@ -444,7 +444,7 @@ async function hoverShowsNameAndCount(
     /*
      * The table answers a move at once, but the tag paints in its own root, which on a busy runner commits frames later:
      * the answer to one spot can show only after the pointer has moved on to the next, which may miss the stack.
-     * So each spot is held past the hover's grace and for a few drawn frames, and the tag read afterwards answers the spot the pointer rests on.
+     * So each spot is held past the hover's grace and for a few frames, and the tag read afterwards answers the spot the pointer rests on.
      */
     const until = performance.now() + HOVER_TAG_GRACE_MS * 2.5;
     for (let frame = 0; frame < 3 || performance.now() < until; frame++) {
@@ -456,8 +456,9 @@ async function hoverShowsNameAndCount(
   /*
    * The pointer steps down the stack until the table hears it. A tag that shows and then goes, because it answered a spot
    * the pointer had left or a slow runner moved the camera from under the pointer, sends the pointer on down the stack.
+   * The wait keeps frames coming, so a runner that stops drawing still lets each spot be held.
    */
-  await waitFor(
+  await waitForFrame(
     async () => {
       if (!tag.hasAttribute('data-hovered')) {
         await pointAtStack();
