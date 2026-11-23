@@ -10,6 +10,7 @@ import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 import { publicationHrefFor, publicationStatusFor } from './assetPublishingStatus';
 import { insertFactionRow } from './factionRows.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 
 async function seedFaction(t: ReturnType<typeof convexTest>) {
   return await t.run(async (ctx) => {
@@ -88,7 +89,10 @@ describe('public asset publishing status projection', () => {
   ] as const)('projects %s job state as %s capture state', async (status, captureStatus) => {
     const t = applicationTest();
     const factionId = await seedFaction(t);
-    await t.run(async (ctx) => await ctx.db.insert('publication_jobs', publicationJob(factionId, status, 1)));
+    await t.run(
+      async (ctx) =>
+        await applicationTriggers.wrapDB(ctx).db.insert('publication_jobs', publicationJob(factionId, status, 1))
+    );
 
     expect(await publicStatus(t, factionId)).toEqual({
       status: null,
@@ -103,7 +107,7 @@ describe('public asset publishing status projection', () => {
     const factionId = await seedFaction(t);
     await t.run(async (ctx) => {
       await ctx.db.insert('publication_assets', currentSheet(factionId, 'private-cache-token'));
-      await ctx.db.insert('publication_jobs', publicationJob(factionId, 'pending', 2));
+      await applicationTriggers.wrapDB(ctx).db.insert('publication_jobs', publicationJob(factionId, 'pending', 2));
     });
 
     expect(await publicStatus(t, factionId)).toEqual({
@@ -122,7 +126,9 @@ describe('public asset publishing status projection', () => {
     const factionId = await seedFaction(t);
     await t.run(async (ctx) => {
       for (const [index, status] of [behind, ahead].entries()) {
-        await ctx.db.insert('publication_jobs', publicationJob(factionId, status, index + 1));
+        await applicationTriggers
+          .wrapDB(ctx)
+          .db.insert('publication_jobs', publicationJob(factionId, status, index + 1));
       }
     });
 
@@ -141,7 +147,7 @@ describe('public asset publishing status projection', () => {
         await ctx.db.insert('publication_assets', currentSheet(factionId, 'link-token'));
       }
       if (jobStatus) {
-        await ctx.db.insert('publication_jobs', publicationJob(factionId, jobStatus, 1));
+        await applicationTriggers.wrapDB(ctx).db.insert('publication_jobs', publicationJob(factionId, jobStatus, 1));
       }
       return await Promise.all([
         publicationHrefFor(ctx, 'faction_sheet', factionId),

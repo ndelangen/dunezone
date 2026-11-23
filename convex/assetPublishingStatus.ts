@@ -46,6 +46,7 @@ export function projectPublicAssetPublishingStatus(
  * One asset's publication state, for any type that publishes.
  *
  * Both tables key on the same `(asset_type, asset_id)` index, so a faction sheet and a treachery card read through exactly the same two queries and differ only in the strings handed to them.
+ * Capture state comes from `publication_job_listings`, the jobs' small status rows, so a page view never reads a job's full asset copy.
  */
 export async function publicationStatusFor(
   ctx: Pick<QueryCtx, 'db'>,
@@ -57,8 +58,9 @@ export async function publicationStatusFor(
       .query('publication_assets')
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
       .take(2),
+    /* The jobs' listings carry their status without the full asset copy each job holds, and do not change when only a job's payload does. */
     ctx.db
-      .query('publication_jobs')
+      .query('publication_job_listings')
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
       .take(4),
   ]);

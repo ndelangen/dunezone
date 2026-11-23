@@ -5,6 +5,7 @@ import { expect, test } from 'vite-plus/test';
 import { INITIAL_CARDBACK_PRESETS } from '../src/shared/assets/cardbackPresets';
 import { api, internal } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 import { assetPageAs } from './viewerAccess.test.fixture';
 
 const cardback = INITIAL_CARDBACK_PRESETS.find((preset) => preset.key === 'traitor')!.cardback;
@@ -130,7 +131,9 @@ test('failed replacements keep the previous shared publication until a retry suc
     cardback: { ...cardback, name: 'Traitors' },
     revision: 1,
   });
-  await t.run(async (ctx) => {
+  /* Through the triggers, as the Worker's own failure report goes, so the job's listing row follows. */
+  await t.run(async (rawCtx) => {
+    const ctx = applicationTriggers.wrapDB(rawCtx);
     const job = await ctx.db
       .query('publication_jobs')
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'cardback-preset').eq('asset_id', 'traitor'))
