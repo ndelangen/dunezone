@@ -34,18 +34,28 @@ async function readyTable(canvasElement: HTMLElement) {
 /**
  * Records every draw receipt that reaches the DOM.
  * A receipt lives for the draw's wall-clock duration (about 1.6 s), and a runner that stalls for seconds can add and remove it between two polls of a wait, so the story checks that it was shown rather than catching it on screen.
+ * `most` is the most receipts that were on screen together.
  */
 function watchDrawReceipts(document: Document) {
   const shown = new Set<string>();
+  let most = 0;
   const record = () => {
-    for (const receipt of document.querySelectorAll('[data-card-draw]')) {
+    const receipts = document.querySelectorAll('[data-card-draw]');
+    most = Math.max(most, receipts.length);
+    for (const receipt of receipts) {
       shown.add(receipt.getAttribute('data-card-draw') ?? '');
     }
   };
   const observer = new MutationObserver(record);
   observer.observe(document.body, { childList: true, subtree: true });
   record();
-  return { shown, stop: () => observer.disconnect() };
+  return {
+    shown,
+    get most() {
+      return most;
+    },
+    stop: () => observer.disconnect(),
+  };
 }
 
 /** The actual Draw a card action runs through the room, subscription and scene. More cards can be drawn after the story finishes. */
@@ -129,6 +139,7 @@ export const RapidDraws = meta.story({
     const recipients = table.room.snapshot
       .roster!.seats.filter((seat) => ['seat-2', 'seat-3'].includes(seat.id))
       .map((seat) => seat.faction!.id);
+    const receipts = watchDrawReceipts(document);
     for (const recipient of recipients) {
       const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
       table.receive({
@@ -139,7 +150,12 @@ export const RapidDraws = meta.story({
       });
       await expect(table.refusal).toBeUndefined();
     }
-    await waitFor(() => expect(document.querySelectorAll('[data-card-draw]')).toHaveLength(2));
-    await waitFor(() => expect(document.querySelectorAll('[data-card-draw]')).toHaveLength(0), { timeout: 5000 });
+    try {
+      await waitFor(() => expect(receipts.most).toBe(2));
+      await expect([...receipts.shown].sort()).toEqual([...recipients].sort());
+      await waitFor(() => expect(document.querySelectorAll('[data-card-draw]')).toHaveLength(0), { timeout: 5000 });
+    } finally {
+      receipts.stop();
+    }
   },
 });

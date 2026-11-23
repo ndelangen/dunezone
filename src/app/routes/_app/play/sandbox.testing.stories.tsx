@@ -436,43 +436,41 @@ async function hoverShowsNameAndCount(
     );
   };
   /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
-  const settle = async (ms: number) => {
-    const until = performance.now() + ms;
-    while (!tag.hasAttribute('data-hovered') && performance.now() < until) {
+  const below = [6, 12, 18, 24, 30, 36, 42];
+  let tries = 0;
+  const pointAtStack = async () => {
+    const box = count.getBoundingClientRect();
+    pointAt(box.left + box.width / 2, box.bottom + below[tries++ % below.length]!);
+    /*
+     * The table answers a move at once, but the tag paints in its own root, which on a busy runner commits frames later:
+     * the answer to one spot can show only after the pointer has moved on to the next, which may miss the stack.
+     * So each spot is held past the hover's grace and for a few drawn frames, and the tag read afterwards answers the spot the pointer rests on.
+     */
+    const until = performance.now() + 400;
+    for (let frame = 0; frame < 3 || performance.now() < until; frame++) {
       await new Promise((next) => requestAnimationFrame(next));
     }
   };
-  /* A busy runner answers late, so the pointer sweeps down the stack until the table hears it, for up to twenty seconds. */
-  const deadline = performance.now() + 20_000;
-  let hit = 6;
-  const pointAtStack = (below: number) => {
-    const box = count.getBoundingClientRect();
-    pointAt(box.left + box.width / 2, box.bottom + below);
-  };
-  while (!tag.hasAttribute('data-hovered') && performance.now() < deadline) {
-    for (let below = 6; below <= 42 && !tag.hasAttribute('data-hovered'); below += 6) {
-      hit = below;
-      pointAtStack(below);
-      await settle(400);
-    }
-  }
-  await expect(tag).toHaveAttribute('data-hovered', 'true');
-  /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
-  await waitFor(() => expect(name).toBeVisible());
-  await expect(count).not.toBeVisible();
   const label = shown().table.pieces.find((candidate) => candidate.id === count.dataset.pieceId)!.label;
   const shownLabel = name.querySelector<HTMLElement>('.scene-piece-name__label')!;
-  /* A slow runner can move the camera from under the resting pointer, so the pointer follows the stack to where it is now until the label reads. */
+  /*
+   * The pointer steps down the stack until the table hears it. A tag that shows and then goes, because it answered a spot
+   * the pointer had left or a slow runner moved the camera from under the pointer, sends the pointer on down the stack.
+   */
   await waitFor(
     async () => {
       if (!tag.hasAttribute('data-hovered')) {
-        pointAtStack(hit);
+        await pointAtStack();
       }
+      await expect(tag).toHaveAttribute('data-hovered', 'true');
+      /* Name and count read as one tooltip, "10 Harkonnen troops"; a faction token, one of a kind, shows its name alone. */
+      await expect(name).toBeVisible();
+      await expect(count).not.toBeVisible();
       await expect(shownLabel.innerText.trim()).toBe(
         target === 'faction-token' ? label : `${count.textContent} ${label}`
       );
     },
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
   for (const other of counts().filter((candidate) => candidate !== count)) {
     await expect(other).not.toBeVisible();
