@@ -6,7 +6,7 @@ import { at, handWindowMeta } from './HandWindow.stories.fixture';
 
 const meta = testingPreview.meta({
   ...handWindowMeta,
-  title: 'Play/Windows/Hand and spice',
+  title: 'Play/Panels/Hand and spice',
   parameters: { layout: 'fullscreen' },
 });
 

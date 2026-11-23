@@ -199,7 +199,7 @@ export const PieceNames = meta.story({
     await expect(within(troopName).getByText(factions[0]!.data.name)).toBeVisible();
     await expect(deckName).toBeVisible();
     await expect(deckName.querySelector('.scene-piece-name__owner')).toBeNull();
-    /* Control shows names only: the counts wait for Alt, and holding both shows them as one tooltip, "10 Harkonnen troops". */
+    /* Control shows names only: the counts wait for Alt, and holding both shows them as one tooltip, "Harkonnen Troop ×10". */
     const troopLabel = troopName.querySelector<HTMLElement>('.scene-piece-name__label')!;
     for (const counter of counters) {
       await expect(counter).not.toBeVisible();
@@ -212,7 +212,7 @@ export const PieceNames = meta.story({
       await expect(counter).not.toBeVisible();
     }
     await expect(troopLabel.innerText.trim()).toBe(
-      troop.items.length > 1 ? `${troop.items.length} ${troop.label}` : troop.label
+      troop.items.length > 1 ? `${troop.label.trim()} ×${troop.items.length}` : troop.label
     );
     await user.keyboard('{/Alt}');
     await expect(troopLabel.innerText.trim()).toBe(troop.label);

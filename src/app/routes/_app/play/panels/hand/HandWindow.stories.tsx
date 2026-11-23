@@ -11,7 +11,7 @@ import { at, handWindowMeta } from './HandWindow.stories.fixture';
  */
 const meta = preview.meta({
   ...handWindowMeta,
-  title: 'Play/Windows/Hand and spice',
+  title: 'Play/Panels/Hand and spice',
   parameters: { layout: 'fullscreen', playDebugger: true, chromatic: { disableSnapshot: true } },
 });
 

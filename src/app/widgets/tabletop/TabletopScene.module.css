@@ -243,7 +243,7 @@
 }
 
 /*
- * Name and count together read as one tooltip at the count's place, "10 Harkonnen troops": on the piece under the pointer, or with both keys held.
+ * Name and count together read as one tooltip at the count's place, "Harkonnen Troop ×10": on the piece under the pointer, or with both keys held.
  * A faction token shows no count, so its name always takes the count's place.
  */
 .pieceNameCount {
@@ -253,6 +253,11 @@
 :global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceNameCount,
 .pieceTag[data-hovered] .pieceNameCount {
   display: inline;
+}
+
+:global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceNameAlone,
+.pieceTag[data-hovered] .pieceNameAlone {
+  display: none;
 }
 
 :global([data-show-counts="true"][data-show-names="true"]) .pieceTag .pieceName,

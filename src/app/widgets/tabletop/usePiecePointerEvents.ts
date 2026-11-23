@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { gestureBlockReason } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Matrix4 } from 'three';
 
 import { HoverTagContext } from './hoverTag';
@@ -14,7 +14,7 @@ import { territoryBrush } from './territoryBrush';
 
 /*
  * What a piece on the table does under the pointer: pressing picks it up, the right button opens its menu,
- * and resting on it aims the keys at it and shows its name and count.
+ * and resting on it aims the keys at it and shows its name and count, until a button goes down.
  */
 function pieceHoverCursor(canInteract: boolean, interactionBlocked: boolean, gestureBlocked: boolean) {
   if (interactionBlocked) {
@@ -142,36 +142,8 @@ export function usePiecePointerEvents({
       });
     },
   };
-  const dragged = useDragged(locallyCarried, pointerSession);
-  /*
-   * The piece the viewer holds keeps its tag while the button is down, until it is dragged: a moving piece shows none.
-   * While something is held, the pieces it passes over show none, and a piece in someone else's hand shows none either.
-   */
-  return { handlers, hovered: locallyCarried ? !dragged : tagged && !carrying && !remoteCarried };
-}
-
-/*
- * Whether the held piece is being dragged: moved past the drag threshold from where it was pressed, or carried out of a panel.
- * Read on every pointer move while held, and again whenever the hold begins.
- */
-function useDragged(held: boolean, pointerSession: ReturnType<typeof usePointerSession>) {
-  const [moved, setMoved] = useState(false);
-  useEffect(() => {
-    if (!held) {
-      return;
-    }
-    const move = () => {
-      if (pointerSession.movedFromPress()) {
-        setMoved(true);
-      }
-    };
-    window.addEventListener('pointermove', move);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      setMoved(false);
-    };
-  }, [held, pointerSession]);
-  return held && (moved || pointerSession.movedFromPress());
+  /* Pressing the button hides every tag until it is let go (hoverTag.press), and a piece in someone's hand shows none. */
+  return { handlers, hovered: tagged && !carrying && !locallyCarried && !remoteCarried };
 }
 
 /* How long the table keeps looking under a still pointer after its pieces change, while a moved piece glides to its place. */
@@ -204,15 +176,26 @@ export function useHoverFollowsTable(hoverTag: HoverTag) {
     const canvas = renderer.domElement;
     const move = (event: PointerEvent) => (lastMove.current = event);
     const leave = () => (lastMove.current = null);
+    /* Any button held on the table hides the tag until it is let go, wherever it is let go. */
+    const press = () => hoverTag.press();
+    const release = () => hoverTag.release();
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerleave', leave);
+    canvas.addEventListener('pointerdown', press);
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
     window.addEventListener('blur', leave);
+    window.addEventListener('blur', release);
     return () => {
       canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerleave', leave);
+      canvas.removeEventListener('pointerdown', press);
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('pointercancel', release);
       window.removeEventListener('blur', leave);
+      window.removeEventListener('blur', release);
     };
-  }, [renderer]);
+  }, [renderer, hoverTag]);
   useFrame(() => {
     const cameraMoved = !seen.current.equals(camera.matrixWorld);
     if (!cameraMoved && performance.now() > lookUntil.current) {

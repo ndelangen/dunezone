@@ -6,6 +6,8 @@ export const HOVER_TAG_GRACE_MS = 160;
 /* Which piece shows its hover tag: one at a time, so two stacks never show tags together. */
 export function createHoverTag() {
   let current: string | null = null;
+  /* A mouse button is held down on the table: no tag shows until it is let go (Norbert, 2026-11-22). */
+  let pressed = false;
   let hide: ReturnType<typeof setTimeout> | undefined;
   /* What ends with the tag that is on its way out, run when it goes however it goes. */
   let pendingGone: (() => void) | undefined;
@@ -40,8 +42,22 @@ export function createHoverTag() {
     },
     shows: (pieceId: string) => current === pieceId,
     show(pieceId: string) {
+      if (pressed) {
+        return;
+      }
       cancelHide();
       set(pieceId);
+    },
+    /* The button went down on the table: any tag goes at once, so it never sits in the way of a stack being moved. */
+    press() {
+      pressed = true;
+      if (current !== null) {
+        hideNow();
+      }
+    },
+    /* The button was let go: the piece under the pointer may show its tag again. */
+    release() {
+      pressed = false;
     },
     /*
      * The pointer left the piece: its tag goes after a moment, unless the pointer comes back or reaches another piece first.
@@ -49,6 +65,10 @@ export function createHoverTag() {
      */
     leave(pieceId: string, gone: () => void) {
       if (current !== pieceId) {
+        /* No tag shows, such as one a press already took down: what ends with the hover ends now, as no tag will take it along. */
+        if (current === null) {
+          gone();
+        }
         return;
       }
       cancelHide();
