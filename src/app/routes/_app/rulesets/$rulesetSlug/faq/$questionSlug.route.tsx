@@ -214,6 +214,33 @@ function FaqQuestionPending() {
   );
 }
 
+/**
+ * Scrolls to the answer whose author slug is in the address hash, on arrival and on every hash change.
+ * Keyed by the question and its answers' anchors, not by object identity: loading more related items hands the page over to a fresh copy of the same answers, which must not scroll the reader back to the hashed answer.
+ */
+function useScrollToHashedAnswer(
+  itemId: string | undefined,
+  answers: readonly { id: string; author?: { slug: string } | null }[]
+) {
+  const answerAnchors = JSON.stringify(answers.map((row) => [row.id, row.author?.slug ?? null]));
+  useEffect(() => {
+    if (!itemId) {
+      return;
+    }
+    const anchors = JSON.parse(answerAnchors) as [string, string | null][];
+    const scrollToHash = () => {
+      const targetSlug = window.location.hash.slice(1).trim();
+      const answer = targetSlug ? anchors.find(([, slug]) => slug === targetSlug) : undefined;
+      if (answer) {
+        document.getElementById(`faq-answer-${answer[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    scrollToHash();
+    window.addEventListener('hashchange', scrollToHash);
+    return () => window.removeEventListener('hashchange', scrollToHash);
+  }, [itemId, answerAnchors]);
+}
+
 function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -236,26 +263,7 @@ function FaqDetailPage() {
   const item = page?.question;
   const answers = useMemo(() => page?.answers ?? [], [page?.answers]);
 
-  useEffect(() => {
-    if (!item) {
-      return;
-    }
-    const scrollToHash = () => {
-      const targetSlug = window.location.hash.slice(1).trim();
-      if (!targetSlug) {
-        return;
-      }
-      const answer = answers.find((row) => row.author?.slug === targetSlug);
-      if (!answer) {
-        return;
-      }
-      const node = document.getElementById(`faq-answer-${answer.id}`);
-      node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    scrollToHash();
-    window.addEventListener('hashchange', scrollToHash);
-    return () => window.removeEventListener('hashchange', scrollToHash);
-  }, [item, answers]);
+  useScrollToHashedAnswer(item?.id, answers);
 
   if (!item) {
     return <FaqQuestionPending />;

@@ -169,18 +169,24 @@ Factions, rulesets, groups, and community Assets use `is_deleted` flags instead 
 
 Avoid Convex React `"skip"` and `enabled ? args : 'skip'` in domain data modules. When a subscription should not run, **unmount** the component that calls `useQuery` (for example, render a child only when `open && userId`, or split route shells so live-only paths do not mount DB-mode hooks). Route loaders continue to prefetch with `db.query`; route leaves use matching `useQuery` with the same arguments and `initialData` from the loader where applicable.
 
-**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string in any style, single or double or backtick, anywhere under `src/app/db/**/*.ts`, `core/` included.
+**Guard**: `bun run check:convex-skip` fails if `skip` appears as a quoted string in any style, single or double or backtick, anywhere under `src/app/db/**/*.ts`, `core/` included, except the Storybook runtime and `core/live.ts`, whose shared hooks swap subscriptions inside one hook.
 
 ### Detail pages with cursor lists
 
 FAQ, faction and asset detail routes use one paginated page query. Each native cursor range returns
 one envelope containing its list items. Reference reads cap each range at 24 rows so server split
 signals bound a range that grows after inserts. The first range also carries the page detail; later ranges
-carry `detail: null`. The doorway hooks flatten the items and keep the first detail. This lets
-Convex keep every loaded range reactive without adding a separate page subscription. Cursor and
-split metadata pass through unchanged, including when unavailable relationships leave an empty
-range. Loaders read the first range without a warm hold, because the native pagination hook owns
-its subscriptions and adds its own pagination identifier.
+carry `detail: null`. The doorway hooks flatten the items and keep the first detail. Cursor and split metadata pass through unchanged, including when unavailable relationships leave
+an empty range.
+
+The doorway subscribes to the first range with `useLivePaginatedQuery` (`src/app/db/core/live.ts`),
+as a plain held subscription with exactly the loader's arguments. Convex's own `usePaginatedQuery`
+adds a per-tab pagination identifier to the arguments as a cache-buster, so the loader's read and
+the browser's subscription never shared one cached answer, and each visit ran the page twice
+(22 November 2026: these pages were a quarter of production reads). Loaders therefore keep the warm
+hold, and each module names its page size once so loader and hook stay equal. Native pagination
+starts on the first "load more": it reads the first range once more and the asked-for range after
+it, and keeps every loaded range reactive from then on.
 
 ## Board listing reads
 

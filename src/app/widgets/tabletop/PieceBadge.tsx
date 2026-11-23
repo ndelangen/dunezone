@@ -5,6 +5,7 @@ import { pieceCount, topItemFaceUp } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
 import { pieceLabelHeight } from '@shared/play/tableGeometry';
 
+import { countedLabel } from './countedLabel';
 import type { usePieceFlipAnimation } from './usePieceFlipAnimation';
 
 export function PieceBadge({
@@ -25,13 +26,14 @@ export function PieceBadge({
 } & Pick<ReturnType<typeof usePieceFlipAnimation>, 'labelRef' | 'badgeRef'> & { classNames: Record<string, string> }) {
   const count = pieceCount(piece);
   const uncounted = isFactionToken(piece);
+  const counted = count > 1 && !uncounted ? countedLabel(piece, count) : null;
   return (
     <group ref={labelRef} position={[0, pieceLabelHeight(piece), 0]}>
       <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
         {/*
          * The tag is as large as the count, so the count sits where it always has; the name hangs above it while Control is held.
          * When name and count show together, on the piece under the pointer or with both keys held, they read as one tooltip
-         * at the count's place, "10 Harkonnen troops", so a player finds a stack's size without knowing the keys (#2988).
+         * at the count's place, "Harkonnen Troop ×10", so a player finds a stack's size without knowing the keys (#2988).
          * A faction token is one of a kind, so its count never shows, and its name takes the count's place.
          */}
         <span
@@ -41,11 +43,16 @@ export function PieceBadge({
           data-selected={selected || undefined}
         >
           <span className={`scene-piece-name ${classNames.pieceName}`}>
+            {/* The name alone while only names show; with the count it reads as one line, "Harkonnen Troop ×10". */}
             <span className="scene-piece-name__label">
-              {count > 1 && !uncounted ? (
-                <span className={`scene-piece-name__count ${classNames.pieceNameCount}`}>{count} </span>
-              ) : null}
-              {piece.label}
+              {counted ? (
+                <>
+                  <span className={`scene-piece-name__alone ${classNames.pieceNameAlone}`}>{piece.label.trim()}</span>
+                  <span className={`scene-piece-name__count ${classNames.pieceNameCount}`}>{counted}</span>
+                </>
+              ) : (
+                piece.label
+              )}
             </span>
             {owner ? <span className={`scene-piece-name__owner ${classNames.pieceNameOwner}`}>{owner}</span> : null}
             {peeked ? <span className={`scene-piece-name__peeked ${classNames.pieceNamePeeked}`}>{peeked}</span> : null}

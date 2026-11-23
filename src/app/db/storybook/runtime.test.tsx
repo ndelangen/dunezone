@@ -113,7 +113,7 @@ test('a skipped page reads nothing and a new argument starts from its own first 
       initialProps: { scope: null as string | null },
     }
   );
-  expect(hook.result.current.status).toBe('Exhausted');
+  expect(hook.result.current.status).toBe('LoadingFirstPage');
   expect(query).not.toHaveBeenCalled();
   hook.rerender({ scope: 'old' });
   first.resolve({ page: ['old'], isDone: false, continueCursor: 'next' });

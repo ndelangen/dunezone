@@ -12,6 +12,7 @@ import {
   imageStampPath,
   isCheckoutStore,
   mediaStoreRoot,
+  originalsStoreRoot,
 } from './media-store';
 
 describe('mediaStoreRoot', () => {
@@ -34,6 +35,13 @@ describe('mediaStoreRoot', () => {
   test('only the checkout store counts as prunable', () => {
     expect(isCheckoutStore(repo, checkoutStoreRoot(repo))).toBe(true);
     expect(isCheckoutStore(repo, mediaStoreRoot(repo, {}, '/Users/me'))).toBe(false);
+  });
+});
+
+describe('originalsStoreRoot', () => {
+  test('shares one originals store per machine, beside the variant store', () => {
+    expect(originalsStoreRoot({}, '/Users/me')).toBe('/Users/me/.cache/dunezone/media/src');
+    expect(originalsStoreRoot({ XDG_CACHE_HOME: '/xdg' }, '/Users/me')).toBe('/xdg/dunezone/media/src');
   });
 });
 
