@@ -1,5 +1,6 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
+import type { z } from 'zod';
 
 import { CustomCardAsset } from '../src/shared/assets/schema';
 import { components, internal } from './_generated/api';
@@ -43,9 +44,32 @@ async function liveOfType(ctx: Pick<MutationCtx, 'db'>, raw: string, type: strin
   return row && !row.is_deleted && row.type === type ? row : null;
 }
 
+type CardLayer = z.infer<typeof CustomCardAsset>['layers'][number];
+
+/**
+ * The card's layers with each enhance token swapped or dropped, or null when none drew one.
+ * A swapped layer keeps its place, turn, opacity and width.
+ */
+async function withoutRetiredLayers(ctx: Pick<MutationCtx, 'db'>, layers: CardLayer[]): Promise<CardLayer[] | null> {
+  let changed = false;
+  const kept: CardLayer[] = [];
+  for (const layer of layers) {
+    if (layer.kind !== 'token' || !(await liveOfType(ctx, layer.asset_id, RETIRED))) {
+      kept.push(layer);
+      continue;
+    }
+    changed = true;
+    const swap = LAYER_SWAPS.get(layer.asset_id);
+    if (swap && (await liveOfType(ctx, swap, 'token-leader'))) {
+      /* The same scale gives the leader the rectangle's width, the size of the round counters beside it (Norbert, 23 November 2026). */
+      kept.push({ ...layer, asset_id: swap });
+    }
+  }
+  return changed ? kept : null;
+}
+
 /**
  * Takes every enhance token off the cards that draw one, before the tokens go.
- * A swapped layer keeps its place, turn, opacity and width.
  * The card republishes as a save would.
  */
 export const enhance_retire_1_cards_v1 = migrations.define({
@@ -60,21 +84,8 @@ export const enhance_retire_1_cards_v1 = migrations.define({
     if (!parsed.success) {
       return;
     }
-    let changed = false;
-    const layers = [];
-    for (const layer of parsed.data.layers) {
-      if (layer.kind !== 'token' || !(await liveOfType(ctx, layer.asset_id, RETIRED))) {
-        layers.push(layer);
-        continue;
-      }
-      changed = true;
-      const swap = LAYER_SWAPS.get(layer.asset_id);
-      if (swap && (await liveOfType(ctx, swap, 'token-leader'))) {
-        /* The same scale gives the leader the rectangle's width, the size of the round counters beside it (Norbert, 23 November 2026). */
-        layers.push({ ...layer, asset_id: swap });
-      }
-    }
-    if (!changed) {
+    const layers = await withoutRetiredLayers(ctx, parsed.data.layers);
+    if (!layers) {
       return;
     }
     const data = { ...(row.data as Record<string, unknown>), layers };
