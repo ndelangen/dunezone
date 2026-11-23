@@ -133,16 +133,20 @@ export const RapidDraws = meta.story({
       .roster!.seats.filter((seat) => ['seat-2', 'seat-3'].includes(seat.id))
       .map((seat) => seat.faction!.id);
     const receipts = watchDrawReceipts(document);
+    const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
+    /*
+     * Both draws go in within one task, so their answers arrive in the same task and both receipts start their lifetime together.
+     * An await between them would let a stalled runner retire the first receipt before the second is sent.
+     */
     for (const recipient of recipients) {
-      const deck = table.frame().snapshot.table.pieces.find((piece) => piece.stackKey === 'deck:treachery-deck')!;
       table.receive({
         type: 'command',
         commandId: `draw-${recipient}`,
         expectedRevision: table.room.snapshot.revision,
         action: { kind: 'deck-draw', pieceId: deck.id, recipient },
       });
-      await expect(table.refusal).toBeUndefined();
     }
+    await expect(table.refusal).toBeUndefined();
     try {
       await waitFor(() => expect(receipts.most).toBe(2));
       await expect(receipts.shown).toEqual(new Set(recipients));
