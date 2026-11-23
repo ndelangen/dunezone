@@ -37,9 +37,6 @@ export const LAYER_SWAPS: ReadonlyMap<string, string> = new Map([
   ['ns78mth8xp26cpkaw1t4gc0es58cwx0p', 'ns7e5v288s7hab7fewjpmyqzx58gq6wk'],
 ]);
 
-/* A rectangle is 300 by 186 at scale 1 and a leader 300 square, so the leader takes the rectangle's height. */
-const RECTANGLE_HEIGHT = 186 / 300;
-
 async function liveOfType(ctx: Pick<MutationCtx, 'db'>, raw: string, type: string): Promise<Doc<'assets'> | null> {
   const id = ctx.db.normalizeId('assets', raw);
   const row = id ? await ctx.db.get('assets', id) : null;
@@ -48,7 +45,7 @@ async function liveOfType(ctx: Pick<MutationCtx, 'db'>, raw: string, type: strin
 
 /**
  * Takes every enhance token off the cards that draw one, before the tokens go.
- * A swapped layer keeps its place, turn, opacity and height.
+ * A swapped layer keeps its place, turn, opacity and width.
  * The card republishes as a save would.
  */
 export const enhance_retire_1_cards_v1 = migrations.define({
@@ -73,7 +70,8 @@ export const enhance_retire_1_cards_v1 = migrations.define({
       changed = true;
       const swap = LAYER_SWAPS.get(layer.asset_id);
       if (swap && (await liveOfType(ctx, swap, 'token-leader'))) {
-        layers.push({ ...layer, asset_id: swap, scale: Math.max(0.05, layer.scale * RECTANGLE_HEIGHT) });
+        /* The same scale gives the leader the rectangle's width, the size of the round counters beside it (Norbert, 23 November 2026). */
+        layers.push({ ...layer, asset_id: swap });
       }
     }
     if (!changed) {

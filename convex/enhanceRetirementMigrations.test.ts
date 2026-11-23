@@ -106,7 +106,7 @@ describe('retiring enhance tokens (#3013)', () => {
     expect([...LAYER_SWAPS]).toEqual([['ns78mth8xp26cpkaw1t4gc0es58cwx0p', 'ns7e5v288s7hab7fewjpmyqzx58gq6wk']]);
   });
 
-  test('swaps a named enhance layer for its leader at the same height, drops any other, and deletes a bundle left empty', async () => {
+  test('swaps a named enhance layer for its leader at the same width, drops any other, and deletes a bundle left empty', async () => {
     const f = await retirementFixture();
     (LAYER_SWAPS as Map<string, string>).set(f.enhance, f.leader);
     try {
@@ -119,7 +119,7 @@ describe('retiring enhance tokens (#3013)', () => {
       .layers;
     expect(layers.map(({ asset_id, scale, offset }) => ({ asset_id, scale, offset }))).toEqual([
       { asset_id: f.leader, scale: 1, offset: [120, 40] },
-      { asset_id: f.leader, scale: 0.5 * (186 / 300), offset: [120, 40] },
+      { asset_id: f.leader, scale: 0.5, offset: [120, 40] },
     ]);
     const links = await f.t.run(async (ctx) =>
       ctx.db
