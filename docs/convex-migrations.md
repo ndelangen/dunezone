@@ -120,7 +120,7 @@ module would never run in production, and one in another module would share its 
 The migrations that rebuild derived tables (statistics, catalogue entries, profile discovery and
 activity, faction cards, board readiness, the publication queue) stay, because every load needs
 them: the snapshot leaves most of those tables out, and the faction cards and board readiness rows
-it keeps may predate the current projection. The 4 November 2026 cleanup removed 38 such one-offs and the 5 November one 12 more. The 10 November one removed the emblem, Arrakis and queue-order families (29 ids and 3 narrow entries), and the 16 November one the Nexus link move family (3 ids). `convex/migrations.snapshotReplay.test.ts` replays the manifest
+it keeps may predate the current projection. The 4 November 2026 cleanup removed 38 such one-offs and the 5 November one 12 more. The 10 November one removed the emblem, Arrakis and queue-order families (29 ids and 3 narrow entries), the 16 November one the Nexus link move family (3 ids), and the 23 November one the one-off duplicate faction merge (1 id). `convex/migrations.snapshotReplay.test.ts` replays the manifest
 over rows in their migrated shape, with a row for every deck cardback mode and every token back
 mode. Those rows are keyed by mode, so a mode added to either union fails
 typecheck until the test has a row that wears it.

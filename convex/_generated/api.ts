@@ -31,7 +31,6 @@ import type * as e2e from "../e2e.js";
 import type * as enhanceRetirementMigrations from "../enhanceRetirementMigrations.js";
 import type * as factionFamilies from "../factionFamilies.js";
 import type * as factionMerge from "../factionMerge.js";
-import type * as factionMergeMigrations from "../factionMergeMigrations.js";
 import type * as factionVariants from "../factionVariants.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
@@ -243,7 +242,6 @@ const fullApi: ApiFromModules<{
   enhanceRetirementMigrations: typeof enhanceRetirementMigrations;
   factionFamilies: typeof factionFamilies;
   factionMerge: typeof factionMerge;
-  factionMergeMigrations: typeof factionMergeMigrations;
   factionVariants: typeof factionVariants;
   factions: typeof factions;
   faq: typeof faq;

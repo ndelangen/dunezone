@@ -267,11 +267,6 @@
       "requires": ["publication_job_listings_v1"]
     },
     {
-      "id": "faction_duplicates_merge_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
       "id": "board_readiness_listing_narrow",
       "phase": "narrow",
       "requires": ["board_readiness_v1", "board_readiness_listing_v1"]

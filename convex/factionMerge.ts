@@ -371,30 +371,25 @@ export const attach = mutation({
   returns: v.object({ slug: v.string() }),
   handler: async (ctx, args) => {
     await requireAdminUserId(ctx);
-    return attachVariant(ctx, args);
+    const plan = await planAttach(ctx, args);
+    const clash = plan.branch.find((entry) => entry.nameClash);
+    if (clash) {
+      throw new ConvexError(`The faction already has a variant called “${clash.name}”.`);
+    }
+    const before = parseStoredFactionForRead(plan.variant.data);
+    const stored = await placeVariant(ctx, plan);
+    if (plan.retiresSource && plan.source) {
+      await ctx.db.patch('faction_families', plan.source._id, { is_deleted: true, merged_into: plan.target._id });
+    }
+    /* The ids are read off what was stored, which also catches a leader `resolveVariantData` gave a fresh identity. */
+    const maps = branchMaps(
+      plan.branch.map(({ row }) => row),
+      idPairsByField(parseStoredFactionForRead(stored.data), before, ID_FIELDS)
+    );
+    await rewriteLater(ctx, maps, plan.retiresSource ? plan.source?._id : undefined);
+    return { slug: stored.slug };
   },
 });
-
-/** What `attach` does once the caller may: also run by the one-off merges of known duplicates in `factionMergeMigrations.ts`. */
-export async function attachVariant(ctx: MutationCtx, args: AttachArgs) {
-  const plan = await planAttach(ctx, args);
-  const clash = plan.branch.find((entry) => entry.nameClash);
-  if (clash) {
-    throw new ConvexError(`The faction already has a variant called “${clash.name}”.`);
-  }
-  const before = parseStoredFactionForRead(plan.variant.data);
-  const stored = await placeVariant(ctx, plan);
-  if (plan.retiresSource && plan.source) {
-    await ctx.db.patch('faction_families', plan.source._id, { is_deleted: true, merged_into: plan.target._id });
-  }
-  /* The ids are read off what was stored, which also catches a leader `resolveVariantData` gave a fresh identity. */
-  const maps = branchMaps(
-    plan.branch.map(({ row }) => row),
-    idPairsByField(parseStoredFactionForRead(stored.data), before, ID_FIELDS)
-  );
-  await rewriteLater(ctx, maps, plan.retiresSource ? plan.source?._id : undefined);
-  return { slug: stored.slug };
-}
 
 type AttachPlan = Awaited<ReturnType<typeof planAttach>>;
 
