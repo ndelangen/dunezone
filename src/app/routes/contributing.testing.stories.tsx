@@ -84,8 +84,13 @@ export const BoardsAndTints = meta.story({
     const glossary = within(await page.findByRole('region', { name: 'Dune Zone product terms' }, { timeout: 30_000 }));
     await userEvent.click(glossary.getByRole('switch', { name: 'Add stickers' }));
     await userEvent.click(glossary.getByRole('switch', { name: 'Outline only' }));
-    await expect(glossary.getByRole('status')).toHaveTextContent(
-      'Strongholds: 5 territories, outline only, with stickers.'
+    /* The board arrives after the page, once the edge (absent here) has been asked and its live query answers. */
+    await waitFor(
+      () =>
+        expect(glossary.getByRole('status')).toHaveTextContent(
+          'Strongholds: 5 territories, outline only, with stickers.'
+        ),
+      { timeout: 15_000 }
     );
     await userEvent.click(glossary.getByRole('radio', { name: 'Spice blow' }));
     await expect(glossary.getByRole('status')).toHaveTextContent(

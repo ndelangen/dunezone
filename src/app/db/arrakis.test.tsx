@@ -169,3 +169,16 @@ describe('the saved Arrakis board when its data becomes unavailable', () => {
     expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });
+
+test('keeps drawing the board it has while the next revision is on its way', async () => {
+  const first = { ...answer, revision: 'token-6.2026-10-06' };
+  const second = { ...answer, assetId: 'second', revision: 'token-7.2026-10-07' };
+  edgeAnswers(first);
+  mocks.reference = referenceTo(first);
+  const { result, rerender } = renderHook(() => useArrakisBoard());
+  await waitFor(() => expect(result.current?.revision).toBe('token-6.2026-10-06'));
+  fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+  mocks.reference = referenceTo(second);
+  rerender();
+  expect(result.current?.revision).toBe('token-6.2026-10-06');
+});

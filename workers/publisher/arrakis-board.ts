@@ -5,7 +5,7 @@ import { readBoundedJson, runWithDeadline } from './http';
  * Pages learn the current revision from the small `arrakis:face` subscription.
  * A day's lifetime bounds how long an edit that did not change the board's `updated_at` (a migration, say) could stay unseen.
  */
-export const ARRAKIS_BOARD_DATA_SECONDS = 86_400;
+const ARRAKIS_BOARD_DATA_SECONDS = 86_400;
 
 const ROUTE = /^\/data\/arrakis-board\/([^/]+)\.json$/;
 const MAX_BYTES = 2_000_000;
@@ -57,7 +57,7 @@ export async function handleArrakisBoardRequest(
   const key = new Request(`${url.origin}/__public-cache/arrakis-board/${encodeURIComponent(revision)}`);
   const hit = await storage?.match(key).catch(() => undefined);
   if (hit) {
-    return withState(hit, 'hit');
+    return withState(hit, 'hit', request.method);
   }
   let board: { revision?: unknown } | null;
   try {
@@ -77,11 +77,11 @@ export async function handleArrakisBoardRequest(
     },
   });
   await storage?.put(key, response.clone()).catch(() => undefined);
-  return withState(response, 'miss');
+  return withState(response, 'miss', request.method);
 }
 
-function withState(response: Response, state: 'hit' | 'miss'): Response {
-  const result = new Response(response.body, response);
+function withState(response: Response, state: 'hit' | 'miss', method: string): Response {
+  const result = new Response(method === 'HEAD' ? null : response.body, response);
   result.headers.set('X-Public-Cache', state);
   return result;
 }

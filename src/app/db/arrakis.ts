@@ -70,7 +70,7 @@ export function ArrakisBoardSeedProvider({
 const boardFetches = new Map<string, Promise<ArrakisBoardSeed | undefined>>();
 
 /** How long a page waits for the edge before it subscribes to the whole board instead. */
-export const ARRAKIS_EDGE_WAIT_MS = 5000;
+const ARRAKIS_EDGE_WAIT_MS = 5000;
 
 /** The edge's copy of `arrakis.board` for one revision, or `undefined` where the edge has none (Storybook, local dev, a revision it no longer serves) or does not answer in time. */
 function fetchBoardRevision(revision: string): Promise<ArrakisBoardSeed | undefined> {
@@ -89,7 +89,7 @@ function fetchBoardRevision(revision: string): Promise<ArrakisBoardSeed | undefi
 }
 
 /** Where the publisher Worker serves the saved Arrakis board's data for one revision. */
-export function arrakisBoardDataHref(revision: string) {
+function arrakisBoardDataHref(revision: string) {
   return `/data/arrakis-board/${encodeURIComponent(revision)}.json`;
 }
 
@@ -121,6 +121,8 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
     };
   }, [revision, seed?.revision]);
   const fetchedBoard = fetched && fetched.revision === revision ? fetched.board : undefined;
+  /* While a new revision is on its way, the board already drawn stays, so a running tutorial table is not torn down. */
+  const previousBoard = fetched && fetched.revision !== revision ? fetched.board : undefined;
   const edgeMissed = revision !== undefined && fetched?.revision === revision && fetchedBoard === undefined;
   const live = useFallbackQuery(api.arrakis.board, {}, edgeMissed);
   /* Strictly undefined: a null reference means the site has no saved Arrakis, which outranks the embedded copy. */
@@ -133,9 +135,9 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
           ? seed
           : fetchedBoard !== undefined
             ? fetchedBoard
-            : /* Strictly undefined again: a live null (the board became unavailable) outranks an older embedded copy. */
+            : /* Strictly undefined again: a live null (the board became unavailable) outranks an older copy. */
               live === undefined
-              ? seed
+              ? (previousBoard ?? seed)
               : live;
   return useMemo(() => {
     if (!found) {

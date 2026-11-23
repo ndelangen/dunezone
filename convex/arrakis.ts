@@ -109,7 +109,8 @@ export const reference = publicQuery({
       .withIndex('by_slug_and_deleted', (q) => q.eq('slug', ARRAKIS_BOARD_SLUG).eq('is_deleted', false))
       .take(2);
     const row = rows[0];
-    if (!row) {
+    /* A board whose saved data fails its schema has no answer from `board` either. */
+    if (!row?.usable) {
       return null;
     }
     const assetId: string = row.asset_id;

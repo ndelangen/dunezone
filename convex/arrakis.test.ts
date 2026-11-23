@@ -218,3 +218,11 @@ describe('The saved Arrakis revision', () => {
     });
   });
 });
+
+test('the reference is null for a board whose saved data fails its schema, as the board is', async () => {
+  const f = await rulebookFixture();
+  const id = await insertArrakis(f, false, { name: 'Arrakis Official', about: '', board: { territories: 'broken' } });
+  await publish(f, id);
+  expect(await f.t.query(api.arrakis.board, {})).toBeNull();
+  expect(await f.t.query(api.arrakis.reference, {})).toBeNull();
+});

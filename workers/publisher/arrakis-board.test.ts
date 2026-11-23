@@ -66,3 +66,14 @@ test('a failed Convex read is a retryable 503 and is not stored', async () => {
 test('refuses writes', async () => {
   expect((await handleArrakisBoardRequest(request(path, 'POST'), env, storage(), vi.fn()))?.status).toBe(405);
 });
+
+test('answers HEAD with headers only, on a miss and on a hit', async () => {
+  const cache = storage();
+  const load = vi.fn(async () => board);
+  const miss = await handleArrakisBoardRequest(request(path, 'HEAD'), env, cache, load);
+  expect(miss?.status).toBe(200);
+  expect(await miss?.text()).toBe('');
+  const hit = await handleArrakisBoardRequest(request(path, 'HEAD'), env, cache, load);
+  expect(hit?.headers.get('X-Public-Cache')).toBe('hit');
+  expect(await hit?.text()).toBe('');
+});
