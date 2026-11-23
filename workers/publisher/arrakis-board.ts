@@ -73,7 +73,11 @@ export async function handleArrakisBoardRequest(
   if (!board || board.revision !== revision) {
     /* Every visit pays for a miss, so a reference that keeps naming a revision the board does not answer shows in the logs. */
     console.warn(
-      JSON.stringify({ event: 'arrakis_board_revision_mismatch', requested: revision, current: board?.revision ?? null })
+      JSON.stringify({
+        event: 'arrakis_board_revision_mismatch',
+        requested: revision,
+        current: board?.revision ?? null,
+      })
     );
     return new Response(null, { status: 404, headers: uncached });
   }
