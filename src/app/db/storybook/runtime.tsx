@@ -396,7 +396,8 @@ export function useConvexStorybookPaginatedQuery<Query extends PaginatedQueryRef
     input,
     requests: stableArgs === 'skip' ? [] : [{ cursor: null, numItems: initialNumItems }],
     pages: [],
-    status: stableArgs === 'skip' ? 'Exhausted' : 'LoadingFirstPage',
+    /* Convex reports a skipped paginated query as loading its first page, never as exhausted. */
+    status: 'LoadingFirstPage',
   });
   const [state, setState] = useState(initialPages);
   if (state.input !== input) {

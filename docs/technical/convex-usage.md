@@ -39,7 +39,7 @@ the provider reports them and are never summed into the provider's deployment to
 sample is shown as unavailable, not as proof that the deployment did no work.
 
 Open the named deployment's Usage and Insights pages to trace a new burst. Compare prod and dev
-before changing code. The weekly anonymised export and dev refresh can explain a scheduled burst.
+before changing code. The weekly anonymised export, and the dev refresh about every fourth week, can explain a scheduled burst.
 Ordinary releases should preserve dev's records and skip completed migrations.
 
 ## Read regression budgets
