@@ -42,6 +42,7 @@ export type LiveMutationResult<TVariables, TResult> = {
  *
  * There is no `enabled` argument and there was never a caller for one: every one of the twenty-two call sites passed the literal `true`, so the flag only ever ANDed with a constant.
  * A subscription that should not run is not disabled here, it is not mounted, which is the contract Pickers already follow.
+ * The one exception is `useFallbackQuery` below, for a subscription that only opens when a cheaper source has missed.
  */
 export function toLiveQueryResult<TData>(
   liveData: TData | undefined,

@@ -121,12 +121,10 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
     };
   }, [revision, seed?.revision]);
   const fetchedBoard = fetched && fetched.revision === revision ? fetched.board : undefined;
-  /* While a new revision is on its way, the board already drawn stays, so a running tutorial table is not torn down. */
-  const previousBoard = fetched && fetched.revision !== revision ? fetched.board : undefined;
   const edgeMissed = revision !== undefined && fetched?.revision === revision && fetchedBoard === undefined;
   const live = useFallbackQuery(api.arrakis.board, {}, edgeMissed);
   /* Strictly undefined: a null reference means the site has no saved Arrakis, which outranks the embedded copy. */
-  const found: ArrakisBoardSeed | undefined =
+  const current: ArrakisBoardSeed | undefined =
     reference === null
       ? null
       : reference === undefined
@@ -136,9 +134,13 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
           : fetchedBoard !== undefined
             ? fetchedBoard
             : /* Strictly undefined again: a live null (the board became unavailable) outranks an older copy. */
-              live === undefined
-              ? (previousBoard ?? seed)
-              : live;
+              live;
+  /* While a new revision is on its way, the board already drawn stays, wherever it came from, so a running tutorial table is not torn down. */
+  const [drawn, setDrawn] = useState<ArrakisBoardSeed | undefined>(current ?? undefined);
+  if (current && current !== drawn) {
+    setDrawn(current);
+  }
+  const found = current === undefined ? (drawn ?? seed) : current;
   return useMemo(() => {
     if (!found) {
       return found;

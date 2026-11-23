@@ -182,3 +182,18 @@ test('keeps drawing the board it has while the next revision is on its way', asy
   rerender();
   expect(result.current?.revision).toBe('token-6.2026-10-06');
 });
+
+test('keeps drawing a board the live query brought while the next revision is on its way', async () => {
+  const first = { ...answer, revision: 'token-8.2026-10-08' };
+  const second = { ...answer, assetId: 'second', revision: 'token-9.2026-10-09' };
+  edgeAnswers(undefined);
+  mocks.reference = referenceTo(first);
+  mocks.fallback = first;
+  const { result, rerender } = renderHook(() => useArrakisBoard());
+  await waitFor(() => expect(result.current?.revision).toBe('token-8.2026-10-08'));
+  fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+  mocks.fallback = undefined;
+  mocks.reference = referenceTo(second);
+  rerender();
+  expect(result.current?.revision).toBe('token-8.2026-10-08');
+});

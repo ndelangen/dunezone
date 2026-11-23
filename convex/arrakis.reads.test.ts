@@ -73,7 +73,7 @@ test('the reference reads the small row only, never the board or its geometry', 
   const t = await arrakisFixture(2000);
   expect(await t.query(api.arrakis.reference, {})).toMatchObject({
     name: 'Arrakis Official',
-    revision: 'token-1.2026-10-01T00:00:00.000Z',
+    revision: 'v1.token-1.2026-10-01T00:00:00.000Z',
   });
 });
 

@@ -84,7 +84,13 @@ export const face = publicQuery({
 });
 
 /**
- * Names one version of `board`'s answer: its publication token (a republish), its saved row's `updated_at` (a save), and whether capture work is open for it, which can withhold a board published before geometry was stored with it.
+ * The shape of `board`'s answer, which a cached copy under an older name may not have.
+ * Bump it whenever `board` answers differently for the same saved board and publication.
+ */
+const ARRAKIS_BOARD_SHAPE = 1;
+
+/**
+ * Names one version of `board`'s answer: the answer's shape, its publication token (a republish), its saved row's `updated_at` (a save), and whether capture work is open for it, which can withhold a board published before geometry was stored with it.
  * The answer can be cached under the name.
  */
 async function arrakisRevision(ctx: QueryCtx, assetId: string, publicationToken: string, updatedAt: string) {
@@ -92,7 +98,7 @@ async function arrakisRevision(ctx: QueryCtx, assetId: string, publicationToken:
     .query('publication_job_listings')
     .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
     .first();
-  return `${publicationToken}.${updatedAt}${capture ? '.capturing' : ''}`;
+  return `v${ARRAKIS_BOARD_SHAPE}.${publicationToken}.${updatedAt}${capture ? '.capturing' : ''}`;
 }
 
 /**
@@ -109,8 +115,8 @@ export const reference = publicQuery({
       .withIndex('by_slug_and_deleted', (q) => q.eq('slug', ARRAKIS_BOARD_SLUG).eq('is_deleted', false))
       .take(2);
     const row = rows[0];
-    /* A board whose saved data fails its schema has no answer from `board` either. */
-    if (!row?.usable) {
+    /* Not `usable`, which is stricter than `board`: a board that `board` rejects misses at the edge and pages fall back to `board`'s own null. */
+    if (!row) {
       return null;
     }
     const assetId: string = row.asset_id;

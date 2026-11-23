@@ -72,7 +72,7 @@ describe('The saved Arrakis board', () => {
       imageUrl: expect.stringContaining(id),
       geometry,
       board: arrakisBoardCapture.definition,
-      revision: 'token-1.2026-10-01T00:00:00.000Z',
+      revision: 'v1.token-1.2026-10-01T00:00:00.000Z',
     });
     /* The reference finds the same live board through its own row, past the deleted one. */
     expect((await f.t.query(api.arrakis.reference, {}))?.assetId).toBe(id);
@@ -149,13 +149,13 @@ describe('The saved Arrakis reference', () => {
     expect(await f.t.query(api.arrakis.reference, {})).toEqual({
       assetId: id,
       name: 'Arrakis Official',
-      revision: 'token-1.2026-10-01T00:00:00.000Z',
+      revision: 'v1.token-1.2026-10-01T00:00:00.000Z',
     });
     /* A row from before the token, as production's is until the board's next write. */
     await f.t.run(async (ctx) => {
       await ctx.db.patch(row!._id, { publication_token: undefined });
     });
-    expect((await f.t.query(api.arrakis.reference, {}))?.revision).toBe('token-1.2026-10-01T00:00:00.000Z');
+    expect((await f.t.query(api.arrakis.reference, {}))?.revision).toBe('v1.token-1.2026-10-01T00:00:00.000Z');
   });
 });
 
@@ -214,15 +214,15 @@ describe('The saved Arrakis revision', () => {
       applicationTriggers.wrapDB(rawCtx).db.patch(id as never, { updated_at: '2026-10-05T00:00:00.000Z' })
     );
     expect(await f.t.query(api.arrakis.reference, {})).toMatchObject({
-      revision: 'token-1.2026-10-05T00:00:00.000Z',
+      revision: 'v1.token-1.2026-10-05T00:00:00.000Z',
     });
   });
 });
 
-test('the reference is null for a board whose saved data fails its schema, as the board is', async () => {
+test('the reference still names a board whose saved data fails its schema, whose own null pages then fall back to', async () => {
   const f = await rulebookFixture();
   const id = await insertArrakis(f, false, { name: 'Arrakis Official', about: '', board: { territories: 'broken' } });
   await publish(f, id);
   expect(await f.t.query(api.arrakis.board, {})).toBeNull();
-  expect(await f.t.query(api.arrakis.reference, {})).toBeNull();
+  expect((await f.t.query(api.arrakis.reference, {}))?.revision).toMatch(/^v1\./);
 });

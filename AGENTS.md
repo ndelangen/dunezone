@@ -18,7 +18,9 @@ Convex agent skills for common tasks can be installed by running
 - Stack: TanStack Router, Start and Form, Convex, Vite, and Storybook. Reads go through Convex's own
   `useQuery` (page hooks wrap it in `useLiveQuery`, which keeps a closed page's subscription open
   briefly) inside `src/app/db`, so there is no TanStack Query and no client cache to manage; see
-  [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead.
+  [`docs/state-management.md`](docs/state-management.md) for what Convex holds instead. The one
+  exception is the saved Arrakis board, which pages fetch per revision from the Worker's
+  `/data/arrakis-board/*` route (`src/app/db/arrakis.ts`).
 - Non-obvious workflow: `bun run generate` refreshes generated game data outputs.
 - Vite+ (`vp`, package `vite-plus`) is the toolchain behind the `bun run` scripts.
 - Import from `vite-plus` and `vite-plus/test`, not `vite` or `vitest`.

@@ -2,10 +2,13 @@ import { readBoundedJson, runWithDeadline } from './http';
 
 /**
  * The saved Arrakis board's data, one revision per URL, so pages read the board from the edge and Convex answers `arrakis:board` once per revision and edge location.
- * Pages learn the current revision from the small `arrakis:face` subscription.
- * A day's lifetime bounds how long an edit that did not change the board's `updated_at` (a migration, say) could stay unseen.
+ * Pages learn the current revision from the small `arrakis:reference` subscription.
+ * A day's lifetime at the edge, and a day more in a browser, bounds how long an edit that did not change the board's `updated_at` (a migration, say) could stay unseen.
  */
 const ARRAKIS_BOARD_DATA_SECONDS = 86_400;
+
+/** Data, never a page: browsers do not sniff it and search engines do not index it. */
+const DATA_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' };
 
 const ROUTE = /^\/data\/arrakis-board\/([^/]+)\.json$/;
 const MAX_BYTES = 2_000_000;
@@ -43,7 +46,7 @@ export async function handleArrakisBoardRequest(
   if (encoded === undefined) {
     return null;
   }
-  const uncached = { 'Cache-Control': 'no-store' };
+  const uncached = { 'Cache-Control': 'no-store', ...DATA_HEADERS };
   if (!['GET', 'HEAD'].includes(request.method)) {
     return new Response(null, { status: 405, headers: { ...uncached, Allow: 'GET, HEAD' } });
   }
@@ -68,12 +71,17 @@ export async function handleArrakisBoardRequest(
   }
   /* Another revision is current (or none is): the page falls back to its live query, and nothing is stored under a name it does not answer. */
   if (!board || board.revision !== revision) {
+    /* Every visit pays for a miss, so a reference that keeps naming a revision the board does not answer shows in the logs. */
+    console.warn(
+      JSON.stringify({ event: 'arrakis_board_revision_mismatch', requested: revision, current: board?.revision ?? null })
+    );
     return new Response(null, { status: 404, headers: uncached });
   }
   const response = new Response(JSON.stringify(board), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': `public, max-age=${ARRAKIS_BOARD_DATA_SECONDS}`,
+      ...DATA_HEADERS,
     },
   });
   await storage?.put(key, response.clone()).catch(() => undefined);
