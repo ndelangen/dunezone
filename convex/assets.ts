@@ -35,12 +35,13 @@ import {
   authoredDeckCardback,
   deckCardbackOf,
   resolveBackHref,
+  CARD_DRAWN_TOKEN_TYPES,
   TOKEN_ASSET_TYPES,
   ownPublishedFace,
   tokenBackOf,
 } from './lib/assetBacks';
 import { assetCatalogueOrderOf } from './lib/assetCatalogue';
-import { assertKnownAssetType, assetDisplayName } from './lib/assetInput';
+import { assertCreatableAssetType, assetDisplayName } from './lib/assetInput';
 import { backgroundProjection, resolveBackgrounds } from './lib/backgroundPresets';
 import { listAssetListingRows, readBoardListing } from './lib/boardListing';
 import { listCardbackPresets, presetFromKey } from './lib/cardbackPresets';
@@ -609,7 +610,7 @@ export async function withNexusFaction(ctx: MutationCtx, type: string, input: un
 
 /* The public writer and the GF9 import share validation, slug allocation and publication. */
 async function createOwnedAsset(ctx: MutationCtx, userId: Id<'users'>, type: string, data: unknown) {
-  assertKnownAssetType(type);
+  assertCreatableAssetType(type);
   const parsed = parseAssetDataForWrite(type, await withNexusFaction(ctx, type, data));
   parsed.data = await withValidatedBack(ctx, { type }, parsed.data as Record<string, unknown>);
   if (type === 'card-custom' || type === 'card-storm') {
@@ -820,8 +821,8 @@ export const softDelete = mutation({
 });
 
 /** Cards that draw a token or a board redraw when it is saved or deleted. */
-async function refreshDependentCards(ctx: MutationCtx, type: string, id: Id<'assets'>) {
-  if (TOKEN_TYPES.has(type)) {
+export async function refreshDependentCards(ctx: MutationCtx, type: string, id: Id<'assets'>) {
+  if (CARD_DRAWN_TOKEN_TYPES.has(type)) {
     await ctx.scheduler.runAfter(0, internal.assets.refreshEmbeddedCards, { tokenId: id, cursor: null });
     await ctx.scheduler.runAfter(0, internal.assets.refreshSpiceCards, {
       dependencyId: id,

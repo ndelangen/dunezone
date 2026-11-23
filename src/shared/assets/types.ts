@@ -8,7 +8,8 @@ const ASSET_CATEGORIES = ['cards', 'decks', 'tokens', 'boards'] as const;
 
 export type AssetCategory = (typeof ASSET_CATEGORIES)[number];
 
-type AssetTypeStatus = 'live' | 'planned';
+/* A retired type keeps its registry entry so stored rows still read, but nothing new is made of it (#3013). */
+type AssetTypeStatus = 'live' | 'planned' | 'retired';
 
 export type AssetTypeDefinition = {
   category: AssetCategory;
@@ -39,13 +40,19 @@ export const ASSET_TYPES = {
   'token-tech': { category: 'tokens', label: 'Tech tokens', shortLabel: 'Tech', status: 'live' },
   'token-plate': { category: 'tokens', label: 'Plate tokens', shortLabel: 'Plate', status: 'live' },
   'token-pointer': { category: 'tokens', label: 'Pointer tokens', shortLabel: 'Pointer', status: 'live' },
-  'token-enhance': { category: 'tokens', label: 'Enhance tokens', shortLabel: 'Enhance', status: 'live' },
+  /* Retired (#3013): battle plans never took them, and the Kwisatz Haderach is a leader token now. */
+  'token-enhance': { category: 'tokens', label: 'Enhance tokens', shortLabel: 'Enhance', status: 'retired' },
   /* A container of tokens, so it groups with them rather than earning a fifth category (see CONTEXT.md: Asset category). */
   bundle: { category: 'tokens', label: 'Bundles', shortLabel: 'Bundles', status: 'live' },
   board: { category: 'boards', label: 'Boards', shortLabel: 'Boards', status: 'live' },
 } as const satisfies Record<string, AssetTypeDefinition>;
 
 export type AssetType = keyof typeof ASSET_TYPES;
+
+/** Whether nothing new may be made of this type: no editor, picker or table offers it. */
+export function isRetiredAssetType(type: string): boolean {
+  return isAssetType(type) && ASSET_TYPES[type].status === 'retired';
+}
 
 /**
  * Every Asset type, in the registry's own declaration order.

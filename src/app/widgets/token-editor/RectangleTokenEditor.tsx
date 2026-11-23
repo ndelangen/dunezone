@@ -74,13 +74,6 @@ const INITIAL_FACE: RectangleFaceDraft = {
   texts: [],
 };
 
-export const INITIAL_RECTANGLE_DRAFT: RectangleDraft = {
-  name: '',
-  about: '',
-  front: INITIAL_FACE,
-  back: { mode: 'custom', face: INITIAL_FACE },
-};
-
 const newDecal = (): RectangleFaceDraft['decals'][number] => ({
   id: (vectorDecalAssetOptions[0] ?? '') as RectangleFaceDraft['decals'][number]['id'],
   muted: false,
@@ -567,10 +560,7 @@ export function RectangleTokenEditor({
     },
     ...faceChapters('front', 'Front', draft.front, patchFace('front')),
     ...(draft.back.mode === 'custom' ? faceChapters('back', 'Back', draft.back.face, patchFace('back')) : []),
-    /*
-     * This editor was the only one of five with no About chapter, while `INITIAL_RECTANGLE_DRAFT` has carried
-     * `about: ''` since «Assets gain an About field», so the prose was stored and unreachable (found 2026-08-20).
-     */
+    /* Every token editor ends on the About chapter. */
     aboutChapter(draft.about, (about) => patch({ about })),
   ];
 

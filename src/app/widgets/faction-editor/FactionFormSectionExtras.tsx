@@ -1,5 +1,5 @@
 import { Stack, Text } from '@mantine/core';
-import { ASSET_TYPES } from '@shared/assets/types';
+import { ASSET_TYPES, isRetiredAssetType } from '@shared/assets/types';
 import { FACTION_EXTRA_TYPES, factionExtraKey } from '@shared/factions/extras';
 import type { FactionExtra } from '@shared/factions/extras';
 import { ListChapter } from '@ui/block/ListChapter';
@@ -12,7 +12,7 @@ import styles from './FactionEditor.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import { useInheritableField } from './FactionInheritance';
 
-const EXTRA_TYPES = [...FACTION_EXTRA_TYPES];
+const EXTRA_TYPES = FACTION_EXTRA_TYPES.filter((type) => !isRetiredAssetType(type));
 
 /* The proof names each Extra by catalogue address, the way the faction stores it; the chapter's list draws the assets themselves. */
 function ExtraLabel({ extra }: { extra: FactionExtra }) {

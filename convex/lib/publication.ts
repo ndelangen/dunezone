@@ -46,7 +46,9 @@ import {
   SPICE_DISCOVERY_REVISION,
   TREACHERY_TEXT_ONLY_REVISION,
   ROUND_TOKEN_SYMBOL_STYLE_REVISION,
+  CUSTOM_CARD_LEADER_TOKEN_REVISION,
   CUSTOM_CARD_STYLED_TOKEN_REVISION,
+  STORM_CARD_LEADER_TOKEN_REVISION,
   STORM_CARD_STYLED_TOKEN_REVISION,
   TreacheryAsset,
   TokenAsset,
@@ -140,9 +142,13 @@ function hasSymbolStyle(face: z.infer<typeof TokenFace>) {
   );
 }
 
+function hasLeaderTokens(tokens: z.infer<typeof CustomCardTokens> | undefined) {
+  return Object.values(tokens ?? {}).some((token) => token?.type === 'token-leader');
+}
+
 function hasStyledTokens(tokens: z.infer<typeof CustomCardTokens> | undefined) {
   return Object.values(tokens ?? {}).some(
-    (token) => token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
+    (token) => token && 'face' in token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
   );
 }
 
@@ -321,6 +327,11 @@ export async function enqueueAssetPublication(
       const minimum =
         asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_STYLED_TOKEN_REVISION : STORM_CARD_STYLED_TOKEN_REVISION;
       if (hasStyledTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, minimum))) {
+        return null;
+      }
+      const leaderRevision =
+        asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_LEADER_TOKEN_REVISION : STORM_CARD_LEADER_TOKEN_REVISION;
+      if (hasLeaderTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, leaderRevision))) {
         return null;
       }
       return await enqueuePublicationJob(ctx, {

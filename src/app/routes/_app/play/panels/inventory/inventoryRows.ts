@@ -1,4 +1,4 @@
-import { ASSET_TYPES } from '@shared/assets/types';
+import { ASSET_TYPES, isRetiredAssetType } from '@shared/assets/types';
 import { isSpawnType, SPAWN_TYPES } from '@shared/play/captureTypes';
 import type { SpawnType } from '@shared/play/captureTypes';
 import type { TablePiece } from '@shared/play/model';
@@ -53,7 +53,10 @@ export function inventoryRows(pieces: readonly TablePiece[]): InventoryRow[] {
   }
   const other = byType.get(null) ?? [];
   const shelves = [
-    ...SPAWN_TYPES.map((type) => shelf(type, ASSET_TYPES[type].label, byType.get(type) ?? [], type)),
+    /* A retired type keeps a shelf only for pieces of it already on the table (#3013). */
+    ...SPAWN_TYPES.filter((type) => !isRetiredAssetType(type) || byType.has(type)).map((type) =>
+      shelf(type, ASSET_TYPES[type].label, byType.get(type) ?? [], type)
+    ),
     ...(other.length ? [shelf('other', 'Other pieces', other, null)] : []),
   ];
   return [...shelves.filter((row) => row.pieces.length), ...shelves.filter((row) => !row.pieces.length)];

@@ -1,4 +1,6 @@
-import { ASSET_TYPES } from '../../src/shared/assets/types';
+import { ConvexError } from 'convex/values';
+
+import { ASSET_TYPES, isRetiredAssetType } from '../../src/shared/assets/types';
 
 /**
  * An asset's display name, decided once: the stored name when it holds one, "Untitled" when it does not.
@@ -13,5 +15,13 @@ export function assetDisplayName(row: { data: unknown }): string {
 export function assertKnownAssetType(type: string): void {
   if (!Object.hasOwn(ASSET_TYPES, type)) {
     throw new Error(`Unknown asset type ${type}`);
+  }
+}
+
+/** Refuses a new asset of a retired type (#3013); stored ones still read. */
+export function assertCreatableAssetType(type: string): void {
+  assertKnownAssetType(type);
+  if (isRetiredAssetType(type)) {
+    throw new ConvexError(`${ASSET_TYPES[type as keyof typeof ASSET_TYPES].label} are retired.`);
   }
 }

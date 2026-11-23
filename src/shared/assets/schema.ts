@@ -54,6 +54,10 @@ export const TREACHERY_TEXT_ONLY_REVISION = 8;
 export const ROUND_TOKEN_SYMBOL_STYLE_REVISION = 3;
 export const CUSTOM_CARD_STYLED_TOKEN_REVISION = 4;
 export const STORM_CARD_STYLED_TOKEN_REVISION = 6;
+/** The Custom Card renderer revision that draws a leader token layer (#3013). */
+export const CUSTOM_CARD_LEADER_TOKEN_REVISION = 6;
+/** The Storm Card renderer revision that draws a leader token layer (#3013). */
+export const STORM_CARD_LEADER_TOKEN_REVISION = 7;
 
 /** Named board treatments keep tints and placed tokens in their own colours. */
 export const SPICE_BOARD_LOOKS = ['burnt', 'sepia', 'plain', 'textured-burn'] as const;
@@ -394,6 +398,8 @@ export const CustomCardToken = z.discriminatedUnion('type', [
     face: TokenFace,
   }),
   z.strictObject({ type: z.literal('token-enhance'), name: z.string(), face: RectangleTokenFace }),
+  /* A leader token draws its whole face from its own fields, so the card carries them all (#3013). */
+  z.strictObject({ type: z.literal('token-leader'), name: z.string(), leader: LeaderTokenAsset.omit({ about: true }) }),
 ]);
 export const CustomCardTokens = z.record(z.string(), CustomCardToken.nullable());
 export const CustomCardTokenResolution = z.object({

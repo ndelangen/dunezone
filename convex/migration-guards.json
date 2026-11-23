@@ -285,6 +285,26 @@
         "faction_variant_addresses_v1",
         "faction_variant_addresses_verify_v1"
       ]
+    },
+    {
+      "id": "enhance_retire_1_cards_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "enhance_retire_2_bundles_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "enhance_retire_3_extras_v1",
+      "phase": "widen",
+      "requires": []
+    },
+    {
+      "id": "enhance_retire_4_tokens_v1",
+      "phase": "widen",
+      "requires": []
     }
   ]
 }

@@ -40,7 +40,15 @@ test('keeps a shelf for every type the catalogue can add, in its order, even whe
     ['Tech tokens', [], 0, 'token-tech'],
     ['Plate tokens', [], 0, 'token-plate'],
     ['Pointer tokens', [], 0, 'token-pointer'],
-    ['Enhance tokens', [], 0, 'token-enhance'],
+  ]);
+});
+
+test('keeps a retired type’s shelf only while pieces of it are on the table (#3013)', () => {
+  expect(shelves([piece('peace', 'force', 'token-enhance')])[0]).toEqual([
+    'Enhance tokens',
+    ['peace'],
+    1,
+    'token-enhance',
   ]);
 });
 
@@ -70,6 +78,5 @@ test('puts the shelves holding pieces first, each group in the catalogue order',
     'Leader tokens',
     'Plate tokens',
     'Pointer tokens',
-    'Enhance tokens',
   ]);
 });

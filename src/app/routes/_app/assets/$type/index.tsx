@@ -252,6 +252,13 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
       </Surface>
     );
   }
+  if (definition.status === 'retired') {
+    return (
+      <Surface padding="xl">
+        <EmptyResults title="Retired">{`${definition.label} are retired. New ones can no longer be made.`}</EmptyResults>
+      </Surface>
+    );
+  }
   if (data.typeTotal === 0) {
     return (
       <Surface padding="xl">

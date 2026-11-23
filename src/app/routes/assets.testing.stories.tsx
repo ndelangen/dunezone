@@ -460,14 +460,13 @@ export const CreateDiscTokenSignedOut = meta.story({
   },
 });
 
-export const CreateEnhanceTokenSignedOut = meta.story({
+/* Enhance tokens are retired (#3013): their create page says so, with no editor to fill in. */
+export const CreateEnhanceTokenRetired = meta.story({
   args: { path: '/assets/token-enhance/create' },
-  parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('link', { name: 'Log in' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(
-      page.findByRole('link', { name: 'Back to enhance tokens' }, { timeout: 30_000 })
+      page.findByText('Enhance tokens are retired. New ones can no longer be made.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Save token' })).toBeNull();
   },
@@ -549,10 +548,6 @@ export const CreateTreacheryCard = meta.story({
 });
 export const CreateDeck = meta.story({
   args: { path: '/assets/deck/create' },
-  play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
-});
-export const CreateEnhanceToken = meta.story({
-  args: { path: '/assets/token-enhance/create' },
   play: ({ canvasElement }) => expectFieldValue(canvasElement, 'Name', ''),
 });
 export const CreateBundle = meta.story({

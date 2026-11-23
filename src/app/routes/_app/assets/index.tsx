@@ -1,5 +1,5 @@
 import { Stack, Text, UnstyledButton } from '@mantine/core';
-import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
+import { ASSET_TYPE_KEYS, ASSET_TYPES, isRetiredAssetType } from '@shared/assets/types';
 import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -62,7 +62,8 @@ const PILE_ROWS: { label: string; categories: AssetCategory[] }[] = [
  */
 const PILE_GROUPS = PILE_ROWS.map(({ label, categories }) => ({
   label,
-  types: ASSET_TYPE_KEYS.filter((type) => categories.includes(ASSET_TYPES[type].category)),
+  /* A retired type has no pile: nothing new is made of it, and its assets are gone (#3013). */
+  types: ASSET_TYPE_KEYS.filter((type) => categories.includes(ASSET_TYPES[type].category) && !isRetiredAssetType(type)),
 }));
 
 function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
