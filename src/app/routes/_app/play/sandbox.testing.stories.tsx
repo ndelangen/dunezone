@@ -17,6 +17,7 @@ import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
+import { HOVER_TAG_GRACE_MS } from '../../../widgets/tabletop/hoverTag';
 import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
@@ -436,17 +437,16 @@ async function hoverShowsNameAndCount(
     );
   };
   /* The tag floats over the stack, so the stack lies a little under it on screen; how far depends on the camera. */
-  const below = [6, 12, 18, 24, 30, 36, 42];
   let tries = 0;
   const pointAtStack = async () => {
     const box = count.getBoundingClientRect();
-    pointAt(box.left + box.width / 2, box.bottom + below[tries++ % below.length]!);
+    pointAt(box.left + box.width / 2, box.bottom + 6 + (tries++ % 7) * 6);
     /*
      * The table answers a move at once, but the tag paints in its own root, which on a busy runner commits frames later:
      * the answer to one spot can show only after the pointer has moved on to the next, which may miss the stack.
      * So each spot is held past the hover's grace and for a few drawn frames, and the tag read afterwards answers the spot the pointer rests on.
      */
-    const until = performance.now() + 400;
+    const until = performance.now() + HOVER_TAG_GRACE_MS * 2.5;
     for (let frame = 0; frame < 3 || performance.now() < until; frame++) {
       await new Promise((next) => requestAnimationFrame(next));
     }

@@ -37,25 +37,18 @@ async function readyTable(canvasElement: HTMLElement) {
  * `most` is the most receipts that were on screen together.
  */
 function watchDrawReceipts(document: Document) {
-  const shown = new Set<string>();
-  let most = 0;
   const record = () => {
     const receipts = document.querySelectorAll('[data-card-draw]');
-    most = Math.max(most, receipts.length);
+    seen.most = Math.max(seen.most, receipts.length);
     for (const receipt of receipts) {
-      shown.add(receipt.getAttribute('data-card-draw') ?? '');
+      seen.shown.add(receipt.getAttribute('data-card-draw') ?? '');
     }
   };
   const observer = new MutationObserver(record);
+  const seen = { shown: new Set<string>(), most: 0, stop: () => observer.disconnect() };
   observer.observe(document.body, { childList: true, subtree: true });
   record();
-  return {
-    shown,
-    get most() {
-      return most;
-    },
-    stop: () => observer.disconnect(),
-  };
+  return seen;
 }
 
 /** The actual Draw a card action runs through the room, subscription and scene. More cards can be drawn after the story finishes. */
@@ -152,8 +145,8 @@ export const RapidDraws = meta.story({
     }
     try {
       await waitFor(() => expect(receipts.most).toBe(2));
-      await expect([...receipts.shown].sort()).toEqual([...recipients].sort());
-      await waitFor(() => expect(document.querySelectorAll('[data-card-draw]')).toHaveLength(0), { timeout: 5000 });
+      await expect(receipts.shown).toEqual(new Set(recipients));
+      await waitFor(() => expect(document.querySelectorAll('[data-card-draw]')).toHaveLength(0));
     } finally {
       receipts.stop();
     }
