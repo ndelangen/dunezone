@@ -2,7 +2,7 @@ import { CARD_FRONT_PUBLICATION_REVISIONS } from '../assets/cardFrontPresets';
 import {
   CUSTOM_CARD_LEADER_TOKEN_REVISION,
   ROUND_TOKEN_SYMBOL_STYLE_REVISION,
-  STORM_CARD_STYLED_TOKEN_REVISION,
+  STORM_CARD_LEADER_TOKEN_REVISION,
   TREACHERY_TEXT_ONLY_REVISION,
 } from '../assets/schema';
 import {
@@ -61,7 +61,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   /* Revision 4 captures the shared Stronghold front preset and restores icon texture contrast. */
   [STRONGHOLD_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[STRONGHOLD_CARD_ASSET_TYPE] + 1,
   /* Revision 4 captures the shared Storm front preset. */
-  [STORM_CARD_ASSET_TYPE]: STORM_CARD_STYLED_TOKEN_REVISION,
+  /* Revision 7 draws a leader token layer (#3013). */
+  [STORM_CARD_ASSET_TYPE]: STORM_CARD_LEADER_TOKEN_REVISION,
   /* Revision 5 retains clipped back emblems and fits complete back labels. */
   [DECK_ASSET_TYPE]: 5,
   /* Revision 7 fits complete back labels while keeping saved designs. */

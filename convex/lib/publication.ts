@@ -48,6 +48,7 @@ import {
   ROUND_TOKEN_SYMBOL_STYLE_REVISION,
   CUSTOM_CARD_LEADER_TOKEN_REVISION,
   CUSTOM_CARD_STYLED_TOKEN_REVISION,
+  STORM_CARD_LEADER_TOKEN_REVISION,
   STORM_CARD_STYLED_TOKEN_REVISION,
   TreacheryAsset,
   TokenAsset,
@@ -328,10 +329,8 @@ export async function enqueueAssetPublication(
       if (hasStyledTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, minimum))) {
         return null;
       }
-      if (
-        hasLeaderTokens(tokens) &&
-        (await holdsForRenderer(ctx, asset.type, asset._id, CUSTOM_CARD_LEADER_TOKEN_REVISION))
-      ) {
+      const leaderRevision = asset.type === CUSTOM_CARD_ASSET_TYPE ? CUSTOM_CARD_LEADER_TOKEN_REVISION : STORM_CARD_LEADER_TOKEN_REVISION;
+      if (hasLeaderTokens(tokens) && (await holdsForRenderer(ctx, asset.type, asset._id, leaderRevision))) {
         return null;
       }
       return await enqueuePublicationJob(ctx, {
