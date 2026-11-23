@@ -6,7 +6,6 @@ import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
-import { FACTION_MERGE_MIGRATION_IDS } from './factionMergeMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
 import { syncBoardPublicationToken, syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
@@ -56,7 +55,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
-  ...FACTION_MERGE_MIGRATION_IDS,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
