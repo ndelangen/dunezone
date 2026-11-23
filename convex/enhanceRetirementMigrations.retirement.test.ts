@@ -131,6 +131,19 @@ describe('retiring enhance tokens (#3013)', () => {
     expect(await f.asset(f.peace)).toMatchObject({ is_deleted: true });
   });
 
+  test('keeps a named enhance layer when its leader is gone, so the swap can run again once the leader is back', async () => {
+    const f = await retirementFixture();
+    const before = (await f.asset(f.card)).data;
+    await f.t.run(async (ctx) => ctx.db.patch(f.leader, { is_deleted: true }));
+    (LAYER_SWAPS as Map<string, string>).set(f.enhance, f.leader);
+    try {
+      await f.t.mutation(internal.enhanceRetirementMigrations.enhance_retire_1_cards_v1, {}).catch(() => undefined);
+    } finally {
+      (LAYER_SWAPS as Map<string, string>).delete(f.enhance);
+    }
+    expect((await f.asset(f.card)).data).toEqual(before);
+  });
+
   test('takes them and their emptied bundle out of faction Extras and deletes them, leaving every other token; a replay changes nothing', async () => {
     const f = await retirementFixture();
     await f.migrate();

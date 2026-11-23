@@ -1,5 +1,6 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
+import { ConvexError } from 'convex/values';
 
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -56,6 +57,19 @@ async function retiredLayerToken(ctx: Pick<MutationCtx, 'db'>, layer: StoredLaye
   return (await liveOfType(ctx, layer.asset_id, RETIRED)) ? layer.asset_id : null;
 }
 
+/**
+ * The leader a named swap points at, which must be live.
+ * A missing one stops the migration before the card is saved, so the layer is kept for a retry rather than dropped.
+ */
+async function swapTarget(ctx: Pick<MutationCtx, 'db'>, leaderId: string): Promise<string> {
+  if (!(await liveOfType(ctx, leaderId, 'token-leader'))) {
+    throw new ConvexError(
+      `The Kwisatz Haderach leader token ${leaderId} is missing; restore it before this migration runs.`
+    );
+  }
+  return leaderId;
+}
+
 /** A live Custom or Storm card's stored layers, or null for any other row. */
 function storedLayers(row: Doc<'assets'>): StoredLayer[] | null {
   if (row.is_deleted || !LAYERED_CARD_TYPES.has(row.type)) {
@@ -83,9 +97,9 @@ async function withoutRetiredLayers(
     }
     changed = true;
     const swap = LAYER_SWAPS.get(assetId);
-    if (swap && (await liveOfType(ctx, swap, 'token-leader'))) {
+    if (swap) {
       /* The same scale gives the leader the rectangle's width, the size of the round counters beside it (Norbert, 23 November 2026). */
-      kept.push({ ...layer, asset_id: swap });
+      kept.push({ ...layer, asset_id: await swapTarget(ctx, swap) });
     }
   }
   return changed ? kept : null;
