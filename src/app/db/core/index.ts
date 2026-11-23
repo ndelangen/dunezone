@@ -2,6 +2,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { ConvexReactClient } from 'convex/react';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 
+import { edgeCachedFetch } from './edgeQueryCache';
 import { keepWarm, LOADER_HOLD_MS, releaseAllHolds } from './warm';
 
 /* Sign-in and sign-out drop every held query first, so a loader never reuses a private result held for the identity before. */
@@ -45,8 +46,10 @@ function convexBackendForDb(): SandboxBackend | ConvexHttpClient {
   if (!import.meta.env.SSR) {
     return convex;
   }
+  /* Anonymous server reads share answers through the edge for a while (edgeQueryCache.ts). */
   return new ConvexHttpClient(convexUrl, {
     logger: false,
+    fetch: edgeCachedFetch() as typeof fetch,
   });
 }
 
