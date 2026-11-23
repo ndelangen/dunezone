@@ -60,7 +60,7 @@ export const board = publicQuery({
           imageUrl: face.imageUrl,
           geometry: face.geometry,
           board: data.data.board,
-          revision: arrakisRevision(face.publicationToken, face.row.updated_at),
+          revision: await arrakisRevision(ctx, face.assetId, face.publicationToken, face.row.updated_at),
         }
       : null;
   },
@@ -84,10 +84,15 @@ export const face = publicQuery({
 });
 
 /**
- * Names one version of `board`'s answer, from the board's publication token and its saved row's `updated_at`: a republish changes the one and a save the other, so the answer can be cached under the name.
+ * Names one version of `board`'s answer: its publication token (a republish), its saved row's `updated_at` (a save), and whether capture work is open for it, which can withhold a board published before geometry was stored with it.
+ * The answer can be cached under the name.
  */
-function arrakisRevision(publicationToken: string, updatedAt: string) {
-  return `${publicationToken}.${updatedAt}`;
+async function arrakisRevision(ctx: QueryCtx, assetId: string, publicationToken: string, updatedAt: string) {
+  const capture = await ctx.db
+    .query('publication_job_listings')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
+    .first();
+  return `${publicationToken}.${updatedAt}${capture ? '.capturing' : ''}`;
 }
 
 /**
@@ -117,6 +122,8 @@ export const reference = publicQuery({
           .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', assetId))
           .unique()
       )?.cache_token;
-    return token ? { assetId, name: row.name, revision: arrakisRevision(token, row.updated_at) } : null;
+    return token
+      ? { assetId, name: row.name, revision: await arrakisRevision(ctx, assetId, token, row.updated_at) }
+      : null;
   },
 });

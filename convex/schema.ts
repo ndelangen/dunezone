@@ -527,6 +527,8 @@ export default defineSchema({
     })
   )
     .index('by_job', ['job_id'])
+    /* Whether an asset has capture work, read from small rows instead of the jobs' full asset copies. */
+    .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_created_at_job_creation_time', ['status', 'created_at', 'job_creation_time'])
     .index('by_asset_type_status_created_at_job_creation_time', [
       'asset_type',

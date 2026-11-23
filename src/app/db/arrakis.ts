@@ -66,20 +66,24 @@ export function ArrakisBoardSeedProvider({
   return createElement(SeedContext.Provider, { value: seed }, children);
 }
 
-/** Board answers already fetched in this tab, by revision; a revision never changes its answer. */
-const fetchedBoards = new Map<string, Promise<ArrakisBoardSeed | undefined>>();
+/** Fetches in flight, by revision, so pages mounting together share one; a finished answer is left to the browser's HTTP cache. */
+const boardFetches = new Map<string, Promise<ArrakisBoardSeed | undefined>>();
 
-/** The edge's copy of `arrakis.board` for one revision, or `undefined` where the edge has none (Storybook, local dev, a revision it no longer serves). */
+/** How long a page waits for the edge before it subscribes to the whole board instead. */
+export const ARRAKIS_EDGE_WAIT_MS = 5000;
+
+/** The edge's copy of `arrakis.board` for one revision, or `undefined` where the edge has none (Storybook, local dev, a revision it no longer serves) or does not answer in time. */
 function fetchBoardRevision(revision: string): Promise<ArrakisBoardSeed | undefined> {
-  let found = fetchedBoards.get(revision);
+  let found = boardFetches.get(revision);
   if (!found) {
-    found = fetch(arrakisBoardDataHref(revision))
+    found = fetch(arrakisBoardDataHref(revision), { signal: AbortSignal.timeout(ARRAKIS_EDGE_WAIT_MS) })
       .then(async (response) => {
         const value = response.ok ? ((await response.json()) as ArrakisBoardSeed) : undefined;
         return value?.revision === revision ? value : undefined;
       })
-      .catch(() => undefined);
-    fetchedBoards.set(revision, found);
+      .catch(() => undefined)
+      .finally(() => boardFetches.delete(revision));
+    boardFetches.set(revision, found);
   }
   return found;
 }
@@ -127,7 +131,12 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
         ? seed
         : seed?.revision === revision
           ? seed
-          : (fetchedBoard ?? live ?? seed);
+          : fetchedBoard !== undefined
+            ? fetchedBoard
+            : /* Strictly undefined again: a live null (the board became unavailable) outranks an older embedded copy. */
+              live === undefined
+              ? seed
+              : live;
   return useMemo(() => {
     if (!found) {
       return found;

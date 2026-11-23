@@ -8,7 +8,7 @@ import { internalQuery } from './_generated/server';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { FACTION_MERGE_MIGRATION_IDS } from './factionMergeMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
-import { syncBoardReadiness } from './lib/boardReadiness';
+import { syncBoardPublicationToken, syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { assertVariantAddress, moveToVariantAddress } from './lib/factionAddresses';
 import { syncFactionCard } from './lib/factionCards';
@@ -547,9 +547,14 @@ export const board_readiness_v1 = migrations.define({
  */
 export const board_readiness_publication_token_v1 = migrations.define({
   table: 'board_readiness',
-  batchSize: 50,
+  /* Each row reads its board's publication, which holds the board's geometry. */
+  batchSize: 5,
   migrateOne: async (ctx, row) => {
-    await syncBoardReadiness(ctx, row.asset_id, await ctx.db.get(row.asset_id));
+    const publication = await ctx.db
+      .query('publication_assets')
+      .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', row.asset_id))
+      .unique();
+    await syncBoardPublicationToken(ctx, row.asset_id, publication?.cache_token);
   },
 });
 

@@ -180,3 +180,41 @@ describe('The board rows’ publication token backfill', () => {
     expect(await row()).toEqual(after);
   });
 });
+
+describe('The saved Arrakis revision', () => {
+  test('changes while capture work is open, so an answer that work could withhold is not cached under the old name', async () => {
+    const f = await rulebookFixture();
+    const id = await insertArrakis(f);
+    await publish(f, id);
+    const before = (await f.t.query(api.arrakis.reference, {}))?.revision;
+    await f.t.run((rawCtx) =>
+      applicationTriggers.wrapDB(rawCtx).db.insert('publication_jobs', {
+        asset_type: 'board',
+        asset_id: id,
+        asset_data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+        status: 'pending',
+        attempt_counter: 0,
+        created_at: 2,
+        updated_at: 2,
+      } as never)
+    );
+    const [reference, board] = await Promise.all([
+      f.t.query(api.arrakis.reference, {}),
+      f.t.query(api.arrakis.board, {}),
+    ]);
+    expect(reference?.revision).not.toBe(before);
+    expect(board?.revision).toBe(reference?.revision);
+  });
+
+  test('a board save keeps the publication token on its row without reading the publication', async () => {
+    const f = await rulebookFixture();
+    const id = await insertArrakis(f);
+    await publish(f, id);
+    await f.t.run((rawCtx) =>
+      applicationTriggers.wrapDB(rawCtx).db.patch(id as never, { updated_at: '2026-10-05T00:00:00.000Z' })
+    );
+    expect(await f.t.query(api.arrakis.reference, {})).toMatchObject({
+      revision: 'token-1.2026-10-05T00:00:00.000Z',
+    });
+  });
+});

@@ -127,7 +127,7 @@ describe('the saved Arrakis board', () => {
     mocks.reference = referenceTo(newer);
     rerender();
     await waitFor(() => expect(result.current?.assetId).toBe('newer-board'));
-    expect(fetchMock).toHaveBeenCalledWith('/data/arrakis-board/token-2.2026-10-02.json');
+    expect(fetchMock.mock.calls[0]![0]).toBe('/data/arrakis-board/token-2.2026-10-02.json');
     expect(result.current?.definition).toBe(result.current?.board);
     expect(result.current?.capture).toEqual({
       asset: { id: 'newer-board', slug: 'arrakis-official', name: 'Arrakis Revised' },
@@ -144,5 +144,28 @@ describe('the saved Arrakis board', () => {
     const { result } = renderHook(() => useArrakisBoard());
     await waitFor(() => expect(result.current?.revision).toBe('token-3.2026-10-03'));
     expect(mocks.fallbackNeeded).toContain(true);
+  });
+});
+
+describe('the saved Arrakis board when its data becomes unavailable', () => {
+  test('follows the live null over an older embedded copy', async () => {
+    const unavailable = { ...answer, revision: 'token-4.2026-10-04' };
+    edgeAnswers(undefined);
+    mocks.reference = referenceTo(unavailable);
+    mocks.fallback = null;
+    const { result } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
+    await waitFor(() => expect(result.current).toBeNull());
+  });
+
+  test('subscribes to the whole board when the edge does not answer', async () => {
+    const stalled = { ...answer, revision: 'token-5.2026-10-05' };
+    fetchMock.mockImplementation(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError');
+    });
+    mocks.reference = referenceTo(stalled);
+    mocks.fallback = stalled;
+    const { result } = renderHook(() => useArrakisBoard());
+    await waitFor(() => expect(result.current?.revision).toBe('token-5.2026-10-05'));
+    expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });
