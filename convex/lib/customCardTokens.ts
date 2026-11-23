@@ -4,7 +4,12 @@ export { customCardTokenIds, customCardPublicationError } from '../../src/shared
 import { ConvexError } from 'convex/values';
 import type { z } from 'zod';
 
-import { CUSTOM_CARD_MAX_LAYERS, RectangleTokenAsset, TokenAsset } from '../../src/shared/assets/schema';
+import {
+  CUSTOM_CARD_MAX_LAYERS,
+  LeaderTokenAsset,
+  RectangleTokenAsset,
+  TokenAsset,
+} from '../../src/shared/assets/schema';
 import type { CustomCardTokens, CustomCardTokenResolution } from '../../src/shared/assets/schema';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../types';
@@ -20,6 +25,14 @@ function tokenFront(row: Doc<'assets'> | null): z.infer<typeof CustomCardTokens>
     return null;
   }
   switch (row.type) {
+    case 'token-leader': {
+      const parsed = LeaderTokenAsset.safeParse(row.data);
+      if (!parsed.success) {
+        return null;
+      }
+      const { about: _about, ...leader } = parsed.data;
+      return { type: row.type, name: leader.name, leader };
+    }
     case 'token-enhance': {
       const parsed = RectangleTokenAsset.safeParse(row.data);
       return parsed.success ? { type: row.type, name: parsed.data.name, face: parsed.data.front } : null;

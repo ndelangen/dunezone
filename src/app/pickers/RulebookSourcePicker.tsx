@@ -225,7 +225,6 @@ export function RulebookSourcePicker({
             'token-tech',
             'token-plate',
             'token-pointer',
-            'token-enhance',
           ]}
           copy={{
             searchLabel: 'Find Asset',

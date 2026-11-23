@@ -4,6 +4,7 @@ import {
   publishingCustomCardTokenLayers,
 } from '@shared/assets/fixtures/publishingCustomCardTokens';
 import { publishingTreacheryCard } from '@shared/assets/fixtures/publishingTreacheryCard';
+import { DUKE_PRAD_VIDAL_TOKEN } from '@shared/assets/leaderToken';
 import { treacheryToCustomCard } from '@shared/assets/treacheryToCustomCard';
 import { expect } from 'storybook/test';
 
@@ -62,6 +63,28 @@ export const LongTitle = meta.story({
 
 export const TokenLayers = meta.story({
   args: { layers: publishingCustomCardTokenLayers, tokens: publishingCustomCardTokens },
+});
+
+/* A leader token as a layer, as the Kwisatz Haderach card draws its leader where the retired "+2" enhance token was (#3013). */
+const { about: _leaderAbout, ...leader } = DUKE_PRAD_VIDAL_TOKEN;
+export const LeaderTokenLayer = meta.story({
+  args: {
+    layers: [
+      {
+        kind: 'token',
+        layerId: '30000000-3000-4000-8000-300000000010',
+        asset_id: 'leader-token',
+        offset: [0, 220],
+        scale: 0.56,
+        opacity: 1,
+        rotation: 0,
+      },
+    ],
+    tokens: { 'leader-token': { type: 'token-leader', name: leader.name, leader } },
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector(`svg[aria-label="${leader.name}"]`)).not.toBeNull();
+  },
 });
 
 export const ConvertedTreachery = meta.story({

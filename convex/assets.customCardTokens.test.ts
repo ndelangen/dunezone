@@ -57,7 +57,7 @@ test('linked token layers resolve current fronts and refresh immutable card capt
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const page = await assetPageAs(owner, { type: 'card-custom', slug: card.slug });
     expect(page!.asset.data).toEqual(cardData);
-    expect(page!.cardTokens![token.id]!.face).toEqual(changed.front);
+    expect(page!.cardTokens![token.id]).toMatchObject({ face: changed.front });
     const jobs = await t.run((ctx) =>
       ctx.db
         .query('publication_jobs')

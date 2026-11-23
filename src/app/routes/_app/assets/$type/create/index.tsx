@@ -19,7 +19,6 @@ import {
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
-import { RectangleCreatePage } from './rectangleCreate';
 import { TokenCreatePage } from './tokenCreate';
 
 /**
@@ -71,8 +70,6 @@ function CreateAssetPage() {
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
     case 'token-leader':
       return <CardTypeCreatePage key={type} config={leaderTokenSession} />;
-    case 'token-enhance':
-      return <RectangleCreatePage />;
     case 'deck':
       return <DeckCreatePage />;
     case 'bundle':

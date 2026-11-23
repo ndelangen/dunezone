@@ -1,5 +1,6 @@
 import { Group, Stack, Text, TextInput } from '@mantine/core';
-import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { ASSET_TYPES, isAssetType, isRetiredAssetType } from '@shared/assets/types';
+import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
@@ -137,9 +138,15 @@ export function NoEditorYet({ type }: { type: string }) {
   const label = isAssetType(type) ? ASSET_TYPES[type].label.toLowerCase() : 'assets of this type';
   return (
     <AssetEditorMessage title={isAssetType(type) ? ASSET_TYPES[type].label : 'Assets'} type={type}>
-      <PageState kind="absent" title="No editor yet">
-        {`There is no editor for ${label} yet. This type is on the roadmap and cannot hold assets so far.`}
-      </PageState>
+      {isRetiredAssetType(type) ? (
+        <PageState kind="absent" title="Retired">
+          {`${ASSET_TYPES[type as AssetType].label} are retired. New ones can no longer be made.`}
+        </PageState>
+      ) : (
+        <PageState kind="absent" title="No editor yet">
+          {`There is no editor for ${label} yet. This type is on the roadmap and cannot hold assets so far.`}
+        </PageState>
+      )}
     </AssetEditorMessage>
   );
 }

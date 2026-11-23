@@ -394,6 +394,8 @@ export const CustomCardToken = z.discriminatedUnion('type', [
     face: TokenFace,
   }),
   z.strictObject({ type: z.literal('token-enhance'), name: z.string(), face: RectangleTokenFace }),
+  /* A leader token draws its whole face from its own fields, so the card carries them all (#3013). */
+  z.strictObject({ type: z.literal('token-leader'), name: z.string(), leader: LeaderTokenAsset.omit({ about: true }) }),
 ]);
 export const CustomCardTokens = z.record(z.string(), CustomCardToken.nullable());
 export const CustomCardTokenResolution = z.object({

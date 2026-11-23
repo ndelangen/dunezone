@@ -752,38 +752,16 @@ describe('a token page reports both of its faces', () => {
 });
 
 describe('enhance tokens', () => {
-  test('a free composition round-trips through a save, placed elements and all', async () => {
+  test('are retired: a new one is refused (#3013)', async () => {
     const t = applicationTest();
     const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
-    const created = await t
-      .withIdentity({ subject: ownerId })
-      .mutation(api.assets.create, { type: 'token-enhance', data: rectangleData('Kwisatz Haderach') });
-
-    expect(created.slug).toBe('kwisatz-haderach');
-    const page = await assetPageAs(t, { type: 'token-enhance', slug: 'kwisatz-haderach' });
-    expect(page?.asset.data).toEqual(rectangleData('Kwisatz Haderach'));
-
-    /* The save schedules both rectangle faces, the front under the bare id and the authored back under its own. */
-    const jobs = await t.run(async (ctx) => await ctx.db.query('publication_jobs').collect());
-    expect(
-      jobs.map((job) => ({ type: job.asset_type, id: job.asset_id })).toSorted((a, b) => a.id.localeCompare(b.id))
-    ).toEqual([
-      { type: 'token-enhance', id: created.id },
-      { type: 'token-enhance', id: publicationFaceId(created.id, 'back') },
-    ]);
-    expect(page?.assetPublishing).toMatchObject({ captureStatus: 'scheduled' });
-    expect(page?.backPublishing).toMatchObject({ captureStatus: 'scheduled' });
-  });
-
-  test('an unknown font is refused, so a face can never store one the project does not ship', async () => {
-    const t = applicationTest();
-    const ownerId = await t.run(async (ctx) => await ctx.db.insert('users', { name: 'Token owner' }));
-    const data = rectangleData('Bad Font');
-    data.front.texts[0]!.font = 'Comic Sans';
 
     await expect(
-      t.withIdentity({ subject: ownerId }).mutation(api.assets.create, { type: 'token-enhance', data })
-    ).rejects.toThrow();
+      t
+        .withIdentity({ subject: ownerId })
+        .mutation(api.assets.create, { type: 'token-enhance', data: rectangleData('Kwisatz Haderach') })
+    ).rejects.toThrow('Enhance tokens are retired.');
+    expect(await t.run(async (ctx) => await ctx.db.query('assets').collect())).toEqual([]);
   });
 });
 

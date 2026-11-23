@@ -112,7 +112,7 @@ export function rulebookMarkupEditor({
 const tokenPicker: AssetPick = (onPick, onCancel) => (
   <Suspense fallback={<Pending>Loading tokens</Pending>}>
     <AssetPicker
-      types={['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance']}
+      types={['token-disc', 'token-tech', 'token-plate', 'token-pointer']}
       copy={{
         searchLabel: 'Find a token',
         searchPlaceholder: 'Name, shape or creator',

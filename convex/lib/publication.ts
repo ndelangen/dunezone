@@ -142,7 +142,7 @@ function hasSymbolStyle(face: z.infer<typeof TokenFace>) {
 
 function hasStyledTokens(tokens: z.infer<typeof CustomCardTokens> | undefined) {
   return Object.values(tokens ?? {}).some(
-    (token) => token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
+    (token) => token && 'face' in token && token.type !== 'token-enhance' && hasSymbolStyle(token.face)
   );
 }
 

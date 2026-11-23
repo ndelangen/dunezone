@@ -28,6 +28,7 @@ import type * as componentPublication from "../componentPublication.js";
 import type * as contentImports from "../contentImports.js";
 import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
+import type * as enhanceRetirementMigrations from "../enhanceRetirementMigrations.js";
 import type * as factionFamilies from "../factionFamilies.js";
 import type * as factionMerge from "../factionMerge.js";
 import type * as factionMergeMigrations from "../factionMergeMigrations.js";
@@ -239,6 +240,7 @@ const fullApi: ApiFromModules<{
   contentImports: typeof contentImports;
   crons: typeof crons;
   e2e: typeof e2e;
+  enhanceRetirementMigrations: typeof enhanceRetirementMigrations;
   factionFamilies: typeof factionFamilies;
   factionMerge: typeof factionMerge;
   factionMergeMigrations: typeof factionMergeMigrations;
