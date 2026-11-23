@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
  */
 export function convexSourceVersion(root: string): string {
   try {
-    const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+    const git = (...args: string[]) => execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' }).trim();
     if (git('status', '--porcelain', '--', 'convex', 'src/shared', 'bun.lock') !== '') {
       return `local-${Date.now()}`;
     }

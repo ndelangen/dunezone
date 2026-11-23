@@ -16,14 +16,26 @@ const SOURCE_VERSION: string = import.meta.env.VITE_CONVEX_SOURCE_VERSION ?? 'un
  * The Convex HTTP client always calls with a URL and an init carrying a string body, so any other call passes through.
  */
 function sharedQueryUrl(input: RequestInfo | URL, init?: RequestInit): string | null {
-  if (input instanceof Request || init?.method !== 'POST' || typeof init.body !== 'string') {
+  if (input instanceof Request || !isAnonymousPost(init)) {
     return null;
   }
   const url = input instanceof URL ? input.href : input;
-  const { hostname, pathname } = new URL(url);
-  /* A local backend's data changes under the same source version, so a local Worker never keeps its answers. */
-  const local = hostname === 'localhost' || hostname === '127.0.0.1';
-  return pathname === '/api/query' && !local && !new Headers(init.headers).has('Authorization') ? url : null;
+  return isRemoteQueryEndpoint(new URL(url)) ? url : null;
+}
+
+/** A POST with a string body and no credentials, which is how the anonymous client sends every call. */
+function isAnonymousPost(init: RequestInit | undefined): boolean {
+  if (init?.method !== 'POST' || typeof init.body !== 'string') {
+    return false;
+  }
+  return !new Headers(init.headers).has('Authorization');
+}
+
+/** A local backend's data changes under the same source version, so a local Worker never keeps its answers. */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+function isRemoteQueryEndpoint({ hostname, pathname }: URL): boolean {
+  return pathname === '/api/query' && !LOCAL_HOSTS.has(hostname);
 }
 
 /**
