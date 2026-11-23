@@ -257,13 +257,14 @@ as production. If dev missed a prerequisite release, recover it explicitly befor
 
 Every Monday at 05:17 UTC, or on the next day if that run fails, `Anonymised snapshot` exports production once, anonymises and scans it,
 uploads the published-only snapshot for local development, then refreshes cloud dev from that same
-file. The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
+file when no run reloaded it in the last 25 days, so about every fourth week (a reload replays every
+migration over the snapshot, about a third of November 2026's Convex usage). The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
 seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
 guards. It holds only the dev deploy key; the export step alone holds the production key. The snapshot pins the last successful production release and requires both Workers to report that
 commit. It shares the production deployment lock for the whole export and refresh, which also covers its called dev sync. The queue retains waiting runs. A failed production release must
 be completed before a snapshot refresh can start.
 
-The weekly refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
+Each dev refresh replaces dev-side experiments and sign-in accounts. To recover dev sooner, run
 `Anonymised snapshot` manually from main. It performs the same export and refresh. Retry a failed dev sync job from its `Deploy production` run to retry code and outstanding migrations.
 A stale run refuses to overwrite dev after production has advanced. An uploaded snapshot remains available for local launches if the later dev refresh fails. A failed snapshot
 verification leaves dev's data intact; a failure after the reset remains visible for recovery.

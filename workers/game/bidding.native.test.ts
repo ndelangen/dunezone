@@ -103,6 +103,13 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     return { a, b, faction, raised, deadline };
   }
 
+  /* Whether the room's alarm still fires by the bid deadline. Once the room goes quiet its sweep stops and hands
+     pass expiries to the alarm, so a held bid shows as no alarm or one set well after the deadline. */
+  async function alarmWaitsOn(deadline: number) {
+    const at = (await runtime.alarm()).scheduledAt;
+    return at !== null && at <= deadline;
+  }
+
   /* A game in play with a raised timed bid, then a review the second player agrees to, which pauses the bid clock. */
   async function timedBidUnderReview() {
     const { a, b, faction, raised, deadline } = await timedBidInPlay();
@@ -115,7 +122,7 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
       choice: 'review' as const,
     });
     expect(required(started.snapshot.review).startedAt).not.toBeNull();
-    expect((await runtime.alarm()).scheduledAt).toBeNull();
+    expect(await alarmWaitsOn(deadline)).toBe(false);
     return { a, b, faction, deadline, left, review };
   }
 
@@ -139,7 +146,7 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     const ended = await accepted(a, { kind: 'result-end' as const });
     expect(ended.snapshot.stage).toBe('finished');
     const left = deadline - required(ended.serverNow);
-    expect((await runtime.alarm()).scheduledAt).toBeNull();
+    expect(await alarmWaitsOn(deadline)).toBe(false);
 
     /* Long past the old deadline, the bid has not moved on. */
     await runtime.clock(deadline - Date.now() + 30_000);

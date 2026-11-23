@@ -71,6 +71,10 @@ case "$EVENT" in
       shards_skip "main has not moved since the last $workflow run checked $SHA."
       exit 0
     fi
+    if [ "$MERGED_PULL_REQUEST_COUNTS" = false ]; then
+      shards_run "A pull request runs less of this job than the daily run, so only an earlier daily run of $SHA stands for it."
+      exit 0
+    fi
     read_api "repos/$REPO/commits/$SHA" commit.json "commit at main's tip"
     read -r first second <<< "$(jq -r '[.parents[].sha] | join(" ")' commit.json)"
     if [ -z "${second:-}" ]; then

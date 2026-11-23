@@ -151,15 +151,21 @@ describe('game deployment contract', () => {
   test('gives every shard a hosted browser flow names exactly one hosted_play job', () => {
     const job = verifyJob('hosted_play');
     const shards = [...job.matchAll(/^ +- shard: (\S+)$/gm)].map(([, shard]) => shard);
-    const named = new Set(Object.values(browserFlows).map(({ shard }) => shard));
+    /* The webgpu shard runs only on the macOS job. */
+    const named = new Set(
+      Object.values(browserFlows)
+        .map(({ shard }) => shard)
+        .filter((shard) => shard !== 'webgpu')
+    );
     expect(shards.sort()).toEqual([...named].sort());
   });
 
-  test('draws the regular flow with WebGPU on a free macOS runner, within a timeout above its budget', () => {
+  test('draws the webgpu shard on pull requests and the regular shard daily with WebGPU on a free macOS runner, within a timeout above its budget', () => {
     const job = verifyJob('hosted_play_webgpu');
     /* Standard runners cost nothing on a public repository, and a larger one such as macos-26-xlarge is billed there too. */
     expect(job).toMatch(/\n {4}runs-on: macos-\d+\n/);
-    expect(job).toContain('--shard regular');
+    expect(job).toContain("SHARD: ${{ inputs.hosted_only && 'regular' || 'webgpu' }}");
+    expect(job).toContain('--shard "$SHARD"');
     expect(job).toContain('--expect-renderer webgpu');
     /* Setup, build and boot took about two minutes before the flow started. */
     const minutes = Number(/\n {4}timeout-minutes: (\d+)\n/.exec(job)?.[1]);

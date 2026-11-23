@@ -1,8 +1,9 @@
-import { useConvex, useMutation as useConvexMutation, useQueries, useQuery } from 'convex/react';
+import { useConvex, useMutation as useConvexMutation, usePaginatedQuery, useQueries, useQuery } from 'convex/react';
+import type { PaginatedQueryArgs, PaginatedQueryReference, UsePaginatedQueryReturnType } from 'convex/react';
 import { getFunctionName, makeFunctionReference } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { convexToJson, jsonToConvex } from 'convex/values';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { keepWarm, PAGE_HOLD_MS } from './warm';
 
@@ -93,6 +94,91 @@ export function useHeldLiveQuery<Query extends FunctionReference<'query'>>(
     setHeld({ key, data: result });
   }
   return result;
+}
+
+/**
+ * A paginated page query whose first page is one cached answer for every visitor.
+ *
+ * `usePaginatedQuery` adds a per-tab counter to `paginationOpts` on purpose, as a cache-buster, so its answers never match the route loader's read of the same first page and rarely match another visitor's.
+ * Here the first page is a plain held subscription with exactly the loader's arguments (`numItems`, `cursor: null`), which the server render, the hydrated page and every other visitor share until something it read changes.
+ * Pagination starts only when someone loads more: `usePaginatedQuery` then reads the first page once more and the asked-for page after it, and the shared first page stays on screen until they arrive.
+ */
+export function useLivePaginatedQuery<Query extends PaginatedQueryReference>(
+  query: Query,
+  args: PaginatedQueryArgs<Query>,
+  options: { initialNumItems: number }
+): UsePaginatedQueryReturnType<Query> {
+  type Result = FunctionReturnType<Query>;
+  const { initialNumItems } = options;
+  const firstArgs = { ...args, paginationOpts: { numItems: initialNumItems, cursor: null } } as FunctionArgs<Query>;
+  const { key, subscription } = useWarmHold(query, firstArgs);
+  /*
+   * The arguments that handed over to pagination, and how many more items the "load more" that did it asked for.
+   * Another address, or coming back to this one, starts on the shared first page again.
+   */
+  const [expansion, setExpansion] = useState<{ key: string; more: number | null } | null>(null);
+  if (expansion !== null && expansion.key !== key) {
+    setExpansion(null);
+  }
+  const expanded = expansion?.key === key;
+  const paginated = usePaginatedQuery(query, expanded ? args : 'skip', { initialNumItems });
+  const paginating = expanded && paginated.status !== 'LoadingFirstPage';
+  /*
+   * The page the "load more" asked for follows once pagination has its own first page, and only once per handover.
+   * A first range that pagination had to split arrives as two ranges, so the request keys on the handover, not on a range count.
+   */
+  const handover = expanded && expansion?.more != null ? expansion : null;
+  const status = paginated.status;
+  const loadPaginated = paginated.loadMore;
+  const requested = useRef<unknown>(null);
+  useEffect(() => {
+    if (handover?.more != null && status === 'CanLoadMore' && requested.current !== handover) {
+      requested.current = handover;
+      loadPaginated(handover.more);
+    }
+  }, [handover, status, loadPaginated]);
+  /* Until that request lands, the lone first range reads as still loading more. */
+  const awaitingMore = handover !== null && status === 'CanLoadMore' && paginated.results.length === 1;
+  const first = useQuery(subscription.query, paginating ? 'skip' : subscription.args) as Result | undefined;
+  /*
+   * Defensive: a first page that grew past what one read may scan could come back cut short and ask to be split.
+   * Only `usePaginatedQuery` can split it, so the hook would hand over to it and keep the last whole answer on screen meanwhile.
+   * A re-run reads up to the page's journalled end, so the backend is not expected to send this for a plain subscription.
+   */
+  const [whole, setWhole] = useState<{ key: string; data: Result } | null>(null);
+  const splitRequired = first?.pageStatus === 'SplitRequired';
+  if (first !== undefined && !splitRequired && (whole?.key !== key || whole.data !== first)) {
+    setWhole({ key, data: first });
+  }
+  if (splitRequired && !expanded) {
+    setExpansion({ key, more: null });
+  }
+  if (paginating) {
+    /* Pagination splitting its own first range has nothing to show yet, so the last whole answer stays. */
+    if (status === 'LoadingMore' && paginated.results.length === 0 && whole?.key === key) {
+      const results = whole.data.page as UsePaginatedQueryReturnType<Query>['results'];
+      return { results, loadMore: paginated.loadMore, status: 'LoadingMore', isLoading: true };
+    }
+    return awaitingMore ? { ...paginated, status: 'LoadingMore', isLoading: true } : paginated;
+  }
+  const shown = splitRequired ? (whole?.key === key ? whole.data : undefined) : first;
+  const results = (shown?.page ?? []) as UsePaginatedQueryReturnType<Query>['results'];
+  const loadMore = (numItems: number) => {
+    if (first !== undefined && !first.isDone && !expanded) {
+      setExpansion({ key, more: numItems });
+    }
+  };
+  if (expanded || splitRequired) {
+    return shown === undefined
+      ? { results, loadMore, status: 'LoadingFirstPage', isLoading: true }
+      : { results, loadMore, status: 'LoadingMore', isLoading: true };
+  }
+  if (first === undefined) {
+    return { results, loadMore, status: 'LoadingFirstPage', isLoading: true };
+  }
+  return first.isDone
+    ? { results, loadMore, status: 'Exhausted', isLoading: false }
+    : { results, loadMore, status: 'CanLoadMore', isLoading: false };
 }
 
 /** Holds a page query warm after its page lets go of it, and returns its stable subscription and key. */
