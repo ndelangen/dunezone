@@ -11,16 +11,16 @@ export const EDGE_QUERY_SECONDS = 900;
 /** The Convex functions behind an answer: a deploy that changes them, or the shared code they import, starts afresh. */
 const SOURCE_VERSION: string = import.meta.env.VITE_CONVEX_SOURCE_VERSION ?? 'unversioned';
 
-/** Only anonymous query calls share answers: an answer read with credentials could hold what one viewer may see. */
-function isSharedQuery(input: RequestInfo | URL, init?: RequestInit): boolean {
-  const url = new URL(input instanceof Request ? input.url : String(input));
-  const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
-  return (
-    (init?.method ?? (input instanceof Request ? input.method : 'GET')) === 'POST' &&
-    url.pathname === '/api/query' &&
-    !headers.has('Authorization') &&
-    typeof init?.body === 'string'
-  );
+/**
+ * Only anonymous query calls share answers: an answer read with credentials could hold what one viewer may see.
+ * The Convex HTTP client always calls with a URL and an init carrying a string body, so any other call passes through.
+ */
+function sharedQueryUrl(input: RequestInfo | URL, init?: RequestInit): string | null {
+  if (input instanceof Request || init?.method !== 'POST' || typeof init.body !== 'string') {
+    return null;
+  }
+  const url = input instanceof URL ? input.href : input;
+  return new URL(url).pathname === '/api/query' && !new Headers(init.headers).has('Authorization') ? url : null;
 }
 
 async function keyFor(url: string, body: string): Promise<Request> {
@@ -42,10 +42,11 @@ export function edgeCachedFetch(
   base: Fetch = fetch
 ): Fetch {
   return async (input, init) => {
-    if (!storage || !isSharedQuery(input, init)) {
+    const url = storage ? sharedQueryUrl(input, init) : null;
+    if (!storage || url === null) {
       return await base(input, init);
     }
-    const key = await keyFor(input instanceof Request ? input.url : String(input), init!.body as string);
+    const key = await keyFor(url, init!.body as string);
     const hit = await storage.match(key).catch(() => undefined);
     if (hit) {
       return hit;
