@@ -153,14 +153,15 @@ export const enhance_retire_2_bundles_v1 = migrations.define({
 });
 
 /** True for an Extra the retirement takes away: an enhance token, or a bundle the step before deleted for holding only enhance tokens. */
-async function retiredExtra(ctx: Pick<MutationCtx, 'db'>, extra: { type?: unknown; slug?: unknown }): Promise<boolean> {
+async function retiredExtra(ctx: Pick<MutationCtx, 'db'>, raw: unknown): Promise<boolean> {
+  const extra = (raw ?? {}) as { type?: unknown; slug?: unknown };
   if (extra.type === RETIRED) {
     return true;
   }
-  if (extra.type !== 'bundle' || typeof extra.slug !== 'string') {
+  const slug = extra.type === 'bundle' ? extra.slug : null;
+  if (typeof slug !== 'string') {
     return false;
   }
-  const slug = extra.slug;
   const bundle = await ctx.db
     .query('assets')
     .withIndex('by_type_and_slug', (q) => q.eq('type', 'bundle').eq('slug', slug))
@@ -172,7 +173,7 @@ async function retiredExtra(ctx: Pick<MutationCtx, 'db'>, extra: { type?: unknow
 async function retiredExtraIndexes(ctx: Pick<MutationCtx, 'db'>, raw: unknown[]): Promise<Set<number>> {
   const doomed = new Set<number>();
   for (const [index, extra] of raw.entries()) {
-    if (extra && typeof extra === 'object' && (await retiredExtra(ctx, extra))) {
+    if (await retiredExtra(ctx, extra)) {
       doomed.add(index);
     }
   }
