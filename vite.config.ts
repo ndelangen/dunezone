@@ -15,6 +15,7 @@ import {
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
+import { convexSourceVersion } from './scripts/lib/convexSourceVersion.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
 import { quietBuildReportInCi } from './scripts/lib/quietBuildReport.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
@@ -155,6 +156,12 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
 const ON_DEMAND_PANELS = /\/TreacheryTrackerPanel-[^/]+\.js$/u;
 
 const config = defineConfig({
+  /* The edge keys cached public query answers by the Convex functions behind them (src/app/db/core/edgeQueryCache.ts). */
+  define: {
+    'import.meta.env.VITE_CONVEX_SOURCE_VERSION': JSON.stringify(
+      convexSourceVersion(fileURLToPath(new URL('.', import.meta.url)))
+    ),
+  },
   /* Oxfmt and Oxlint keep their own config files, which scripts and docs read; Vite+ takes them from here. */
   fmt: readJsonc(fileURLToPath(new URL('./.oxfmtrc.json', import.meta.url))) as UserConfig['fmt'],
   lint: readJsonc(fileURLToPath(new URL('./.oxlintrc.json', import.meta.url))) as UserConfig['lint'],

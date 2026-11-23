@@ -43,6 +43,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/node-executable.ts',
   'scripts/lib/publisher-assets.ts',
   'scripts/lib/browserBundleBudgets.ts',
+  'scripts/lib/convexSourceVersion.ts',
   'scripts/lib/jsonc.ts',
   'scripts/lib/quietBuildReport.ts',
   'scripts/lib/reactCompiler.ts',

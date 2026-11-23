@@ -29,6 +29,7 @@ export const EVERY_JOB: readonly string[] = [
   'browser-launch-tests.ts',
   /* What vite.config.ts imports, which every Vitest run loads. */
   'scripts/lib/browserBundleBudgets.ts',
+  'scripts/lib/convexSourceVersion.ts',
   'scripts/lib/jsonc.ts',
   'scripts/lib/quietBuildReport.ts',
   'scripts/lib/reactCompiler.ts',

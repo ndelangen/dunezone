@@ -29,8 +29,12 @@ hint. No cookies, authorization headers or forwarded headers reach anonymous HTM
 Only public routes dispatch into this cache. Response Set-Cookie, private/no-store/no-cache directives,
 Vary and non-200 statuses prevent storage before delivery strips cookies.
 
-A deletion, access change or rename becomes visible to a fresh HTML lookup after its entry expires,
-at most five minutes without early eviction. The browser's live result can replace it sooner.
+Beneath the HTML, the server's anonymous Convex queries keep their answers at the edge for ten
+minutes (`src/app/db/core/edgeQueryCache.ts`), keyed by the git trees of `convex/`, `src/shared/`
+and `bun.lock`, so a deploy that changes the functions starts afresh. Answers that found nothing
+(`null`) are never kept. A deletion, access change or rename therefore becomes visible to a fresh
+HTML lookup within a quarter of an hour (ten minutes of query answer plus five of HTML) without early
+eviction. The browser's live result can replace it sooner.
 Missing subjects return 404 and are not cached. Cached HTML never grants permissions. Old social
 URLs may combine old words with current artwork. A PNG already cached can remain for a day; a newly
 rendered PNG can use artwork cached for an hour, so stale artwork can survive for almost 25 hours
@@ -63,8 +67,8 @@ timeout cannot interrupt synchronous WASM and is not a CPU limit.
 
 Responses expose `X-Public-Cache` as hit, miss, bypass or error. `X-Public-Renders`,
 `X-Public-Metadata-Queries` and `X-Public-Artwork-Reads` count work for that request. The server data
-doorway increments the metadata counter around actual query attempts; it does not infer it from
-page type. PNG responses also distinguish artwork-cache state and recognized fallback use.
+doorway increments the metadata counter around actual query calls, whether Convex or the edge query
+cache answers them; it does not infer it from page type. PNG responses also distinguish artwork-cache state and recognized fallback use.
 The custom failure log contains only an event name, never exception text that could include card
 words. Existing platform invocation logs retain their existing configuration.
 

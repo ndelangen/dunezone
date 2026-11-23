@@ -58,7 +58,7 @@ export async function publicationStatusFor(
       .query('publication_assets')
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
       .take(2),
-    /* The jobs' listings carry their status without the full asset copy each job holds, and do not change when only a job's payload does. */
+    /* The jobs' listings carry their status without the full asset copy each job holds, so a page view reads a few hundred bytes per job. */
     ctx.db
       .query('publication_job_listings')
       .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
@@ -94,8 +94,8 @@ export async function publicationHrefFor(
 }
 
 /** Live work outranks a failure, because a running or waiting capture may still replace the publication the failed one could not. */
-function captureStatusOf(jobs: Pick<Doc<'publication_jobs'>, 'status'>[]): PublicAssetCaptureStatus | null {
-  const has = (status: Doc<'publication_jobs'>['status']) => jobs.some((job) => job.status === status);
+function captureStatusOf(jobs: Pick<Doc<'publication_job_listings'>, 'status'>[]): PublicAssetCaptureStatus | null {
+  const has = (status: Doc<'publication_job_listings'>['status']) => jobs.some((job) => job.status === status);
   switch (true) {
     case has('in_progress'):
       return 'in_progress';
