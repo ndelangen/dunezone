@@ -1,7 +1,6 @@
 import { isFactionToken } from './factionToken';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
-import { isPointerToken, pointerCovers } from './pointerToken';
-import { restingPositionAt } from './tableGeometry';
+import { isPlate, plateCovers, restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
 import {
   fitIntoTerritory,
@@ -29,7 +28,7 @@ export function packsInTerritory(piece: TablePiece): boolean {
     !piece.locked &&
     piece.items.length > 0 &&
     piece.kind !== 'card' &&
-    !isPointerToken(piece) &&
+    !isPlate(piece) &&
     !isFactionToken(piece) &&
     hasRoundFootprint(piece)
   );
@@ -64,9 +63,9 @@ export type TerritoryLayout = {
   nudges: TerritoryNudge[];
 };
 
-/* Whether a point lies on a plate such as the HMS. */
+/* Whether a point lies on a plate such as the HMS or a Discovery token. */
 function onAnyPlate(others: readonly TablePiece[], point: Readonly<Vector3Tuple>) {
-  return others.some((plate) => isPointerToken(plate) && !plate.inventory && pointerCovers(plate, point));
+  return others.some((plate) => isPlate(plate) && !plate.inventory && plateCovers(plate, point));
 }
 
 /**

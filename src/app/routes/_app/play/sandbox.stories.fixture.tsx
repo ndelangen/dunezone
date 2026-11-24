@@ -1,12 +1,16 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
+import type { StoredPiece } from '@shared/play/model';
 import type { Viewer } from '@shared/play/protocol';
 import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
+import { troopFactionOf } from '@shared/play/troopReserves';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
@@ -211,6 +215,68 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
 
+/**
+ * Two plain tokens standing in for Discovery tokens, face up on the board beside a troop stack, so their size and thickness read against a troop's.
+ * They borrow two Dreamrules tech tokens' faces, as plain tokens rather than tech tokens.
+ */
+/* The live Discovery bundle's tokens, by catalogue id: two Hiereg-backed and two Smuggler-backed, as dune.zone publishes them. */
+const LIVE_DISCOVERY_TOKENS = [
+  { id: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0', name: 'Cistern', back: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0' },
+  { id: 'ns78sqzwt8bjwan5nrwh2da38n8gmp91', name: 'Shrine', back: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0' },
+  { id: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n', name: 'Ornithopter', back: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n' },
+  { id: 'ns7fspnt2jjyj3p1gwhtz6gmyn8gmn2r', name: 'Spice Stash', back: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n' },
+] as const;
+
+/**
+ * The live Discovery tokens beside a troop stack, two face down as they are placed and two face up, so their size and thickness read against a troop's.
+ * Their faces are dune.zone's published pictures, which Storybook shows when started with STORYBOOK_LIVE_PUBLISHED=1.
+ */
+function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
+  const pieces = [...stored.table.pieces];
+  const versions = { ...stored.versions };
+  /* Beside the viewing seat's own troops, which sit nearest its camera. */
+  const own = stored.roster?.seats.find((seat) => seat.id === 'seat-1')?.faction?.id;
+  const troop =
+    pieces.find((candidate) => !candidate.inventory && own !== undefined && troopFactionOf(candidate) === own) ??
+    pieces.find((candidate) => candidate.kind === 'force' && candidate.stackKey?.startsWith('troop'));
+  const near: [number, number, number] = troop ? [troop.position[0], 0, troop.position[2]] : [0.6, 0, 0.6];
+  for (const [index, live] of LIVE_DISCOVERY_TOKENS.entries()) {
+    const id = `discovery-${index + 1}`;
+    const faceUp = index % 2 === 1;
+    const token: StoredPiece = {
+      id,
+      label: live.name,
+      kind: 'force',
+      owner: 'shared',
+      color: '#d5ba8c',
+      accent: '#ead9bb',
+      items: [
+        {
+          id: `${id}-1`,
+          faceUp,
+          artwork: {
+            front: new URL(publishedHref('token-disc', live.id), location.origin).href,
+            back: new URL(publishedHref('token-disc', `${live.back}.back`), location.origin).href,
+            name: live.name,
+            type: 'token-disc',
+            /* Twice a troop's width, as the live tokens are authored. */
+            size: 2,
+          },
+        },
+      ],
+      stackKey: `token:${live.id}`,
+      position: [0, 0, 0],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
+    };
+    token.position = restingPositionAt(nearestCollisionFreePosition(token, near, pieces)!, token);
+    pieces.push(token);
+    versions[token.id] = stored.revision;
+  }
+  return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
 /** The seat the recording's deal gave a faction; the deal is random, so it differs per recording. */
 export const seatOf = (faction: string) =>
   journeySteps()
@@ -220,18 +286,41 @@ export const seatOf = (faction: string) =>
 /* The Emperor is the faction with two kinds of troops. */
 const emperorSeat = () => seatOf('emperor');
 
+/* A sandbox at Shipment and Movement as one seat, its stored state prepared first. */
+function movementSandbox(seat: string, prepare: (stored: StoredSnapshot) => StoredSnapshot) {
+  return {
+    args: { step: chapter('Shipment and Movement'), seat },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+      install(() =>
+        sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? seat), prepare })
+      )(),
+  };
+}
+
 /** A sandbox at Shipment and Movement as the Emperor's seat, its troops in a mess for carrying back to their reserves. */
-export const messyReservesSandbox = {
-  args: { step: chapter('Shipment and Movement'), seat: emperorSeat() },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() =>
-      sandboxTransport({
-        start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? emperorSeat()),
-        prepare: (stored) => withMessyReserves(stored, 'emperor'),
-      })
-    )(),
-};
+export const messyReservesSandbox = movementSandbox(emperorSeat(), (stored) => withMessyReserves(stored, 'emperor'));
+
+/** The live Discovery tokens beside seat 1's troops. */
+export const discoverySandbox = movementSandbox('seat-1', withDiscoveryTokens);
+
+/** Seat 1 picks up a whole piece and drops it at a spot in one move, and the table takes it. */
+export async function carryWhole(
+  carryId: string,
+  pieceId: string,
+  position: [number, number, number],
+  orientation = 0
+) {
+  const table = sandbox.table!;
+  table.receive({
+    type: 'begin',
+    carryId,
+    sourcePieceId: pieceId,
+    expectedVersion: shown().versions[pieceId]!,
+    pickup: 'whole',
+  });
+  table.receive({ type: 'drop', commandId: `${carryId}-drop`, carryId, position, orientation });
+  await expect(table.refusal).toBeUndefined();
+}
 
 /**
  * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).
@@ -248,6 +337,34 @@ export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
     },
   };
 }
+
+/* The exact spot the live Broken Land card's own map puts its Spice token on (dune.zone, 2026-11-24), in board drawing units. */
+const LIVE_BROKEN_LAND_SPOT: [number, number] = [158.354, 31.092];
+
+/**
+ * The recording's Spice cards with their own map's exact spot, as every live Spice card has one: the Spice token the card's author placed on Broken Land, on the board the card was drawn on.
+ * The table draws the spice sticker on that spot and the card's spice lands on it.
+ */
+export function withPinnedSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
+  const spiceBlow = {
+    amount: 8,
+    territories: ['broken_land'],
+    spots: [LIVE_BROKEN_LAND_SPOT],
+    boardId: arrakisBoardCapture.asset.id,
+  } satisfies SpiceBlow;
+  const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
+    item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((candidate) => ({ ...candidate, items: candidate.items.map(capture) })),
+    },
+  };
+}
+
+/** The exact spot the pinned Spice cards mark, in table units. */
+export const pinnedSpiceBlowSpot = () => boardPointToTable(LIVE_BROKEN_LAND_SPOT);
 
 /**
  * The same table with a second face-up spice card, an Arsunt blow of 6, tucked under each revealed spice card.

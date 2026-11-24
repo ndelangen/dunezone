@@ -3,7 +3,8 @@ import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
-import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
+import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
+import { isPlate, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
@@ -23,7 +24,10 @@ import {
   sandboxSteps,
   sandboxTransport,
   shown,
+  pinnedSpiceBlowSpot,
   withCoveredSpiceBlow,
+  discoverySandbox,
+  withPinnedSpiceBlows,
   withSpiceBlows,
   withTechTokens,
 } from './sandbox.stories.fixture';
@@ -442,6 +446,22 @@ function spiceBlowStory(prepare: typeof withSpiceBlows) {
 export const SpiceBlow = meta.story(spiceBlowStory(withSpiceBlows));
 
 /**
+ * The Spice card's own map marks an exact spot in Broken Land, off the territory's middle, as every live Spice card does.
+ * The board draws the spice sticker on that spot, not where Broken Land has the most room, and "Place 8 spice on Broken land" or the "Spice blow" command sets the spice down right on it.
+ */
+export const SpiceBlowExactSpot = meta.story({
+  ...spiceBlowStory(withPinnedSpiceBlows),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const [x, z] = pinnedSpiceBlowSpot();
+    const card = shown().table.pieces.find((candidate) => revealedSpiceBlows([candidate]).length)!;
+    const spot = spiceBlowSpot(shown(), shown().table.pieces, card)!;
+    await expect(spot.position[0]).toBeCloseTo(x, 6);
+    await expect(spot.position[2]).toBeCloseTo(z, 6);
+  },
+});
+
+/**
  * A face-up Arsunt card lies under the revealed Broken Land card in the same pile.
  * Only the visible top card counts: Broken Land is lit and Arsunt is not, and both the right-click and the "Spice blow" command place 8 spice on Broken land only.
  */
@@ -451,5 +471,24 @@ export const SpiceBlowTopCardOnly = meta.story({
     await sandboxReady(within(canvasElement.ownerDocument.body));
     const blows = revealedSpiceBlows(shown().table.pieces).map(({ blow }) => blow.territories);
     await expect(blows).toEqual([['broken_land']]);
+  },
+});
+
+/**
+ * The live Discovery tokens beside seat 1's troops, twice a troop's width and 80% of its thickness: two face down as they are placed, two face up.
+ * By hand: set a troop stack on one, then drag the token and the troops ride along;
+ * Q or E turns the token with its troops.
+ * Start Storybook with STORYBOOK_LIVE_PUBLISHED=1 to see their real faces.
+ */
+export const DiscoveryTokens = meta.story({
+  ...discoverySandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const discs = shown().table.pieces.filter((piece) => piece.id.startsWith('discovery-'));
+    await expect(discs).toHaveLength(4);
+    for (const disc of discs) {
+      await expect(troopScale(disc)).toBeCloseTo(2 * troopScale({ kind: 'force', stackKey: 'troops:x:y' }));
+      await expect(isPlate(disc)).toBe(true);
+    }
   },
 });

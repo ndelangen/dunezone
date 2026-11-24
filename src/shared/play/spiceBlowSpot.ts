@@ -7,7 +7,7 @@ import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
 import type { SpiceBlow } from './spiceBlow';
 import type { SpiceBlowPlacement } from './spiceBlowPlacement';
-import { revealedSpiceBlow } from './spiceBlowPlacement';
+import { revealedSpiceBlow, revealedSpiceBlows } from './spiceBlowPlacement';
 import { restingPositionAt } from './tableGeometry';
 import { nearestCollisionFreePosition } from './tablePhysics';
 
@@ -52,15 +52,63 @@ function spiceFootprint(amount: number): TablePiece {
   };
 }
 
+/* The spots the card's own map placed its tokens on, in table units, that lie in this territory; only on the board the card was drawn on. */
+function cardSpotsIn(board: Board, boardId: string | undefined, blow: SpiceBlow, territory: string): TablePoint[] {
+  const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
+  return own.map(boardPointToTable).filter(([x, z]) => tableTerritoryAt(board, x, z)?.id === territory);
+}
+
 /*
- * The spots to try in a territory: first the spice sticker the table lights it with, so the spice covers the marker that asked for it;
- * then where the card's own map put its tokens, when it was drawn on this board; then the territory's middle.
+ * The spots to try in a territory: first the exact spot the card's own map puts its spice on, so the spice lands where the card shows it;
+ * then the spice sticker the table lights a card without one with; then the territory's middle.
  */
 function startingPoints({ board, territory }: Search, boardId: string | undefined, blow: SpiceBlow, marks: Landmarks) {
-  const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
-  return [...marks.sticker, ...own.map(boardPointToTable), marks.centre].filter(
+  return [...cardSpotsIn(board, boardId, blow, territory), ...marks.sticker, marks.centre].filter(
     ([x, z]) => tableTerritoryAt(board, x, z)?.id === territory
   );
+}
+
+/** A spot a face-up spice card marks exactly, where the table draws its spice sticker. */
+export type SpiceBlowPin = Readonly<{ territory: string; at: TablePoint }>;
+
+/**
+ * Where the face-up spice cards mark their spice exactly: the spots their own maps put tokens on, in the territories they name.
+ * The table draws the spice sticker there instead of where a territory has the most room, so the sticker and the placed spice sit where the card shows them.
+ */
+export function spiceBlowPins(snapshot: Pick<GameSnapshot, 'board'>, pieces: readonly TablePiece[]): SpiceBlowPin[] {
+  const board = snapshot.board?.definition;
+  if (!board) {
+    return [];
+  }
+  const pins = revealedSpiceBlows(pieces).flatMap(({ blow }) =>
+    blow.territories.flatMap((territory) =>
+      cardSpotsIn(board, snapshot.board?.asset.id, blow, territory).map((at) => ({ territory, at }))
+    )
+  );
+  /* Two face-up cards that mark the same spot pin one sticker there. */
+  return pins.filter(
+    (pin, index) =>
+      pins.findIndex(
+        (other) => other.territory === pin.territory && other.at[0] === pin.at[0] && other.at[1] === pin.at[1]
+      ) === index
+  );
+}
+
+/**
+ * The territories a face-up spice card names without marking a spot there, which keep the spice sticker the table places where the territory has the most room.
+ * A territory one card pins and another card only names stays here, so the second card's sticker still shows where its spice would land.
+ */
+export function spiceBlowUnpinnedTerritories(
+  snapshot: Pick<GameSnapshot, 'board'>,
+  pieces: readonly TablePiece[]
+): string[] {
+  const board = snapshot.board?.definition;
+  const named = revealedSpiceBlows(pieces).flatMap(({ blow }) =>
+    blow.territories.filter(
+      (territory) => !board || cardSpotsIn(board, snapshot.board?.asset.id, blow, territory).length === 0
+    )
+  );
+  return [...new Set(named)];
 }
 
 /* Spice already lying in the territory, which takes the card's spice onto its pile so a blown territory keeps one stack; a held or carried pile is not one. */
@@ -95,7 +143,7 @@ function freeSpotIn(
 }
 
 /**
- * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
+ * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has (its own map's spots in any of them first), onto spice already lying there, or else at a free spot that stays inside that territory.
  * Null when the table has no board, the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
@@ -109,17 +157,27 @@ export function spiceBlowSpot(
     return null;
   }
   const footprint = spiceFootprint(blow.amount);
-  for (const territory of blow.territories) {
-    const marks = landmarks(board, territory);
-    if (!marks) {
-      continue;
-    }
-    const search = { board, pieces, territory };
-    const position =
-      pileIn(search)?.position ??
-      freeSpotIn(search, footprint, startingPoints(search, snapshot.board?.asset.id, blow, marks));
-    if (position) {
-      return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
+  const boardId = snapshot.board?.asset.id;
+  /*
+   * Two passes: first only the card's own spots (or spice already lying where it marks one), across every territory it names, so the spice lands where the table pins it;
+   * then every territory with its computed sticker and middle, for a card without a usable spot.
+   */
+  const passes: ((search: Search, marks: Landmarks) => readonly TablePoint[] | null)[] = [
+    (search) => {
+      const spots = cardSpotsIn(board, boardId, blow, search.territory);
+      return spots.length ? spots : null;
+    },
+    (search, marks) => startingPoints(search, boardId, blow, marks),
+  ];
+  for (const pointsFor of passes) {
+    for (const territory of blow.territories) {
+      const marks = landmarks(board, territory);
+      const search = { board, pieces, territory };
+      const points = marks && pointsFor(search, marks);
+      const position = points && (pileIn(search)?.position ?? freeSpotIn(search, footprint, points));
+      if (marks && position) {
+        return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
+      }
     }
   }
   return null;

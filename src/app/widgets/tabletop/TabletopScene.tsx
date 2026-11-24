@@ -13,7 +13,13 @@ import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip'
 import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { widestTroopSupply } from '@shared/play/setupLayout';
-import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
+import {
+  isSpicePiece,
+  SPICE_LAYER_HEIGHT,
+  SPICE_LAYER_PITCH,
+  SPICE_TOKEN_RADIUS,
+  SPICE_FOOTPRINT_RADIUS,
+} from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
@@ -26,12 +32,15 @@ import {
   contactShadowHeightAt,
   contactShadowOpacity,
   contactShadowScale,
+  contactShadowStop,
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
+  tokenThickness,
+  isPlainToken,
   troopScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
@@ -42,6 +51,9 @@ import {
   stackTopHeight,
   visibleLayerCount,
   BOARD_SURFACE_Y,
+  isPlate,
+  TROOP_FOOTPRINT_RADIUS,
+  CARRIED_BASE_Y,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -65,7 +77,7 @@ import {
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Path, Plane, RingGeometry, Shape, ShapeGeometry, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -86,7 +98,7 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
-import { useBoardTints } from './spiceBlowTints';
+import { useBoardTints, useSpiceBlowPins } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
@@ -344,8 +356,9 @@ function SittingOutSign() {
 
 /* Under printed art the plain face wears the piece's own colour: the art's anti-aliased rim lets it through where the disc's corners reach the image's edge, and a light accent there drew a dotted ring. */
 function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolean) {
+  /* Behind printed art, a card token's backing matches its dark edge, so no pale line shows round a soft-edged picture. */
   if (printed) {
-    return piece.color;
+    return isPlainToken(piece) ? playUiColors.plainTokenEdge : piece.color;
   }
   return faceUp ? piece.accent : playUiColors.faceDownInk;
 }
@@ -396,8 +409,10 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
   const cut = tokenCut(piece);
+  /* A plain token, such as a Discovery token, is thin card: its layers, faces and spacing all shrink to its thickness, and its cut edge is straight and dark. */
+  const card = isPlainToken(piece);
   return (
-    <group scale={[scale, 1, scale]}>
+    <group scale={[scale, tokenThickness(piece), scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         const itemIndex = layerItemIndex(piece, index, shownLayers);
@@ -410,9 +425,13 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               /* A face-down layer is turned over: a disc stands on its other end, and a gear is mirrored under its faces. */
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
-              geometry={tokenLayerGeometry(meshes, cut)}
+              geometry={tokenLayerGeometry(meshes, cut, card)}
             >
-              <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
+              <meshStandardMaterial
+                color={card ? playUiColors.plainTokenEdge : piece.color}
+                roughness={card ? 0.8 : 0.56}
+                metalness={card ? 0 : 0.1}
+              />
             </mesh>
             {index === shownLayers - 1 ? (
               <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} cut={cut} />
@@ -427,13 +446,13 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-/* One layer of a token stack in its outline. */
-function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut) {
+/* One layer of a token stack in its outline; a troop disc tapers to its base, a card token's edge is cut straight. */
+function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut, card = false) {
   if (cut === 'gear') {
     return meshes.gearSlab(TROOP_TOP_RADIUS, TROOP_LAYER_HEIGHT);
   }
   return cut === 'round'
-    ? meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
+    ? meshes.cylinder(TROOP_TOP_RADIUS, card ? TROOP_TOP_RADIUS : TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
     : meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * cut.ratio);
 }
 
@@ -780,26 +799,80 @@ function useCanvasName() {
 
 const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
 
-const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
+const PIECE_SELECTION_RADII: Record<'card' | 'marker', [number, number, number]> = {
   card: [0.7, 0.78, 64],
-  force: [0.2, 0.235, 64],
   marker: [0.4, 0.47, 64],
 };
 
-const SPICE_SELECTION_RADII: [number, number, number] = [0.18, 0.205, 64];
+/* How wide the ring is; its inside edge is the piece's footprint, so a held piece lands exactly inside it. */
+const SELECTION_RING_WIDTH = 0.03;
 
 function selectionRadii(piece: TablePiece): [number, number, number] {
-  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
-  const scale = troopScale(piece);
-  return [inner * scale, outer * scale, segments];
+  if (isSpicePiece(piece)) {
+    return [SPICE_FOOTPRINT_RADIUS, SPICE_FOOTPRINT_RADIUS + SELECTION_RING_WIDTH, 64];
+  }
+  if (piece.kind === 'force') {
+    const radius = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
+    return [radius, radius + SELECTION_RING_WIDTH, 64];
+  }
+  return PIECE_SELECTION_RADII[piece.kind];
 }
 
-/* A plate's ring follows its teardrop; every other piece's is round. */
+/* A rounded rectangle centred on the origin, in the plane a ring is drawn in before it is laid flat. */
+function roundedRectangle(halfX: number, halfY: number, radius: number, hole = false) {
+  const shape = hole ? new Path() : new Shape();
+  shape.moveTo(-halfX + radius, -halfY);
+  shape.lineTo(halfX - radius, -halfY);
+  shape.quadraticCurveTo(halfX, -halfY, halfX, -halfY + radius);
+  shape.lineTo(halfX, halfY - radius);
+  shape.quadraticCurveTo(halfX, halfY, halfX - radius, halfY);
+  shape.lineTo(-halfX + radius, halfY);
+  shape.quadraticCurveTo(-halfX, halfY, -halfX, halfY - radius);
+  shape.lineTo(-halfX, -halfY + radius);
+  shape.quadraticCurveTo(-halfX, -halfY, -halfX + radius, -halfY);
+  return shape;
+}
+
+/* A ring that hugs a rounded rectangle footprint from outside, so a held piece lands exactly inside it, turned as the piece is. */
+function boxSelectionRing(halfX: number, halfZ: number, corner: number) {
+  const band = roundedRectangle(
+    halfX + SELECTION_RING_WIDTH,
+    halfZ + SELECTION_RING_WIDTH,
+    corner + SELECTION_RING_WIDTH
+  ) as Shape;
+  band.holes.push(roundedRectangle(halfX, halfZ, corner, true));
+  return new ShapeGeometry(band, 6);
+}
+
+/* A card's ring is the card's own rounded outline. */
+const CARD_SELECTION_RING = boxSelectionRing(CARD_WIDTH / 2, CARD_DEPTH / 2, CARD_CORNER_RADIUS);
+
+/* Square and rectangle tokens keep sharp corners; the smallest corner the shape allows. */
+const TOKEN_BOX_CORNER = 0.005;
+const tokenBoxRings = new Map<string, ShapeGeometry>();
+
+/* A square or rectangle token's ring follows its own box, one geometry per size. */
+function tokenBoxSelectionRing(piece: TablePiece, ratio: number) {
+  const halfX = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
+  const key = `${halfX}:${ratio}`;
+  let ring = tokenBoxRings.get(key);
+  if (!ring) {
+    ring = boxSelectionRing(halfX, halfX * ratio, TOKEN_BOX_CORNER);
+    tokenBoxRings.set(key, ring);
+  }
+  return ring;
+}
+
+/* A plate's ring follows its teardrop, a card's and a square token's their box; every other piece's is round. */
 function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
   if (isPointerToken(piece)) {
     return POINTER_SELECTION_RING;
   }
-  return meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)));
+  if (piece.kind === 'card') {
+    return CARD_SELECTION_RING;
+  }
+  const ratio = tokenBoxRatio(piece);
+  return ratio === null ? meshes.ring(...selectionRadii(piece)) : tokenBoxSelectionRing(piece, ratio);
 }
 
 function PieceSelectionRing({
@@ -814,22 +887,30 @@ function PieceSelectionRing({
   drafted: boolean;
 }) {
   const meshes = useSharedMeshes();
+  const geometry = selectionRingGeometry(meshes, piece);
+  /* The ring lies under the piece's contact shadow, so it never hides the shadow; a dark edge either side keeps it clear on sand and on the dark table alike. */
+  const y = shadowLocalY - CONTACT_SHADOW_EPSILON / 2;
   return (
-    <mesh
-      position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
-      renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      rotation={[-Math.PI / 2, 0, 0]}
-      geometry={selectionRingGeometry(meshes, piece)}
-    >
-      <meshBasicMaterial
-        color={
-          stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
-        }
-        {...PIECE_SELECTION_RING_MATERIAL}
-      />
-    </mesh>
+    <group position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {SELECTION_RING_EDGE_SCALES.map((scale) => (
+        <mesh key={scale} scale={[scale, scale, 1]} renderOrder={-2} geometry={geometry}>
+          <meshBasicMaterial color={playUiColors.selectionRingEdge} {...PIECE_SELECTION_RING_MATERIAL} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0, CONTACT_SHADOW_EPSILON / 8]} renderOrder={-1} geometry={geometry}>
+        <meshBasicMaterial
+          color={
+            stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
+          }
+          {...PIECE_SELECTION_RING_MATERIAL}
+        />
+      </mesh>
+    </group>
   );
 }
+
+/* The ring's dark edge: the ring drawn a little wider and a little narrower beneath it, so a thin band shows outside and inside. */
+const SELECTION_RING_EDGE_SCALES = [1.07, 0.93] as const;
 
 /**
  * Compiles the selection ring's shader while the table loads.
@@ -917,6 +998,12 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceCountSelected: styles.pieceCountSelected,
 };
 
+/* Where a piece's contact shadow and ring lie: a piece resting on a plate casts them on the plate's top rather than on the board beneath it. */
+function shadowHeightOf(piece: TablePiece) {
+  const ground = contactShadowHeightAt(piece.position, piece);
+  return piece.position[1] < CARRIED_BASE_Y ? Math.max(ground, piece.position[1] + CONTACT_SHADOW_EPSILON) : ground;
+}
+
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
   const {
@@ -938,7 +1025,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried, {
-    plateId: isPointerToken(piece) ? piece.id : undefined,
+    plateId: isPlate(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
   const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
@@ -952,7 +1039,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
+  const shadowLocalY = shadowHeightOf(piece) - piece.position[1];
 
   return (
     <group
@@ -989,7 +1076,10 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                 side={DoubleSide}
               >
                 {/* Attached as drei attached its own: a `map` property would have Fiber mark the texture sRGB and darken the shadow. */}
-                <primitive object={meshes.contactShadow(playUiColors.contactShadow, 0.18)} attach="map" />
+                <primitive
+                  object={meshes.contactShadow(playUiColors.contactShadow, contactShadowStop(piece))}
+                  attach="map"
+                />
               </meshBasicMaterial>
             </mesh>
           </group>
@@ -1085,6 +1175,7 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
+  const pins = useSpiceBlowPins();
   const tints = useSceneTints(highlightTerritory);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
@@ -1117,6 +1208,7 @@ function SceneContents({
           <TabletopBoard
             board={board}
             tints={tints}
+            pins={pins}
             seatCount={seatCount}
             interactive={!readOnly}
             stormSectorIndex={state.stormSectorIndex}

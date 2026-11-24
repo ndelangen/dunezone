@@ -1,7 +1,8 @@
 import { isBattleLeader } from './battle';
+import { isFactionToken } from './factionToken';
 import { topItemFaceUp } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
-import { fromPieceFrame, POINTER_OUTLINE, isPointerToken, pointerCovers } from './pointerToken';
+import { fromPieceFrame, POINTER_OUTLINE, isPointerToken } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
 import { placementAnchorForPose } from './tableFurnitureLayout';
 import {
@@ -9,7 +10,9 @@ import {
   CARD_FOOTPRINT_HALF_Z,
   circleFootprintRadius,
   isLeaderPiece,
+  isPlate,
   planarDistance,
+  plateCovers,
   TROOP_BOTTOM_RADIUS,
   TROOP_FOOTPRINT_RADIUS,
   troopScale,
@@ -294,7 +297,7 @@ function isHiddenLeader(piece: TablePiece): boolean {
  * Only cards with no back at all fall back to the key.
  */
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  if (a.kind !== b.kind || isPointerToken(a) || isHiddenLeader(a) || isHiddenLeader(b)) {
+  if (a.kind !== b.kind || isPointerToken(a) || isPointerToken(b) || isHiddenLeader(a) || isHiddenLeader(b)) {
     return false;
   }
   const sameKey = a.stackKey !== null && a.stackKey === b.stackKey;
@@ -431,22 +434,33 @@ function isSupportedPosition(piece: TablePiece, position: Vector3Tuple): boolean
 export const LEADER_SPACING = 0.54;
 const LEADER_OVERLAP_LIFT = 0.004;
 
+/*
+ * Whether a piece may be set down on a plate rather than kept beside it: what rides a plate stands on it.
+ * Anything stands on the HMS; markers, spice among them, and faction tokens keep clear of a plain plate such as a Discovery token, which lies beside the spice in a territory rather than under it.
+ */
+function standsOnPlate(piece: TablePiece, plate: TablePiece): boolean {
+  if (isPointerToken(plate)) {
+    return true;
+  }
+  return piece.kind !== 'marker' && !isFactionToken(piece);
+}
+
 export function isOverlapFreePosition(
   movingPiece: TablePiece,
   position: Vector3Tuple,
   obstacles: TablePiece[]
 ): boolean {
-  /* Pieces stand on an HMS plate rather than beside it, so a plate is in the way only of another plate. */
-  const plateMoving = isPointerToken(movingPiece);
+  /* Pieces stand on a plate such as the HMS or a Discovery token rather than beside it, so a plate is in the way only of another plate. */
+  const plateMoving = isPlate(movingPiece);
   const leaderMoving = isLeaderPiece(movingPiece);
-  const plates = obstacles.filter((obstacle) => isPointerToken(obstacle) && !obstacle.inventory);
+  const plates = obstacles.filter((obstacle) => isPlate(obstacle) && !obstacle.inventory);
   /* A plate lifts its riders to one height, so leaders on a plate keep their whole footprint apart even in the Tanks. */
-  const inPile = (point: Vector3Tuple) => isInTanks(point) && !plates.some((plate) => pointerCovers(plate, point));
+  const inPile = (point: Vector3Tuple) => isInTanks(point) && !plates.some((plate) => plateCovers(plate, point));
   return obstacles.every(
     (obstacle) =>
       !!obstacle.inventory ||
       obstacle.items.length === 0 ||
-      (isPointerToken(obstacle) && !plateMoving) ||
+      (isPlate(obstacle) && !plateMoving && standsOnPlate(movingPiece, obstacle)) ||
       (leaderMoving && isLeaderPiece(obstacle) && inPile(position) && inPile(obstacle.position)
         ? planarDistance(position, obstacle.position) >= LEADER_SPACING
         : !piecesOverlapAt(movingPiece, position, obstacle))

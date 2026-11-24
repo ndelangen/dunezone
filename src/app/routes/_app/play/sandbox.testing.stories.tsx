@@ -40,6 +40,8 @@ import {
   sandboxTransport,
   shown,
   withTechTokens,
+  carryWhole,
+  discoverySandbox,
 } from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -1232,5 +1234,28 @@ export const TroopsLandInNarrowSectors = meta.story({
       }
     }
     await expect(landed).toEqual(NARROW_SECTORS.flatMap(({ name, sector }) => Array(3).fill(`${name} ${sector}`)));
+  },
+});
+
+/** Seat 1 sets a troop stack on a Discovery token and moves the token: the troops ride along, keeping their place on it, as on the HMS. */
+export const DiscoveryTokenCarriesTroops = meta.story({
+  ...discoverySandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const faction = shown().bank!.factionId;
+    const disc = () => shown().table.pieces.find((candidate) => candidate.id === 'discovery-1')!;
+    const stack = shown().table.pieces.find(
+      (candidate) =>
+        !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
+    )!;
+    const [x, , z] = disc().position;
+    await carryWhole('onto-discovery', stack.id, [x + 0.05, 0.4, z - 0.05]);
+    const riding = () => shown().table.pieces.find((candidate) => candidate.id === stack.id)!;
+    const before = [riding().position[0] - x, riding().position[2] - z];
+    await carryWhole('move-discovery', disc().id, [x + 1.2, 0.4, z + 0.6], disc().orientation);
+    const [nextX, , nextZ] = disc().position;
+    await expect(nextX).not.toBeCloseTo(x);
+    await expect(riding().position[0] - nextX).toBeCloseTo(before[0]!);
+    await expect(riding().position[2] - nextZ).toBeCloseTo(before[1]!);
   },
 });

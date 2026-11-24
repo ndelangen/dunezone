@@ -12,7 +12,8 @@ import { isSpicePiece } from './spice';
 import { spiceBlowOf } from './spiceBlow';
 import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
-import { spiceBlowSpot } from './spiceBlowSpot';
+import { spiceBlowPins, spiceBlowSpot, spiceBlowUnpinnedTerritories } from './spiceBlowSpot';
+import { SPICE_TOKEN_ID } from './spiceToken';
 
 const brokenLand: SpiceBlow = { amount: 8, territories: ['broken_land'] };
 
@@ -132,6 +133,35 @@ describe('spice blow capture', () => {
   });
 });
 
+describe('spice blow spots', () => {
+  test("a card's spice tokens mark its spots, and another token on its map does not", () => {
+    const blow = spiceBlowOf('card-spice', {
+      amount: 6,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['broken_land'], stamps: ['spice'] }],
+        tokens: [
+          { asset_id: 'a-discovery-token', x: 120, y: 40 },
+          { asset_id: SPICE_TOKEN_ID, x: 158, y: 31 },
+        ],
+      },
+    });
+    expect(blow?.spots).toEqual([[158, 31]]);
+  });
+
+  test('a map without the spice token offers every token it placed', () => {
+    const blow = spiceBlowOf('card-spice', {
+      amount: 3,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['arsunt'] }],
+        tokens: [{ asset_id: 'mine', x: 80, y: 200 }],
+      },
+    });
+    expect(blow?.spots).toEqual([[80, 200]]);
+  });
+});
+
 describe('placing a revealed spice card', () => {
   test("puts the card's spice in a free spot inside its territory, and again onto that spice", () => {
     const state = tableWithCard();
@@ -163,6 +193,43 @@ describe('placing a revealed spice card', () => {
     expect(piles).toHaveLength(1);
     expect(piles[0]!.items).toHaveLength(16);
     expect(new Set(piles[0]!.items.map((item) => item.id)).size).toBe(16);
+  });
+
+  test("lands exactly on the spot the card's own map marks, and the board pins its spice sticker there", () => {
+    const board = arrakisBoardCapture.definition;
+    const { centre, rings } = boardTerritory(board, 'broken_land')!;
+    const corner = rings[0]!.find(([x, y]) => {
+      const [tx, tz] = boardPointToTable([centre[0] + (x - centre[0]) * 0.7, centre[1] + (y - centre[1]) * 0.7]);
+      return tableTerritoryAt(board, tx, tz)?.id === 'broken_land';
+    })!;
+    const mark: [number, number] = [
+      centre[0] + (corner[0] - centre[0]) * 0.7,
+      centre[1] + (corner[1] - centre[1]) * 0.7,
+    ];
+    /* A second token in another territory, as a Discovery card's destination, is no spot for the spice. */
+    const elsewhere = boardTerritory(board, 'arsunt')!.centre;
+    const blow: SpiceBlow = { ...brokenLand, spots: [elsewhere, mark], boardId: arrakisBoardCapture.asset.id };
+    const state = freshTableState();
+    const card = revealedCard(true, [spiceCardItem('blow-card-1', true, 'Broken Land', blow)]);
+    const pieces = [...state.pieces, card];
+    const [x, z] = boardPointToTable(mark);
+
+    const spot = spiceBlowSpot({ board: arrakisBoardCapture }, pieces, card)!;
+    expect(spot.position[0]).toBeCloseTo(x, 6);
+    expect(spot.position[2]).toBeCloseTo(z, 6);
+    expect(spiceBlowPins({ board: arrakisBoardCapture }, pieces)).toEqual([{ territory: 'broken_land', at: [x, z] }]);
+
+    /* A card naming another territory first still lands on its own spot, and only the territory without a spot keeps its computed sticker. */
+    const both: SpiceBlow = { ...blow, spots: [mark], territories: ['arsunt', 'broken_land'] };
+    const twoNames = revealedCard(true, [spiceCardItem('blow-card-1', true, 'Broken Land', both)]);
+    const withBoth = [...state.pieces, twoNames];
+    expect(spiceBlowSpot({ board: arrakisBoardCapture }, withBoth, twoNames)!.territory).toBe('broken_land');
+    expect(spiceBlowUnpinnedTerritories({ board: arrakisBoardCapture }, withBoth)).toEqual(['arsunt']);
+
+    /* On another board the card's spots mean nothing: no pin, and the spice goes where the table lights it. */
+    const otherBoard = { ...arrakisBoardCapture, asset: { ...arrakisBoardCapture.asset, id: 'another-board' } };
+    expect(spiceBlowPins({ board: otherBoard }, pieces)).toEqual([]);
+    expect(spiceBlowSpot({ board: otherBoard }, pieces, card)!.position[0]).not.toBeCloseTo(x, 6);
   });
 
   test('in a pile, only the face-up card on top counts, never the cards underneath', () => {

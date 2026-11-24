@@ -174,4 +174,19 @@ export default defineMain({
   },
   managerHead: (head) => `${head}${managerTitleScript}`,
   staticDirs: (existing = []) => [...existing, '../public', './static'],
+  /*
+   * Published faces live on dune.zone, so a story that shows a real catalogue token or card draws a stand-in here.
+   * STORYBOOK_LIVE_PUBLISHED=1 passes those requests on to dune.zone for a by-hand look at the real art; tests never set it, so they stay offline.
+   * It is set here because the builder replaces the vite config's own server block with its dev server settings.
+   */
+  viteFinal: (config) =>
+    process.env.STORYBOOK_LIVE_PUBLISHED === '1'
+      ? {
+          ...config,
+          server: {
+            ...config.server,
+            proxy: { ...config.server?.proxy, '/published': { target: 'https://dune.zone', changeOrigin: true } },
+          },
+        }
+      : config,
 });

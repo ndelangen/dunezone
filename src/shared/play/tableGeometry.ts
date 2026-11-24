@@ -67,6 +67,61 @@ export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' |
   return piece.kind === 'force' ? standard * (piece.items?.[0]?.artwork?.size ?? 1) : standard;
 }
 
+/**
+ * A token from a bundle, such as a Discovery token: a 'force'-kind piece that is no troop, leader disc, faction token or tech token.
+ * It is thin card, so it is drawn thinner than the chunky troop discs.
+ */
+export function isPlainToken(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): boolean {
+  return (
+    piece.kind === 'force' &&
+    !isTroopStack({ kind: piece.kind, stackKey: piece.stackKey }) &&
+    !isLeaderPiece(piece) &&
+    !isFactionToken(piece) &&
+    !isTechToken(piece) &&
+    !isPointerToken(piece)
+  );
+}
+
+/** How thick a plain token is drawn, as a share of a troop token's thickness. */
+const PLAIN_TOKEN_THICKNESS = 0.8;
+
+/** How thick a 'force'-kind piece's layers are, as a share of a troop token's: thinner for a plain token. */
+export function tokenThickness(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
+  return isPlainToken(piece) ? PLAIN_TOKEN_THICKNESS : 1;
+}
+
+/** How much wider than a troop a plain token must be to hold a troop stack on top, as a Discovery token does at twice a troop's width. */
+const PLATE_TOKEN_MIN_SCALE = 1.5;
+
+/**
+ * A plate carries what stands on it: a pointer token such as the HMS, or a plain token wide enough to hold a troop stack, such as a Discovery token.
+ * Troops set down on it ride it, so moving the plate moves them;
+ * a plate never rides or stacks onto another.
+ */
+export function isPlate(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>> | null | undefined): boolean {
+  if (!piece) {
+    return false;
+  }
+  /* Only a round plain token is a plate: what it covers is its disc. */
+  const round = !piece.items || tokenBoxRatio({ items: piece.items }) === null;
+  return isPointerToken(piece) || (isPlainToken(piece) && round && troopScale(piece) >= PLATE_TOKEN_MIN_SCALE);
+}
+
+/** Whether a table point lies over a plate as it rests at its pose: a pointer's teardrop, or a round plate's disc. */
+export function plateCovers(plate: TablePiece, point: Readonly<Vector3Tuple>): boolean {
+  if (isPointerToken(plate)) {
+    return pointerCovers(plate, point);
+  }
+  return (
+    Math.hypot(point[0] - plate.position[0], point[2] - plate.position[2]) <= TROOP_FOOTPRINT_RADIUS * troopScale(plate)
+  );
+}
+
+/** How far above a plate's base its top lies: what stands on it stands this much higher. */
+export function plateHeight(plate: TablePiece): number {
+  return stackTopHeight(plate);
+}
+
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
 export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
   const type = piece.items[0]?.artwork?.type;
@@ -172,7 +227,7 @@ export function stackTopHeight(piece: TablePiece): number {
     return CARD_LAYER_HEIGHT + (layers - 1) * CARD_LAYER_PITCH;
   }
   if (piece.kind === 'force') {
-    return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
+    return (TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH) * tokenThickness(piece);
   }
   return MARKER_HEIGHT;
 }
@@ -216,13 +271,30 @@ export function contactShadowScale(
 
 /* Troops sit in crowds on the map, so their shadow reaches further and darker than other pieces' to keep each stack grounded. */
 const TROOP_SHADOW_SPREAD = 0.24;
+/* A thin card token's contact shadow: crisp and dark, hugging its edge, as a card lying on the table casts. */
+const PLAIN_TOKEN_SHADOW = { spread: 0.04, opacity: 0.7, stop: 0.9 } as const;
+
+/** Where a piece's soft shadow stops being solid and starts to fade, as a share of its radius. */
+export function contactShadowStop(piece: TablePiece): number {
+  return isPlainToken(piece) ? PLAIN_TOKEN_SHADOW.stop : 0.18;
+}
+
 function troopShadowSpread(piece: TablePiece | TablePiece['kind']) {
-  return typeof piece !== 'string' && isTroopStack(piece) ? TROOP_SHADOW_SPREAD : 0.04;
+  if (typeof piece === 'string') {
+    return 0.04;
+  }
+  if (isTroopStack(piece)) {
+    return TROOP_SHADOW_SPREAD;
+  }
+  return isPlainToken(piece) ? PLAIN_TOKEN_SHADOW.spread : 0.04;
 }
 
 export function contactShadowOpacity(carried: boolean, piece?: TablePiece): number {
   if (piece && isTroopStack(piece)) {
     return carried ? 0.3 : 0.75;
+  }
+  if (piece && isPlainToken(piece)) {
+    return carried ? PLAIN_TOKEN_SHADOW.opacity * 0.5 : PLAIN_TOKEN_SHADOW.opacity;
   }
   return carried ? 0.14 : 0.3;
 }

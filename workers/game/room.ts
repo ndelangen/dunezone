@@ -33,7 +33,6 @@ import {
 } from '../../src/shared/play/phases';
 import { PIECE_FLIP_DURATION_MS } from '../../src/shared/play/pieceFlip';
 import { pointerRiders } from '../../src/shared/play/pointerRiders';
-import { isPointerToken } from '../../src/shared/play/pointerToken';
 import { carryPieceId, tableForViewer } from '../../src/shared/play/protocol';
 import type {
   ClientMessage,
@@ -53,6 +52,7 @@ import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { isSetupAction, phaseGate } from '../../src/shared/play/setup';
 import type { SpiceGiftChoice, SpiceReserveAction } from '../../src/shared/play/spiceReserve';
 import type { SwapAction } from '../../src/shared/play/swapping';
+import { isPlate } from '../../src/shared/play/tableGeometry';
 import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
 import {
   applyDraftToState,
@@ -335,7 +335,7 @@ export class Room {
     /* A piece another player holds is locked here, as on the drop, so it never counts as riding. */
     const { pieces } = this.table(identity);
     const plate = pieces.find((piece) => piece.id === pieceId);
-    if (!plate || !isPointerToken(plate)) {
+    if (!plate || !isPlate(plate)) {
       return undefined;
     }
     return new Map(pointerRiders(pieces, plate).map((rider) => [rider.id, this.snapshot.pieceHandles[rider.id]]));

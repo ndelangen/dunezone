@@ -6128,6 +6128,69 @@
     "credit": "gf9-icon",
     "sourceHash": "a54d7e15714cc71665997ce993b33889d21b8b4b9488daf9fb838c586455c79b"
   },
+  "/vector/icon/spice-mine-1.svg": {
+    "description": "Mechanical lobed circle with an outlined number 1 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "one", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "fa93989ddde6e77df085546a6bae73443ec4901d60a4ed85cf73d6be06ad1392"
+  },
+  "/vector/icon/spice-mine-2.svg": {
+    "description": "Mechanical lobed circle with an outlined number 2 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "two", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "0dbfbb00f244f99abd9d5516aa8456b810b75d0b77a6d2bbacb6499ae500e52d"
+  },
+  "/vector/icon/spice-mine-3.svg": {
+    "description": "Mechanical lobed circle with an outlined number 3 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "three", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "eafa1b97dd5962dd1f335d74112196f10a8cd2eab1516ff8759e04d3a192e938"
+  },
+  "/vector/icon/spice-mine-4.svg": {
+    "description": "Mechanical lobed circle with an outlined number 4 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "four", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "34d89e7bb7d4e12691ff273141bf5ac28d55be89265024ae8cc1a47200aea8ac"
+  },
+  "/vector/icon/spice-mine-5.svg": {
+    "description": "Mechanical lobed circle with an outlined number 5 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "five", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "42e3d239612ba474489b6009dcf1c5190fcec58277c55057fb981c5994605173"
+  },
+  "/vector/icon/spice-mine-6.svg": {
+    "description": "Mechanical lobed circle with an outlined number 6 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "six", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "2b20febae770250b968d53a0cdb2f639518bda14c06a5fcc39168bde773b5bb6"
+  },
+  "/vector/icon/spice-mine-7.svg": {
+    "description": "Mechanical lobed circle with an outlined number 7 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "seven", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "410dfb1d0cb8bd46cb9d94eff0b35514f08a5b28b712dabbcca78421171dd580"
+  },
+  "/vector/icon/spice-mine-8.svg": {
+    "description": "Mechanical lobed circle with an outlined number 8 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "eight", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "b550c8da06e847e82f73520fbb8f9b631987251ed38860b28e1f5980a736586e"
+  },
+  "/vector/icon/spice-mine-9.svg": {
+    "description": "Mechanical lobed circle with an outlined number 9 over its middle, a spice mine's bank limit.",
+    "tags": ["mechanical", "circle", "number", "nine", "spice mine", "vector"],
+    "subjects": ["machines", "symbols"],
+    "credit": "gf9-icon",
+    "sourceHash": "79c49628f9613af27cc37c516b810ed4307143bdd73a7a50d6668dcfa618ab2f"
+  },
   "/vector/icon/storm_disc.svg": {
     "description": "Curling storm waves inside a circle.",
     "tags": ["waves", "circle", "vector"],
