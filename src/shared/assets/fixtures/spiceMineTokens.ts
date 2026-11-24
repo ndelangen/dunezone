@@ -34,12 +34,3 @@ export function spiceMineTokenFace(limit: number) {
     ring: false,
   });
 }
-
-/** The mines Dreamrules prints and the limit each card places. */
-export const spiceMineLimits = {
-  arsunt: 3,
-  cielago_east: 3,
-  bight_of_the_cliff: 4,
-  cielago_west: 4,
-  gaia_kulon: 5,
-} as const;

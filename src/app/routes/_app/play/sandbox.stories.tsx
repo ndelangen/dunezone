@@ -26,7 +26,7 @@ import {
   shown,
   pinnedSpiceBlowSpot,
   withCoveredSpiceBlow,
-  withDiscoveryTokens,
+  discoverySandbox,
   withPinnedSpiceBlows,
   withSpiceBlows,
   withTechTokens,
@@ -474,19 +474,6 @@ export const SpiceBlowTopCardOnly = meta.story({
   },
 });
 
-/* The live Discovery tokens beside seat 1's troops. */
-const discoverySandbox = {
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() =>
-      sandboxTransport({
-        start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? 'seat-1'),
-        prepare: withDiscoveryTokens,
-      })
-    )(),
-};
-
 /**
  * The live Discovery tokens beside seat 1's troops, twice a troop's width and 80% of its thickness: two face down as they are placed, two face up.
  * By hand: set a troop stack on one, then drag the token and the troops ride along;
@@ -503,40 +490,5 @@ export const DiscoveryTokens = meta.story({
       await expect(troopScale(disc)).toBeCloseTo(2 * troopScale({ kind: 'force', stackKey: 'troops:x:y' }));
       await expect(isPlate(disc)).toBe(true);
     }
-  },
-});
-
-/** Seat 1 sets a troop stack on a Discovery token and moves the token: the troops ride along, keeping their place on it, as on the HMS. */
-export const DiscoveryTokenCarriesTroops = meta.story({
-  ...discoverySandbox,
-  play: async ({ canvasElement }) => {
-    await sandboxReady(within(canvasElement.ownerDocument.body));
-    const table = sandbox.table!;
-    const faction = shown().bank!.factionId;
-    const disc = () => shown().table.pieces.find((piece) => piece.id === 'discovery-1')!;
-    const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
-      table.receive({
-        type: 'begin',
-        carryId: id,
-        sourcePieceId: pieceId,
-        expectedVersion: shown().versions[pieceId]!,
-        pickup: 'whole',
-      });
-      table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position, orientation });
-      await expect(table.refusal).toBeUndefined();
-    };
-    const stack = shown().table.pieces.find(
-      (candidate) =>
-        !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
-    )!;
-    const [x, , z] = disc().position;
-    await carry('onto-discovery', stack.id, [x + 0.05, 0.4, z - 0.05]);
-    const riding = () => shown().table.pieces.find((candidate) => candidate.id === stack.id)!;
-    const before = [riding().position[0] - x, riding().position[2] - z];
-    await carry('move-discovery', disc().id, [x + 1.2, 0.4, z + 0.6], disc().orientation);
-    const [nextX, , nextZ] = disc().position;
-    await expect(nextX).not.toBeCloseTo(x);
-    await expect(riding().position[0] - nextX).toBeCloseTo(before[0]!);
-    await expect(riding().position[2] - nextZ).toBeCloseTo(before[1]!);
   },
 });

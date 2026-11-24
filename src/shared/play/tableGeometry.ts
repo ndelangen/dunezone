@@ -83,7 +83,7 @@ export function isPlainToken(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'
 }
 
 /** How thick a plain token is drawn, as a share of a troop token's thickness. */
-export const PLAIN_TOKEN_THICKNESS = 0.8;
+const PLAIN_TOKEN_THICKNESS = 0.8;
 
 /** How thick a 'force'-kind piece's layers are, as a share of a troop token's: thinner for a plain token. */
 export function tokenThickness(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
@@ -91,7 +91,7 @@ export function tokenThickness(piece: Partial<Pick<TablePiece, 'kind' | 'stackKe
 }
 
 /** How much wider than a troop a plain token must be to hold a troop stack on top, as a Discovery token does at twice a troop's width. */
-export const PLATE_TOKEN_MIN_SCALE = 1.5;
+const PLATE_TOKEN_MIN_SCALE = 1.5;
 
 /**
  * A plate carries what stands on it: a pointer token such as the HMS, or a plain token wide enough to hold a troop stack, such as a Discovery token.

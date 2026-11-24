@@ -12,7 +12,7 @@ import { isSpicePiece } from './spice';
 import { spiceBlowOf } from './spiceBlow';
 import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
-import { spiceBlowPins, spiceBlowSpot } from './spiceBlowSpot';
+import { spiceBlowPins, spiceBlowSpot, spiceBlowUnpinnedTerritories } from './spiceBlowSpot';
 import { SPICE_TOKEN_ID } from './spiceToken';
 
 const brokenLand: SpiceBlow = { amount: 8, territories: ['broken_land'] };
@@ -218,6 +218,13 @@ describe('placing a revealed spice card', () => {
     expect(spot.position[0]).toBeCloseTo(x, 6);
     expect(spot.position[2]).toBeCloseTo(z, 6);
     expect(spiceBlowPins({ board: arrakisBoardCapture }, pieces)).toEqual([{ territory: 'broken_land', at: [x, z] }]);
+
+    /* A card naming another territory first still lands on its own spot, and only the territory without a spot keeps its computed sticker. */
+    const both: SpiceBlow = { ...blow, spots: [mark], territories: ['arsunt', 'broken_land'] };
+    const twoNames = revealedCard(true, [spiceCardItem('blow-card-1', true, 'Broken Land', both)]);
+    const withBoth = [...state.pieces, twoNames];
+    expect(spiceBlowSpot({ board: arrakisBoardCapture }, withBoth, twoNames)!.territory).toBe('broken_land');
+    expect(spiceBlowUnpinnedTerritories({ board: arrakisBoardCapture }, withBoth)).toEqual(['arsunt']);
 
     /* On another board the card's spots mean nothing: no pin, and the spice goes where the table lights it. */
     const otherBoard = { ...arrakisBoardCapture, asset: { ...arrakisBoardCapture.asset, id: 'another-board' } };

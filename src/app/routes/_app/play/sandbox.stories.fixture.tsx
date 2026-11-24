@@ -231,7 +231,7 @@ const LIVE_DISCOVERY_TOKENS = [
  * The live Discovery tokens beside a troop stack, two face down as they are placed and two face up, so their size and thickness read against a troop's.
  * Their faces are dune.zone's published pictures, which Storybook shows when started with STORYBOOK_LIVE_PUBLISHED=1.
  */
-export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
+function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
   const pieces = [...stored.table.pieces];
   const versions = { ...stored.versions };
   /* Beside the viewing seat's own troops, which sit nearest its camera. */
@@ -286,18 +286,41 @@ export const seatOf = (faction: string) =>
 /* The Emperor is the faction with two kinds of troops. */
 const emperorSeat = () => seatOf('emperor');
 
+/* A sandbox at Shipment and Movement as one seat, its stored state prepared first. */
+function movementSandbox(seat: string, prepare: (stored: StoredSnapshot) => StoredSnapshot) {
+  return {
+    args: { step: chapter('Shipment and Movement'), seat },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+      install(() =>
+        sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? seat), prepare })
+      )(),
+  };
+}
+
 /** A sandbox at Shipment and Movement as the Emperor's seat, its troops in a mess for carrying back to their reserves. */
-export const messyReservesSandbox = {
-  args: { step: chapter('Shipment and Movement'), seat: emperorSeat() },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() =>
-      sandboxTransport({
-        start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? emperorSeat()),
-        prepare: (stored) => withMessyReserves(stored, 'emperor'),
-      })
-    )(),
-};
+export const messyReservesSandbox = movementSandbox(emperorSeat(), (stored) => withMessyReserves(stored, 'emperor'));
+
+/** The live Discovery tokens beside seat 1's troops. */
+export const discoverySandbox = movementSandbox('seat-1', withDiscoveryTokens);
+
+/** Seat 1 picks up a whole piece and drops it at a spot in one move, and the table takes it. */
+export async function carryWhole(
+  carryId: string,
+  pieceId: string,
+  position: [number, number, number],
+  orientation = 0
+) {
+  const table = sandbox.table!;
+  table.receive({
+    type: 'begin',
+    carryId,
+    sourcePieceId: pieceId,
+    expectedVersion: shown().versions[pieceId]!,
+    pickup: 'whole',
+  });
+  table.receive({ type: 'drop', commandId: `${carryId}-drop`, carryId, position, orientation });
+  await expect(table.refusal).toBeUndefined();
+}
 
 /**
  * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).

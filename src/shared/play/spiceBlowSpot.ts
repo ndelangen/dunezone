@@ -94,6 +94,23 @@ export function spiceBlowPins(snapshot: Pick<GameSnapshot, 'board'>, pieces: rea
   );
 }
 
+/**
+ * The territories a face-up spice card names without marking a spot there, which keep the spice sticker the table places where the territory has the most room.
+ * A territory one card pins and another card only names stays here, so the second card's sticker still shows where its spice would land.
+ */
+export function spiceBlowUnpinnedTerritories(
+  snapshot: Pick<GameSnapshot, 'board'>,
+  pieces: readonly TablePiece[]
+): string[] {
+  const board = snapshot.board?.definition;
+  const named = revealedSpiceBlows(pieces).flatMap(({ blow }) =>
+    blow.territories.filter(
+      (territory) => !board || cardSpotsIn(board, snapshot.board?.asset.id, blow, territory).length === 0
+    )
+  );
+  return [...new Set(named)];
+}
+
 /* Spice already lying in the territory, which takes the card's spice onto its pile so a blown territory keeps one stack; a held or carried pile is not one. */
 function pileIn({ board, pieces, territory }: Search) {
   return pieces.find(
@@ -126,7 +143,7 @@ function freeSpotIn(
 }
 
 /**
- * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has, onto spice already lying there, or else at a free spot that stays inside that territory.
+ * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has (those its own map marks a spot in first), onto spice already lying there, or else at a free spot that stays inside that territory.
  * Null when the table has no board, the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
@@ -140,15 +157,21 @@ export function spiceBlowSpot(
     return null;
   }
   const footprint = spiceFootprint(blow.amount);
-  for (const territory of blow.territories) {
+  const boardId = snapshot.board?.asset.id;
+  /* Territories the card's own map marks a spot in go first, so the spice lands on the spot the table pins, not on an earlier territory's sticker. */
+  const marked = (territory: string) => cardSpotsIn(board, boardId, blow, territory).length > 0;
+  const territories = [
+    ...blow.territories.filter(marked),
+    ...blow.territories.filter((territory) => !marked(territory)),
+  ];
+  for (const territory of territories) {
     const marks = landmarks(board, territory);
     if (!marks) {
       continue;
     }
     const search = { board, pieces, territory };
     const position =
-      pileIn(search)?.position ??
-      freeSpotIn(search, footprint, startingPoints(search, snapshot.board?.asset.id, blow, marks));
+      pileIn(search)?.position ?? freeSpotIn(search, footprint, startingPoints(search, boardId, blow, marks));
     if (position) {
       return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
     }

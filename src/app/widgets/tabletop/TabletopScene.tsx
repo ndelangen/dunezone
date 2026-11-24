@@ -20,7 +20,6 @@ import {
   SPICE_TOKEN_RADIUS,
   SPICE_FOOTPRINT_RADIUS,
 } from '@shared/play/spice';
-import type { SpiceBlowPin } from '@shared/play/spiceBlowSpot';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
@@ -834,18 +833,37 @@ function roundedRectangle(halfX: number, halfY: number, radius: number, hole = f
   return shape;
 }
 
-/* A card's ring is the card's own rounded outline, so a held card lands exactly inside it, turned as the card is. */
-const CARD_SELECTION_RING = (() => {
+/* A ring that hugs a rounded rectangle footprint from outside, so a held piece lands exactly inside it, turned as the piece is. */
+function boxSelectionRing(halfX: number, halfZ: number, corner: number) {
   const band = roundedRectangle(
-    CARD_WIDTH / 2 + SELECTION_RING_WIDTH,
-    CARD_DEPTH / 2 + SELECTION_RING_WIDTH,
-    CARD_CORNER_RADIUS + SELECTION_RING_WIDTH
+    halfX + SELECTION_RING_WIDTH,
+    halfZ + SELECTION_RING_WIDTH,
+    corner + SELECTION_RING_WIDTH
   ) as Shape;
-  band.holes.push(roundedRectangle(CARD_WIDTH / 2, CARD_DEPTH / 2, CARD_CORNER_RADIUS, true));
+  band.holes.push(roundedRectangle(halfX, halfZ, corner, true));
   return new ShapeGeometry(band, 6);
-})();
+}
 
-/* A plate's ring follows its teardrop; every other piece's is round. */
+/* A card's ring is the card's own rounded outline. */
+const CARD_SELECTION_RING = boxSelectionRing(CARD_WIDTH / 2, CARD_DEPTH / 2, CARD_CORNER_RADIUS);
+
+/* Square and rectangle tokens keep sharp corners; the smallest corner the shape allows. */
+const TOKEN_BOX_CORNER = 0.005;
+const tokenBoxRings = new Map<string, ShapeGeometry>();
+
+/* A square or rectangle token's ring follows its own box, one geometry per size. */
+function tokenBoxSelectionRing(piece: TablePiece, ratio: number) {
+  const halfX = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
+  const key = `${halfX}:${ratio}`;
+  let ring = tokenBoxRings.get(key);
+  if (!ring) {
+    ring = boxSelectionRing(halfX, halfX * ratio, TOKEN_BOX_CORNER);
+    tokenBoxRings.set(key, ring);
+  }
+  return ring;
+}
+
+/* A plate's ring follows its teardrop, a card's and a square token's their box; every other piece's is round. */
 function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
   if (isPointerToken(piece)) {
     return POINTER_SELECTION_RING;
@@ -853,7 +871,8 @@ function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece
   if (piece.kind === 'card') {
     return CARD_SELECTION_RING;
   }
-  return meshes.ring(...selectionRadii(piece));
+  const ratio = tokenBoxRatio(piece);
+  return ratio === null ? meshes.ring(...selectionRadii(piece)) : tokenBoxSelectionRing(piece, ratio);
 }
 
 function PieceSelectionRing({
@@ -979,6 +998,12 @@ const PIECE_BADGE_CLASS_NAMES = {
   pieceCountSelected: styles.pieceCountSelected,
 };
 
+/* Where a piece's contact shadow and ring lie: a piece resting on a plate casts them on the plate's top rather than on the board beneath it. */
+function shadowHeightOf(piece: TablePiece) {
+  const ground = contactShadowHeightAt(piece.position, piece);
+  return piece.position[1] < CARRIED_BASE_Y ? Math.max(ground, piece.position[1] + CONTACT_SHADOW_EPSILON) : ground;
+}
+
 const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) {
   const meshes = useSharedMeshes();
   const {
@@ -1014,11 +1039,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
-  /* A piece resting on a plate casts its shadow, and shows its ring, on the plate's top rather than on the board beneath it. */
-  const ground = contactShadowHeightAt(piece.position, piece);
-  const shadowY =
-    piece.position[1] < CARRIED_BASE_Y ? Math.max(ground, piece.position[1] + CONTACT_SHADOW_EPSILON) : ground;
-  const shadowLocalY = shadowY - piece.position[1];
+  const shadowLocalY = shadowHeightOf(piece) - piece.position[1];
 
   return (
     <group
@@ -1116,8 +1137,8 @@ function boardSelection(
 }
 
 /* The board's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
-function useSceneTints(highlightTerritory: string | null | undefined, pins: readonly SpiceBlowPin[]) {
-  const tableTints = useBoardTints(pins);
+function useSceneTints(highlightTerritory: string | null | undefined) {
+  const tableTints = useBoardTints();
   const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
   return tintsWithBattle(tableTints, highlightTerritory ?? battleTerritory);
 }
@@ -1155,7 +1176,7 @@ function SceneContents({
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
   const pins = useSpiceBlowPins();
-  const tints = useSceneTints(highlightTerritory, pins);
+  const tints = useSceneTints(highlightTerritory);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
