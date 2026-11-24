@@ -13,7 +13,13 @@ import { CARD_LAYER_STAGGER, stackLayerItemIndex } from '@shared/play/pieceFlip'
 import { isPointerToken } from '@shared/play/pointerToken';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { widestTroopSupply } from '@shared/play/setupLayout';
-import { isSpicePiece, SPICE_LAYER_HEIGHT, SPICE_LAYER_PITCH, SPICE_TOKEN_RADIUS } from '@shared/play/spice';
+import {
+  isSpicePiece,
+  SPICE_LAYER_HEIGHT,
+  SPICE_LAYER_PITCH,
+  SPICE_TOKEN_RADIUS,
+  SPICE_FOOTPRINT_RADIUS,
+} from '@shared/play/spice';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
@@ -46,6 +52,7 @@ import {
   visibleLayerCount,
   BOARD_SURFACE_Y,
   isPlate,
+  TROOP_FOOTPRINT_RADIUS,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -791,18 +798,23 @@ function useCanvasName() {
 
 const PIECE_SELECTION_RING_MATERIAL = { transparent: true, opacity: 0.92 } as const;
 
-const PIECE_SELECTION_RADII: Record<TablePiece['kind'], [number, number, number]> = {
+const PIECE_SELECTION_RADII: Record<'card' | 'marker', [number, number, number]> = {
   card: [0.7, 0.78, 64],
-  force: [0.2, 0.235, 64],
   marker: [0.4, 0.47, 64],
 };
 
-const SPICE_SELECTION_RADII: [number, number, number] = [0.18, 0.205, 64];
+/* How wide the ring is; its inside edge is the piece's footprint, so a held piece lands exactly inside it. */
+const SELECTION_RING_WIDTH = 0.03;
 
 function selectionRadii(piece: TablePiece): [number, number, number] {
-  const [inner, outer, segments] = PIECE_SELECTION_RADII[piece.kind];
-  const scale = troopScale(piece);
-  return [inner * scale, outer * scale, segments];
+  if (isSpicePiece(piece)) {
+    return [SPICE_FOOTPRINT_RADIUS, SPICE_FOOTPRINT_RADIUS + SELECTION_RING_WIDTH, 64];
+  }
+  if (piece.kind === 'force') {
+    const radius = TROOP_FOOTPRINT_RADIUS * troopScale(piece);
+    return [radius, radius + SELECTION_RING_WIDTH, 64];
+  }
+  return PIECE_SELECTION_RADII[piece.kind];
 }
 
 /* A plate's ring follows its teardrop; every other piece's is round. */
@@ -810,7 +822,7 @@ function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece
   if (isPointerToken(piece)) {
     return POINTER_SELECTION_RING;
   }
-  return meshes.ring(...(isSpicePiece(piece) ? SPICE_SELECTION_RADII : selectionRadii(piece)));
+  return meshes.ring(...selectionRadii(piece));
 }
 
 function PieceSelectionRing({
