@@ -608,7 +608,7 @@ export function restingPart(territory: TableTerritory, at: Plane): TableTerritor
     return home ?? territory;
   }
   const distance = (part: TableTerritory) => (territoryContains(part, at) ? 0 : nearestBorder(part, at).distance);
-  return parts.reduce((best, part) => (distance(part) < distance(best) ? part : best));
+  return parts.reduce((best, part) => (distance(part) < distance(best) ? part : best), parts[0]!);
 }
 
 const roomiest = new WeakMap<TableTerritory, number>();
@@ -647,7 +647,7 @@ export function restsInPart(part: TableTerritory, at: Plane, radius: number): bo
 const MOST_OVERLAP = 0.7;
 
 /**
- * Where a stack with a footprint of `radius` let go at `from` rests in a part with no room left clear of the stacks already there: overlapping them as little as it can, nearest `from` among the spots that overlap least.
+ * Where a stack with a footprint of `radius` let go at `from` rests in a part with no room left clear of the stacks already there: overlapping them as little as it can, those of other sectors least of all, nearest `from` among the spots that overlap least.
  * It keeps its centre as far inside the part as a narrow part allows, clear of the pieces in the way that are not stacks, and stays at least 30% of their combined reach from any stack;
  * null when no such spot is left.
  */
@@ -655,14 +655,19 @@ export function overlappingSpot(
   part: TableTerritory,
   radius: number,
   from: Plane,
-  stacks: readonly FitBody[],
+  stacks: readonly (FitBody & { elsewhere?: boolean })[],
   obstacles: readonly FitObstacle[]
 ): Plane | null {
   const inset = narrowInset(part, radius);
+  /* Covering a stack of another sector or territory counts double, so the stacks of the sector's own are covered first. */
   const overlap = (point: Plane) =>
     Math.max(
       0,
-      ...stacks.map((stack) => stack.radius + radius - Math.hypot(point[0] - stack.at[0], point[1] - stack.at[1]))
+      ...stacks.map(
+        (stack) =>
+          (stack.radius + radius - Math.hypot(point[0] - stack.at[0], point[1] - stack.at[1])) *
+          (stack.elsewhere ? 2 : 1)
+      )
     );
   const allowed = (point: Plane) =>
     fitsInside(part, point, inset) &&
@@ -671,7 +676,12 @@ export function overlappingSpot(
       (stack) =>
         Math.hypot(point[0] - stack.at[0], point[1] - stack.at[1]) >= (stack.radius + radius) * (1 - MOST_OVERLAP)
     );
-  const candidates = [from, ...restingSpots(part, radius, inset)].filter(allowed);
+  /* Between grid points a gap the floor allows can hide, so each spot's neighbours half a step away are tried too. */
+  const near = (point: Plane): Plane[] => [
+    point,
+    ...CLIMB_DIRECTIONS.map(([dx, dz]): Plane => [point[0] + (dx * SPOT_STEP) / 2, point[1] + (dz * SPOT_STEP) / 2]),
+  ];
+  const candidates = [from, ...restingSpots(part, radius, inset).flatMap(near)].filter(allowed);
   const distance = (point: Plane) => Math.hypot(point[0] - from[0], point[1] - from[1]);
   /* Overlaps within a step of the grid count as equal, so the nearest of the spots that overlap least wins. */
   const score = (point: Plane) => Math.round(overlap(point) / SPOT_STEP);

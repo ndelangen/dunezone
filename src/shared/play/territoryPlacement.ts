@@ -207,20 +207,18 @@ const OVERLAP_LIFT = 0.004;
 function overlapLayout(territory: TableTerritory, part: TableTerritory, drop: TerritoryDrop): TerritoryLayout | null {
   const { piece, at, others } = drop;
   const relevant = piecesNear(territory, piece, others);
-  /* Only the stacks in the same part may be overlapped; one in the next sector or territory stays in the way. */
-  const stacks = relevant.filter(
-    (candidate) =>
-      packsInTerritory(candidate) &&
-      !onAnyPlate(others, candidate.position) &&
-      territoryContains(part, [candidate.position[0], candidate.position[2]])
-  );
+  /* A sector too narrow for a stack is often half covered by the stacks next door, so they may be overlapped too, though only where the stacks in its own sector leave no better spot. */
+  const stacks = relevant.filter((candidate) => packsInTerritory(candidate) && !onAnyPlate(others, candidate.position));
   const obstacles = relevant.filter((candidate) => !stacks.includes(candidate)).map(obstacle);
   const radius = footprintReach(piece);
   const spot = overlappingSpot(
     part,
     radius,
     [at[0], at[2]],
-    stacks.map((candidate) => body(candidate)),
+    stacks.map((candidate) => ({
+      ...body(candidate),
+      elsewhere: !territoryContains(part, [candidate.position[0], candidate.position[2]]),
+    })),
     obstacles
   );
   if (!spot) {

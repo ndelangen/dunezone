@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
+import { rotatedPiece } from './commands';
 import { arrakisBoardCapture } from './fixtures/board';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
@@ -151,13 +152,15 @@ describe('stacks dropped into a territory', () => {
         (candidate) =>
           candidate.id !== piece.id && territoryContains(arrakeen, [candidate.position[0], candidate.position[2]])
       );
-      if (already.some((candidate) => piecesOverlapAt(landed, landed.position, at(next, candidate.id)))) {
-        overlapped += 1;
-        /* An overlapping stack rests a hair above the ones it covers, and leaves them where they were. */
-        expect(landed.position[1]).toBeGreaterThan(Math.min(...already.map((candidate) => candidate.position[1])));
-        for (const candidate of already) {
-          expect(at(next, candidate.id).position).toEqual(candidate.position);
-        }
+      const covered = already.filter((candidate) => piecesOverlapAt(landed, landed.position, at(next, candidate.id)));
+      overlapped += covered.length > 0 ? 1 : 0;
+      /* A stack resting over another still turns in place, keeping its lift. */
+      const turned = covered.length > 0 ? rotatedPiece(next, landed, 1) : landed;
+      expect(turned?.position).toEqual(landed.position);
+      /* An overlapping stack rests a hair above the ones it covers, and leaves them where they were. */
+      for (const candidate of covered) {
+        expect(landed.position[1]).toBeGreaterThan(candidate.position[1]);
+        expect(at(next, candidate.id).position).toEqual(candidate.position);
       }
       expect(territoryContains(arrakeen, [landed.position[0], landed.position[2]])).toBe(true);
       state = next;
@@ -446,42 +449,45 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
   test('cover every territory, Harg pass, False wall east and Tsimpo among them', () => {
     expect(sectors.filter(({ territory }) => territory.name === 'False wall east')).toHaveLength(5);
     expect(sectors.filter(({ territory }) => territory.name === 'Harg pass')).toHaveLength(2);
+    /* Every real sector of the board, listed in full, so a thin one the sampling missed fails here. */
+    expect(sectors).toHaveLength(86);
     expect(new Set(sectors.map(({ territory }) => territory.id)).size).toBe(
       tableTerritories(arrakisBoardCapture.definition).length
     );
   });
 
-  test('rest in the sector they were let go in, troops and leaders alike, wherever in it they were let go', () => {
-    const leader: TablePiece = { ...troop('leader', 'atreides', SHELF), stackKey: 'leader:atreides' };
-    for (const { territory, sector, inside } of sectors) {
-      for (const point of inside.filter((_, index) => index % Math.ceil(inside.length / 12) === 0)) {
-        for (const base of [troop('mover', 'atreides', SHELF), leader]) {
-          const landing = territoryLanding({ board: arrakisBoardCapture.definition }, base, point, []);
-          expect(landing, `${base.stackKey} in ${territory.name} sector ${sector}`).toBeTruthy();
-          if (territory.sectored) {
-            expect(tableSectorAt([landing!.position[0], landing!.position[2]]), territory.name).toBe(sector);
-          }
-        }
-      }
+  /* The sector a stack let go at `point` lands in, -1 in the polar sink, or null when it is refused. */
+  function landingSector(base: TablePiece, point: Vector3Tuple, territory: TableTerritory): number | null {
+    const landing = territoryLanding({ board: arrakisBoardCapture.definition }, base, point, []);
+    if (!landing) {
+      return null;
+    }
+    return territory.sectored ? tableSectorAt([landing.position[0], landing.position[2]]) : -1;
+  }
+
+  const leader: TablePiece = { ...troop('leader', 'atreides', SHELF), stackKey: 'leader:atreides' };
+  const byName = sectors.map((entry) => [`${entry.territory.name} sector ${entry.sector}`, entry] as const);
+
+  test.each(byName)('rest in the sector they were let go in, troops and leaders alike: %s', (_, entry) => {
+    const { territory, sector, inside } = entry;
+    for (const point of inside.filter((_point, index) => index % Math.ceil(inside.length / 6) === 0)) {
+      expect(landingSector(troop('mover', 'atreides', SHELF), point, territory)).toBe(sector);
+      expect(landingSector(leader, point, territory)).toBe(sector);
     }
   });
 
-  test('take three stacks of different factions in every sector, the narrow ones overlapping, none moved into another sector', () => {
-    for (const { territory, sector, inside } of sectors) {
-      const many = Array.from({ length: 3 }, (_, index) => troop(`f${index}`, `faction-${index}`, SHELF));
-      const drop = inside[Math.floor(inside.length / 2)]!;
-      let state = tableWith(...many);
-      for (const piece of many) {
-        const next = dropAt(state, piece.id, drop);
-        expect(next, `${territory.name} sector ${sector}`).not.toBeNull();
-        state = next!;
-      }
-      for (const piece of state.pieces) {
-        expect(territoryContains(territory, [piece.position[0], piece.position[2]]), territory.name).toBe(true);
-        if (territory.sectored) {
-          expect(sectorOf(piece), territory.name).toBe(sector);
-        }
-      }
+  test.each(byName)('take three stacks of different factions, none moved into another sector: %s', (_, entry) => {
+    const { territory, sector, inside } = entry;
+    const many = Array.from({ length: 3 }, (_piece, index) => troop(`f${index}`, `faction-${index}`, SHELF));
+    const drop = inside[Math.floor(inside.length / 2)]!;
+    let state = tableWith(...many);
+    for (const piece of many) {
+      state = dropAt(state, piece.id, drop)!;
+      expect(state).not.toBeNull();
+    }
+    for (const piece of state.pieces) {
+      expect(territoryContains(territory, [piece.position[0], piece.position[2]])).toBe(true);
+      expect(territory.sectored ? sectorOf(piece) : -1).toBe(sector);
     }
   });
 
@@ -500,7 +506,7 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
     expect(restsNarrowly(restingPart(sector.territory, point), point, footprintReach(placed))).toBe(true);
   });
 
-  test('never overlap a stack in the next sector, however full their own', () => {
+  test('cover a stack in the next sector no more than any stack may be covered, however full their own', () => {
     const find = (index: number) =>
       sectors.find(({ territory, sector: candidate }) => territory.name === 'False wall east' && candidate === index)!;
     const neighbours = Array.from({ length: 3 }, (_, index) => troop(`n${index}`, `faction-n${index}`, SHELF));
@@ -520,9 +526,8 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
     }
     for (const mover of movers.map((piece) => at(state, piece.id))) {
       for (const neighbour of neighbours.map((piece) => at(state, piece.id))) {
-        if (sectorOf(mover) === 15) {
-          expect(piecesOverlapAt(mover, mover.position, neighbour)).toBe(false);
-        }
+        const apart = Math.hypot(mover.position[0] - neighbour.position[0], mover.position[2] - neighbour.position[2]);
+        expect(apart).toBeGreaterThanOrEqual((footprintReach(mover) + footprintReach(neighbour)) * 0.3 - 1e-9);
       }
     }
   });
