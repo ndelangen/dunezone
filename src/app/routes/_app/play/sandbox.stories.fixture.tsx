@@ -1,7 +1,9 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
+import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
+import type { StoredPiece } from '@shared/play/model';
 import type { Viewer } from '@shared/play/protocol';
 import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
@@ -216,18 +218,50 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
  * Two plain tokens standing in for Discovery tokens, face up on the board beside a troop stack, so their thickness reads against a troop's.
  * They borrow two Dreamrules tech tokens' faces, as plain tokens rather than tech tokens.
  */
+/* The live Discovery bundle's tokens, by catalogue id: two Hiereg-backed and two Smuggler-backed, as dune.zone publishes them. */
+const LIVE_DISCOVERY_TOKENS = [
+  { id: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0', name: 'Cistern', back: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0' },
+  { id: 'ns78sqzwt8bjwan5nrwh2da38n8gmp91', name: 'Shrine', back: 'ns70ga4v7e4z4j0701kb5h8b3x8gmbn0' },
+  { id: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n', name: 'Ornithopter', back: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n' },
+  { id: 'ns7fspnt2jjyj3p1gwhtz6gmyn8gmn2r', name: 'Spice Stash', back: 'ns71am9sbvtjte3pxg1h9vcd0d8gn94n' },
+] as const;
+
+/**
+ * The live Discovery tokens beside a troop stack, two face down as they are placed and two face up, so their thickness reads against a troop's.
+ * Their faces are dune.zone's published pictures, which Storybook shows when started with STORYBOOK_LIVE_PUBLISHED=1.
+ */
 export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
   const pieces = [...stored.table.pieces];
   const versions = { ...stored.versions };
   const troop = pieces.find((candidate) => candidate.kind === 'force' && candidate.stackKey?.startsWith('troop'));
   const near: [number, number, number] = troop ? [troop.position[0], 0, troop.position[2]] : [0.6, 0, 0.6];
-  for (const [index, source] of dreamrulesTechTokenPieces().slice(0, 2).entries()) {
-    const token = {
-      ...source,
-      id: `discovery-${index + 1}`,
-      inventory: undefined,
-      stackKey: `token:discovery-${index + 1}`,
-      items: source.items.map((item) => ({ ...item, artwork: { ...item.artwork!, type: 'token-disc' } })),
+  for (const [index, live] of LIVE_DISCOVERY_TOKENS.entries()) {
+    const id = `discovery-${index + 1}`;
+    const faceUp = index % 2 === 1;
+    const token: StoredPiece = {
+      id,
+      label: live.name,
+      kind: 'force',
+      owner: 'shared',
+      color: '#d5ba8c',
+      accent: '#ead9bb',
+      items: [
+        {
+          id: `${id}-1`,
+          faceUp,
+          artwork: {
+            front: new URL(publishedHref('token-disc', live.id), location.origin).href,
+            back: new URL(publishedHref('token-disc', `${live.back}.back`), location.origin).href,
+            name: live.name,
+            type: 'token-disc',
+          },
+        },
+      ],
+      stackKey: `token:${live.id}`,
+      position: [0, 0, 0],
+      orientation: 0,
+      zoneId: null,
+      locked: false,
     };
     token.position = restingPositionAt(nearestCollisionFreePosition(token, near, pieces)!, token);
     pieces.push(token);

@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { discoveryTokenFronts } from '@shared/assets/fixtures/discoveryTokens';
+import { spiceMineTokenFace } from '@shared/assets/fixtures/spiceMineTokens';
 
 import { backgroundPresets } from '../../data/backgrounds';
 import { CustomToken } from './Custom';
@@ -76,3 +77,9 @@ export const Pointer = meta.story({
 export const HieregBack = meta.story({
   args: tokenFaceProps(discoveryTokenFronts['gf9-hiereg-discovery-marker'].face),
 });
+
+export const SpiceMine3 = meta.story({ args: tokenFaceProps(spiceMineTokenFace(3)) });
+
+export const SpiceMine4 = meta.story({ args: tokenFaceProps(spiceMineTokenFace(4)) });
+
+export const SpiceMine5 = meta.story({ args: tokenFaceProps(spiceMineTokenFace(5)) });
