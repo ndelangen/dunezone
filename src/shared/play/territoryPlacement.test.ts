@@ -517,13 +517,7 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
       state = dropAt(state, piece.id, next)!;
     }
     const own = find(15).inside[Math.floor(find(15).inside.length / 2)]!;
-    for (const piece of movers) {
-      const after = dropAt(state, piece.id, own);
-      if (!after) {
-        break;
-      }
-      state = after;
-    }
+    state = movers.reduce((current, piece) => dropAt(current, piece.id, own) ?? current, state);
     for (const mover of movers.map((piece) => at(state, piece.id))) {
       for (const neighbour of neighbours.map((piece) => at(state, piece.id))) {
         const apart = Math.hypot(mover.position[0] - neighbour.position[0], mover.position[2] - neighbour.position[2]);

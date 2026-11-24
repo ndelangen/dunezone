@@ -681,7 +681,8 @@ export function overlappingSpot(
     point,
     ...CLIMB_DIRECTIONS.map(([dx, dz]): Plane => [point[0] + (dx * SPOT_STEP) / 2, point[1] + (dz * SPOT_STEP) / 2]),
   ];
-  const candidates = [from, ...restingSpots(part, radius, inset).flatMap(near)].filter(allowed);
+  /* The grid's own clearance is half a gap, so it is asked for half a gap less: a spot the overlap allows by its centre alone is on it too. */
+  const candidates = [from, ...restingSpots(part, radius, inset - GAP / 2).flatMap(near)].filter(allowed);
   const distance = (point: Plane) => Math.hypot(point[0] - from[0], point[1] - from[1]);
   /* Overlaps within a step of the grid count as equal, so the nearest of the spots that overlap least wins. */
   const score = (point: Plane) => Math.round(overlap(point) / SPOT_STEP);
