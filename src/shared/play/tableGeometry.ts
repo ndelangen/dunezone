@@ -265,13 +265,24 @@ export function contactShadowScale(
 
 /* Troops sit in crowds on the map, so their shadow reaches further and darker than other pieces' to keep each stack grounded. */
 const TROOP_SHADOW_SPREAD = 0.24;
+/* A thin card token, such as a Discovery token, lies flat and dark-edged on a dark table, so its shadow reaches out past its edge to lift it off. */
+const PLAIN_TOKEN_SHADOW_SPREAD = 0.2;
 function troopShadowSpread(piece: TablePiece | TablePiece['kind']) {
-  return typeof piece !== 'string' && isTroopStack(piece) ? TROOP_SHADOW_SPREAD : 0.04;
+  if (typeof piece === 'string') {
+    return 0.04;
+  }
+  if (isTroopStack(piece)) {
+    return TROOP_SHADOW_SPREAD;
+  }
+  return isPlainToken(piece) ? PLAIN_TOKEN_SHADOW_SPREAD : 0.04;
 }
 
 export function contactShadowOpacity(carried: boolean, piece?: TablePiece): number {
   if (piece && isTroopStack(piece)) {
     return carried ? 0.3 : 0.75;
+  }
+  if (piece && isPlainToken(piece)) {
+    return carried ? 0.3 : 0.7;
   }
   return carried ? 0.14 : 0.3;
 }
