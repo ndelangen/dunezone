@@ -13,7 +13,13 @@ import { createSpiceStack } from './spiceBank';
 import { placeSpiceBlowInState } from './spiceBlowPlacement';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition, restingAmongLeaders } from './tablePhysics';
+import {
+  hasRoundFootprint,
+  isCollisionFreePosition,
+  nearestCollisionFreePosition,
+  piecesOverlapAt,
+  restingAmongLeaders,
+} from './tablePhysics';
 import {
   accepted,
   applyDraftToState,
@@ -317,13 +323,20 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
   );
   /* A leader turning in a pile keeps its place in it: still above the discs it lay on, still below the ones on it. */
   const beneath = rules.obstacles.filter((other) => other.position[1] < piece.position[1]);
+  /* A round stack resting over part of another in a crowded sector turns in place: its footprint stays the same, so that overlap is no collision, and it keeps its lift. */
+  const overlapped = hasRoundFootprint(piece)
+    ? rules.obstacles.filter((other) => piecesOverlapAt(piece, piece.position, other))
+    : [];
+  const resting = restingAmongLeaders(piece, restingPositionAt(piece.position, { ...piece, orientation }), beneath);
   const rotated = {
     ...piece,
     orientation,
-    position: restingAmongLeaders(piece, restingPositionAt(piece.position, { ...piece, orientation }), beneath),
+    position: (overlapped.length > 0
+      ? [resting[0], Math.max(resting[1], piece.position[1]), resting[2]]
+      : resting) as Vector3Tuple,
   };
-  return isCollisionFreePosition(rotated, rotated.position, rules.obstacles) &&
-    rules.fits(rotated.position, orientation)
+  const obstacles = rules.obstacles.filter((other) => !overlapped.includes(other));
+  return isCollisionFreePosition(rotated, rotated.position, obstacles) && rules.fits(rotated.position, orientation)
     ? rotated
     : null;
 }
