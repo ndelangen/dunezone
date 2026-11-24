@@ -627,7 +627,7 @@ function deepestRoom(part: TableTerritory): number {
  * How far inside the border of a part too narrow or too full for the usual rule a stack's centre keeps: as far as a roomy part keeps it, or two fifths of the part's own depth where it is narrower.
  * Its centre then always stands in the part, so which sector the stack stands in is never in doubt, however much of it hangs over.
  */
-export function narrowInset(part: TableTerritory, radius: number): number {
+function narrowInset(part: TableTerritory, radius: number): number {
   return Math.min(borderReach(radius), Math.max(0, deepestRoom(part) * 0.4 - GAP / 2));
 }
 

@@ -518,11 +518,15 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
     }
     const own = find(15).inside[Math.floor(find(15).inside.length / 2)]!;
     state = movers.reduce((current, piece) => dropAt(current, piece.id, own) ?? current, state);
-    for (const mover of movers.map((piece) => at(state, piece.id))) {
-      for (const neighbour of neighbours.map((piece) => at(state, piece.id))) {
-        const apart = Math.hypot(mover.position[0] - neighbour.position[0], mover.position[2] - neighbour.position[2]);
-        expect(apart).toBeGreaterThanOrEqual((footprintReach(mover) + footprintReach(neighbour)) * 0.3 - 1e-9);
-      }
+    const pairs = movers.flatMap((mover) =>
+      neighbours.map((neighbour) => [at(state, mover.id), at(state, neighbour.id)])
+    );
+    for (const [mover, neighbour] of pairs) {
+      const apart = Math.hypot(
+        mover!.position[0] - neighbour!.position[0],
+        mover!.position[2] - neighbour!.position[2]
+      );
+      expect(apart).toBeGreaterThanOrEqual((footprintReach(mover!) + footprintReach(neighbour!)) * 0.3 - 1e-9);
     }
   });
 });
