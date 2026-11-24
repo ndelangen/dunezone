@@ -26,6 +26,7 @@ import {
   contactShadowHeightAt,
   contactShadowOpacity,
   contactShadowScale,
+  contactShadowStop,
   TROOP_BOTTOM_RADIUS,
   TROOP_FACE_RADIUS,
   tokenBoxRatio,
@@ -999,7 +1000,10 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
                 side={DoubleSide}
               >
                 {/* Attached as drei attached its own: a `map` property would have Fiber mark the texture sRGB and darken the shadow. */}
-                <primitive object={meshes.contactShadow(playUiColors.contactShadow, 0.18)} attach="map" />
+                <primitive
+                  object={meshes.contactShadow(playUiColors.contactShadow, contactShadowStop(piece))}
+                  attach="map"
+                />
               </meshBasicMaterial>
             </mesh>
           </group>

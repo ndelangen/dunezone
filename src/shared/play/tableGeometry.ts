@@ -265,8 +265,19 @@ export function contactShadowScale(
 
 /* Troops sit in crowds on the map, so their shadow reaches further and darker than other pieces' to keep each stack grounded. */
 const TROOP_SHADOW_SPREAD = 0.24;
-/* A thin card token, such as a Discovery token, lies flat and dark-edged on a dark table, so its shadow reaches out past its edge to lift it off. */
-const PLAIN_TOKEN_SHADOW_SPREAD = 0.2;
+/* PROTOTYPE: a thin card token's contact shadow, which the shadow options stories set to compare; one value stays once one is picked. */
+type PlainTokenShadow = { spread: number; opacity: number; stop: number };
+let plainTokenShadow: PlainTokenShadow = { spread: 0.06, opacity: 0.5, stop: 0.8 };
+/** PROTOTYPE: draws card tokens' contact shadows another way, for the options stories. */
+export function previewPlainTokenShadow(shadow: PlainTokenShadow) {
+  plainTokenShadow = shadow;
+}
+
+/** Where a piece's soft shadow stops being solid and starts to fade, as a share of its radius. */
+export function contactShadowStop(piece: TablePiece): number {
+  return isPlainToken(piece) ? plainTokenShadow.stop : 0.18;
+}
+
 function troopShadowSpread(piece: TablePiece | TablePiece['kind']) {
   if (typeof piece === 'string') {
     return 0.04;
@@ -274,7 +285,7 @@ function troopShadowSpread(piece: TablePiece | TablePiece['kind']) {
   if (isTroopStack(piece)) {
     return TROOP_SHADOW_SPREAD;
   }
-  return isPlainToken(piece) ? PLAIN_TOKEN_SHADOW_SPREAD : 0.04;
+  return isPlainToken(piece) ? plainTokenShadow.spread : 0.04;
 }
 
 export function contactShadowOpacity(carried: boolean, piece?: TablePiece): number {
@@ -282,7 +293,7 @@ export function contactShadowOpacity(carried: boolean, piece?: TablePiece): numb
     return carried ? 0.3 : 0.75;
   }
   if (piece && isPlainToken(piece)) {
-    return carried ? 0.3 : 0.7;
+    return carried ? plainTokenShadow.opacity * 0.5 : plainTokenShadow.opacity;
   }
   return carried ? 0.14 : 0.3;
 }
