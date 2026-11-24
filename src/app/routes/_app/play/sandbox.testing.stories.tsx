@@ -10,7 +10,7 @@ import { footprintReach } from '@shared/play/tablePhysics';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { restingParts, restsInside, tableSectorAt, territoryShapeAt } from '@shared/play/territoryFit';
+import { restingPart, restsInside, tableSectorAt, territoryShapeAt } from '@shared/play/territoryFit';
 import { packsInTerritory } from '@shared/play/territoryPlacement';
 import { troopFactionOf } from '@shared/play/troopReserves';
 import { addons } from 'storybook/preview-api';
@@ -1122,7 +1122,7 @@ export const TroopsSitInOneSector = meta.story({
       const radius = footprintReach(placed[0]!);
       const territory = territoryShapeAt(board, [x, z])!;
       await expect(tableSectorAt(point)).toBe(sector);
-      await expect(restingParts(territory, point, radius).some((part) => restsInside(part, point, radius))).toBe(true);
+      await expect(restsInside(restingPart(territory, point), point, radius)).toBe(true);
     }
   },
 });

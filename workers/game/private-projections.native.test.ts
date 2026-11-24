@@ -490,8 +490,10 @@ describe('Faction privacy through native delivery', () => {
         snapshot.table.pieces.push({
           ...template,
           id,
-          kind: 'marker',
+          /* Cards, which stacks never overlap, so no spot is left anywhere. */
+          kind: 'card',
           stackKey: 'occupied',
+          orientation: 0,
           position: [x, 0.38, z],
           items: [{ id: `${id}-item`, faceUp: true }],
         });
