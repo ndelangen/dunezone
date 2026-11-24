@@ -4,7 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
-import { isPlate, previewPlainTokenShadow, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
+import { isPlate, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
@@ -26,7 +26,6 @@ import {
   shown,
   pinnedSpiceBlowSpot,
   withCoveredSpiceBlow,
-  withDiscoveryOnTheSand,
   withDiscoveryTokens,
   withPinnedSpiceBlows,
   withSpiceBlows,
@@ -475,7 +474,7 @@ export const SpiceBlowTopCardOnly = meta.story({
   },
 });
 
-/* PROTOTYPE: Discovery token thickness options, each a share of a troop token's thickness; one is kept once Norbert picks. */
+/* The live Discovery tokens beside seat 1's troops. */
 const discoverySandbox = {
   args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
@@ -506,35 +505,6 @@ export const DiscoveryTokens = meta.story({
     }
   },
 });
-
-/* PROTOTYPE: card token shadow options, one story each, with two tokens on the board's sand; they go once one is picked. Click a token to see its selection ring with the shadow. */
-function discoveryShadowStory(shadow: { spread: number; opacity: number; stop: number }) {
-  return {
-    ...discoverySandbox,
-    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
-      previewPlainTokenShadow(shadow);
-      return install(() =>
-        sandboxTransport({
-          start: Number(args.step ?? 1) - 1,
-          seat: String(args.seat ?? 'seat-1'),
-          prepare: (stored) => withDiscoveryOnTheSand(withDiscoveryTokens(stored)),
-        })
-      )();
-    },
-    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-      await sandboxReady(within(canvasElement.ownerDocument.body));
-    },
-  };
-}
-
-/** Shadow option A: as before today's change, faint and barely past the edge. */
-export const DiscoveryShadowFaint = meta.story(discoveryShadowStory({ spread: 0.04, opacity: 0.3, stop: 0.18 }));
-/** Shadow option B: tight and crisp, a thin dark line just past the edge. */
-export const DiscoveryShadowTight = meta.story(discoveryShadowStory({ spread: 0.06, opacity: 0.5, stop: 0.8 }));
-/** Shadow option C: tight with a short soft fade. */
-export const DiscoveryShadowTightSoft = meta.story(discoveryShadowStory({ spread: 0.1, opacity: 0.45, stop: 0.6 }));
-/** Shadow option D: crisp and darker, hugging the edge. */
-export const DiscoveryShadowCrispDark = meta.story(discoveryShadowStory({ spread: 0.04, opacity: 0.7, stop: 0.9 }));
 
 /** Seat 1 sets a troop stack on a Discovery token and moves the token: the troops ride along, keeping their place on it, as on the HMS. */
 export const DiscoveryTokenCarriesTroops = meta.story({
