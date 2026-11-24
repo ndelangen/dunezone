@@ -4,8 +4,11 @@ import { isPlate, plateCovers, restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
 import {
   fitIntoTerritory,
+  overlappingSpot,
+  restingPart,
+  restsInPart,
+  restsNarrowly,
   restsInside,
-  restingParts,
   territoryBounds,
   territoryShapeAt,
   territoryContains,
@@ -82,8 +85,8 @@ export function keepsInsideTerritory(
     }
     /* In the sector it lands in, as a drop there would rest it. */
     const point: [number, number] = [at[0], at[2]];
-    const radius = footprintReach(piece);
-    return restingParts(territory, point, radius).some((part) => restsInside(part, point, radius));
+    const part = restingPart(territory, point);
+    return territoryContains(part, point) && restsInPart(part, point, footprintReach(piece));
   };
 }
 
@@ -119,21 +122,26 @@ function partLayout(
   territory: TableTerritory,
   part: TableTerritory,
   drop: TerritoryDrop,
-  pinned: boolean
+  pinned: boolean,
+  narrow: boolean
 ): TerritoryLayout | null {
   const { piece, at, others } = drop;
   const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
   /* Across a whole territory the sector lines divide, the stacks already there hold still, so none is moved into another sector. */
   const movesOver = part !== territory || !territory.sectored;
-  const inside = (candidate: TablePiece) =>
-    movesOver &&
-    packsInTerritory(candidate) &&
-    !onAnyPlate(others, candidate.position) &&
-    territoryContains(part, [candidate.position[0], candidate.position[2]]) &&
-    /* A stack the whole territory took across a line, too big for this sector, holds still rather than be squeezed into it. */
-    (part === territory ||
-      restsInside(part, [candidate.position[0], candidate.position[2]], footprintReach(candidate)));
+  const inside = (candidate: TablePiece) => {
+    const point: [number, number] = [candidate.position[0], candidate.position[2]];
+    const radius = footprintReach(candidate);
+    return (
+      movesOver &&
+      packsInTerritory(candidate) &&
+      !onAnyPlate(others, candidate.position) &&
+      territoryContains(part, point) &&
+      /* A stack resting by the narrow rule only moves when the landing one rests by it too, so the usual rule never squeezes it. */
+      (narrow ? restsNarrowly(part, point, radius) : restsInside(part, point, radius))
+    );
+  };
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
   /* A plate such as the HMS is in the way by its outline, so no stack is shifted onto it without riding it. */
   const obstacles = relevant.filter((candidate) => !inside(candidate)).map(obstacle);
@@ -142,6 +150,7 @@ function partLayout(
     bodies: [body(piece, at), ...settled.map((candidate) => body(candidate))],
     pinFirst: pinned,
     obstacles,
+    narrow,
   });
   if (!fitted) {
     return null;
@@ -171,16 +180,56 @@ export function territoryLanding(
     return undefined;
   }
   /*
-   * It rests in the sector it was let go in, so a full sector refuses it rather than move it into another.
+   * It rests in the sector it was let go in, however narrow, so it never moves into another.
    * Held where it was let go it may still step in from the border, and failing that it gives way to the others too.
+   * In a sector too narrow or too full for that, it may hang further over the edges, its centre kept inside;
+   * and with no room even so, it overlaps the stacks already there.
    */
-  for (const part of restingParts(territory, [at[0], at[2]], footprintReach(piece))) {
-    const layout = partLayout(territory, part, drop, true) ?? partLayout(territory, part, drop, false);
+  const part = restingPart(territory, [at[0], at[2]]);
+  for (const narrow of [false, true]) {
+    const layout = partLayout(territory, part, drop, true, narrow) ?? partLayout(territory, part, drop, false, narrow);
     if (layout) {
       return layout;
     }
   }
-  return null;
+  return overlapLayout(territory, part, drop);
+}
+
+/* Lifts a stack resting over part of another by a hair, so the two never draw in the same plane. */
+const OVERLAP_LIFT = 0.004;
+
+/**
+ * Where a stack let go in a part with no room left rests over the stacks already there, overlapping them as little as it can;
+ * null when it would cover too much of one.
+ * The stacks there hold still, and the landing one rests a hair above any it overlaps.
+ */
+function overlapLayout(territory: TableTerritory, part: TableTerritory, drop: TerritoryDrop): TerritoryLayout | null {
+  const { piece, at, others } = drop;
+  const relevant = piecesNear(territory, piece, others);
+  /* A sector too narrow for a stack is often half covered by the stacks next door, so they may be overlapped too, though only where the stacks in its own sector leave no better spot. */
+  const stacks = relevant.filter((candidate) => packsInTerritory(candidate) && !onAnyPlate(others, candidate.position));
+  const obstacles = relevant.filter((candidate) => !stacks.includes(candidate)).map(obstacle);
+  const radius = footprintReach(piece);
+  const spot = overlappingSpot(
+    part,
+    radius,
+    [at[0], at[2]],
+    stacks.map((candidate) => ({
+      ...body(candidate),
+      elsewhere: !territoryContains(part, [candidate.position[0], candidate.position[2]]),
+    })),
+    obstacles
+  );
+  if (!spot) {
+    return null;
+  }
+  const resting = restingPositionAt([spot[0], at[1], spot[1]], piece);
+  const below = stacks.filter(
+    (candidate) =>
+      Math.hypot(candidate.position[0] - spot[0], candidate.position[2] - spot[1]) < radius + footprintReach(candidate)
+  );
+  const lifted = Math.max(resting[1], ...below.map((candidate) => candidate.position[1] + OVERLAP_LIFT));
+  return { territory, position: [resting[0], lifted, resting[2]], nudges: [] };
 }
 
 /** The table's pieces with the stacks a landing shifted moved to their new spots. */
