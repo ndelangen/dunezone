@@ -10,7 +10,15 @@ import { footprintReach } from '@shared/play/tablePhysics';
 import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { restingPart, restsInside, tableSectorAt, territoryShapeAt } from '@shared/play/territoryFit';
+import {
+  restingPart,
+  restsInside,
+  tableSectorAt,
+  tableTerritories,
+  territoryBounds,
+  territoryContains,
+  territoryShapeAt,
+} from '@shared/play/territoryFit';
 import { packsInTerritory } from '@shared/play/territoryPlacement';
 import { troopFactionOf } from '@shared/play/troopReserves';
 import { addons } from 'storybook/preview-api';
@@ -1123,6 +1131,96 @@ export const TroopsSitInOneSector = meta.story({
       const territory = territoryShapeAt(board, [x, z])!;
       await expect(tableSectorAt(point)).toBe(sector);
       await expect(restsInside(restingPart(territory, point), point, radius)).toBe(true);
+    }
+  },
+});
+
+/* The narrowest sectors of the official board: each is smaller than a troop, or a leader, or too small for a second stack beside the first. */
+const NARROW_SECTORS = [
+  { name: 'False wall east', sector: 15 },
+  { name: 'False wall east', sector: 16 },
+  { name: 'False wall east', sector: 17 },
+  { name: 'False wall east', sector: 0 },
+  { name: 'False wall east', sector: 1 },
+  { name: 'Harg pass', sector: 1 },
+  { name: 'Harg pass', sector: 2 },
+  { name: 'Tsimpo', sector: 11 },
+  { name: 'Wind pass', sector: 10 },
+  { name: 'Imperial basin', sector: 15 },
+  { name: 'Old gap', sector: 13 },
+  { name: 'Old gap', sector: 15 },
+  { name: 'Rim wall west', sector: 15 },
+] as const;
+
+/* A point in the middle of a territory's stretch within one sector, as a player would aim for it. */
+function middleOfSector(name: string, sector: number): [number, number, number] {
+  const territory = tableTerritories(arrakisBoardCapture.definition).find((candidate) => candidate.name === name)!;
+  const box = territoryBounds(territory);
+  const inside: [number, number][] = [];
+  for (let x = box.minX; x <= box.maxX; x += 0.02) {
+    for (let z = box.minZ; z <= box.maxZ; z += 0.02) {
+      if (territoryContains(territory, [x, z]) && tableSectorAt([x, z]) === sector) {
+        inside.push([x, z]);
+      }
+    }
+  }
+  const [x, z] = inside[Math.floor(inside.length / 2)]!;
+  return [x, 0.4, z];
+}
+
+/**
+ * Three troops of different factions are let go in each of the board's narrowest sectors: the five of False wall east, both of Harg pass, Tsimpo, Wind pass, Imperial basin, Old gap and Rim wall west.
+ * Each rests with its centre in the sector it was let go in: a sector too narrow for the 30% rule lets it hang further over the edges, and one with no room left lets it overlap the stacks already there.
+ * By hand: drag troops into any of those sectors and let go.
+ */
+export const TroopsLandInNarrowSectors = meta.story({
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const table = sandbox.table!;
+    const factions = shown()
+      .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
+      .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
+    let count = 0;
+    for (const { name, sector } of NARROW_SECTORS) {
+      const drop = middleOfSector(name, sector);
+      /* Up to three factions with no troops near yet, so none joins a stack of its own instead of landing beside it. */
+      const away = factions.filter((faction) =>
+        troopsOf(shown().table.pieces, faction).every(
+          (candidate) => Math.hypot(candidate.position[0] - drop[0], candidate.position[2] - drop[2]) > 0.45
+        )
+      );
+      for (let faction = 0; faction < Math.min(3, away.length); faction += 1) {
+        const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
+        /* From the faction's biggest pile, its reserves, never a troop already set down. */
+        const source = troopsOf(shown().table.pieces, away[(count + faction) % away.length]!).sort(
+          (a, b) => b.items.length - a.items.length
+        )[0]!;
+        const carryId = `narrow-${count}-${faction}`;
+        table.receive({
+          type: 'begin',
+          carryId,
+          sourcePieceId: source.id,
+          expectedVersion: shown().versions[source.id]!,
+          pickup: 'top',
+        });
+        table.receive({ type: 'drop', commandId: `${carryId}-drop`, carryId, position: drop, orientation: 0 });
+        await expect(table.refusal).toBeUndefined();
+        const placed = shown().table.pieces.filter(
+          (candidate) =>
+            !before.has(candidate.id) &&
+            packsInTerritory(candidate) &&
+            Math.hypot(candidate.position[0] - drop[0], candidate.position[2] - drop[2]) < 0.6
+        );
+        await expect(placed).toHaveLength(1);
+        await expect(tableSectorAt([placed[0]!.position[0], placed[0]!.position[2]])).toBe(sector);
+        await expect(
+          territoryShapeAt(arrakisBoardCapture.definition, [placed[0]!.position[0], placed[0]!.position[2]])?.name
+        ).toBe(name);
+      }
+      count += 1;
     }
   },
 });
