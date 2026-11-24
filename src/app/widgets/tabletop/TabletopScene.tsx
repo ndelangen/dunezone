@@ -33,6 +33,7 @@ import {
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
   tokenThickness,
+  isPlainToken,
   troopScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
@@ -346,8 +347,9 @@ function SittingOutSign() {
 
 /* Under printed art the plain face wears the piece's own colour: the art's anti-aliased rim lets it through where the disc's corners reach the image's edge, and a light accent there drew a dotted ring. */
 function plainTokenFaceColor(piece: TablePiece, faceUp: boolean, printed: boolean) {
+  /* Behind printed art, a card token's backing matches its dark edge, so no pale line shows round a soft-edged picture. */
   if (printed) {
-    return piece.color;
+    return isPlainToken(piece) ? playUiColors.plainTokenEdge : piece.color;
   }
   return faceUp ? piece.accent : playUiColors.faceDownInk;
 }
@@ -398,7 +400,8 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
   const cut = tokenCut(piece);
-  /* A plain token, such as a Discovery token, is thin card: its layers, faces and spacing all shrink to its thickness. */
+  /* A plain token, such as a Discovery token, is thin card: its layers, faces and spacing all shrink to its thickness, and its cut edge is straight and dark. */
+  const card = isPlainToken(piece);
   return (
     <group scale={[scale, tokenThickness(piece), scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
@@ -413,9 +416,13 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
               renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
               /* A face-down layer is turned over: a disc stands on its other end, and a gear is mirrored under its faces. */
               rotation={[0, 0, faceUp ? 0 : Math.PI]}
-              geometry={tokenLayerGeometry(meshes, cut)}
+              geometry={tokenLayerGeometry(meshes, cut, card)}
             >
-              <meshStandardMaterial color={piece.color} roughness={0.56} metalness={0.1} />
+              <meshStandardMaterial
+                color={card ? playUiColors.plainTokenEdge : piece.color}
+                roughness={card ? 0.8 : 0.56}
+                metalness={card ? 0 : 0.1}
+              />
             </mesh>
             {index === shownLayers - 1 ? (
               <TokenFace piece={piece} faceUp={faceUp} itemIndex={itemIndex} cut={cut} />
@@ -430,13 +437,13 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   );
 }
 
-/* One layer of a token stack in its outline. */
-function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut) {
+/* One layer of a token stack in its outline; a troop disc tapers to its base, a card token's edge is cut straight. */
+function tokenLayerGeometry(meshes: SharedMeshes, cut: TokenCut, card = false) {
   if (cut === 'gear') {
     return meshes.gearSlab(TROOP_TOP_RADIUS, TROOP_LAYER_HEIGHT);
   }
   return cut === 'round'
-    ? meshes.cylinder(TROOP_TOP_RADIUS, TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
+    ? meshes.cylinder(TROOP_TOP_RADIUS, card ? TROOP_TOP_RADIUS : TROOP_BOTTOM_RADIUS, TROOP_LAYER_HEIGHT, 48)
     : meshes.box(TROOP_TOP_RADIUS * 2, TROOP_LAYER_HEIGHT, TROOP_TOP_RADIUS * 2 * cut.ratio);
 }
 

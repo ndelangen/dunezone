@@ -372,6 +372,8 @@ export const playUiColors = {
   territoryBlack: coreColors.ground,
   allianceBand: coreColors.text,
   pointerBrass: coreColors.brass,
+  /* The cut edge of a thin card token, such as a Discovery token: a muted dark grey under its printed faces. */
+  plainTokenEdge: coreColors.ink,
   turnTrackerEdge: coreColors.brass,
   activeTracker: coreColors.caution,
   shadowWarm: coreColors.ground,
