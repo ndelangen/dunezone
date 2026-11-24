@@ -18,6 +18,7 @@ import {
   restsInside,
   innermostPoint,
   restingPart,
+  restsNarrowly,
   shareOutside,
   tableSectorAt,
   tableTerritories,
@@ -479,6 +480,48 @@ describe('stacks dropped into the narrowest sectors of the official board', () =
         expect(territoryContains(territory, [piece.position[0], piece.position[2]]), territory.name).toBe(true);
         if (territory.sectored) {
           expect(sectorOf(piece), territory.name).toBe(sector);
+        }
+      }
+    }
+  });
+
+  test('keep a leader as far inside a narrow sector as its own size needs, when troops crowd in beside it', () => {
+    const sector = sectors.find(({ territory, sector: index }) => territory.name === 'False wall east' && index === 0)!;
+    const drop = sector.inside[Math.floor(sector.inside.length / 2)]!;
+    const leader: TablePiece = { ...troop('leader', 'atreides', SHELF), stackKey: 'leader:atreides' };
+    const many = Array.from({ length: 3 }, (_, index) => troop(`f${index}`, `faction-${index}`, SHELF));
+    let state: TableState = dropAt(tableWith(leader, ...many), 'leader', drop)!;
+    for (const piece of many) {
+      state = dropAt(state, piece.id, drop)!;
+      expect(state).not.toBeNull();
+    }
+    const placed = at(state, 'leader');
+    const point: [number, number] = [placed.position[0], placed.position[2]];
+    expect(restsNarrowly(restingPart(sector.territory, point), point, footprintReach(placed))).toBe(true);
+  });
+
+  test('never overlap a stack in the next sector, however full their own', () => {
+    const find = (index: number) =>
+      sectors.find(({ territory, sector: candidate }) => territory.name === 'False wall east' && candidate === index)!;
+    const neighbours = Array.from({ length: 3 }, (_, index) => troop(`n${index}`, `faction-n${index}`, SHELF));
+    const movers = Array.from({ length: 6 }, (_, index) => troop(`m${index}`, `faction-m${index}`, SHELF));
+    let state = tableWith(...neighbours, ...movers);
+    const next = find(16).inside[Math.floor(find(16).inside.length / 2)]!;
+    for (const piece of neighbours) {
+      state = dropAt(state, piece.id, next)!;
+    }
+    const own = find(15).inside[Math.floor(find(15).inside.length / 2)]!;
+    for (const piece of movers) {
+      const after = dropAt(state, piece.id, own);
+      if (!after) {
+        break;
+      }
+      state = after;
+    }
+    for (const mover of movers.map((piece) => at(state, piece.id))) {
+      for (const neighbour of neighbours.map((piece) => at(state, piece.id))) {
+        if (sectorOf(mover) === 15) {
+          expect(piecesOverlapAt(mover, mover.position, neighbour)).toBe(false);
         }
       }
     }

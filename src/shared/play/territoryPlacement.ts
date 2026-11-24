@@ -5,10 +5,10 @@ import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
 import {
   fitIntoTerritory,
-  narrowInset,
   overlappingSpot,
   restingPart,
   restsInPart,
+  restsNarrowly,
   restsInside,
   territoryBounds,
   territoryShapeAt,
@@ -129,15 +129,18 @@ function partLayout(
   const { piece, at, others } = drop;
   const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
+  /* Across a whole territory the sector lines divide, the stacks already there hold still, so none is moved into another sector. */
+  const movesOver = part !== territory || !territory.sectored;
   const inside = (candidate: TablePiece) => {
     const point: [number, number] = [candidate.position[0], candidate.position[2]];
     const radius = footprintReach(candidate);
     return (
+      movesOver &&
       packsInTerritory(candidate) &&
       !onAnyPlate(others, candidate.position) &&
       territoryContains(part, point) &&
       /* A stack resting by the narrow rule only moves when the landing one rests by it too, so the usual rule never squeezes it. */
-      (narrow ? restsInPart(part, point, radius) : restsInside(part, point, radius))
+      (narrow ? restsNarrowly(part, point, radius) : restsInside(part, point, radius))
     );
   };
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
@@ -148,7 +151,7 @@ function partLayout(
     bodies: [body(piece, at), ...settled.map((candidate) => body(candidate))],
     pinFirst: pinned,
     obstacles,
-    inset: narrow ? narrowInset(part, footprintReach(piece)) : undefined,
+    narrow,
   });
   if (!fitted) {
     return null;
@@ -204,7 +207,13 @@ const OVERLAP_LIFT = 0.004;
 function overlapLayout(territory: TableTerritory, part: TableTerritory, drop: TerritoryDrop): TerritoryLayout | null {
   const { piece, at, others } = drop;
   const relevant = piecesNear(territory, piece, others);
-  const stacks = relevant.filter((candidate) => packsInTerritory(candidate) && !onAnyPlate(others, candidate.position));
+  /* Only the stacks in the same part may be overlapped; one in the next sector or territory stays in the way. */
+  const stacks = relevant.filter(
+    (candidate) =>
+      packsInTerritory(candidate) &&
+      !onAnyPlate(others, candidate.position) &&
+      territoryContains(part, [candidate.position[0], candidate.position[2]])
+  );
   const obstacles = relevant.filter((candidate) => !stacks.includes(candidate)).map(obstacle);
   const radius = footprintReach(piece);
   const spot = overlappingSpot(

@@ -222,15 +222,15 @@ export type FitInput = {
   /** Footprints that stay where they are: pieces outside the territory, or locked. */
   obstacles: readonly FitObstacle[];
   /**
-   * In a stretch too narrow or too full for the usual rule: how far inside the border a centre must keep, however much of the footprint then hangs over it.
+   * In a stretch too narrow or too full for the usual rule: each centre keeps only as far inside the border as a narrow part allows for its own size, however much of the footprint then hangs over it.
    * Left out, a centre steps in 0.32 of its radius and no more than 30% of a footprint may hang over.
    */
-  inset?: number;
+  narrow?: boolean;
 };
 
 /* How far inside the border the packing keeps a footprint's centre. */
-function reachOf(input: Pick<FitInput, 'inset'>, radius: number): number {
-  return input.inset ?? borderReach(radius);
+function reachOf(input: Pick<FitInput, 'territory' | 'narrow'>, radius: number): number {
+  return input.narrow ? narrowInset(input.territory, radius) : borderReach(radius);
 }
 
 type Spot = [number, number];
@@ -315,7 +315,7 @@ function relaxRound(input: FitInput, at: Spot[]): number {
 
 /* Whether body `i` could rest at `point`: inside the territory and clear of the other bodies and the obstacles. */
 function clearAt(input: FitInput, at: readonly Spot[], i: number, point: Plane): boolean {
-  const { territory, bodies, obstacles, inset } = input;
+  const { territory, bodies, obstacles, narrow } = input;
   /* Half the clearance the relaxation keeps: a layout it settled passes, and a spot the repair finds still keeps a gap. */
   const radius = bodies[i]!.radius + GAP / 2;
   const apart = (other: Plane, otherRadius: number) =>
@@ -324,7 +324,7 @@ function clearAt(input: FitInput, at: readonly Spot[], i: number, point: Plane):
     bodies.every((other, j) => j === i || apart(at[j]!, other.radius)) &&
     obstacles.every((obstacle) => standoff(point, obstacle, i).clear >= radius) &&
     fitsInside(territory, point, reachOf(input, bodies[i]!.radius) + GAP / 2) &&
-    (inset !== undefined || restsInside(territory, point, bodies[i]!.radius))
+    (narrow || restsInside(territory, point, bodies[i]!.radius))
   );
 }
 
@@ -348,9 +348,9 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     if (clearAt(input, at, i, at[i]!)) {
       return;
     }
-    const spot = nearestClearSpot(input.territory, input.bodies[i]!.radius, input.inset, at[i]!, (point) =>
-      clearAt(input, at, i, point)
-    );
+    const radius = input.bodies[i]!.radius;
+    const inset = input.narrow ? narrowInset(input.territory, radius) : undefined;
+    const spot = nearestClearSpot(input.territory, radius, inset, at[i]!, (point) => clearAt(input, at, i, point));
     if (spot) {
       at[i] = [spot[0], spot[1]];
     }
@@ -631,9 +631,16 @@ export function narrowInset(part: TableTerritory, radius: number): number {
   return Math.min(borderReach(radius), Math.max(0, deepestRoom(part) * 0.4 - GAP / 2));
 }
 
-/** Whether a stack with a footprint of `radius` may rest at `at` in a part: as the usual rule allows, or its centre kept as far inside as a narrow part allows. */
+/** Whether a stack with a footprint of `radius` rests at `at` in a part by the narrow rule: its centre as far inside as the packing keeps it there. */
+export function restsNarrowly(part: TableTerritory, at: Plane, radius: number): boolean {
+  return fitsInside(part, at, narrowInset(part, radius) + GAP / 2);
+}
+
+/**
+ * Whether a stack with a footprint of `radius` may rest at `at` in a part: as the usual rule allows, or, in a part too narrow to hold it that way anywhere, by the narrow rule.
+ */
 export function restsInPart(part: TableTerritory, at: Plane, radius: number): boolean {
-  return restsInside(part, at, radius) || fitsInside(part, at, narrowInset(part, radius));
+  return restsInside(part, at, radius) || (restingSpots(part, radius).length === 0 && restsNarrowly(part, at, radius));
 }
 
 /* How much of the combined reach of two round footprints this far apart overlaps; a stack keeps at least 30% of their combined reach from another, so both still show. */
