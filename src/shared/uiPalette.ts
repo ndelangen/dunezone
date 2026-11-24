@@ -374,6 +374,8 @@ export const playUiColors = {
   pointerBrass: coreColors.brass,
   /* The cut edge of a thin card token, such as a Discovery token: a muted dark grey under its printed faces. */
   plainTokenEdge: coreColors.ink,
+  /* The dark edge either side of a selected piece's ring, so the ring shows on sand as well as on the table. */
+  selectionRingEdge: coreColors.ink,
   turnTrackerEdge: coreColors.brass,
   activeTracker: coreColors.caution,
   shadowWarm: coreColors.ground,

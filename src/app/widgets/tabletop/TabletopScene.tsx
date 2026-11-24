@@ -825,22 +825,30 @@ function PieceSelectionRing({
   drafted: boolean;
 }) {
   const meshes = useSharedMeshes();
+  const geometry = selectionRingGeometry(meshes, piece);
+  /* The ring lies under the piece's contact shadow, so it never hides the shadow; a dark edge either side keeps it clear on sand and on the dark table alike. */
+  const y = shadowLocalY - CONTACT_SHADOW_EPSILON / 2;
   return (
-    <mesh
-      position={[0, shadowLocalY + CONTACT_SHADOW_EPSILON, 0]}
-      renderOrder={PHYSICAL_OBJECT_RENDER_ORDER}
-      rotation={[-Math.PI / 2, 0, 0]}
-      geometry={selectionRingGeometry(meshes, piece)}
-    >
-      <meshBasicMaterial
-        color={
-          stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
-        }
-        {...PIECE_SELECTION_RING_MATERIAL}
-      />
-    </mesh>
+    <group position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {SELECTION_RING_EDGE_SCALES.map((scale) => (
+        <mesh key={scale} scale={[scale, scale, 1]} renderOrder={-2} geometry={geometry}>
+          <meshBasicMaterial color={playUiColors.selectionRingEdge} {...PIECE_SELECTION_RING_MATERIAL} />
+        </mesh>
+      ))}
+      <mesh position={[0, 0, CONTACT_SHADOW_EPSILON / 8]} renderOrder={-1} geometry={geometry}>
+        <meshBasicMaterial
+          color={
+            stackTargeted ? playUiColors.stackTarget : drafted ? playUiColors.draftHighlight : playUiColors.pieceLabel
+          }
+          {...PIECE_SELECTION_RING_MATERIAL}
+        />
+      </mesh>
+    </group>
   );
 }
+
+/* The ring's dark edge: the ring drawn a little wider and a little narrower beneath it, so a thin band shows outside and inside. */
+const SELECTION_RING_EDGE_SCALES = [1.07, 0.93] as const;
 
 /**
  * Compiles the selection ring's shader while the table loads.
