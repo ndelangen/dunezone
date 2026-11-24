@@ -9,6 +9,7 @@ import { boardTerritories } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { tintOutlineOpacity } from '@shared/boards/tints';
+import type { SpiceBlowPin } from '@shared/play/spiceBlowSpot';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
 import { playUiColors } from '@shared/uiPalette';
@@ -293,8 +294,33 @@ function TintedTerritory({
   );
 }
 
-/** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline, or the tint is one outline round them all. */
-export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints: readonly TerritoryTint[] }>) {
+/** A spice sticker on the exact spot a face-up spice card marks, at the size its territory would give one sticker. */
+function PinnedSpiceSticker({ face, at }: Readonly<{ face: Face; at: readonly [number, number] }>) {
+  const order = face.polar ? POLAR_TINT_ORDER : TINT_ORDER;
+  const size = Math.max(STICKER_SMALLEST, stickerPlacement(face.rings, 1).size);
+  const { ink, outline } = stickerGeometry('spice');
+  return (
+    <group position={[at[0], 0.004, at[1]]} rotation={[Math.PI / 2, 0, 0]} scale={size}>
+      <mesh geometry={outline} raycast={ignoreRaycast} renderOrder={order.stickerOutline}>
+        <meshBasicMaterial color={STICKER_OUTLINE} transparent depthWrite={false} side={DoubleSide} />
+      </mesh>
+      <mesh geometry={ink} raycast={ignoreRaycast} renderOrder={order.stickerInk}>
+        <meshBasicMaterial color={STICKER_INK} transparent depthWrite={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Tints laid over territories, oldest first so a later tint paints over an earlier one;
+ * each territory keeps the colour's outline, or the tint is one outline round them all.
+ * Pins are the exact spots face-up spice cards mark: each gets a spice sticker there, above every tint.
+ */
+export function TerritoryTints({
+  board,
+  tints,
+  pins = [],
+}: Readonly<{ board: Board; tints: readonly TerritoryTint[]; pins?: readonly SpiceBlowPin[] }>) {
   const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({
@@ -334,6 +360,12 @@ export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints:
             </group>
           )
       )}
+      <group position={[0, tints.length * 0.0005, 0]}>
+        {pins.map(({ territory, at }) => {
+          const face = faces.find(({ id }) => id === territory);
+          return face ? <PinnedSpiceSticker key={`${territory}:${at.join(',')}`} face={face} at={at} /> : null;
+        })}
+      </group>
     </group>
   );
 }

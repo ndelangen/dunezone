@@ -3,7 +3,8 @@ import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
-import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
+import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
+import { previewPlainTokenThickness, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
@@ -23,7 +24,10 @@ import {
   sandboxSteps,
   sandboxTransport,
   shown,
+  pinnedSpiceBlowSpot,
   withCoveredSpiceBlow,
+  withDiscoveryTokens,
+  withPinnedSpiceBlows,
   withSpiceBlows,
   withTechTokens,
 } from './sandbox.stories.fixture';
@@ -442,6 +446,22 @@ function spiceBlowStory(prepare: typeof withSpiceBlows) {
 export const SpiceBlow = meta.story(spiceBlowStory(withSpiceBlows));
 
 /**
+ * The Spice card's own map marks an exact spot in Broken Land, off the territory's middle, as every live Spice card does.
+ * The board draws the spice sticker on that spot, not where Broken Land has the most room, and "Place 8 spice on Broken land" or the "Spice blow" command sets the spice down right on it.
+ */
+export const SpiceBlowExactSpot = meta.story({
+  ...spiceBlowStory(withPinnedSpiceBlows),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const [x, z] = pinnedSpiceBlowSpot();
+    const card = shown().table.pieces.find((candidate) => revealedSpiceBlows([candidate]).length)!;
+    const spot = spiceBlowSpot(shown(), shown().table.pieces, card)!;
+    await expect(spot.position[0]).toBeCloseTo(x, 6);
+    await expect(spot.position[2]).toBeCloseTo(z, 6);
+  },
+});
+
+/**
  * A face-up Arsunt card lies under the revealed Broken Land card in the same pile.
  * Only the visible top card counts: Broken Land is lit and Arsunt is not, and both the right-click and the "Spice blow" command place 8 spice on Broken land only.
  */
@@ -453,3 +473,32 @@ export const SpiceBlowTopCardOnly = meta.story({
     await expect(blows).toEqual([['broken_land']]);
   },
 });
+
+/* PROTOTYPE: Discovery token thickness options, each a share of a troop token's thickness; one is kept once Norbert picks. */
+function discoveryThicknessStory(share: number) {
+  return {
+    args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
+      previewPlainTokenThickness(share);
+      return install(() =>
+        sandboxTransport({
+          start: Number(args.step ?? 1) - 1,
+          seat: String(args.seat ?? 'seat-1'),
+          prepare: withDiscoveryTokens,
+        })
+      )();
+    },
+    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+      await sandboxReady(within(canvasElement.ownerDocument.body));
+    },
+  };
+}
+
+/** Discovery tokens as thick as a troop token, as today. Hold Alt and look at them beside the troop stack. */
+export const DiscoveryThicknessToday = meta.story(discoveryThicknessStory(1));
+/** Discovery tokens at 60% of a troop token's thickness. */
+export const DiscoveryThickness60 = meta.story(discoveryThicknessStory(0.6));
+/** Discovery tokens at 40% of a troop token's thickness. */
+export const DiscoveryThickness40 = meta.story(discoveryThicknessStory(0.4));
+/** Discovery tokens at 25% of a troop token's thickness, about as thin as a card stack of two. */
+export const DiscoveryThickness25 = meta.story(discoveryThicknessStory(0.25));

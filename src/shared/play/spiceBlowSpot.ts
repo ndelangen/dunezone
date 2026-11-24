@@ -7,7 +7,7 @@ import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
 import type { SpiceBlow } from './spiceBlow';
 import type { SpiceBlowPlacement } from './spiceBlowPlacement';
-import { revealedSpiceBlow } from './spiceBlowPlacement';
+import { revealedSpiceBlow, revealedSpiceBlows } from './spiceBlowPlacement';
 import { restingPositionAt } from './tableGeometry';
 import { nearestCollisionFreePosition } from './tablePhysics';
 
@@ -52,14 +52,38 @@ function spiceFootprint(amount: number): TablePiece {
   };
 }
 
+/* The spots the card's own map placed its tokens on, in table units, that lie in this territory; only on the board the card was drawn on. */
+function cardSpotsIn(board: Board, boardId: string | undefined, blow: SpiceBlow, territory: string): TablePoint[] {
+  const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
+  return own.map(boardPointToTable).filter(([x, z]) => tableTerritoryAt(board, x, z)?.id === territory);
+}
+
 /*
- * The spots to try in a territory: first the spice sticker the table lights it with, so the spice covers the marker that asked for it;
- * then where the card's own map put its tokens, when it was drawn on this board; then the territory's middle.
+ * The spots to try in a territory: first the exact spot the card's own map puts its spice on, so the spice lands where the card shows it;
+ * then the spice sticker the table lights a card without one with; then the territory's middle.
  */
 function startingPoints({ board, territory }: Search, boardId: string | undefined, blow: SpiceBlow, marks: Landmarks) {
-  const own = blow.boardId && blow.boardId === boardId ? (blow.spots ?? []) : [];
-  return [...marks.sticker, ...own.map(boardPointToTable), marks.centre].filter(
+  return [...cardSpotsIn(board, boardId, blow, territory), ...marks.sticker, marks.centre].filter(
     ([x, z]) => tableTerritoryAt(board, x, z)?.id === territory
+  );
+}
+
+/** A spot a face-up spice card marks exactly, where the table draws its spice sticker. */
+export type SpiceBlowPin = Readonly<{ territory: string; at: TablePoint }>;
+
+/**
+ * Where the face-up spice cards mark their spice exactly: the spots their own maps put tokens on, in the territories they name.
+ * The table draws the spice sticker there instead of where a territory has the most room, so the sticker and the placed spice sit where the card shows them.
+ */
+export function spiceBlowPins(snapshot: Pick<GameSnapshot, 'board'>, pieces: readonly TablePiece[]): SpiceBlowPin[] {
+  const board = snapshot.board?.definition;
+  if (!board) {
+    return [];
+  }
+  return revealedSpiceBlows(pieces).flatMap(({ blow }) =>
+    blow.territories.flatMap((territory) =>
+      cardSpotsIn(board, snapshot.board?.asset.id, blow, territory).map((at) => ({ territory, at }))
+    )
   );
 }
 

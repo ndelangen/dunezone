@@ -32,6 +32,7 @@ import {
   TROOP_LAYER_HEIGHT,
   TROOP_LAYER_PITCH,
   TROOP_TOP_RADIUS,
+  tokenThickness,
   troopScale,
   MARKER_BASE_HEIGHT,
   MARKER_BOTTOM_RADIUS,
@@ -86,7 +87,7 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
-import { useBoardTints } from './spiceBlowTints';
+import { useBoardTints, useSpiceBlowPins } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
@@ -396,8 +397,9 @@ function TroopStackLayers({ piece }: { piece: TablePiece }) {
   const shownLayers = visibleLayerCount(piece);
   const scale = troopScale(piece);
   const cut = tokenCut(piece);
+  /* A plain token, such as a Discovery token, is thin card: its layers, faces and spacing all shrink to its thickness. */
   return (
-    <group scale={[scale, 1, scale]}>
+    <group scale={[scale, tokenThickness(piece), scale]}>
       {Array.from({ length: shownLayers }, (_, index) => {
         const faceUp = stackLayerFaceUp(piece, index, shownLayers);
         const itemIndex = layerItemIndex(piece, index, shownLayers);
@@ -1086,6 +1088,7 @@ function SceneContents({
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
   const tints = useSceneTints(highlightTerritory);
+  const pins = useSpiceBlowPins();
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1117,6 +1120,7 @@ function SceneContents({
           <TabletopBoard
             board={board}
             tints={tints}
+            pins={pins}
             seatCount={seatCount}
             interactive={!readOnly}
             stormSectorIndex={state.stormSectorIndex}

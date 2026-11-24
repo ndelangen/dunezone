@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import { rendererColors } from '@shared/play/assetColors';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
+import type { SpiceBlowPin } from '@shared/play/spiceBlowSpot';
 import {
   nearestStormRotation,
   STORM_MARKER_INNER_X,
@@ -406,10 +407,12 @@ function BoardMap({
   animate = false,
   board,
   tints,
+  pins,
 }: {
   animate?: boolean;
   board: GameSnapshot['board'];
   tints?: GameSnapshot['tints'];
+  pins?: readonly SpiceBlowPin[];
 }) {
   const invalidate = useThree((state) => state.invalidate);
   const group = useRef<Group>(null);
@@ -437,9 +440,9 @@ function BoardMap({
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
         {board && <BoardPaint board={board} />}
-        {board && tints?.length ? (
+        {board && (tints?.length || pins?.length) ? (
           <Suspense fallback={<ArtworkPending />}>
-            <TerritoryTints board={board.definition} tints={tints} />
+            <TerritoryTints board={board.definition} tints={tints ?? []} pins={pins} />
           </Suspense>
         ) : null}
       </group>
@@ -450,6 +453,7 @@ function BoardMap({
 export function TabletopBoard({
   board,
   tints,
+  pins,
   seatCount,
   stormSectorIndex,
   stage,
@@ -461,6 +465,8 @@ export function TabletopBoard({
 }: {
   board?: GameSnapshot['board'];
   tints?: GameSnapshot['tints'];
+  /** Exact spots face-up spice cards mark, where the board draws their spice sticker. */
+  pins?: readonly SpiceBlowPin[];
   seatCount: TableSeatCount;
   stormSectorIndex?: number;
   stage: GameSnapshot['stage'];
@@ -477,7 +483,9 @@ export function TabletopBoard({
       <BoardRim seatCount={seatCount} />
       <BoardRimShadow />
       {/* The storm's texture must suspend inside its boundary so it cannot hide an already-painted board. */}
-      {(stage !== 'setup' || mapVisible) && <BoardMap animate={stage === 'setup'} board={board} tints={tints} />}
+      {(stage !== 'setup' || mapVisible) && (
+        <BoardMap animate={stage === 'setup'} board={board} tints={tints} pins={pins} />
+      )}
       <Suspense fallback={<ArtworkPending />}>
         {boardFurnitureFor(stage).storm && stormSectorIndex !== undefined && (
           <StormSectorHighlight sectorIndex={stormSectorIndex} />

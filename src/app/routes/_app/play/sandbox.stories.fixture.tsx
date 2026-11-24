@@ -1,4 +1,5 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
+import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
@@ -211,6 +212,30 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
 
+/**
+ * Two plain tokens standing in for Discovery tokens, face up on the board beside a troop stack, so their thickness reads against a troop's.
+ * They borrow two Dreamrules tech tokens' faces, as plain tokens rather than tech tokens.
+ */
+export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
+  const pieces = [...stored.table.pieces];
+  const versions = { ...stored.versions };
+  const troop = pieces.find((candidate) => candidate.kind === 'force' && candidate.stackKey?.startsWith('troop'));
+  const near: [number, number, number] = troop ? [troop.position[0], 0, troop.position[2]] : [0.6, 0, 0.6];
+  for (const [index, source] of dreamrulesTechTokenPieces().slice(0, 2).entries()) {
+    const token = {
+      ...source,
+      id: `discovery-${index + 1}`,
+      inventory: undefined,
+      stackKey: `token:discovery-${index + 1}`,
+      items: source.items.map((item) => ({ ...item, artwork: { ...item.artwork!, type: 'token-disc' } })),
+    };
+    token.position = restingPositionAt(nearestCollisionFreePosition(token, near, pieces)!, token);
+    pieces.push(token);
+    versions[token.id] = stored.revision;
+  }
+  return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
 /** The seat the recording's deal gave a faction; the deal is random, so it differs per recording. */
 export const seatOf = (faction: string) =>
   journeySteps()
@@ -248,6 +273,34 @@ export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
     },
   };
 }
+
+/* The exact spot the live Broken Land card's own map puts its Spice token on (dune.zone, 2026-11-24), in board drawing units. */
+const LIVE_BROKEN_LAND_SPOT: [number, number] = [158.354, 31.092];
+
+/**
+ * The recording's Spice cards with their own map's exact spot, as every live Spice card has one: the Spice token the card's author placed on Broken Land, on the board the card was drawn on.
+ * The table draws the spice sticker on that spot and the card's spice lands on it.
+ */
+export function withPinnedSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
+  const spiceBlow = {
+    amount: 8,
+    territories: ['broken_land'],
+    spots: [LIVE_BROKEN_LAND_SPOT],
+    boardId: arrakisBoardCapture.asset.id,
+  } satisfies SpiceBlow;
+  const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
+    item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((candidate) => ({ ...candidate, items: candidate.items.map(capture) })),
+    },
+  };
+}
+
+/** The exact spot the pinned Spice cards mark, in table units. */
+export const pinnedSpiceBlowSpot = () => boardPointToTable(LIVE_BROKEN_LAND_SPOT);
 
 /**
  * The same table with a second face-up spice card, an Arsunt blow of 6, tucked under each revealed spice card.

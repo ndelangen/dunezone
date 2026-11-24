@@ -67,6 +67,34 @@ export function troopScale(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' |
   return piece.kind === 'force' ? standard * (piece.items?.[0]?.artwork?.size ?? 1) : standard;
 }
 
+/**
+ * A token from a bundle, such as a Discovery token: a 'force'-kind piece that is no troop, leader disc, faction token or tech token.
+ * It is thin card, so it is drawn thinner than the chunky troop discs.
+ */
+export function isPlainToken(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): boolean {
+  return (
+    piece.kind === 'force' &&
+    !isTroopStack({ kind: piece.kind, stackKey: piece.stackKey }) &&
+    !isLeaderPiece(piece) &&
+    !isFactionToken(piece) &&
+    !isTechToken(piece)
+  );
+}
+
+/** How thick a plain token is drawn, as a share of a troop token's thickness. */
+export const PLAIN_TOKEN_THICKNESS = 0.4;
+/* PROTOTYPE: the thickness options stories set this to compare; it goes once one is picked. */
+let plainTokenThickness = PLAIN_TOKEN_THICKNESS;
+/** PROTOTYPE: draws plain tokens at another share of a troop token's thickness, for the options stories. */
+export function previewPlainTokenThickness(share: number) {
+  plainTokenThickness = share;
+}
+
+/** How thick a 'force'-kind piece's layers are, as a share of a troop token's: thinner for a plain token. */
+export function tokenThickness(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
+  return isPlainToken(piece) ? plainTokenThickness : 1;
+}
+
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */
 export function tokenBoxRatio(piece: Pick<TablePiece, 'items'>): number | null {
   const type = piece.items[0]?.artwork?.type;
@@ -172,7 +200,7 @@ export function stackTopHeight(piece: TablePiece): number {
     return CARD_LAYER_HEIGHT + (layers - 1) * CARD_LAYER_PITCH;
   }
   if (piece.kind === 'force') {
-    return TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH;
+    return (TROOP_LAYER_HEIGHT + (layers - 1) * TROOP_LAYER_PITCH) * tokenThickness(piece);
   }
   return MARKER_HEIGHT;
 }

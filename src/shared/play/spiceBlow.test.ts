@@ -12,7 +12,7 @@ import { isSpicePiece } from './spice';
 import { spiceBlowOf } from './spiceBlow';
 import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
-import { spiceBlowSpot } from './spiceBlowSpot';
+import { spiceBlowPins, spiceBlowSpot } from './spiceBlowSpot';
 
 const brokenLand: SpiceBlow = { amount: 8, territories: ['broken_land'] };
 
@@ -163,6 +163,36 @@ describe('placing a revealed spice card', () => {
     expect(piles).toHaveLength(1);
     expect(piles[0]!.items).toHaveLength(16);
     expect(new Set(piles[0]!.items.map((item) => item.id)).size).toBe(16);
+  });
+
+  test("lands exactly on the spot the card's own map marks, and the board pins its spice sticker there", () => {
+    const board = arrakisBoardCapture.definition;
+    const { centre, rings } = boardTerritory(board, 'broken_land')!;
+    const corner = rings[0]!.find(([x, y]) => {
+      const [tx, tz] = boardPointToTable([centre[0] + (x - centre[0]) * 0.7, centre[1] + (y - centre[1]) * 0.7]);
+      return tableTerritoryAt(board, tx, tz)?.id === 'broken_land';
+    })!;
+    const mark: [number, number] = [
+      centre[0] + (corner[0] - centre[0]) * 0.7,
+      centre[1] + (corner[1] - centre[1]) * 0.7,
+    ];
+    /* A second token in another territory, as a Discovery card's destination, is no spot for the spice. */
+    const elsewhere = boardTerritory(board, 'arsunt')!.centre;
+    const blow: SpiceBlow = { ...brokenLand, spots: [elsewhere, mark], boardId: arrakisBoardCapture.asset.id };
+    const state = freshTableState();
+    const card = revealedCard(true, [spiceCardItem('blow-card-1', true, 'Broken Land', blow)]);
+    const pieces = [...state.pieces, card];
+    const [x, z] = boardPointToTable(mark);
+
+    const spot = spiceBlowSpot({ board: arrakisBoardCapture }, pieces, card)!;
+    expect(spot.position[0]).toBeCloseTo(x, 6);
+    expect(spot.position[2]).toBeCloseTo(z, 6);
+    expect(spiceBlowPins({ board: arrakisBoardCapture }, pieces)).toEqual([{ territory: 'broken_land', at: [x, z] }]);
+
+    /* On another board the card's spots mean nothing: no pin, and the spice goes where the table lights it. */
+    const otherBoard = { ...arrakisBoardCapture, asset: { ...arrakisBoardCapture.asset, id: 'another-board' } };
+    expect(spiceBlowPins({ board: otherBoard }, pieces)).toEqual([]);
+    expect(spiceBlowSpot({ board: otherBoard }, pieces, card)!.position[0]).not.toBeCloseTo(x, 6);
   });
 
   test('in a pile, only the face-up card on top counts, never the cards underneath', () => {
