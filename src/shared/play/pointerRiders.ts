@@ -1,8 +1,8 @@
 import { isFactionToken } from './factionToken';
 import { nearestZone } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
-import { fromPieceFrame, POINTER_HEIGHT, pointerCovers, isPointerToken } from './pointerToken';
-import { CARRIED_BASE_Y, restingPositionAt } from './tableGeometry';
+import { fromPieceFrame } from './pointerToken';
+import { CARRIED_BASE_Y, isPlate, plateCovers, plateHeight, restingPositionAt } from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
 
 type Pose = Pick<TablePiece, 'position' | 'orientation'>;
@@ -12,12 +12,12 @@ export function pointerRiders(pieces: readonly TablePiece[], plate: TablePiece):
   if (!carriesRiders(plate)) {
     return [];
   }
-  return pieces.filter((piece) => piece.id !== plate.id && canRide(piece) && pointerCovers(plate, piece.position));
+  return pieces.filter((piece) => piece.id !== plate.id && canRide(piece) && plateCovers(plate, piece.position));
 }
 
 /* A plate carries only while it lies on the table itself, not in a hand or set in a battle. */
 function carriesRiders(plate: TablePiece): boolean {
-  return isPointerToken(plate) && !plate.inventory && !plate.battleOverlay;
+  return isPlate(plate) && !plate.inventory && !plate.battleOverlay;
 }
 
 /*
@@ -31,7 +31,7 @@ function canRide(piece: TablePiece): boolean {
     !piece.locked &&
     piece.kind !== 'marker' &&
     piece.items.length > 0 &&
-    !isPointerToken(piece) &&
+    !isPlate(piece) &&
     !isFactionToken(piece)
   );
 }
@@ -55,7 +55,7 @@ function riderPose(rider: TablePiece, from: Pose, to: Pose): Pose {
 /** The table with every piece riding `plate` (as it rests in `pieces`) carried to the plate's new pose. */
 export function withRidersCarried(pieces: TablePiece[], moved: TablePiece): TablePiece[] {
   const plate = pieces.find((piece) => piece.id === moved.id);
-  if (!plate || !isPointerToken(moved)) {
+  if (!plate || !isPlate(moved)) {
     return pieces;
   }
   const riders = new Set(pointerRiders(pieces, plate));
@@ -82,7 +82,7 @@ export function placementRules(
   obstacles: TablePiece[];
   fits: (position: Vector3Tuple, orientation?: number) => boolean;
 } {
-  const plate = isPointerToken(moving) ? pieces.find((piece) => piece.id === moving.id) : undefined;
+  const plate = isPlate(moving) ? pieces.find((piece) => piece.id === moving.id) : undefined;
   const riders = plate ? pointerRiders(pieces, plate) : [];
   if (!plate || !riders.length) {
     return { obstacles, fits: () => true };
@@ -115,7 +115,7 @@ export function ridersOf(rested: readonly TablePiece[], plateIds: ReadonlySet<st
  * `rested` is the table as the room holds it, which says who rides.
  */
 export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[]): TablePiece[] {
-  const plates = shown.filter((piece) => isPointerToken(piece) && !piece.inventory);
+  const plates = shown.filter((piece) => isPlate(piece) && !piece.inventory);
   if (!plates.length) {
     return shown;
   }
@@ -133,14 +133,14 @@ export function piecesOnPlates(shown: TablePiece[], rested: readonly TablePiece[
     if (riding) {
       return shownRiding(piece, resting!, riding);
     }
-    return isPointerToken(piece) ? piece : standingOn(piece, still);
+    return isPlate(piece) ? piece : standingOn(piece, still);
   });
 }
 
 /* A piece resting where a still plate lies, raised onto its top. */
 function standingOn(piece: TablePiece, plates: readonly TablePiece[]): TablePiece {
-  const plate = plates.find((candidate) => pointerCovers(candidate, piece.position));
-  const top = plate ? plate.position[1] + POINTER_HEIGHT : piece.position[1];
+  const plate = plates.find((candidate) => plateCovers(candidate, piece.position));
+  const top = plate ? plate.position[1] + plateHeight(plate) : piece.position[1];
   return top > piece.position[1] ? { ...piece, position: [piece.position[0], top, piece.position[2]] } : piece;
 }
 
@@ -148,7 +148,7 @@ type Riding = { pose: Pose; top: number };
 
 /* Each rider's pose on a plate as shown, by its id, carried with the plate, and the height of the plate's top. */
 function ridersShownOn(plate: TablePiece, resting: TablePiece | undefined, rested: readonly TablePiece[]) {
-  const top = plate.position[1] + POINTER_HEIGHT;
+  const top = plate.position[1] + plateHeight(plate);
   return (resting ? pointerRiders(rested, resting) : []).map((rider): [string, Riding] => [
     rider.id,
     { pose: riderPose(rider, resting!, plate), top },

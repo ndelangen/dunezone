@@ -7,7 +7,15 @@ import { pieceFlipFrame, PIECE_FLIP_DURATION_MS } from './pieceFlip';
 import { pointerRiders, piecesOnPlates, ridersOf } from './pointerRiders';
 import { POINTER_BODY_RADIUS, POINTER_HEIGHT, POINTER_TOKEN_TYPE, pointerCovers } from './pointerToken';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
-import { BOARD_SURFACE_Y, CARRIED_BASE_Y, restingPositionAt, supportHeightAt } from './tableGeometry';
+import {
+  BOARD_SURFACE_Y,
+  CARRIED_BASE_Y,
+  isPlate,
+  restingPositionAt,
+  stackTopHeight,
+  supportHeightAt,
+  tokenThickness,
+} from './tableGeometry';
 import { isCollisionFreePosition } from './tablePhysics';
 import { applyDraftToState, draftForGesture, renderedPiecesFor, settleCarryAtPosition } from './tableState';
 
@@ -276,5 +284,55 @@ describe('a pointer token, such as the HMS,', () => {
       PIECE_FLIP_DURATION_MS / 2
     );
     expect(halfway.lift).toBeGreaterThan(POINTER_BODY_RADIUS);
+  });
+});
+
+/* A Discovery token as a bundle delivers it: a plain disc token, authored at twice a troop's width. */
+function discovery(position: Vector3Tuple, size = 2): TablePiece {
+  return {
+    ...plate(position),
+    id: 'discovery',
+    label: 'Cistern',
+    owner: 'shared',
+    items: [
+      {
+        id: 'discovery-item',
+        faceUp: false,
+        artwork: {
+          front: 'https://dune.zone/cistern.jpg',
+          back: 'https://dune.zone/hiereg.jpg',
+          name: 'Cistern',
+          type: 'token-disc',
+          size,
+        },
+      },
+    ],
+    stackKey: 'token:cistern',
+  };
+}
+
+describe('a Discovery token', () => {
+  test('is a plate when it is wide enough to hold a troop stack, and drawn at 80% of a troop token thickness', () => {
+    expect(isPlate(discovery([0, 0, 1]))).toBe(true);
+    expect(isPlate(discovery([0, 0, 1], 1))).toBe(false);
+    expect(tokenThickness(discovery([0, 0, 1]))).toBe(0.8);
+  });
+
+  test('carries the troops set down on it, and leaves the ones beside it', () => {
+    const state = tableWith(discovery([0, 0, 1]), troop('t', [2, 0, 1]), troop('beside', [1.4, 0, -0.4]));
+    const on = dropAt(state, 't', [0.05, 0, 1.05])!;
+    expect(pointerRiders(on.pieces, at(on, 'discovery')).map((piece) => piece.id)).toEqual(['t']);
+    const next = dropAt(on, 'discovery', [-1, 0, -1])!;
+    expect(at(next, 't').position[0]).toBeCloseTo(-0.95);
+    expect(at(next, 't').position[2]).toBeCloseTo(-0.95);
+    expect(at(next, 'beside').position).toEqual(at(state, 'beside').position);
+  });
+
+  test('raises what stands on it to its top', () => {
+    const state = tableWith(discovery([0, 0, 1]), troop('t', [0, 0, 1]));
+    const shown = piecesOnPlates(state.pieces, state.pieces);
+    expect(at({ ...state, pieces: shown }, 't').position[1]).toBeCloseTo(
+      at(state, 'discovery').position[1] + stackTopHeight(at(state, 'discovery'))
+    );
   });
 });

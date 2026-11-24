@@ -82,17 +82,38 @@ export function isPlainToken(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'
 }
 
 /** How thick a plain token is drawn, as a share of a troop token's thickness. */
-export const PLAIN_TOKEN_THICKNESS = 0.4;
-/* PROTOTYPE: the thickness options stories set this to compare; it goes once one is picked. */
-let plainTokenThickness = PLAIN_TOKEN_THICKNESS;
-/** PROTOTYPE: draws plain tokens at another share of a troop token's thickness, for the options stories. */
-export function previewPlainTokenThickness(share: number) {
-  plainTokenThickness = share;
-}
+export const PLAIN_TOKEN_THICKNESS = 0.8;
 
 /** How thick a 'force'-kind piece's layers are, as a share of a troop token's: thinner for a plain token. */
 export function tokenThickness(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>>): number {
-  return isPlainToken(piece) ? plainTokenThickness : 1;
+  return isPlainToken(piece) ? PLAIN_TOKEN_THICKNESS : 1;
+}
+
+/** How much wider than a troop a plain token must be to hold a troop stack on top, as a Discovery token does at twice a troop's width. */
+export const PLATE_TOKEN_MIN_SCALE = 1.5;
+
+/**
+ * A plate carries what stands on it: a pointer token such as the HMS, or a plain token wide enough to hold a troop stack, such as a Discovery token.
+ * Troops set down on it ride it, so moving the plate moves them;
+ * a plate never rides or stacks onto another.
+ */
+export function isPlate(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>> | null | undefined): boolean {
+  return !!piece && (isPointerToken(piece) || (isPlainToken(piece) && troopScale(piece) >= PLATE_TOKEN_MIN_SCALE));
+}
+
+/** Whether a table point lies over a plate as it rests at its pose: a pointer's teardrop, or a round plate's disc. */
+export function plateCovers(plate: TablePiece, point: Readonly<Vector3Tuple>): boolean {
+  if (isPointerToken(plate)) {
+    return pointerCovers(plate, point);
+  }
+  return (
+    Math.hypot(point[0] - plate.position[0], point[2] - plate.position[2]) <= TROOP_FOOTPRINT_RADIUS * troopScale(plate)
+  );
+}
+
+/** How far above a plate's base its top lies: what stands on it stands this much higher. */
+export function plateHeight(plate: TablePiece): number {
+  return stackTopHeight(plate);
 }
 
 /** Published square and rectangle tokens retain their whole face and aspect ratio. */

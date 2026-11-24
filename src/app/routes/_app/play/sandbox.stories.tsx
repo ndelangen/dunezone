@@ -4,7 +4,7 @@ import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
-import { previewPlainTokenThickness, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
+import { isPlate, restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
 import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
@@ -475,30 +475,68 @@ export const SpiceBlowTopCardOnly = meta.story({
 });
 
 /* PROTOTYPE: Discovery token thickness options, each a share of a troop token's thickness; one is kept once Norbert picks. */
-function discoveryThicknessStory(share: number) {
-  return {
-    args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
-      previewPlainTokenThickness(share);
-      return install(() =>
-        sandboxTransport({
-          start: Number(args.step ?? 1) - 1,
-          seat: String(args.seat ?? 'seat-1'),
-          prepare: withDiscoveryTokens,
-        })
-      )();
-    },
-    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-      await sandboxReady(within(canvasElement.ownerDocument.body));
-    },
-  };
-}
+const discoverySandbox = {
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: withDiscoveryTokens,
+      })
+    )(),
+};
 
-/** Discovery tokens as thick as a troop token, as today. Hold Alt and look at them beside the troop stack. */
-export const DiscoveryThicknessToday = meta.story(discoveryThicknessStory(1));
-/** Discovery tokens at 60% of a troop token's thickness. */
-export const DiscoveryThickness60 = meta.story(discoveryThicknessStory(0.6));
-/** Discovery tokens at 40% of a troop token's thickness. */
-export const DiscoveryThickness40 = meta.story(discoveryThicknessStory(0.4));
-/** Discovery tokens at 25% of a troop token's thickness, about as thin as a card stack of two. */
-export const DiscoveryThickness25 = meta.story(discoveryThicknessStory(0.25));
+/**
+ * The live Discovery tokens beside seat 1's troops, twice a troop's width and 80% of its thickness: two face down as they are placed, two face up.
+ * By hand: set a troop stack on one, then drag the token and the troops ride along;
+ * Q or E turns the token with its troops.
+ * Start Storybook with STORYBOOK_LIVE_PUBLISHED=1 to see their real faces.
+ */
+export const DiscoveryTokens = meta.story({
+  ...discoverySandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const discs = shown().table.pieces.filter((piece) => piece.id.startsWith('discovery-'));
+    await expect(discs).toHaveLength(4);
+    for (const disc of discs) {
+      await expect(troopScale(disc)).toBeCloseTo(2 * troopScale({ kind: 'force', stackKey: 'troops:x:y' }));
+      await expect(isPlate(disc)).toBe(true);
+    }
+  },
+});
+
+/** Seat 1 sets a troop stack on a Discovery token and moves the token: the troops ride along, keeping their place on it, as on the HMS. */
+export const DiscoveryTokenCarriesTroops = meta.story({
+  ...discoverySandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const table = sandbox.table!;
+    const faction = shown().bank!.factionId;
+    const disc = () => shown().table.pieces.find((piece) => piece.id === 'discovery-1')!;
+    const carry = async (id: string, pieceId: string, position: [number, number, number], orientation = 0) => {
+      table.receive({
+        type: 'begin',
+        carryId: id,
+        sourcePieceId: pieceId,
+        expectedVersion: shown().versions[pieceId]!,
+        pickup: 'whole',
+      });
+      table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position, orientation });
+      await expect(table.refusal).toBeUndefined();
+    };
+    const stack = shown().table.pieces.find(
+      (candidate) =>
+        !candidate.inventory && candidate.kind === 'force' && !!candidate.stackKey?.startsWith(`troops:${faction}:`)
+    )!;
+    const [x, , z] = disc().position;
+    await carry('onto-discovery', stack.id, [x + 0.05, 0.4, z - 0.05]);
+    const riding = () => shown().table.pieces.find((candidate) => candidate.id === stack.id)!;
+    const before = [riding().position[0] - x, riding().position[2] - z];
+    await carry('move-discovery', disc().id, [x + 1.2, 0.4, z + 0.6], disc().orientation);
+    const [nextX, , nextZ] = disc().position;
+    await expect(nextX).not.toBeCloseTo(x);
+    await expect(riding().position[0] - nextX).toBeCloseTo(before[0]!);
+    await expect(riding().position[2] - nextZ).toBeCloseTo(before[1]!);
+  },
+});

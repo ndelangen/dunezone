@@ -216,7 +216,7 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
 }
 
 /**
- * Two plain tokens standing in for Discovery tokens, face up on the board beside a troop stack, so their thickness reads against a troop's.
+ * Two plain tokens standing in for Discovery tokens, face up on the board beside a troop stack, so their size and thickness read against a troop's.
  * They borrow two Dreamrules tech tokens' faces, as plain tokens rather than tech tokens.
  */
 /* The live Discovery bundle's tokens, by catalogue id: two Hiereg-backed and two Smuggler-backed, as dune.zone publishes them. */
@@ -228,7 +228,7 @@ const LIVE_DISCOVERY_TOKENS = [
 ] as const;
 
 /**
- * The live Discovery tokens beside a troop stack, two face down as they are placed and two face up, so their thickness reads against a troop's.
+ * The live Discovery tokens beside a troop stack, two face down as they are placed and two face up, so their size and thickness read against a troop's.
  * Their faces are dune.zone's published pictures, which Storybook shows when started with STORYBOOK_LIVE_PUBLISHED=1.
  */
 export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
@@ -259,6 +259,8 @@ export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
             back: new URL(publishedHref('token-disc', `${live.back}.back`), location.origin).href,
             name: live.name,
             type: 'token-disc',
+            /* Twice a troop's width, as the live tokens are authored. */
+            size: 2,
           },
         },
       ],

@@ -43,6 +43,7 @@ import {
   stackTopHeight,
   visibleLayerCount,
   BOARD_SURFACE_Y,
+  isPlate,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -940,7 +941,7 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const emptyProjection = displayedCount === 0;
   const carried = locallyCarried || remoteCarried;
   const poseRef = useTablePose(piece.position, piece.orientation, remoteCarried, locallyCarried, {
-    plateId: isPointerToken(piece) ? piece.id : undefined,
+    plateId: isPlate(piece) ? piece.id : undefined,
     follows: ridingPlateId,
   });
   const faceReady = usePublishedFaceReady(topFaceKey(piece)) && !faceStillHidden(piece);
