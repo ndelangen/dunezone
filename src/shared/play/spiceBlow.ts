@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { tintTerritorySchema } from '../boards/tints';
+import { SPICE_TOKEN_ID } from './spiceToken';
 
 /* Far more than one card's spice; bounds what one placement spawns. */
 const SPICE_BLOW_MAX = 30;
@@ -31,7 +32,7 @@ type StoredCard = { amount?: unknown; board?: unknown };
 type LinkedBoard = {
   asset_id?: unknown;
   tints?: { territories?: unknown; stamps?: unknown; outline?: unknown }[];
-  tokens?: { x?: unknown; y?: unknown }[];
+  tokens?: { x?: unknown; y?: unknown; asset_id?: unknown }[];
 };
 
 function strings(value: unknown): string[] {
@@ -56,9 +57,13 @@ function firstFilledTerritories(link: LinkedBoard): string[] {
 /* A token off the board's frame is left out, rather than costing the card its blow. */
 const inFrame = (value: unknown): value is number => typeof value === 'number' && value >= 0 && value <= FRAME;
 
+/* The spots the card's spice tokens mark; a map without the spice token, such as a mine marked by its own token, offers every token it placed. */
 function linkedSpots(link: LinkedBoard): [number, number][] {
   const tokens = Array.isArray(link.tokens) ? link.tokens : [];
-  return tokens.flatMap(({ x, y }) => (inFrame(x) && inFrame(y) ? [[x, y] as [number, number]] : []));
+  const spice = tokens.filter((token) => token.asset_id === SPICE_TOKEN_ID);
+  return (spice.length ? spice : tokens).flatMap(({ x, y }) =>
+    inFrame(x) && inFrame(y) ? [[x, y] as [number, number]] : []
+  );
 }
 
 function linkOf(card: StoredCard): LinkedBoard | undefined {

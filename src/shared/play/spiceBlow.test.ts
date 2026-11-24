@@ -13,6 +13,7 @@ import { spiceBlowOf } from './spiceBlow';
 import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
 import { spiceBlowPins, spiceBlowSpot } from './spiceBlowSpot';
+import { SPICE_TOKEN_ID } from './spiceToken';
 
 const brokenLand: SpiceBlow = { amount: 8, territories: ['broken_land'] };
 
@@ -129,6 +130,35 @@ describe('spice blow capture', () => {
       },
     });
     expect(blow).toEqual({ amount: 6, territories: ['funeral_plain'], spots: [[150, 370]], boardId: 'arrakis-board' });
+  });
+});
+
+describe('spice blow spots', () => {
+  test("a card's spice tokens mark its spots, and another token on its map does not", () => {
+    const blow = spiceBlowOf('card-spice', {
+      amount: 6,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['broken_land'], stamps: ['spice'] }],
+        tokens: [
+          { asset_id: 'a-discovery-token', x: 120, y: 40 },
+          { asset_id: SPICE_TOKEN_ID, x: 158, y: 31 },
+        ],
+      },
+    });
+    expect(blow?.spots).toEqual([[158, 31]]);
+  });
+
+  test('a map without the spice token offers every token it placed', () => {
+    const blow = spiceBlowOf('card-spice', {
+      amount: 3,
+      board: {
+        asset_id: 'arrakis-board',
+        tints: [{ territories: ['arsunt'] }],
+        tokens: [{ asset_id: 'mine', x: 80, y: 200 }],
+      },
+    });
+    expect(blow?.spots).toEqual([[80, 200]]);
   });
 });
 

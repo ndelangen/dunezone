@@ -77,7 +77,8 @@ export function isPlainToken(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey'
     !isTroopStack({ kind: piece.kind, stackKey: piece.stackKey }) &&
     !isLeaderPiece(piece) &&
     !isFactionToken(piece) &&
-    !isTechToken(piece)
+    !isTechToken(piece) &&
+    !isPointerToken(piece)
   );
 }
 
@@ -98,7 +99,12 @@ export const PLATE_TOKEN_MIN_SCALE = 1.5;
  * a plate never rides or stacks onto another.
  */
 export function isPlate(piece: Partial<Pick<TablePiece, 'kind' | 'stackKey' | 'items'>> | null | undefined): boolean {
-  return !!piece && (isPointerToken(piece) || (isPlainToken(piece) && troopScale(piece) >= PLATE_TOKEN_MIN_SCALE));
+  if (!piece) {
+    return false;
+  }
+  /* Only a round plain token is a plate: what it covers is its disc. */
+  const round = !piece.items || tokenBoxRatio({ items: piece.items }) === null;
+  return isPointerToken(piece) || (isPlainToken(piece) && round && troopScale(piece) >= PLATE_TOKEN_MIN_SCALE);
 }
 
 /** Whether a table point lies over a plate as it rests at its pose: a pointer's teardrop, or a round plate's disc. */

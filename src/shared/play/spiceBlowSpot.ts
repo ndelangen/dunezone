@@ -80,10 +80,17 @@ export function spiceBlowPins(snapshot: Pick<GameSnapshot, 'board'>, pieces: rea
   if (!board) {
     return [];
   }
-  return revealedSpiceBlows(pieces).flatMap(({ blow }) =>
+  const pins = revealedSpiceBlows(pieces).flatMap(({ blow }) =>
     blow.territories.flatMap((territory) =>
       cardSpotsIn(board, snapshot.board?.asset.id, blow, territory).map((at) => ({ territory, at }))
     )
+  );
+  /* Two face-up cards that mark the same spot pin one sticker there. */
+  return pins.filter(
+    (pin, index) =>
+      pins.findIndex(
+        (other) => other.territory === pin.territory && other.at[0] === pin.at[0] && other.at[1] === pin.at[1]
+      ) === index
   );
 }
 

@@ -20,6 +20,7 @@ import {
   SPICE_TOKEN_RADIUS,
   SPICE_FOOTPRINT_RADIUS,
 } from '@shared/play/spice';
+import type { SpiceBlowPin } from '@shared/play/spiceBlowSpot';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { pointOnPieceDragRay } from '@shared/play/tableDragGeometry';
 import {
@@ -53,6 +54,7 @@ import {
   BOARD_SURFACE_Y,
   isPlate,
   TROOP_FOOTPRINT_RADIUS,
+  CARRIED_BASE_Y,
 } from '@shared/play/tableGeometry';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
@@ -1012,7 +1014,11 @@ const TablePieceMesh = memo(function TablePieceMesh(props: TablePieceMeshProps) 
   const shuffleRef = useDeckShuffleAnimation(piece, carried || emptyProjection);
   const drawnPiece = useTurnedDownFaces(piece);
   const flipPivotY = stackTopHeight(piece) / 2;
-  const shadowLocalY = contactShadowHeightAt(piece.position, piece) - piece.position[1];
+  /* A piece resting on a plate casts its shadow, and shows its ring, on the plate's top rather than on the board beneath it. */
+  const ground = contactShadowHeightAt(piece.position, piece);
+  const shadowY =
+    piece.position[1] < CARRIED_BASE_Y ? Math.max(ground, piece.position[1] + CONTACT_SHADOW_EPSILON) : ground;
+  const shadowLocalY = shadowY - piece.position[1];
 
   return (
     <group
@@ -1110,8 +1116,8 @@ function boardSelection(
 }
 
 /* The board's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
-function useSceneTints(highlightTerritory: string | null | undefined) {
-  const tableTints = useBoardTints();
+function useSceneTints(highlightTerritory: string | null | undefined, pins: readonly SpiceBlowPin[]) {
+  const tableTints = useBoardTints(pins);
   const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
   return tintsWithBattle(tableTints, highlightTerritory ?? battleTerritory);
 }
@@ -1148,8 +1154,8 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const tints = useSceneTints(highlightTerritory);
   const pins = useSpiceBlowPins();
+  const tints = useSceneTints(highlightTerritory, pins);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);

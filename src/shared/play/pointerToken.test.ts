@@ -10,13 +10,14 @@ import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import {
   BOARD_SURFACE_Y,
   CARRIED_BASE_Y,
+  isPlainToken,
   isPlate,
   restingPositionAt,
   stackTopHeight,
   supportHeightAt,
   tokenThickness,
 } from './tableGeometry';
-import { isCollisionFreePosition } from './tablePhysics';
+import { isCollisionFreePosition, isOverlapFreePosition, piecesCanStack } from './tablePhysics';
 import { applyDraftToState, draftForGesture, renderedPiecesFor, settleCarryAtPosition } from './tableState';
 
 const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
@@ -334,5 +335,42 @@ describe('a Discovery token', () => {
     expect(at({ ...state, pieces: shown }, 't').position[1]).toBeCloseTo(
       at(state, 'discovery').position[1] + stackTopHeight(at(state, 'discovery'))
     );
+  });
+});
+
+describe('plates and what they hold', () => {
+  test('the HMS is no plain token, so it keeps its own thickness and shadow', () => {
+    expect(isPlainToken(plate([0, 0, 1]))).toBe(false);
+    expect(isPlate(plate([0, 0, 1]))).toBe(true);
+  });
+
+  test('a square token is never a plate, however large', () => {
+    const square = discovery([0, 0, 1]);
+    square.items = [{ ...square.items[0]!, artwork: { ...square.items[0]!.artwork!, type: 'token-plate' } }];
+    expect(isPlate(square)).toBe(false);
+  });
+
+  test('two face-up copies of one Discovery token still stack', () => {
+    const faceUp = (piece: TablePiece): TablePiece => ({
+      ...piece,
+      items: piece.items.map((item) => ({ ...item, faceUp: true })),
+    });
+    expect(piecesCanStack(faceUp(discovery([0, 0, 1])), { ...faceUp(discovery([1, 0, 1])), id: 'discovery-2' })).toBe(
+      true
+    );
+  });
+
+  test('spice keeps clear of a Discovery token, and never rides it', () => {
+    const disc = discovery([0, 0, 1]);
+    const spice: TablePiece = {
+      ...troop('s', [0, 0, 1]),
+      kind: 'marker',
+      owner: 'shared',
+      stackKey: 'spice',
+      label: 'Spice',
+    };
+    expect(isOverlapFreePosition(spice, disc.position, [disc])).toBe(false);
+    expect(isOverlapFreePosition(troop('t', [3, 0, 3]), disc.position, [disc])).toBe(true);
+    expect(pointerRiders([disc, spice], disc)).toEqual([]);
   });
 });

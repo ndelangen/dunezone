@@ -33,13 +33,12 @@ export function useSpiceBlowPins(): readonly SpiceBlowPin[] {
 
 /**
  * The board's shared tints, with the territory each face-up spice card names lit on top (#2678), so the spice can be placed by hand, by the card's ring or by the Spice blow command.
- * A territory a card marks with an exact spot gets its spice sticker on that spot (see useSpiceBlowPins), not one where the territory has the most room.
+ * A territory a card marks with an exact spot gets its spice sticker on that spot (`pins`, from useSpiceBlowPins), not one where the territory has the most room.
  * The light is the page's own: it goes out when the card is turned down, covered or taken off the table.
  */
-export function useBoardTints(): GameSnapshot['tints'] {
+export function useBoardTints(pins: readonly SpiceBlowPin[]): GameSnapshot['tints'] {
   const tints = useTabletopSelector((value) => value.snapshot.tints);
   const pending = useTabletopSelector((value) => spiceBlowTerritoriesKey(value.state.pieces));
-  const pins = useSpiceBlowPins();
   return useMemo(() => {
     if (!pending) {
       return tints;
