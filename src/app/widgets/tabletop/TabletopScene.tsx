@@ -76,7 +76,7 @@ import {
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Path, Plane, RingGeometry, Shape, ShapeGeometry, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -817,10 +817,39 @@ function selectionRadii(piece: TablePiece): [number, number, number] {
   return PIECE_SELECTION_RADII[piece.kind];
 }
 
+/* A rounded rectangle centred on the origin, in the plane a ring is drawn in before it is laid flat. */
+function roundedRectangle(halfX: number, halfY: number, radius: number, hole = false) {
+  const shape = hole ? new Path() : new Shape();
+  shape.moveTo(-halfX + radius, -halfY);
+  shape.lineTo(halfX - radius, -halfY);
+  shape.quadraticCurveTo(halfX, -halfY, halfX, -halfY + radius);
+  shape.lineTo(halfX, halfY - radius);
+  shape.quadraticCurveTo(halfX, halfY, halfX - radius, halfY);
+  shape.lineTo(-halfX + radius, halfY);
+  shape.quadraticCurveTo(-halfX, halfY, -halfX, halfY - radius);
+  shape.lineTo(-halfX, -halfY + radius);
+  shape.quadraticCurveTo(-halfX, -halfY, -halfX + radius, -halfY);
+  return shape;
+}
+
+/* A card's ring is the card's own rounded outline, so a held card lands exactly inside it, turned as the card is. */
+const CARD_SELECTION_RING = (() => {
+  const band = roundedRectangle(
+    CARD_WIDTH / 2 + SELECTION_RING_WIDTH,
+    CARD_DEPTH / 2 + SELECTION_RING_WIDTH,
+    CARD_CORNER_RADIUS + SELECTION_RING_WIDTH
+  ) as Shape;
+  band.holes.push(roundedRectangle(CARD_WIDTH / 2, CARD_DEPTH / 2, CARD_CORNER_RADIUS, true));
+  return new ShapeGeometry(band, 6);
+})();
+
 /* A plate's ring follows its teardrop; every other piece's is round. */
 function selectionRingGeometry(meshes: ReturnType<typeof useSharedMeshes>, piece: TablePiece) {
   if (isPointerToken(piece)) {
     return POINTER_SELECTION_RING;
+  }
+  if (piece.kind === 'card') {
+    return CARD_SELECTION_RING;
   }
   return meshes.ring(...selectionRadii(piece));
 }
