@@ -10,6 +10,7 @@ import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
+import { troopFactionOf } from '@shared/play/troopReserves';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
@@ -233,7 +234,11 @@ const LIVE_DISCOVERY_TOKENS = [
 export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
   const pieces = [...stored.table.pieces];
   const versions = { ...stored.versions };
-  const troop = pieces.find((candidate) => candidate.kind === 'force' && candidate.stackKey?.startsWith('troop'));
+  /* Beside the viewing seat's own troops, which sit nearest its camera. */
+  const own = stored.roster?.seats.find((seat) => seat.id === 'seat-1')?.faction?.id;
+  const troop =
+    pieces.find((candidate) => !candidate.inventory && own !== undefined && troopFactionOf(candidate) === own) ??
+    pieces.find((candidate) => candidate.kind === 'force' && candidate.stackKey?.startsWith('troop'));
   const near: [number, number, number] = troop ? [troop.position[0], 0, troop.position[2]] : [0.6, 0, 0.6];
   for (const [index, live] of LIVE_DISCOVERY_TOKENS.entries()) {
     const id = `discovery-${index + 1}`;
