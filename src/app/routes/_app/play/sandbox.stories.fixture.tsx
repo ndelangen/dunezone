@@ -3,7 +3,7 @@ import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { boardPointToTable } from '@shared/boards/tableTerritories';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
-import type { StoredPiece } from '@shared/play/model';
+import type { StoredPiece, Vector3Tuple } from '@shared/play/model';
 import type { Viewer } from '@shared/play/protocol';
 import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
@@ -275,6 +275,22 @@ export function withDiscoveryTokens(stored: StoredSnapshot): StoredSnapshot {
     versions[token.id] = stored.revision;
   }
   return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
+/** PROTOTYPE: two of the Discovery tokens moved in onto the board's sand, toward its centre from where they lay, to judge their shadow on the light map. */
+export function withDiscoveryOnTheSand(stored: StoredSnapshot): StoredSnapshot {
+  const pieces = [...stored.table.pieces];
+  for (const id of ['discovery-1', 'discovery-2']) {
+    const index = pieces.findIndex((piece) => piece.id === id);
+    const token = pieces[index]!;
+    const inward: Vector3Tuple = [token.position[0] * 0.55, 0, token.position[2] * 0.55];
+    const others = pieces.filter((piece) => piece.id !== id);
+    pieces[index] = {
+      ...token,
+      position: restingPositionAt(nearestCollisionFreePosition(token, inward, others)!, token),
+    };
+  }
+  return { ...stored, table: { ...stored.table, pieces } };
 }
 
 /** The seat the recording's deal gave a faction; the deal is random, so it differs per recording. */

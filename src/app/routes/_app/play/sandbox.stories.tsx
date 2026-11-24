@@ -26,6 +26,7 @@ import {
   shown,
   pinnedSpiceBlowSpot,
   withCoveredSpiceBlow,
+  withDiscoveryOnTheSand,
   withDiscoveryTokens,
   withPinnedSpiceBlows,
   withSpiceBlows,
@@ -506,13 +507,19 @@ export const DiscoveryTokens = meta.story({
   },
 });
 
-/* PROTOTYPE: card token shadow options, one story each; they go once one is picked. */
+/* PROTOTYPE: card token shadow options, one story each, with two tokens on the board's sand; they go once one is picked. Click a token to see its selection ring with the shadow. */
 function discoveryShadowStory(shadow: { spread: number; opacity: number; stop: number }) {
   return {
     ...discoverySandbox,
-    beforeEach: (context: { args: { step?: number; seat?: string } }) => {
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
       previewPlainTokenShadow(shadow);
-      return discoverySandbox.beforeEach(context);
+      return install(() =>
+        sandboxTransport({
+          start: Number(args.step ?? 1) - 1,
+          seat: String(args.seat ?? 'seat-1'),
+          prepare: (stored) => withDiscoveryOnTheSand(withDiscoveryTokens(stored)),
+        })
+      )();
     },
     play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
       await sandboxReady(within(canvasElement.ownerDocument.body));
