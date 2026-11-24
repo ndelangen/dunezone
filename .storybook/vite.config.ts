@@ -62,13 +62,6 @@ export default defineConfig({
     'import.meta.env.STORYBOOK': JSON.stringify(true),
   },
   publicDir: false,
-  /*
-   * Published faces live on dune.zone, so a story that shows a real catalogue token or card draws a stand-in here.
-   * STORYBOOK_LIVE_PUBLISHED=1 passes those requests on to dune.zone for a by-hand look at the real art; tests never set it, so they stay offline.
-   */
-  ...(process.env.STORYBOOK_LIVE_PUBLISHED === '1'
-    ? { server: { proxy: { '/published': { target: 'https://dune.zone', changeOrigin: true } } } }
-    : {}),
   oxc: convexWorkerOxc,
   optimizeDeps: {
     ...convexWorkerOptimizeDeps,
