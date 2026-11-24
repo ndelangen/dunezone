@@ -143,7 +143,7 @@ function freeSpotIn(
 }
 
 /**
- * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has (those its own map marks a spot in first), onto spice already lying there, or else at a free spot that stays inside that territory.
+ * Where a revealed spice card on top of this piece would set its spice down, and how much: the first territory it names that this board has (its own map's spots in any of them first), onto spice already lying there, or else at a free spot that stays inside that territory.
  * Null when the table has no board, the piece shows no spice card, or no territory it names has room.
  */
 export function spiceBlowSpot(
@@ -158,22 +158,26 @@ export function spiceBlowSpot(
   }
   const footprint = spiceFootprint(blow.amount);
   const boardId = snapshot.board?.asset.id;
-  /* Territories the card's own map marks a spot in go first, so the spice lands on the spot the table pins, not on an earlier territory's sticker. */
-  const marked = (territory: string) => cardSpotsIn(board, boardId, blow, territory).length > 0;
-  const territories = [
-    ...blow.territories.filter(marked),
-    ...blow.territories.filter((territory) => !marked(territory)),
+  /*
+   * Two passes: first only the card's own spots (or spice already lying where it marks one), across every territory it names, so the spice lands where the table pins it;
+   * then every territory with its computed sticker and middle, for a card without a usable spot.
+   */
+  const passes: ((search: Search, marks: Landmarks) => readonly TablePoint[] | null)[] = [
+    (search) => {
+      const spots = cardSpotsIn(board, boardId, blow, search.territory);
+      return spots.length ? spots : null;
+    },
+    (search, marks) => startingPoints(search, boardId, blow, marks),
   ];
-  for (const territory of territories) {
-    const marks = landmarks(board, territory);
-    if (!marks) {
-      continue;
-    }
-    const search = { board, pieces, territory };
-    const position =
-      pileIn(search)?.position ?? freeSpotIn(search, footprint, startingPoints(search, boardId, blow, marks));
-    if (position) {
-      return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
+  for (const pointsFor of passes) {
+    for (const territory of blow.territories) {
+      const marks = landmarks(board, territory);
+      const search = { board, pieces, territory };
+      const points = marks && pointsFor(search, marks);
+      const position = points && (pileIn(search)?.position ?? freeSpotIn(search, footprint, points));
+      if (marks && position) {
+        return { pieceId: piece.id, territory, name: marks.name, position: [...position], amount: blow.amount };
+      }
     }
   }
   return null;
