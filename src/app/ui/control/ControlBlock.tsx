@@ -79,7 +79,7 @@ export function ControlBlock({
     >
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
-          {inline ? <Box mr={6}>{control}</Box> : null}
+          {inline ? <Box mr="xs">{control}</Box> : null}
           {titleHidden ? (
             <VisuallyHidden id={titleId}>{title}</VisuallyHidden>
           ) : (
