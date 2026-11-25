@@ -307,6 +307,7 @@ export function CreateGamePass({
                 {discordVoiceAvailable ? (
                   <Stack gap="xs">
                     <ControlBlock
+                      inline
                       title="Discord voice chat"
                       input={(field) => (
                         <Switch
@@ -361,6 +362,7 @@ function SpiceExtrasField({
       <Eyebrow>Extra spice decks</Eyebrow>
       {decks.map((deck) => (
         <ControlBlock
+          inline
           key={deck.id}
           title={deck.name}
           description="Shuffled into the spice deck when the table is set up."
@@ -635,6 +637,7 @@ function AnnounceWhispersField({
   return (
     <Stack gap="xs">
       <ControlBlock
+        inline
         title="Announce private messages"
         input={(field) => (
           <Switch

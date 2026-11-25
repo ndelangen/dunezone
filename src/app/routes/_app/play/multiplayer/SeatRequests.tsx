@@ -479,7 +479,12 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
-        {table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback && voice}
+        {voice && table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback ? (
+          /* Framed like the game link above it, so the voice button keeps the menu's inset and full width. */
+          <Stack gap="xs" px="xs" pb="xs" maw={300}>
+            {voice}
+          </Stack>
+        ) : null}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />

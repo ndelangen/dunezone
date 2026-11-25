@@ -253,7 +253,7 @@ function TablePage({
       <ClientOnly fallback={loading}>
         <Suspense fallback={loading}>
           <HostedTable
-            voice={<DiscordVoiceAction menu={game.voice ?? null} />}
+            voice={game.voice ? <DiscordVoiceAction menu={game.voice} /> : undefined}
             discordNudgesAvailable={Boolean(game.voice)}
             key={game.gameId}
             gameId={game.gameId}
@@ -266,10 +266,7 @@ function TablePage({
   );
 }
 
-function DiscordVoiceAction({ menu }: Readonly<{ menu: PlayDiscordMenu | null }>) {
-  if (!menu) {
-    return null;
-  }
+function DiscordVoiceAction({ menu }: Readonly<{ menu: PlayDiscordMenu }>) {
   return (
     <LabeledAction
       icon={<SiDiscord size={16} aria-hidden />}

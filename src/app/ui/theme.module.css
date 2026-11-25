@@ -14,6 +14,11 @@
   background-color: var(--button-toggle-active-bg);
 }
 
+/* The track keeps the inputs' outline, so an off switch still reads on a ground as dark as its own fill. */
+.selectedSwitch {
+  box-shadow: inset 0 0 0 1px rgb(from var(--input-border) r g b / var(--input-border-alpha, 1));
+}
+
 input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
   --switch-text-color: var(--button-toggle-fg);
 }
