@@ -22,6 +22,11 @@ export const conversationMessageSchema = z.object({
   author: z.string(),
   text: z.string(),
   savedAt: count,
+  /*
+   * Set on a whisper notice: a table line the room adds when a game announces private messages (playtest feedback, 2026-11-25).
+   * It names only who wrote to whom; its text is always empty, and the private message itself stays in its pair.
+   */
+  whisperTo: id.optional(),
 });
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
 /* `cleared` is the newest message the viewer's faction cleared from its own view of the conversation; 0 when it never cleared it. */

@@ -49,7 +49,6 @@ import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FACTION_INFO } from '../compass/windows';
-import { FoilConfetti } from '../FoilConfetti';
 import { GameLink } from '../GameLink';
 import { GameTable } from '../GameTable';
 import type { TablePanel } from '../GameTable';
@@ -60,7 +59,6 @@ import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { PANEL_WINDOWS } from '../panels/panelWindows';
-import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
@@ -97,6 +95,7 @@ import { isSpectator, offersActions, stageInPlay, viewerFaction } from './tableF
 import { TableReviewPanel } from './TableReview';
 import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
+import { useWhisperFeed } from './whisperFeed';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
 
@@ -112,6 +111,31 @@ const TreacheryTrackerFollower = lazy(() =>
     default: module.TreacheryTrackerFollower,
   }))
 );
+
+/* The confetti flies only once a game is won, so its scene loads then rather than in the table's bundle. */
+const loadFoilConfetti = () => import('../FoilConfetti');
+const FoilConfetti = lazy(() => loadFoilConfetti().then((module) => ({ default: module.FoilConfetti })));
+
+/*
+ * The winning confetti, while it flies. Its code is fetched as soon as the table is up, so a win launches it at once, in step with
+ * every other viewer; if it never loads, the boundary shows nothing.
+ */
+function TableConfetti({ celebration }: Readonly<{ celebration: ReturnType<typeof useResultCelebration> }>) {
+  useEffect(() => {
+    void loadFoilConfetti().catch(() => {
+      /* The boundary below shows nothing then. */
+    });
+  }, []);
+  return (
+    celebration.mounted && (
+      <OptionalChunkBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <FoilConfetti launch={celebration.launch} />
+        </Suspense>
+      </OptionalChunkBoundary>
+    )
+  );
+}
 
 /* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
 const ConnectedKeyboardShortcutsPanel = lazy(() =>
@@ -148,6 +172,11 @@ function OnDemandPanel({ name, children }: Readonly<{ name: string; children: Re
     </OptionalChunkBoundary>
   );
 }
+
+/* Replay opens once a game is finished, or at a fixture table, so it loads when opened too. */
+const ConnectedReplayPanel = lazy(() =>
+  import('../panels/replay/useReplayPanel').then((module) => ({ default: module.ConnectedReplayPanel }))
+);
 
 const ConnectedBattlePlanPanel = lazy(() =>
   import('../panels/battlePlan/useBattlePlanPanel').then((module) => ({ default: module.ConnectedBattlePlanPanel }))
@@ -271,7 +300,9 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
           c="dimmed"
         >{`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}</Text>
         {error && <FormError title="From the table">{error}</FormError>}
-        <ConnectedReplayPanel client={client} table={table} />
+        <OnDemandPanel name="Replay">
+          <ConnectedReplayPanel client={client} table={table} />
+        </OnDemandPanel>
       </Stack>
     </Section>
   );
@@ -650,7 +681,9 @@ function lookBackPanels({ client, table, error }: ConnectionControlsProps): Tabl
           content: (
             <>
               {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-              <ConnectedReplayPanel client={client} table={table} />
+              <OnDemandPanel name="Replay">
+                <ConnectedReplayPanel client={client} table={table} />
+              </OnDemandPanel>
             </>
           ),
         },
@@ -864,6 +897,7 @@ function useHostedControls(
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const players = usePlayerWindows(client, table);
+  const whispers = useWhisperFeed(client, table);
   const compassTable: CompassTable = {
     ...players,
     recall,
@@ -878,6 +912,7 @@ function useHostedControls(
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
     dealt: dealtFaction(table, Boolean(recall)),
+    whispers,
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -1004,7 +1039,7 @@ function ConnectedTable({
                 sceneContent={
                   <>
                     {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
-                    {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
+                    <TableConfetti celebration={celebration} />
                   </>
                 }
                 gameMenu={

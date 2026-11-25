@@ -106,6 +106,8 @@ export default defineSchema({
     /* The ruleset's extra spice decks the creator ticked; absent when none were (#2986). */
     spice_extras: v.optional(v.array(v.string())),
     discord_voice: v.optional(v.boolean()),
+    /* The creator chose to have the table told who writes privately to whom; absent when they did not. */
+    announce_whispers: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),

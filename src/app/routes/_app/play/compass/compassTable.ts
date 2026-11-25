@@ -9,6 +9,8 @@ export type CompassPlayer = Readonly<{
   name: string;
   factionName: string | null;
   token: string | null;
+  /** The faction's colour, which a whisper thread from this seat is drawn in; absent before a faction is dealt. */
+  color?: string;
   unread: number;
   own: boolean;
   canConverse: boolean;
@@ -17,6 +19,9 @@ export type CompassPlayer = Readonly<{
   /** The removal vote standing against them, if any. */
   vote?: string;
 }>;
+
+/** One whisper notice: the seat whose player wrote a private message, and the seat whose player it went to; `key` tells notices apart. */
+export type Whisper = Readonly<{ key: number; from: string; to: string }>;
 
 /** What the hosted table hands the compass: the players, the table's chat, a chat with one player, one seat's faction, and the phase step. */
 export type CompassTable = Readonly<{
@@ -55,6 +60,12 @@ export type CompassTable = Readonly<{
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
   /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
   seatRequests?: number;
+  /**
+   * Hears each whisper notice as it arrives, by seat, in a game that announces private messages;
+   * the bar draws a thread from the writer's token to the reader's.
+   * Absent where the table has none to hear.
+   */
+  whispers?: (listener: (whisper: Whisper) => void) => () => void;
   /** The viewer's own faction while the live table deals, trades and sets up factions (Trading and Setup), when it is news (#2987); null otherwise. */
   dealt?: string | null;
 }>;

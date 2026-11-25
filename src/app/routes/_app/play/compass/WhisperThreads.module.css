@@ -1,0 +1,24 @@
+/*
+ * Whisper threads run between the bar's tokens, in front of the table but behind the bar: the layer sits under the bar's own
+ * stacking context (z-index -1 within it), so the pills and tokens cover the thread's ends. Nothing here takes a pointer.
+ */
+
+.layer {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The writer's faction colour comes in as the stroke; sand stands in for a faction without one. */
+.thread {
+  fill: none;
+  stroke: var(--sand);
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgb(from var(--color-shadow) r g b / 0.6));
+}

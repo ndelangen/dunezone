@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
@@ -12,10 +12,19 @@ import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import { accepted, admitPlayer, eventually, seat, syncView } from './native-runtime.fixture.ts';
 
+/* A game created to announce private messages (whisper notices); the other suites play one without. */
+let announceWhispers = false;
+
 describe('Faction conversations in the game database', () => {
   let peer: NativePeer, runtime: NativeRuntime;
   beforeEach(async () => {
-    ({ peer, runtime } = await draftingRuntime());
+    ({ peer, runtime } = await draftingRuntime([], undefined, {
+      prepare: (prepared) => {
+        if (announceWhispers) {
+          prepared.game = { ...prepared.game!, announceWhispers: true };
+        }
+      },
+    }));
   });
   afterEach(async () => {
     await runtime?.close();
@@ -92,6 +101,52 @@ describe('Faction conversations in the game database', () => {
     text = 'Private plans',
     requestId?: string
   ) => request<'conversation-send'>(player, { type: 'conversation-send' as const, factionId, peerId, text, requestId });
+
+  describe('in a game that announces private messages', () => {
+    beforeAll(() => {
+      announceWhispers = true;
+    });
+    afterAll(() => {
+      announceWhispers = false;
+    });
+
+    it('tells the table who wrote privately to whom, never what, and never as unread', async () => {
+      const { a, b, aId, bId } = await setup();
+      const offset = b.messages.length;
+      await send(a, aId, bId, 'Meet me in Arrakeen');
+      const whispers = () =>
+        b.messages
+          .slice(offset)
+          .filter(
+            (entry): entry is Extract<NativeMessage, { type: 'conversation-message' }> =>
+              entry.type === 'conversation-message' && entry.peerId === '@table' && Boolean(entry.message.whisperTo)
+          );
+      const [notice] = await eventually(() => (whispers().length ? whispers() : undefined), 'whisper notice');
+      expect(notice!.message).toMatchObject({ senderFactionId: aId, whisperTo: bId, text: '', author: '' });
+      const history = messageOf(await page(a, aId, '@table'), 'conversation-history').entries;
+      expect(history).toEqual([expect.objectContaining({ whisperTo: bId, text: '' })]);
+      await eventually(async () => {
+        const summaries = b.messages.findLast(
+          (entry): entry is Extract<NativeMessage, { type: 'conversations' }> => entry.type === 'conversations'
+        );
+        return summaries?.entries.find((entry) => entry.peerId === '@table')?.unread === 0 &&
+          summaries.entries.find((entry) => entry.peerId === aId)?.unread === 1
+          ? true
+          : undefined;
+      }, 'unread counts');
+      /* Table talk itself adds no notice. */
+      await send(a, aId, '@table', 'Hello all');
+      await eventually(
+        () =>
+          b.messages.some(
+            (entry) =>
+              entry.type === 'conversation-message' && entry.peerId === '@table' && entry.message.text === 'Hello all'
+          ) || undefined,
+        'table talk'
+      );
+      expect(whispers()).toHaveLength(1);
+    });
+  });
 
   it('delivers table talk to every seated faction and never to an observer', async () => {
     const { a, b, aId, bId } = await setup();

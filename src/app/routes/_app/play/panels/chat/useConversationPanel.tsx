@@ -34,6 +34,11 @@ function senderTokens(
   return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
 }
 
+/* Whether a private message now tells the table it went: only in a game created to, while it is set up or played, as the room decides. */
+function announcesWhispers(snapshot: TableProjection['snapshot'] | undefined) {
+  return snapshot?.announceWhispers === true && (snapshot.stage === 'setup' || snapshot.stage === 'play');
+}
+
 /** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
 export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
   const { conversations: view, table } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
@@ -79,6 +84,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       cleared={client.conversations.clearedThrough(peerId) > 0}
+      announced={!shared && announcesWhispers(snapshot)}
       mentions={mentions}
       /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
       onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}

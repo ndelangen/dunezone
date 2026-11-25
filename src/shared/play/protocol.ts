@@ -113,6 +113,8 @@ export const gameSnapshotSchema = z.object({
   alliances: allianceStateSchema.optional(),
   /* The turn the table agreed the game ends after; absent means the standard ten. */
   lastTurn: lastTurnSchema.optional(),
+  /* Set in a game created to announce private messages: the table chat says who writes privately to whom (playtest feedback, 2026-11-25). */
+  announceWhispers: z.literal(true).optional(),
   /* The factions that have finished this Shipment and Movement; absent outside that phase. */
   movement: movementTurnsSchema.optional(),
   /* Tints the table laid over territories, for everyone to see; absent until a faction makes one. */

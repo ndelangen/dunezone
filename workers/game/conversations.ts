@@ -31,6 +31,7 @@ type MessageRow = {
   text: string;
   saved_at: number;
   pair: string;
+  whisper_to: string | null;
 };
 /* The table is stored under its own id, which every faction shares; a faction pair under both ids, sorted. */
 const pairKey = ({ factionId, peerId }: Pair) =>
@@ -44,6 +45,7 @@ const present = (row: MessageRow): ConversationMessage => ({
   author: row.author,
   text: row.text,
   savedAt: row.saved_at,
+  ...(row.whisper_to ? { whisperTo: row.whisper_to } : {}),
 });
 
 /** Owns private faction-pair history and read positions; callers own authentication and transactions. */
@@ -55,6 +57,16 @@ export class Conversations {
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS conversation_messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, pair TEXT NOT NULL, sender_id TEXT, request_id TEXT NOT NULL, sender_faction TEXT NOT NULL, author TEXT NOT NULL, text TEXT NOT NULL, saved_at INTEGER NOT NULL, UNIQUE(sender_id, request_id))'
     );
+    /* A whisper notice names the faction a private message went to; a room from before notices gains the column. */
+    const columns = new Set(
+      storage.sql
+        .exec<{ name: string }>('PRAGMA table_info(conversation_messages)')
+        .toArray()
+        .map((column) => column.name)
+    );
+    if (!columns.has('whisper_to')) {
+      storage.sql.exec('ALTER TABLE conversation_messages ADD COLUMN whisper_to TEXT');
+    }
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS conversation_metadata (id INTEGER PRIMARY KEY, generation INTEGER NOT NULL)'
     );
@@ -116,6 +128,24 @@ export class Conversations {
     return { message: present(row), inserted: true };
   }
 
+  /**
+   * A whisper notice in the table chat: `faction` wrote privately to `to`, as the private message `of` says.
+   * It holds no words and no account, so a reader learns only who wrote to whom, and deleting an account leaves nothing of it to scrub.
+   */
+  saveWhisper(of: ConversationMessage, to: string) {
+    const row = this.storage.sql
+      .exec<MessageRow>(
+        "INSERT INTO conversation_messages(pair,sender_id,request_id,sender_faction,author,text,saved_at,whisper_to) VALUES(?,NULL,?,?,'','',?,?) RETURNING *",
+        TABLE_CONVERSATION,
+        `whisper-${of.sequence}`,
+        of.senderFactionId,
+        of.savedAt,
+        to
+      )
+      .one();
+    return present(row);
+  }
+
   /** The faction's page of a conversation, without what it cleared. */
   page(request: ConversationRequest<'conversation-history'>) {
     const pair = pairKey(request);
@@ -130,7 +160,7 @@ export class Conversations {
     return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
   }
 
-  /** The faction's pairs, then the table. */
+  /** The faction's pairs, then the table; a whisper notice is never unread, so it neither counts on the table's token nor chimes. */
   summaries(faction: string, peers: string[], recallId?: string) {
     return [
       ...peers.filter((peer) => peer !== faction),
@@ -140,7 +170,7 @@ export class Conversations {
       const pair = pairKey({ factionId: faction, peerId });
       const row = this.storage.sql
         .exec<{ latest: number; unread: number; cleared: number }>(
-          'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>?) AS unread, COALESCE((SELECT through FROM conversation_clears WHERE pair=? AND faction=?),0) AS cleared',
+          'SELECT COALESCE((SELECT sequence FROM conversation_messages WHERE pair=? ORDER BY sequence DESC LIMIT 1),0) AS latest, (SELECT COUNT(*) FROM conversation_messages WHERE pair=? AND sequence>COALESCE((SELECT through FROM conversation_reads WHERE pair=? AND faction=?),0) AND sender_faction<>? AND whisper_to IS NULL) AS unread, COALESCE((SELECT through FROM conversation_clears WHERE pair=? AND faction=?),0) AS cleared',
           pair,
           pair,
           pair,
@@ -257,11 +287,13 @@ export class Conversations {
     let logs = browser.logs;
     /* Message bodies never leave the room; only their replacements enter the exported log strings. */
     const messages = new Set(reportConversationTexts(browser.conversations));
-    for (const row of this.storage.sql.exec<{ text: string }>('SELECT DISTINCT text FROM conversation_messages')) {
+    for (const row of this.storage.sql.exec<{ text: string }>(
+      "SELECT DISTINCT text FROM conversation_messages WHERE text<>''"
+    )) {
       messages.add(row.text);
     }
     /* Compare the complete set longest first, before any shorter match can split a message. */
-    for (const message of [...messages].sort((left, right) => right.length - left.length)) {
+    for (const message of [...messages].filter(Boolean).sort((left, right) => right.length - left.length)) {
       logs = logs.map((entry) => ({ ...entry, text: censorKnownMessage(entry.text, message) }));
     }
     return redactReportData({ ...browser, conversations: censorReportConversations(browser.conversations), logs });

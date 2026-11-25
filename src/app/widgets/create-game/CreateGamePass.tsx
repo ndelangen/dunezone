@@ -65,6 +65,8 @@ export type CreateGameDraft = {
   minimumPlayers: number;
   lastTurn: number;
   discordVoice: boolean;
+  /** Whether the table hears who writes privately to whom, never what (playtest feedback, 2026-11-25); off unless the creator turns it on. */
+  announceWhispers: boolean;
   refusal: string | null;
 };
 export type CreateGameDraftEvent =
@@ -84,6 +86,7 @@ export const initialCreateGameDraft = (): CreateGameDraft => ({
   minimumPlayers: DEFAULT_TABLE_SEAT_COUNT,
   lastTurn: DEFAULT_LAST_TURN,
   discordVoice: false,
+  announceWhispers: false,
   refusal: null,
 });
 
@@ -200,6 +203,7 @@ export function CreateGamePass({
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
     discordVoice: discordVoiceAvailable && draft.discordVoice,
+    ...(draft.announceWhispers ? { announceWhispers: true } : {}),
   });
   const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
@@ -293,6 +297,11 @@ export function CreateGamePass({
                 <LastTurnField
                   value={draft.lastTurn}
                   onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
+                  disabled={pending}
+                />
+                <AnnounceWhispersField
+                  value={draft.announceWhispers}
+                  onChange={(announceWhispers) => dispatch({ kind: 'patch', update: { announceWhispers } })}
                   disabled={pending}
                 />
                 {discordVoiceAvailable ? (
@@ -611,6 +620,34 @@ function LastTurnField({
       />
       <Text size="sm" c="dimmed">
         The turn wheel counts to it. The table can play on past it, and the Phase tab changes it during the game.
+      </Text>
+    </Stack>
+  );
+}
+
+/* Whether the game tells the table who writes privately to whom: off by default, set once here for the whole game. */
+function AnnounceWhispersField({
+  value,
+  onChange,
+  disabled,
+}: Readonly<{ value: boolean; onChange: (value: boolean) => void; disabled: boolean }>) {
+  const hintId = useId();
+  return (
+    <Stack gap="xs">
+      <ControlBlock
+        title="Announce private messages"
+        input={(field) => (
+          <Switch
+            {...field}
+            aria-describedby={hintId}
+            checked={value}
+            onChange={(event) => onChange(event.currentTarget.checked)}
+            disabled={disabled}
+          />
+        )}
+      />
+      <Text id={hintId} size="sm" c="dimmed">
+        Everyone sees who messages whom, never what they say.
       </Text>
     </Stack>
   );

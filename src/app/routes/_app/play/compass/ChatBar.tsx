@@ -2,10 +2,11 @@ import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
-import { useContext } from 'react';
+import { lazy, Suspense, useContext, useRef } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { OptionalChunkBoundary } from '../multiplayer/OptionalChunkBoundary';
 import { useOwnFactionArrival } from '../multiplayer/OwnFaction';
 import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
@@ -15,6 +16,9 @@ import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import { useShortcutsButton } from './shortcutsButton';
 import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
+
+/* Only a game that announces private messages draws whisper threads, so their code loads only there. */
+const WhisperThreads = lazy(() => import('./WhisperThreads').then((module) => ({ default: module.WhisperThreads })));
 
 /*
  * The bar at the bottom of the table: the keyboard shortcuts button, the viewer's own token, the Controls button that opens
@@ -56,8 +60,16 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const { arrival } = useOwnFactionArrival();
   const motion = useMotionAllowed();
   const ownToken = own?.factionName && (hasHand || !recall) ? own : undefined;
+  const bar = useRef<HTMLDivElement>(null);
   return (
-    <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+    <div ref={bar} className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+      {table?.whispers && !recall && (
+        <OptionalChunkBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <WhisperThreads bar={bar} players={table.players} subscribe={table.whispers} />
+          </Suspense>
+        </OptionalChunkBoundary>
+      )}
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
@@ -126,6 +138,7 @@ function OwnToken({
         aria-pressed={open}
         aria-label={`${label}, you are playing as ${player.factionName}`}
         data-own-token
+        data-whisper-seat={player.seat}
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
@@ -201,6 +214,7 @@ function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; o
           ', '
         )}
         data-ally={player.ally || undefined}
+        data-whisper-seat={player.seat}
         onClick={onOpen}
       >
         <PlayerToken player={player} />

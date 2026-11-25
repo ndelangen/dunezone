@@ -9,6 +9,7 @@ import {
   savedPage,
   tableChatArgs,
   tableChatNamingArgs,
+  tableChatWhispersArgs,
 } from './ConversationPanel.stories.fixture';
 
 /*
@@ -38,6 +39,29 @@ export const WithTheTable = meta.story({
       await expect(within(header).getByText(token.name)).toBeVisible();
       await expect(header.querySelector('img')).toHaveAttribute('src', token.src);
     }
+  },
+});
+
+/**
+ * A game that announces private messages: between the table's messages, a quiet line says who wrote to whom, never what.
+ * The same line is never written twice in a row: several notes in a row from one faction to the same other read as one line.
+ */
+export const WithWhisperNotices = meta.story({
+  args: tableChatWhispersArgs(),
+  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  play: async ({ canvasElement }) => {
+    const lines = [...canvasElement.querySelectorAll<HTMLElement>('[data-whisper-line]')];
+    await expect(lines).toHaveLength(3);
+    /* The same writer to the same reader three times in a row is written once. */
+    await expect(lines[1]!.textContent).not.toMatch(/×/);
+  },
+});
+
+/** A private chat in a game that announces private messages: above the composer, a quiet line says the table sees that a message went. */
+export const AnnouncedToTheTable = meta.story({
+  args: { announced: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Everyone at the table sees that you wrote here, never what.')).toBeVisible();
   },
 });
 

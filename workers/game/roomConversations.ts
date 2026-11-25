@@ -1,4 +1,4 @@
-import { conversationPeerFor } from '../../src/shared/play/conversations';
+import { conversationPeerFor, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import type { Connection, ConversationRequest } from './connection';
 import type { GameSession } from './session';
@@ -82,6 +82,10 @@ export class RoomConversations {
     const saved = this.room.session.sendConversation(viewer, request);
     if (saved.inserted) {
       this.publish(request, saved.message);
+      /* The private message reaches its pair first, then the whole table hears that it went. */
+      if ('whisper' in saved && saved.whisper) {
+        this.publish({ factionId: request.factionId, peerId: TABLE_CONVERSATION }, saved.whisper);
+      }
       this.room.directoryChanged();
       return;
     }
@@ -103,7 +107,7 @@ export class RoomConversations {
   }
 
   private publish(
-    request: Extract<ClientMessage, { type: 'conversation-send' }>,
+    request: Pick<Extract<ClientMessage, { type: 'conversation-send' }>, 'factionId' | 'peerId'>,
     message: Extract<ServerMessage, { type: 'conversation-message' }>['message']
   ) {
     const faction = request.factionId;
