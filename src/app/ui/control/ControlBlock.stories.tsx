@@ -1,4 +1,4 @@
-import { Box, Select, TextInput } from '@mantine/core';
+import { Box, Select, Switch, TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -148,5 +148,16 @@ export const WithWarning = meta.story({
       'Printed around this leader token. This leader has no name. This is advisory and does not prevent saving.'
     );
     await expect(canvas.getByRole('status')).toHaveTextContent('This leader has no name.');
+  },
+});
+
+/* A switch sits at the start of the title row, beside the name it turns on. */
+export const InlineSwitch = meta.story({
+  args: {
+    inline: true,
+    title: 'Announce private messages',
+    description: undefined,
+    tool: undefined,
+    input: (field) => <Switch {...field} />,
   },
 });

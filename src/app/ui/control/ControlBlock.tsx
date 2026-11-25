@@ -29,6 +29,8 @@ export interface ControlBlockProps {
   input: ReactNode | ((field: ControlBlockField) => ReactNode);
   /** A fixed id for the input, when something else links to it; otherwise one is generated. */
   inputId?: string;
+  /** Puts a small control, such as a switch, at the start of the title row instead of on a line of its own under the title. */
+  inline?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function ControlBlock({
   tool,
   input,
   inputId,
+  inline = false,
 }: ControlBlockProps) {
   const id = useId();
   const titleId = `${id}-title`;
@@ -65,6 +68,7 @@ export function ControlBlock({
     'aria-labelledby': titleId,
     'aria-describedby': warning ? warningId : undefined,
   };
+  const control = namesItsInput ? input(field) : input;
 
   return (
     <Stack
@@ -75,6 +79,7 @@ export function ControlBlock({
     >
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
+          {inline ? <Box mr="xs">{control}</Box> : null}
           {titleHidden ? (
             <VisuallyHidden id={titleId}>{title}</VisuallyHidden>
           ) : (
@@ -86,7 +91,7 @@ export function ControlBlock({
         </Group>
         {tool ? <Box>{tool}</Box> : null}
       </Group>
-      <Box w="100%">{namesItsInput ? input(field) : input}</Box>
+      {inline ? null : <Box w="100%">{control}</Box>}
       {warning ? <FieldWarning id={warningId}>{warning}</FieldWarning> : null}
     </Stack>
   );
