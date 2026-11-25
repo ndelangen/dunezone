@@ -480,7 +480,7 @@ export function GameMenu({
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
         {voice && table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback ? (
-          /* Framed like the game link above it, so the voice button keeps the menu's inset and full width. */
+          /* Framed like the game link above it, so the voice button keeps the menu's inset and the game link's width. */
           <Stack gap="xs" px="xs" pb="xs" maw={300}>
             {voice}
           </Stack>

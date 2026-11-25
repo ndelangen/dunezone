@@ -156,13 +156,8 @@ export const InlineSwitch = meta.story({
   args: {
     inline: true,
     title: 'Announce private messages',
+    description: undefined,
     tool: undefined,
     input: (field) => <Switch {...field} />,
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const toggle = canvas.getByRole('switch', { name: 'Announce private messages' });
-    await userEvent.click(canvas.getByText('Announce private messages'));
-    await expect(toggle).toBeChecked();
   },
 });

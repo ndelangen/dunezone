@@ -214,7 +214,8 @@ function useKnownGame(address: string, authorized: Extract<GameAccess, { gameId:
     (known?.gameId !== authorized.gameId ||
       known.slug !== authorized.slug ||
       known.name !== authorized.name ||
-      known.status !== authorized.status)
+      known.status !== authorized.status ||
+      known.voice?.url !== ('voice' in authorized ? authorized.voice?.url : undefined))
   ) {
     remember({
       type: 'resolved',
@@ -224,6 +225,8 @@ function useKnownGame(address: string, authorized: Extract<GameAccess, { gameId:
         name: authorized.name,
         status: authorized.status,
         ruleset: 'ruleset' in authorized ? authorized.ruleset : undefined,
+        /* Kept so the voice button stays in the game menu while the directory reconnects. */
+        voice: 'voice' in authorized ? authorized.voice : undefined,
       },
     });
   }

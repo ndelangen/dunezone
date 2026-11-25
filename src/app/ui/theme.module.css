@@ -14,8 +14,8 @@
   background-color: var(--button-toggle-active-bg);
 }
 
-/* The track keeps the inputs' outline, so an off switch still reads on a ground as dark as its own fill. */
-.selectedSwitch {
+/* An off track keeps the inputs' outline, so it still reads on a ground as dark as its own fill. */
+input:not(:checked) + .selectedSwitch {
   box-shadow: inset 0 0 0 1px rgb(from var(--input-border) r g b / var(--input-border-alpha, 1));
 }
 
