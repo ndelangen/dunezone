@@ -62,7 +62,7 @@ export type CompassTable = Readonly<{
   seatRequests?: number;
   /**
    * Hears each whisper notice as it arrives, by seat, in a game that announces private messages;
-   * the bar flies a bubble from the writer's token to the reader's.
+   * the bar draws a thread from the writer's token to the reader's.
    * Absent where the table has none to hear.
    */
   whispers?: (listener: (whisper: Whisper) => void) => () => void;

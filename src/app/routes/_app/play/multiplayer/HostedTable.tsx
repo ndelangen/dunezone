@@ -113,7 +113,8 @@ const TreacheryTrackerFollower = lazy(() =>
 );
 
 /* The confetti flies only once a game is won, so its scene loads then rather than in the table's bundle. */
-const FoilConfetti = lazy(() => import('../FoilConfetti').then((module) => ({ default: module.FoilConfetti })));
+const loadFoilConfetti = () => import('../FoilConfetti');
+const FoilConfetti = lazy(() => loadFoilConfetti().then((module) => ({ default: module.FoilConfetti })));
 
 /* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
 const ConnectedKeyboardShortcutsPanel = lazy(() =>
@@ -958,6 +959,12 @@ function ConnectedTable({
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
+  /* The confetti's code is fetched once the table is up, so a win launches it at once, in step with every other viewer. */
+  useEffect(() => {
+    void loadFoilConfetti().catch(() => {
+      /* The boundary around the confetti shows nothing if it never loads. */
+    });
+  }, []);
   useChatSounds(client, table);
   /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
   const [battleOpen, setBattleOpen] = useState(false);
