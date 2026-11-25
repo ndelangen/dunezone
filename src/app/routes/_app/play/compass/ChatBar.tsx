@@ -2,10 +2,11 @@ import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
-import { useContext, useRef } from 'react';
+import { lazy, Suspense, useContext, useRef } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { OptionalChunkBoundary } from '../multiplayer/OptionalChunkBoundary';
 import { useOwnFactionArrival } from '../multiplayer/OwnFaction';
 import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
@@ -14,8 +15,10 @@ import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import { useShortcutsButton } from './shortcutsButton';
-import { WhisperThreads } from './WhisperThreads';
 import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
+
+/* Only a game that announces private messages draws whisper threads, so their code loads only there. */
+const WhisperThreads = lazy(() => import('./WhisperThreads').then((module) => ({ default: module.WhisperThreads })));
 
 /*
  * The bar at the bottom of the table: the keyboard shortcuts button, the viewer's own token, the Controls button that opens
@@ -60,7 +63,13 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const bar = useRef<HTMLDivElement>(null);
   return (
     <div ref={bar} className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
-      <WhisperThreads bar={bar} players={table?.players ?? []} subscribe={recall ? undefined : table?.whispers} />
+      {table?.whispers && !recall && (
+        <OptionalChunkBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <WhisperThreads bar={bar} players={table.players} subscribe={table.whispers} />
+          </Suspense>
+        </OptionalChunkBoundary>
+      )}
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}

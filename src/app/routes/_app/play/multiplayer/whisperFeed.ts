@@ -13,7 +13,7 @@ export function useWhisperFeed(client: TableSession, table: TableProjection): Co
   useEffect(() => {
     roster.current = table.snapshot.roster;
   });
-  return useCallback<NonNullable<CompassTable['whispers']>>(
+  const subscribe = useCallback<NonNullable<CompassTable['whispers']>>(
     (listener) =>
       client.conversations.subscribeMessages((peerId, message) => {
         if (peerId !== TABLE_CONVERSATION || !message.whisperTo) {
@@ -28,4 +28,6 @@ export function useWhisperFeed(client: TableSession, table: TableProjection): Co
       }),
     [client]
   );
+  /* A game that does not announce private messages has no notices to hear, and the bar loads nothing for them. */
+  return table.snapshot.announceWhispers ? subscribe : undefined;
 }

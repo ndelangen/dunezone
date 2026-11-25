@@ -28,7 +28,12 @@ const meta = preview.meta({
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],
-  beforeEach: [noticeSetup(), stopWhisperingAfter],
+  beforeEach: [
+    noticeSetup((snapshot) => {
+      snapshot.announceWhispers = true;
+    }),
+    stopWhisperingAfter,
+  ],
 });
 
 /* Which story's whispering may go on; a story that ends steps it, which stops its loop. */
