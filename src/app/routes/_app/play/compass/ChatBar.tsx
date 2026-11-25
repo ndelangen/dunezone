@@ -14,7 +14,7 @@ import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import { useShortcutsButton } from './shortcutsButton';
-import { WhisperFlights } from './WhisperFlights';
+import { WhisperThreads } from './WhisperThreads';
 import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 /*
@@ -60,7 +60,7 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const bar = useRef<HTMLDivElement>(null);
   return (
     <div ref={bar} className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
-      <WhisperFlights bar={bar} players={table?.players ?? []} subscribe={recall ? undefined : table?.whispers} />
+      <WhisperThreads bar={bar} players={table?.players ?? []} subscribe={recall ? undefined : table?.whispers} />
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}

@@ -9,6 +9,8 @@ export type CompassPlayer = Readonly<{
   name: string;
   factionName: string | null;
   token: string | null;
+  /** The faction's colour, which a whisper thread from this seat is drawn in; absent before a faction is dealt. */
+  color?: string;
   unread: number;
   own: boolean;
   canConverse: boolean;

@@ -1,8 +1,5 @@
 import preview from '@sb/preview';
-import type { Decorator } from '@storybook/tanstack-react';
 
-import { WhisperLookContext } from './compass/WhisperFlights';
-import type { WhisperLook } from './compass/WhisperFlights';
 import { gameMeta } from './game.stories.fixture';
 import {
   holdNotices,
@@ -15,9 +12,9 @@ import {
 } from './softNotices.stories.fixture';
 
 /*
- * Whisper notices (playtest feedback, 2026-11-25): in a game created to announce private messages, every private message flies a
- * small bubble along the bottom bar from the writer's faction token to the reader's, and the table chat says who wrote to whom.
- * Each story keeps the table whispering every couple of seconds, between other factions and the viewer's own, in one look.
+ * Whisper notices (playtest feedback, 2026-11-25): in a game created to announce private messages, every private message draws a
+ * thread along the bottom bar from the writer's faction token to the reader's, and the table chat says who wrote to whom.
+ * Each story keeps the table whispering every couple of seconds, between other factions and the viewer's own.
  */
 const meta = preview.meta({
   ...gameMeta,
@@ -72,53 +69,16 @@ async function keepWhispering(canvasElement: HTMLElement) {
   await tick();
 }
 
-function look(value: WhisperLook): Decorator {
-  return (Story) => (
-    <WhisperLookContext value={value}>
-      <Story />
-    </WhisperLookContext>
-  );
-}
-
-/** A: a small speech bubble arcs from the writer's token to the reader's, and the reader's token nods as it lands. */
-export const Bubble = meta.story({
-  decorators: [look('bubble')],
-  play: ({ canvasElement }) => keepWhispering(canvasElement),
-});
-
-/** B: a spark of light with a short tail, like a shooting star between the tokens. */
-export const Spark = meta.story({
-  decorators: [look('spark')],
-  play: ({ canvasElement }) => keepWhispering(canvasElement),
-});
-
-/** C: a typing pill, its three dots bobbing, floats across. */
-export const Typing = meta.story({
-  decorators: [look('typing')],
-  play: ({ canvasElement }) => keepWhispering(canvasElement),
-});
-
-/** D: a small envelope arcs across. */
-export const Envelope = meta.story({
-  decorators: [look('envelope')],
-  play: ({ canvasElement }) => keepWhispering(canvasElement),
-});
-
-/** E: nothing travels; a thin thread draws itself between the two tokens, holds a moment, and fades. */
+/**
+ * A thread in the writer's faction colour draws itself from their token to the reader's, in front of the table and behind the bar;
+ * the reader's token pops as it arrives, and the thread fades.
+ */
 export const Thread = meta.story({
-  decorators: [look('thread')],
   play: ({ canvasElement }) => keepWhispering(canvasElement),
 });
 
-/** F: a small copy of the writer's own token flies to the reader. */
-export const WritersToken = meta.story({
-  decorators: [look('token')],
-  play: ({ canvasElement }) => keepWhispering(canvasElement),
-});
-
-/** With motion reduced nothing travels: the bubble shows a moment above the reader's token and fades. */
+/** With motion reduced nothing draws or pops: the whole thread shows a moment and fades. */
 export const MotionReduced = meta.story({
   globals: { motion: 'reduce' },
-  decorators: [look('bubble')],
   play: ({ canvasElement }) => keepWhispering(canvasElement),
 });

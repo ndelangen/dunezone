@@ -6,6 +6,7 @@ import { useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
+import { factionColor } from './allianceColors';
 import { factionTokenFace } from './FactionTokenFace';
 import { seatFaction } from './tableFactions';
 
@@ -52,6 +53,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       name: player.name,
       factionName: faction?.name ?? null,
       token: (faction && factionTokenFace(table, faction.id)) ?? standInToken(table, player),
+      ...(faction && { color: factionColor(table.snapshot, faction.id) }),
       unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
