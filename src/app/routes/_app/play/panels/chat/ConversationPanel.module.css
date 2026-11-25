@@ -26,7 +26,7 @@
 
 /* A whisper notice: one quiet line between the messages, set off by a thin rule on its left. */
 .whisper {
-  padding-left: 0.5rem;
+  padding-left: var(--space-xs);
   border-left: 2px solid rgb(from var(--ui-highlight) r g b / 0.25);
 }
 

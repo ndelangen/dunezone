@@ -119,7 +119,7 @@ describe('Faction conversations in the game database', () => {
           .slice(offset)
           .filter(
             (entry): entry is Extract<NativeMessage, { type: 'conversation-message' }> =>
-              entry.type === 'conversation-message' && entry.peerId === '@table'
+              entry.type === 'conversation-message' && entry.peerId === '@table' && Boolean(entry.message.whisperTo)
           );
       const [notice] = await eventually(() => (whispers().length ? whispers() : undefined), 'whisper notice');
       expect(notice!.message).toMatchObject({ senderFactionId: aId, whisperTo: bId, text: '', author: '' });
@@ -136,6 +136,14 @@ describe('Faction conversations in the game database', () => {
       }, 'unread counts');
       /* Table talk itself adds no notice. */
       await send(a, aId, '@table', 'Hello all');
+      await eventually(
+        () =>
+          b.messages.some(
+            (entry) =>
+              entry.type === 'conversation-message' && entry.peerId === '@table' && entry.message.text === 'Hello all'
+          ) || undefined,
+        'table talk'
+      );
       expect(whispers()).toHaveLength(1);
     });
   });
