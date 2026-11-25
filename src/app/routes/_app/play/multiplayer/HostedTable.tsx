@@ -116,6 +116,27 @@ const TreacheryTrackerFollower = lazy(() =>
 const loadFoilConfetti = () => import('../FoilConfetti');
 const FoilConfetti = lazy(() => loadFoilConfetti().then((module) => ({ default: module.FoilConfetti })));
 
+/*
+ * The winning confetti, while it flies. Its code is fetched as soon as the table is up, so a win launches it at once, in step with
+ * every other viewer; if it never loads, the boundary shows nothing.
+ */
+function TableConfetti({ celebration }: Readonly<{ celebration: ReturnType<typeof useResultCelebration> }>) {
+  useEffect(() => {
+    void loadFoilConfetti().catch(() => {
+      /* The boundary below shows nothing then. */
+    });
+  }, []);
+  return (
+    celebration.mounted && (
+      <OptionalChunkBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <FoilConfetti launch={celebration.launch} />
+        </Suspense>
+      </OptionalChunkBoundary>
+    )
+  );
+}
+
 /* The keyboard map loads when its panel first opens, which keeps the table's own bundle within its budget. */
 const ConnectedKeyboardShortcutsPanel = lazy(() =>
   import('../panels/shortcuts/useKeyboardShortcutsPanel').then((module) => ({
@@ -959,12 +980,6 @@ function ConnectedTable({
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
-  /* The confetti's code is fetched once the table is up, so a win launches it at once, in step with every other viewer. */
-  useEffect(() => {
-    void loadFoilConfetti().catch(() => {
-      /* The boundary around the confetti shows nothing if it never loads. */
-    });
-  }, []);
   useChatSounds(client, table);
   /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
   const [battleOpen, setBattleOpen] = useState(false);
@@ -1024,13 +1039,7 @@ function ConnectedTable({
                 sceneContent={
                   <>
                     {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
-                    {celebration.mounted && (
-                      <OptionalChunkBoundary fallback={null}>
-                        <Suspense fallback={null}>
-                          <FoilConfetti launch={celebration.launch} />
-                        </Suspense>
-                      </OptionalChunkBoundary>
-                    )}
+                    <TableConfetti celebration={celebration} />
                   </>
                 }
                 gameMenu={
