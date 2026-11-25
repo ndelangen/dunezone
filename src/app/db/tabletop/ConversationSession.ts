@@ -67,7 +67,10 @@ export class ConversationSession {
     private readonly monotonicNow: () => number
   ) {}
 
-  /** Each message another faction writes to the viewer's faction as it arrives live; nothing is replayed, so a listener hears only what comes after it subscribes. */
+  /**
+   * Each message another faction writes to the viewer's faction as it arrives live, and every whisper notice, the viewer's own included;
+   * nothing is replayed, so a listener hears only what comes after it subscribes.
+   */
   subscribeMessages = (listener: (peerId: string, message: ConversationMessage) => void) => {
     this.messageListeners.add(listener);
     return () => this.messageListeners.delete(listener);
@@ -312,7 +315,8 @@ export class ConversationSession {
         [message.peerId]: { ...page, entries: merge(page.entries, [message.message]) },
       };
     }
-    if (message.message.senderFactionId === this.context!.factionId) {
+    /* A whisper notice of the viewer's own is heard too: the bar shows everyone, the writer included, what the table saw. */
+    if (message.message.senderFactionId === this.context!.factionId && !message.message.whisperTo) {
       this.pending = this.pending.filter((entry) => entry.request.requestId !== message.message.requestId);
       return;
     }

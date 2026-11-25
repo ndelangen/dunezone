@@ -23,3 +23,29 @@
   display: inline-flex;
   border-radius: 50%;
 }
+
+/* A whisper notice: one quiet line between the messages, set off by a thin rule on its left. */
+.whisper {
+  padding-left: 0.5rem;
+  border-left: 2px solid rgb(from var(--ui-highlight) r g b / 0.25);
+}
+
+.whisperText {
+  font-style: italic;
+}
+
+/* Each token sits on the text's line, before its faction's name. */
+.whisperToken {
+  display: inline-block;
+  margin-right: 0.25rem;
+  vertical-align: -0.2em;
+}
+
+.whisperCount {
+  font-style: normal;
+}
+
+.whisperTime {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

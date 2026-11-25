@@ -79,6 +79,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       cleared={client.conversations.clearedThrough(peerId) > 0}
+      announced={!shared && snapshot?.announceWhispers === true}
       mentions={mentions}
       /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
       onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}

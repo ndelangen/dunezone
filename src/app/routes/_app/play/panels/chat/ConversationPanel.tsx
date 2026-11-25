@@ -53,6 +53,8 @@ export type ConversationPanelProps = Readonly<{
   onSubmit: (text: string) => boolean;
   /** Whether the viewer cleared this chat before, so an empty history says so rather than that nobody wrote. */
   cleared?: boolean;
+  /** Whether the table is told that a message went in this chat, in a game created to announce private messages; the composer says so. */
+  announced?: boolean;
   /** Who an @ in the composer suggests: the players and factions at the table; none in a chat with one player. */
   mentions?: readonly Mention[];
   /** Brings up the faction information of a seat a message names. */
@@ -76,6 +78,7 @@ export function ConversationPanel({
   onRetry,
   onSubmit,
   cleared = false,
+  announced = false,
   mentions = NO_MENTIONS,
   onMentionInfo,
   onMentionChat,
@@ -102,21 +105,36 @@ export function ConversationPanel({
           onScroll={onScroll}
         >
           <HistoryStatus page={page} load={onLoad} cleared={cleared} />
-          {entries.map((message) => (
-            <SavedMessage
-              key={message.sequence}
-              message={message}
-              factionId={factionId}
-              sender={senders?.[message.senderFactionId]}
-              named={named}
-            />
-          ))}
+          {historyRows(entries).map((row) =>
+            row.whisper ? (
+              <WhisperLine
+                key={row.message.sequence}
+                message={row.message}
+                count={row.count}
+                sender={senders?.[row.message.senderFactionId]}
+                recipient={senders?.[row.message.whisperTo!]}
+              />
+            ) : (
+              <SavedMessage
+                key={row.message.sequence}
+                message={row.message}
+                factionId={factionId}
+                sender={senders?.[row.message.senderFactionId]}
+                named={named}
+              />
+            )
+          )}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
             <PendingMessage key={entry.request.requestId} entry={entry} retry={onRetry} named={named} />
           ))}
         </Stack>
         <VisuallyHidden role="status">{arrival}</VisuallyHidden>
+        {announced && (
+          <Text size="xs" c="dimmed" data-whispers-announced>
+            Everyone at the table sees that you wrote here, never what.
+          </Text>
+        )}
         <ChatComposer drafts={drafts} draftKey={`${factionId ?? ''}:${peerId}`} submit={onSubmit} mentions={mentions} />
       </Stack>
     </Section>
@@ -204,7 +222,13 @@ function useArrivalAnnouncement(peerId: string, page: Page | undefined, factionI
     }
     const sequence = newest?.sequence ?? 0;
     const previous = seen.current?.sequence;
-    if (previous !== undefined && newest && sequence > previous && newest.senderFactionId !== factionId) {
+    if (
+      previous !== undefined &&
+      newest &&
+      sequence > previous &&
+      newest.senderFactionId !== factionId &&
+      !newest.whisperTo
+    ) {
       setAnnouncement(`${newest.author}: ${newest.text}`);
     }
     seen.current = { peerId, sequence: Math.max(previous ?? 0, sequence) };
@@ -238,6 +262,69 @@ function SavedMessage({
         </Text>
       )}
     </Stack>
+  );
+}
+
+type HistoryRow = Readonly<{ message: ConversationMessage; whisper: boolean; count: number }>;
+
+/*
+ * The history as it reads: each message on its own, except that whisper notices in a row from the same writer to the same reader
+ * read as one line with a count, so a long private talk does not flood the table chat. The line keeps its newest message's time.
+ */
+function historyRows(entries: readonly ConversationMessage[]): HistoryRow[] {
+  const rows: HistoryRow[] = [];
+  for (const message of entries) {
+    const last = rows.at(-1);
+    if (
+      message.whisperTo &&
+      last?.whisper &&
+      last.message.senderFactionId === message.senderFactionId &&
+      last.message.whisperTo === message.whisperTo
+    ) {
+      rows[rows.length - 1] = { message, whisper: true, count: last.count + 1 };
+      continue;
+    }
+    rows.push({ message, whisper: Boolean(message.whisperTo), count: 1 });
+  }
+  return rows;
+}
+
+/* The size of the tokens in a whisper line, a touch smaller than a writer's, as the line is quieter than a message. */
+const WHISPER_TOKEN_SIZE = 14;
+
+/**
+ * A whisper notice: in a game that announces private messages, the table reads who wrote to whom, never what.
+ * One quiet line between the messages, each faction's token before its name.
+ */
+function WhisperLine({
+  message,
+  count,
+  sender,
+  recipient,
+}: Readonly<{ message: ConversationMessage; count: number; sender?: FactionToken; recipient?: FactionToken }>) {
+  const from = sender?.name ?? 'A faction';
+  const to = recipient?.name ?? 'another faction';
+  return (
+    <Group gap={6} wrap="nowrap" justify="space-between" className={styles.whisper} data-whisper-line>
+      <Text component="div" size="xs" c="dimmed" className={styles.whisperText}>
+        {sender && (
+          <span className={styles.whisperToken}>
+            <FactionTokenFace token={sender} size={WHISPER_TOKEN_SIZE} aria-hidden />
+          </span>
+        )}
+        {from} messages{' '}
+        {recipient && (
+          <span className={styles.whisperToken}>
+            <FactionTokenFace token={recipient} size={WHISPER_TOKEN_SIZE} aria-hidden />
+          </span>
+        )}
+        {to}
+        {count > 1 && <span className={styles.whisperCount}> ({count}×)</span>}
+      </Text>
+      <span className={styles.whisperTime}>
+        <MessageTime savedAt={message.savedAt} />
+      </span>
+    </Group>
   );
 }
 

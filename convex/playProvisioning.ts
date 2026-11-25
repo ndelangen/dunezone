@@ -67,6 +67,7 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
       discordVoice: game.discord_voice === true,
       ...(lastTurn === undefined ? {} : { lastTurn }),
       ...(spiceExtras?.length ? { spiceExtras } : {}),
+      ...(game.announce_whispers ? { announceWhispers: true } : {}),
       creator: { userId: creatorId, ...playerSummary(profile) },
     },
     /* Only an isolated development backend may retain provisional catalogue content. */

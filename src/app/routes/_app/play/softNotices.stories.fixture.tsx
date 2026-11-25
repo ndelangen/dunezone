@@ -133,6 +133,29 @@ export async function writeToViewer(senderFactionId: string, text: string, peerI
   });
 }
 
+/**
+ * A whisper notice at the table, as the room delivers it live in a game that announces private messages: the faction `from` wrote privately to the faction `to`, and the table hears only that.
+ */
+export async function whisperAtTable(from: string, to: string) {
+  const { snapshot, transport } = live!;
+  await noticesListening();
+  chatSequence += 1;
+  transport.deliver({
+    type: 'conversation-message',
+    factionId: ownFaction(snapshot).id,
+    peerId: TABLE_CONVERSATION,
+    message: {
+      sequence: chatSequence,
+      requestId: `story-whisper-${chatSequence}`,
+      senderFactionId: from,
+      author: '',
+      text: '',
+      savedAt: STORYBOOK_NOW,
+      whisperTo: to,
+    },
+  });
+}
+
 /** Every other seat's faction at the story table. */
 export function otherFactions(snapshot: GameSnapshot) {
   return snapshot

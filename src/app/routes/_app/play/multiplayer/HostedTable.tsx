@@ -97,6 +97,7 @@ import { isSpectator, offersActions, stageInPlay, viewerFaction } from './tableF
 import { TableReviewPanel } from './TableReview';
 import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
+import { useWhisperFeed } from './whisperFeed';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
 
@@ -864,6 +865,7 @@ function useHostedControls(
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const players = usePlayerWindows(client, table);
+  const whispers = useWhisperFeed(client, table);
   const compassTable: CompassTable = {
     ...players,
     recall,
@@ -878,6 +880,7 @@ function useHostedControls(
     bidding: viewerBidding(client, table),
     seatRequests: seatRequestsWaiting(table),
     dealt: dealtFaction(table, Boolean(recall)),
+    whispers,
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };

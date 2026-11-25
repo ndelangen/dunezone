@@ -2,7 +2,7 @@ import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
-import { useContext } from 'react';
+import { useContext, useRef } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -14,6 +14,7 @@ import type { CompassPlayer } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import { useShortcutsButton } from './shortcutsButton';
+import { WhisperFlights } from './WhisperFlights';
 import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 /*
@@ -56,8 +57,10 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
   const { arrival } = useOwnFactionArrival();
   const motion = useMotionAllowed();
   const ownToken = own?.factionName && (hasHand || !recall) ? own : undefined;
+  const bar = useRef<HTMLDivElement>(null);
   return (
-    <div className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+    <div ref={bar} className={styles.bar} inert={inert} data-hides-cursor data-compass-bar>
+      <WhisperFlights bar={bar} players={table?.players ?? []} subscribe={recall ? undefined : table?.whispers} />
       {onToggleShortcuts && shortcutsButton && (
         <ShortcutsButton open={isOpen(KEYBOARD_SHORTCUTS)} onToggle={onToggleShortcuts} />
       )}
@@ -126,6 +129,7 @@ function OwnToken({
         aria-pressed={open}
         aria-label={`${label}, you are playing as ${player.factionName}`}
         data-own-token
+        data-whisper-seat={player.seat}
         onClick={onOpen}
       >
         <PlayerToken player={player} size={34} />
@@ -201,6 +205,7 @@ function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; o
           ', '
         )}
         data-ally={player.ally || undefined}
+        data-whisper-seat={player.seat}
         onClick={onOpen}
       >
         <PlayerToken player={player} />

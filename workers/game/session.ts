@@ -7,7 +7,7 @@ import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import { publicFaction } from '../../src/shared/play/capture';
 import type { CaptureReadiness } from '../../src/shared/play/capture';
 import { emptySnapshot } from '../../src/shared/play/commands';
-import { isRecallConversation } from '../../src/shared/play/conversations';
+import { isRecallConversation, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import { conversationMembers } from '../../src/shared/play/conversations';
 import type { PlayDirectorySummary } from '../../src/shared/play/directory';
 import type { DraftFaction, DraftState } from '../../src/shared/play/drafting';
@@ -737,7 +737,11 @@ export class GameSession {
    * request is theirs. Nobody's id travels.
    */
   private forViewer(projected: GameSnapshot, viewer: Viewer, people = this.people(), live = true): GameSnapshot {
-    projected = { ...projected, board: this.board() };
+    projected = {
+      ...projected,
+      board: this.board(),
+      ...(this.metadata?.game?.announceWhispers === true ? { announceWhispers: true as const } : {}),
+    };
     if (!projected.controls) {
       return projected;
     }
@@ -1388,12 +1392,28 @@ export class GameSession {
     const saved = this.storage.transactionSync(() => {
       const now = Date.now();
       const saved = this.conversations.save(viewer, request, now);
-      if (saved.inserted) {
-        this.stageDirectory(this.room!.snapshot, now);
+      if (!saved.inserted) {
+        return saved;
       }
-      return saved;
+      this.stageDirectory(this.room!.snapshot, now);
+      return this.announcesWhisper(request.peerId)
+        ? { ...saved, whisper: this.conversations.saveWhisper(saved.message, request.peerId) }
+        : saved;
     });
     return saved;
+  }
+  /*
+   * Whether a new message to `peerId` adds a whisper notice to the table chat: only a private message between two factions,
+   * in a game created to announce them, while it is set up or played. A finished game's talk is its players' own.
+   */
+  private announcesWhisper(peerId: string) {
+    const stage = this.room!.snapshot.stage;
+    return (
+      this.metadata?.game?.announceWhispers === true &&
+      (stage === 'setup' || stage === 'play') &&
+      peerId !== TABLE_CONVERSATION &&
+      !isRecallConversation(peerId)
+    );
   }
 
   /** The request names a seat; current room records supply both account identities. */
@@ -1424,7 +1444,7 @@ export class GameSession {
     };
   }
 
-  conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {
+  conversationMembers(request: Pick<Extract<ClientMessage, { type: 'conversation-send' }>, 'factionId' | 'peerId'>) {
     return conversationMembers(request.factionId, request.peerId, rosterFactionIds(this.room!.snapshot.roster)) ?? [];
   }
   conversationSummaries(viewer: Viewer): Extract<ServerMessage, { type: 'conversations' }> | undefined {

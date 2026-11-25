@@ -62,6 +62,8 @@ export const playGameProvisionSchema = z.object({
   lastTurn: lastTurnSchema.optional(),
   /* The ruleset's extra spice decks the creator ticked on the create page, shuffled into the spice deck at setup (#2986). */
   spiceExtras: playSpiceExtrasSchema.optional(),
+  /* Chosen on the create page: every private message adds a whisper notice to the table chat; absent on a game without it. */
+  announceWhispers: z.boolean().optional(),
   creator: z.object({
     userId: identifierSchema,
     displayName: z.string().max(PLAY_DISPLAY_NAME_MAX_LENGTH),
@@ -160,6 +162,8 @@ export const playCreateGameRequestSchema = z.strictObject({
   lastTurn: lastTurnSchema.optional(),
   spiceExtras: playSpiceExtrasSchema.optional(),
   discordVoice: z.boolean().optional(),
+  /* The table hears who writes privately to whom, never what; absent means it does not. */
+  announceWhispers: z.boolean().optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),

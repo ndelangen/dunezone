@@ -1,0 +1,127 @@
+/* Whispers fly over the bar from token to token; nothing here takes a pointer, so the tokens under a flight stay clickable. */
+
+.layer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Each flyer starts at the bar's corner; its animation carries it to the arc's points. */
+.flyer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform, opacity;
+}
+
+/* A small speech bubble in the bar's sand, on the bar's ground. */
+.bubble {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid rgb(from var(--sand) r g b / 0.55);
+  border-radius: 50%;
+  background: var(--ui-ground);
+  box-shadow: 0 4px 12px rgb(from var(--color-shadow) r g b / 0.5);
+  color: var(--sand);
+}
+
+/* A spark of light in the brand colour, with a soft glow; the tail is the same spark, smaller and fainter, a beat behind. */
+.spark {
+  display: block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow:
+    0 0 6px 2px rgb(from var(--color-brand) r g b / 0.7),
+    0 0 14px 4px rgb(from var(--color-brand) r g b / 0.3);
+}
+
+/* A typing pill: three dots that rise in turn as it flies. */
+.typing {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgb(from var(--ui-highlight) r g b / 0.3);
+  border-radius: 999px;
+  background: var(--ui-ground);
+  box-shadow: 0 4px 12px rgb(from var(--color-shadow) r g b / 0.5);
+  gap: 0.2rem;
+}
+
+.typing i {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  background: var(--sand);
+  animation: typing-dot 900ms ease-in-out infinite;
+}
+
+.typing i:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.typing i:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes typing-dot {
+  30% {
+    translate: 0 -2px;
+  }
+}
+
+/* A small envelope, sand on the bar's ground. */
+.envelope {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.2rem;
+  border: 1px solid rgb(from var(--sand) r g b / 0.55);
+  border-radius: 0.25rem;
+  background: var(--ui-ground);
+  box-shadow: 0 4px 12px rgb(from var(--color-shadow) r g b / 0.5);
+  color: var(--sand);
+}
+
+/* The writer's own token, small, ringed in sand so it reads as a copy on its way. */
+.token {
+  display: grid;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--sand),
+    0 4px 12px rgb(from var(--color-shadow) r g b / 0.5);
+}
+
+.thread {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.threadLine {
+  fill: none;
+  stroke: var(--sand);
+  stroke-linecap: round;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px rgb(from var(--sand) r g b / 0.6));
+}
+
+/* With motion reduced the typing dots hold still. */
+:global(html[data-motion="reduce"]) .typing i {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) .typing i {
+    animation: none;
+  }
+}

@@ -83,6 +83,38 @@ export function tableChatNamingArgs(): ConversationPanelProps {
   return { ...args, page: savedPage([...entries, reply]) };
 }
 
+/**
+ * The table's chat in a game that announces private messages: between the messages, quiet lines say who wrote to whom.
+ * Three notes in a row from one faction to another read as one line with a count.
+ */
+export function tableChatWhispersArgs(): ConversationPanelProps {
+  const args = tableChatArgs();
+  const [first, second, third] = Object.keys(args.senders!);
+  const whisper = (from: string, to: string) => ({ senderFactionId: from, author: '', text: '', whisperTo: to });
+  const messages = args.page!.entries;
+  const lines = [
+    ...messages.slice(0, 2),
+    whisper(first!, second!),
+    ...messages.slice(2),
+    whisper(second!, third!),
+    whisper(second!, third!),
+    whisper(second!, third!),
+    whisper(third!, second!),
+  ];
+  const start = messages[0]!.savedAt;
+  return {
+    ...args,
+    page: savedPage(
+      lines.map((line, index) => ({
+        requestId: `table-whispers-${index}`,
+        ...line,
+        sequence: index + 1,
+        savedAt: start + index * 30_000,
+      }))
+    ),
+  };
+}
+
 /** A message of the viewer's own on its way, in the given delivery state. */
 export function pendingMessage(delivery: ConversationPanelProps['pending'][number]['delivery']) {
   const { factionId, peerId } = conversationPair();
