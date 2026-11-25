@@ -110,7 +110,6 @@ export function ConversationPanel({
               <WhisperLine
                 key={row.message.sequence}
                 message={row.message}
-                count={row.count}
                 sender={senders?.[row.message.senderFactionId]}
                 recipient={senders?.[row.message.whisperTo!]}
               />
@@ -265,11 +264,11 @@ function SavedMessage({
   );
 }
 
-type HistoryRow = Readonly<{ message: ConversationMessage; whisper: boolean; count: number }>;
+type HistoryRow = Readonly<{ message: ConversationMessage; whisper: boolean }>;
 
 /*
- * The history as it reads: each message on its own, except that whisper notices in a row from the same writer to the same reader
- * read as one line with a count, so a long private talk does not flood the table chat. The line keeps its newest message's time.
+ * The history as it reads: each message on its own, except that a whisper notice is never written twice in a row:
+ * the same writer to the same reader again only brings that line's time up to date (Norbert, 2026-11-25). The line keeps its newest message's time.
  */
 function historyRows(entries: readonly ConversationMessage[]): HistoryRow[] {
   const rows: HistoryRow[] = [];
@@ -281,10 +280,10 @@ function historyRows(entries: readonly ConversationMessage[]): HistoryRow[] {
       last.message.senderFactionId === message.senderFactionId &&
       last.message.whisperTo === message.whisperTo
     ) {
-      rows[rows.length - 1] = { message, whisper: true, count: last.count + 1 };
+      rows[rows.length - 1] = { message, whisper: true };
       continue;
     }
-    rows.push({ message, whisper: Boolean(message.whisperTo), count: 1 });
+    rows.push({ message, whisper: Boolean(message.whisperTo) });
   }
   return rows;
 }
@@ -298,10 +297,9 @@ const WHISPER_TOKEN_SIZE = 14;
  */
 function WhisperLine({
   message,
-  count,
   sender,
   recipient,
-}: Readonly<{ message: ConversationMessage; count: number; sender?: FactionToken; recipient?: FactionToken }>) {
+}: Readonly<{ message: ConversationMessage; sender?: FactionToken; recipient?: FactionToken }>) {
   const from = sender?.name ?? 'A faction';
   const to = recipient?.name ?? 'another faction';
   return (
@@ -319,7 +317,6 @@ function WhisperLine({
           </span>
         )}
         {to}
-        {count > 1 && <span className={styles.whisperCount}> ({count}×)</span>}
       </Text>
       <span className={styles.whisperTime}>
         <MessageTime savedAt={message.savedAt} />

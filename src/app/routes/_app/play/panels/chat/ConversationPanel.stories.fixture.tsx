@@ -85,7 +85,7 @@ export function tableChatNamingArgs(): ConversationPanelProps {
 
 /**
  * The table's chat in a game that announces private messages: between the messages, quiet lines say who wrote to whom.
- * Three notes in a row from one faction to another read as one line with a count.
+ * Three notes in a row from one faction to another read as one line.
  */
 export function tableChatWhispersArgs(): ConversationPanelProps {
   const args = tableChatArgs();

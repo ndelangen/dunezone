@@ -41,10 +41,6 @@
   vertical-align: -0.2em;
 }
 
-.whisperCount {
-  font-style: normal;
-}
-
 .whisperTime {
   flex-shrink: 0;
   white-space: nowrap;
