@@ -48,11 +48,11 @@ const present = (row: MessageRow): ConversationMessage => ({
   ...(row.whisper_to ? { whisperTo: row.whisper_to } : {}),
 });
 
-/** Owns private faction-pair history and read positions; callers own authentication and transactions. */
 /* How many messages a page of history holds, whisper notices aside, and how many rows it holds at most, notices included. */
 const PAGE_MESSAGES = 50;
 const PAGE_ROWS = 300;
 
+/** Owns private faction-pair history and read positions; callers own authentication and transactions. */
 export class Conversations {
   constructor(
     private readonly storage: DurableObjectStorage,
@@ -76,6 +76,10 @@ export class Conversations {
     );
     storage.sql.exec('INSERT OR IGNORE INTO conversation_metadata VALUES(1,0)');
     storage.sql.exec('CREATE INDEX IF NOT EXISTS conversation_pair_sequence ON conversation_messages(pair, sequence)');
+    /* A page counts only the messages that are not whisper notices, so however many notices pile up, finding where it reaches stays quick. */
+    storage.sql.exec(
+      'CREATE INDEX IF NOT EXISTS conversation_pair_talk ON conversation_messages(pair, sequence) WHERE whisper_to IS NULL'
+    );
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS conversation_reads (pair TEXT NOT NULL, faction TEXT NOT NULL, through INTEGER NOT NULL, PRIMARY KEY(pair, faction))'
     );

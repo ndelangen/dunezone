@@ -16,6 +16,8 @@ type Request = Extract<
 >;
 type Context = {
   recallPeer?: string;
+  /** Whether a private message now tells the table it went, as the room decides from its live stage: only in a game created to, while it is set up or played. */
+  announced?: boolean;
   userId: string;
   factionId: string;
   factionName: string;
@@ -116,6 +118,7 @@ export class ConversationSession {
       factionName: factionName(snapshot, factionId),
       peers: otherFactions(snapshot, factionId),
       ...(recallPeer ? { recallPeer } : {}),
+      ...(announcesWhispers(snapshot) ? { announced: true } : {}),
     });
     this.online = true;
     this.flush();
@@ -568,6 +571,11 @@ export class ConversationSession {
 }
 
 /* The context as it was when every field and peer reads the same, so each snapshot that changes none of them keeps the view's context. */
+/* Whether the room adds a whisper notice to the table chat for a private message, by the stage it is live at. */
+function announcesWhispers(snapshot: GameSnapshot) {
+  return snapshot.announceWhispers === true && (snapshot.stage === 'setup' || snapshot.stage === 'play');
+}
+
 function stableContext(previous: Context | null, next: Context): Context {
   if (
     !previous ||
@@ -575,6 +583,7 @@ function stableContext(previous: Context | null, next: Context): Context {
     previous.factionId !== next.factionId ||
     previous.factionName !== next.factionName ||
     previous.recallPeer !== next.recallPeer ||
+    previous.announced !== next.announced ||
     previous.peers.length !== next.peers.length ||
     previous.peers.some((peer, index) => peer.id !== next.peers[index]!.id || peer.name !== next.peers[index]!.name)
   ) {

@@ -147,7 +147,7 @@ describe('Faction conversations in the game database', () => {
       expect(whispers()).toHaveLength(1);
     });
 
-    it('never lets a run of whisper notices push the table talk off its first page', async () => {
+    it('keeps the table talk on its first page through a run of whisper notices', async () => {
       const { a, b, aId, bId } = await setup();
       await send(a, aId, '@table', 'Before the whispers');
       for (let index = 0; index < 55; index++) {
