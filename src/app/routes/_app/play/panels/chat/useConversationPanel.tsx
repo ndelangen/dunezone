@@ -34,8 +34,13 @@ function senderTokens(
   return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
 }
 
-/* Whether a private message now tells the table it went: only in a game created to, while it is set up or played, as the room decides. */
-function announcesWhispers(snapshot: TableProjection['snapshot'] | undefined) {
+/*
+ * Whether a private message now tells the table it went: only in a game created to, while it is set up or played, as the room decides.
+ * The room goes by its live stage, so a past step the viewer is looking back at never changes the answer.
+ */
+function announcesWhispers(client: TableSession, table: TableProjection | null | undefined) {
+  const live = table && (table.playback || table.historyPending) ? (client.getLastLiveTable() ?? table) : table;
+  const snapshot = live?.snapshot;
   return snapshot?.announceWhispers === true && (snapshot.stage === 'setup' || snapshot.stage === 'play');
 }
 
@@ -84,7 +89,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       cleared={client.conversations.clearedThrough(peerId) > 0}
-      announced={!shared && announcesWhispers(snapshot)}
+      announced={!shared && announcesWhispers(client, table)}
       mentions={mentions}
       /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
       onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}
