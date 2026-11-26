@@ -48,6 +48,10 @@ const present = (row: MessageRow): ConversationMessage => ({
   ...(row.whisper_to ? { whisperTo: row.whisper_to } : {}),
 });
 
+/* How many messages a page of history holds, whisper notices aside, and how many rows it holds at most, notices included. */
+const PAGE_MESSAGES = 50;
+const PAGE_ROWS = 300;
+
 /** Owns private faction-pair history and read positions; callers own authentication and transactions. */
 export class Conversations {
   constructor(
@@ -72,6 +76,10 @@ export class Conversations {
     );
     storage.sql.exec('INSERT OR IGNORE INTO conversation_metadata VALUES(1,0)');
     storage.sql.exec('CREATE INDEX IF NOT EXISTS conversation_pair_sequence ON conversation_messages(pair, sequence)');
+    /* A page counts only the messages that are not whisper notices, so however many notices pile up, finding where it reaches stays quick. */
+    storage.sql.exec(
+      'CREATE INDEX IF NOT EXISTS conversation_pair_talk ON conversation_messages(pair, sequence) WHERE whisper_to IS NULL'
+    );
     storage.sql.exec(
       'CREATE TABLE IF NOT EXISTS conversation_reads (pair TEXT NOT NULL, faction TEXT NOT NULL, through INTEGER NOT NULL, PRIMARY KEY(pair, faction))'
     );
@@ -146,18 +154,41 @@ export class Conversations {
     return present(row);
   }
 
-  /** The faction's page of a conversation, without what it cleared. */
+  /**
+   * The faction's page of a conversation, without what it cleared: its 50 newest messages before `before`, with the whisper notices among them.
+   * Notices do not count towards the 50, so a run of private messages elsewhere never pushes the table's own talk off its first page;
+   * a page still holds at most 300 rows, however long a run of notices is.
+   */
   page(request: ConversationRequest<'conversation-history'>) {
     const pair = pairKey(request);
+    const cleared = this.cleared(pair, request.factionId);
+    const span = 'pair=? AND sequence<? AND sequence>?';
+    /* The oldest message the page reaches: the 50th newest that is not a notice, or the very first when there are fewer. */
+    const reach =
+      this.storage.sql
+        .exec<{ sequence: number }>(
+          `SELECT sequence FROM conversation_messages WHERE ${span} AND whisper_to IS NULL ORDER BY sequence DESC LIMIT 1 OFFSET ${PAGE_MESSAGES - 1}`,
+          pair,
+          request.before,
+          cleared
+        )
+        .toArray()[0]?.sequence ?? 0;
     const rows = this.storage.sql
       .exec<MessageRow>(
-        'SELECT * FROM conversation_messages WHERE pair=? AND sequence<? AND sequence>? ORDER BY sequence DESC LIMIT 51',
+        `SELECT * FROM conversation_messages WHERE ${span} AND sequence>=? ORDER BY sequence DESC LIMIT ${PAGE_ROWS}`,
         pair,
         request.before,
-        this.cleared(pair, request.factionId)
+        cleared,
+        reach
       )
       .toArray();
-    return { entries: rows.slice(0, 50).reverse().map(present), more: rows.length > 50 };
+    const oldest = rows.at(-1)?.sequence;
+    const more =
+      oldest !== undefined &&
+      this.storage.sql
+        .exec(`SELECT sequence FROM conversation_messages WHERE ${span} LIMIT 1`, pair, oldest, cleared)
+        .toArray().length > 0;
+    return { entries: rows.reverse().map(present), more };
   }
 
   /** The faction's pairs, then the table; a whisper notice is never unread, so it neither counts on the table's token nor chimes. */

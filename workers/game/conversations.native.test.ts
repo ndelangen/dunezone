@@ -146,6 +146,20 @@ describe('Faction conversations in the game database', () => {
       );
       expect(whispers()).toHaveLength(1);
     });
+
+    it('keeps the table talk on its first page through a run of whisper notices', async () => {
+      const { a, b, aId, bId } = await setup();
+      await send(a, aId, '@table', 'Before the whispers');
+      for (let index = 0; index < 55; index++) {
+        await send(a, aId, bId, `Private ${index}`);
+      }
+      const table = messageOf(await page(b, bId, '@table'), 'conversation-history');
+      expect(table.entries.filter((entry) => !entry.whisperTo).map((entry) => entry.text)).toEqual([
+        'Before the whispers',
+      ]);
+      expect(table.entries.filter((entry) => entry.whisperTo)).toHaveLength(55);
+      expect(table.more).toBe(false);
+    });
   });
 
   it('delivers table talk to every seated faction and never to an observer', async () => {

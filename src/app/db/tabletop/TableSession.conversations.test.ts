@@ -455,3 +455,17 @@ test("another faction's message is heard once as it arrives, in any order; the v
     ['@table', '@One'],
   ]);
 });
+
+test('says whether a private message is announced to the table by the live stage the room goes by', () => {
+  const conversations = new ConversationSession(
+    () => true,
+    () => {},
+    () => 0
+  );
+  conversations.authority(snapshot, viewer);
+  expect(conversations.view().context?.announced).toBeUndefined();
+  conversations.authority({ ...snapshot, announceWhispers: true }, viewer);
+  expect(conversations.view().context?.announced).toBe(true);
+  conversations.authority({ ...snapshot, announceWhispers: true, stage: 'finished' }, viewer);
+  expect(conversations.view().context?.announced).toBeUndefined();
+});
