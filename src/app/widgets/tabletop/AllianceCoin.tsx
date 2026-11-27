@@ -28,8 +28,7 @@ export type AllianceCoinProps = Readonly<{
 
 /**
  * One coin under a faction token, centred on the token's place on the table.
- * The coins are drawn from the whole table, which changes on every update;
- * a coin whose colour and place stay skips it.
+ * The coins are drawn from the whole table, which changes on every update, and a coin whose colour and place stay skips it.
  */
 export const AllianceCoin = memo(function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
   const palette = useTablePalette();

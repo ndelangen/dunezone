@@ -75,8 +75,8 @@ type PlacedFrameProps = Readonly<{
 }>;
 
 /*
- * One frame, in the centre or in a slot. Its content is new with every table update, but its buttons and handlers
- * are made here from what stays, so the frame's title bar and buttons skip the updates that leave them alone.
+ * One frame, in the centre or in a slot.
+ * Its content is new with every table update, but its buttons and handlers are made here from what stays, so the frame's title bar and buttons skip the updates that leave them alone.
  * The centre and the slots share this one component, so a window pinned or unpinned moves rather than remounts.
  */
 function PlacedFrame({ entry, seat, where, opened, heights, inert, pinLeft, pinRight }: PlacedFrameProps) {
