@@ -1,5 +1,5 @@
 diff --git a/dist/index.d.ts b/dist/index.d.ts
-index a062a5c..7c6acce 100644
+index a062a5ca262d0c2efc6f3081f4554090c17c4bfd..7c6accecab55bd62fef2e4e95cd16865bab0264c 100644
 --- a/dist/index.d.ts
 +++ b/dist/index.d.ts
 @@ -1536,24 +1536,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
@@ -28,7 +28,7 @@ index a062a5c..7c6acce 100644
  type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
  type three_d_Euler = Euler;
 diff --git a/dist/legacy.d.ts b/dist/legacy.d.ts
-index b6268d6..a86d860 100644
+index b6268d6bc81773882a2ae1c6eb68b07ac5adab3a..a86d8607ced64112eafe2e461f3d0b565528a59a 100644
 --- a/dist/legacy.d.ts
 +++ b/dist/legacy.d.ts
 @@ -1534,24 +1534,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
@@ -57,7 +57,7 @@ index b6268d6..a86d860 100644
  type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
  type three_d_Euler = Euler;
 diff --git a/dist/webgpu/index.d.ts b/dist/webgpu/index.d.ts
-index 7c11c4f..f1d6411 100644
+index 7c11c4fa5bf37813568688393cb1ce5519faa061..f1d64116727b00da3c7cbd3c96958b5ca1edcf46 100644
 --- a/dist/webgpu/index.d.ts
 +++ b/dist/webgpu/index.d.ts
 @@ -1538,24 +1538,6 @@ interface ThreeElements extends Omit<ThreeElementsImpl, 'audio' | 'source' | 'li
@@ -86,9 +86,10 @@ index 7c11c4f..f1d6411 100644
  type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
  type three_d_Euler = Euler;
 diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
+index 590eb14decb29e025026cbcffc679fb614a549de..ef30042d199109382ec7eda2ee580449aa1c6a73 100644
 --- a/dist/webgpu/index.mjs
 +++ b/dist/webgpu/index.mjs
-@@ -1695,6 +1695,7 @@
+@@ -1695,6 +1695,7 @@ function addTail(callback) {
    return getScheduler().onIdle(callback);
  }
  function invalidate(state, frames = 1, stackFrames = false) {
@@ -96,7 +97,20 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
    const rootId = state?.internal?.rootId;
    const scheduler = getScheduler();
    if (rootId) scheduler.invalidateRoot(rootId, frames, stackFrames);
-@@ -14112,10 +14113,17 @@
+@@ -13698,7 +13699,11 @@ function removeChild(parent, child, dispose) {
+   if (shouldDispose && child.type !== "primitive" && child.object.type !== "Scene") {
+     disposeOnIdle(child.object);
+   }
+-  if (dispose === void 0) invalidateInstance(child);
++  /* The child's parent was cleared above, so invalidateInstance would return early: ask its root for the frame. */
++  if (dispose === void 0) {
++    const state = (child.root ?? parent.root)?.getState?.();
++    if (state && state.internal.frames === 0) state.invalidate();
++  }
+ }
+ function setFiberRef(fiber, publicInstance) {
+   for (const _fiber of [fiber, fiber.alternate]) {
+@@ -14112,10 +14117,17 @@ function computeInitialSize(canvas, size) {
    return { width: 0, height: 0, top: 0, left: 0, ...size };
  }
  function createRoot(canvas) {
@@ -116,7 +130,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
    const logRecoverableError = typeof reportError === "function" ? (
      // In modern browsers, reportError will dispatch an error event,
      // emulating an uncaught JavaScript error.
-@@ -14147,17 +14155,22 @@
+@@ -14147,17 +14159,22 @@ function createRoot(canvas) {
      null
      // transitionCallbacks
    );
@@ -141,7 +155,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
        const {
          id: canvasId,
          primaryCanvas,
-@@ -14247,11 +14260,14 @@
+@@ -14247,11 +14264,14 @@ function createRoot(canvas) {
                  }));
                }
              }
@@ -157,7 +171,22 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          await rendererSetup;
          state = store.getState();
          renderer = state.internal.actualRenderer;
-@@ -14561,12 +14577,15 @@
+@@ -14315,8 +14335,13 @@ function createRoot(canvas) {
+           wasEnabled = enabled;
+         });
+       }
+-      if (_sizeProps !== void 0) {
++      /* Every Canvas render configures again; an unchanged size prop must not wake every full useThree() reader.
++         Setting it used to draw a frame as a side effect (the root store invalidates on every change), and scene
++         changes that never invalidate themselves relied on that, so an unchanged one still asks for the frame. */
++      if (_sizeProps !== void 0 && !(_sizeProps === state._sizeProps || _sizeProps && state._sizeProps && _sizeProps.width === state._sizeProps.width && _sizeProps.height === state._sizeProps.height)) {
+         state.set({ _sizeProps });
++      } else if (_sizeProps !== void 0) {
++        state.invalidate();
+       }
+       if (forceEven !== void 0 && state.internal.forceEven !== forceEven) {
+         state.set((prev) => ({ internal: { ...prev.internal, forceEven } }));
+@@ -14561,12 +14586,15 @@ function createRoot(canvas) {
        lastConfiguredProps.schedulerOrder = schedulerConfig?.order;
        onCreated = onCreatedCallback;
        configured = true;
@@ -174,7 +203,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
          reconciler.updateContainer(
            /* @__PURE__ */ jsx(Provider, { store, children, onCreated, rootElement: canvas }),
            fiber,
-@@ -14577,6 +14596,7 @@
+@@ -14577,6 +14605,7 @@ function createRoot(canvas) {
        return store;
      },
      unmount() {
@@ -182,7 +211,7 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
        unmountComponentAtNode(canvas);
      }
    };
-@@ -14598,19 +14618,29 @@
+@@ -14598,19 +14627,29 @@ function Provider({
  function unmountComponentAtNode(canvas, callback) {
    const root = _roots.get(canvas);
    const fiber = root?.fiber;
@@ -215,16 +244,15 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
            try {
              const renderer = state.internal.actualRenderer;
              const unregisterPrimary = state.internal.unregisterPrimary;
-@@ -14625,16 +14655,21 @@
+@@ -14625,17 +14664,22 @@ function unmountComponentAtNode(canvas, callback) {
                renderer.forceContextLoss?.();
              }
              if (!state.internal.isSecondary) {
 -              if (renderer?.xr) state.xr.disconnect();
--            }
++              if (renderer?.xr) state.xr?.disconnect();
+             }
 -            dispose(state.scene);
 -            _roots.delete(canvas);
-+              if (renderer?.xr) state.xr?.disconnect();
-+            }
 +            if (state.scene) dispose(state.scene);
 +            if (!state.isLegacy && !state.internal.isSecondary) await renderer?.dispose?.();
 +            if (_roots.get(canvas) === root && root.teardownGeneration === teardownGeneration) _roots.delete(canvas);
@@ -237,7 +265,8 @@ diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
            }
          }, 500);
        }
-+    });
      });
++    });
    }
  }
+ function createPortal(children, container, state) {
