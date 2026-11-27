@@ -459,16 +459,45 @@ test('configuring again with the same size props leaves the store alone, and a n
   const store = _roots.get(canvas)!.store;
   const notified = vi.fn();
   const unsubscribe = store.subscribe(notified);
+  const invalidate = vi.spyOn(store.getState(), 'invalidate');
   /* `<Canvas>` configures on every render, with `null` while it has no width or height of its own. */
   await root.configure(props(null));
   await root.configure(props(null));
   expect(notified).not.toHaveBeenCalled();
+  /* The store change used to draw a frame on every Canvas render, which scene changes rely on; it still does. */
+  expect(invalidate).toHaveBeenCalledTimes(2);
   await root.configure(props({ width: 20, height: 10 }));
   expect(store.getState()._sizeProps).toEqual({ width: 20, height: 10 });
   notified.mockClear();
   await root.configure(props({ width: 20, height: 10 }));
   expect(notified).not.toHaveBeenCalled();
   unsubscribe();
+  await act(async () => {
+    root.unmount();
+  });
+});
+
+test('removing an object from the scene asks for a frame', async () => {
+  const canvas = document.createElement('canvas');
+  const renderer = rendererFor(canvas);
+  const root = createRoot(canvas);
+  await root.configure({
+    renderer: () => renderer as unknown as WebGPURenderer,
+    frameloop: 'never',
+    size: { width: 10, height: 10, top: 0, left: 0 },
+  });
+  await act(async () => {
+    root.render(
+      <group>
+        <group name="removed" />
+      </group>
+    );
+  });
+  const invalidate = vi.spyOn(_roots.get(canvas)!.store.getState(), 'invalidate');
+  await act(async () => {
+    root.render(<group />);
+  });
+  expect(invalidate).toHaveBeenCalled();
   await act(async () => {
     root.unmount();
   });

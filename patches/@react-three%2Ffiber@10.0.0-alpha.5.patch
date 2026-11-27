@@ -86,7 +86,7 @@ index 7c11c4fa5bf37813568688393cb1ce5519faa061..f1d64116727b00da3c7cbd3c96958b5c
  type three_d_ElementProps<T extends ConstructorRepresentation, P = InstanceType<T>> = ElementProps<T, P>;
  type three_d_Euler = Euler;
 diff --git a/dist/webgpu/index.mjs b/dist/webgpu/index.mjs
-index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac123dd083 100644
+index 590eb14decb29e025026cbcffc679fb614a549de..ef30042d199109382ec7eda2ee580449aa1c6a73 100644
 --- a/dist/webgpu/index.mjs
 +++ b/dist/webgpu/index.mjs
 @@ -1695,6 +1695,7 @@ function addTail(callback) {
@@ -97,7 +97,20 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
    const rootId = state?.internal?.rootId;
    const scheduler = getScheduler();
    if (rootId) scheduler.invalidateRoot(rootId, frames, stackFrames);
-@@ -14112,10 +14113,17 @@ function computeInitialSize(canvas, size) {
+@@ -13698,7 +13699,11 @@ function removeChild(parent, child, dispose) {
+   if (shouldDispose && child.type !== "primitive" && child.object.type !== "Scene") {
+     disposeOnIdle(child.object);
+   }
+-  if (dispose === void 0) invalidateInstance(child);
++  /* The child's parent was cleared above, so invalidateInstance would return early: ask its root for the frame. */
++  if (dispose === void 0) {
++    const state = (child.root ?? parent.root)?.getState?.();
++    if (state && state.internal.frames === 0) state.invalidate();
++  }
+ }
+ function setFiberRef(fiber, publicInstance) {
+   for (const _fiber of [fiber, fiber.alternate]) {
+@@ -14112,10 +14117,17 @@ function computeInitialSize(canvas, size) {
    return { width: 0, height: 0, top: 0, left: 0, ...size };
  }
  function createRoot(canvas) {
@@ -117,7 +130,7 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
    const logRecoverableError = typeof reportError === "function" ? (
      // In modern browsers, reportError will dispatch an error event,
      // emulating an uncaught JavaScript error.
-@@ -14147,17 +14155,22 @@ function createRoot(canvas) {
+@@ -14147,17 +14159,22 @@ function createRoot(canvas) {
      null
      // transitionCallbacks
    );
@@ -142,7 +155,7 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
        const {
          id: canvasId,
          primaryCanvas,
-@@ -14247,11 +14260,14 @@ function createRoot(canvas) {
+@@ -14247,11 +14264,14 @@ function createRoot(canvas) {
                  }));
                }
              }
@@ -158,17 +171,22 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
          await rendererSetup;
          state = store.getState();
          renderer = state.internal.actualRenderer;
-@@ -14315,7 +14331,8 @@ function createRoot(canvas) {
+@@ -14315,8 +14335,13 @@ function createRoot(canvas) {
            wasEnabled = enabled;
          });
        }
 -      if (_sizeProps !== void 0) {
-+      /* Every Canvas render configures again; an unchanged size prop must not wake every full useThree() reader. */
++      /* Every Canvas render configures again; an unchanged size prop must not wake every full useThree() reader.
++         Setting it used to draw a frame as a side effect (the root store invalidates on every change), and scene
++         changes that never invalidate themselves relied on that, so an unchanged one still asks for the frame. */
 +      if (_sizeProps !== void 0 && !(_sizeProps === state._sizeProps || _sizeProps && state._sizeProps && _sizeProps.width === state._sizeProps.width && _sizeProps.height === state._sizeProps.height)) {
          state.set({ _sizeProps });
++      } else if (_sizeProps !== void 0) {
++        state.invalidate();
        }
        if (forceEven !== void 0 && state.internal.forceEven !== forceEven) {
-@@ -14561,12 +14578,15 @@ function createRoot(canvas) {
+         state.set((prev) => ({ internal: { ...prev.internal, forceEven } }));
+@@ -14561,12 +14586,15 @@ function createRoot(canvas) {
        lastConfiguredProps.schedulerOrder = schedulerConfig?.order;
        onCreated = onCreatedCallback;
        configured = true;
@@ -185,7 +203,7 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
          reconciler.updateContainer(
            /* @__PURE__ */ jsx(Provider, { store, children, onCreated, rootElement: canvas }),
            fiber,
-@@ -14577,6 +14597,7 @@ function createRoot(canvas) {
+@@ -14577,6 +14605,7 @@ function createRoot(canvas) {
        return store;
      },
      unmount() {
@@ -193,7 +211,7 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
        unmountComponentAtNode(canvas);
      }
    };
-@@ -14598,19 +14619,29 @@ function Provider({
+@@ -14598,19 +14627,29 @@ function Provider({
  function unmountComponentAtNode(canvas, callback) {
    const root = _roots.get(canvas);
    const fiber = root?.fiber;
@@ -226,7 +244,7 @@ index 590eb14decb29e025026cbcffc679fb614a549de..abad8cdde582779a86149a95dd93d0ac
            try {
              const renderer = state.internal.actualRenderer;
              const unregisterPrimary = state.internal.unregisterPrimary;
-@@ -14625,17 +14656,22 @@ function unmountComponentAtNode(canvas, callback) {
+@@ -14625,17 +14664,22 @@ function unmountComponentAtNode(canvas, callback) {
                renderer.forceContextLoss?.();
              }
              if (!state.internal.isSecondary) {
