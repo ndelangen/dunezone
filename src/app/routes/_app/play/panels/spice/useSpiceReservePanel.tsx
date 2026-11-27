@@ -1,31 +1,29 @@
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { dropSpiceFromReserve, pickUpSpiceFromReserve } from '../../multiplayer/spiceReserveDrop';
 import { SpiceReservePanel } from './SpiceReservePanel';
-import type { SpiceReservePanelProps } from './SpiceReservePanel';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
-/** The Spice window from the table: the viewer's reserve, or nothing for a viewer without one. */
-function useSpiceReservePanel({ client, table }: Props): SpiceReservePanelProps | null {
+/**
+ * The Spice window's content at a live table: the viewer's reserve, or nothing for a viewer without one.
+ * Its handlers read the live table when they run, so they stay the same for the table's life and the reserve skips the updates that leave its balance alone.
+ */
+export function ConnectedSpiceReservePanel({ client, table }: Props) {
   const reserve = table.snapshot.bank;
-  return reserve
-    ? {
-        balance: reserve.balance,
-        enabled: table.canHandleTable,
-        hiddenHeading: Boolean(table.snapshot.stage),
-        onStartPlacement: (amount) => {
-          if (client.getTable()?.canHandleTable) {
-            pickUpSpiceFromReserve(amount);
-          }
-        },
-        onWithdraw: (amount, point) =>
-          Boolean(client.getTable()?.canHandleTable && dropSpiceFromReserve(amount, point)),
-      }
-    : null;
-}
-
-/** The Spice window's content at a live table. */
-export function ConnectedSpiceReservePanel(props: Props) {
-  const panel = useSpiceReservePanel(props);
-  return panel && <SpiceReservePanel {...panel} />;
+  const onStartPlacement = (amount: number) => {
+    if (client.getTable()?.canHandleTable) {
+      pickUpSpiceFromReserve(amount);
+    }
+  };
+  const onWithdraw = (amount: number, point: Readonly<{ x: number; y: number }>) =>
+    Boolean(client.getTable()?.canHandleTable && dropSpiceFromReserve(amount, point));
+  return reserve ? (
+    <SpiceReservePanel
+      balance={reserve.balance}
+      enabled={table.canHandleTable}
+      hiddenHeading={Boolean(table.snapshot.stage)}
+      onStartPlacement={onStartPlacement}
+      onWithdraw={onWithdraw}
+    />
+  ) : null;
 }

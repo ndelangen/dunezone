@@ -33,47 +33,109 @@ type Found = (key: string) => TableWindow | undefined;
  */
 export function WindowFrames({ windows, opened, heights, inert }: WindowFramesProps) {
   const byKey: Found = (key) => windows.find((entry) => entry.key === key);
-  return [
-    centreFrame({ byKey, opened, inert }),
-    ...SIDES.map((side) => slotFrame({ side, byKey, opened, heights, inert })),
+  const places = [
+    { where: 'centre' as const, open: opened.centre },
+    ...SIDES.map((side) => ({ where: side, open: opened.slots[side] })),
   ];
+  /* The pin buttons say what they would replace. */
+  const pinLeft = pinTitle('left', byKey(opened.slots.left?.key ?? '')?.label);
+  const pinRight = pinTitle('right', byKey(opened.slots.right?.key ?? '')?.label);
+  return places.map(({ where, open }) => {
+    const entry = open && byKey(open.key);
+    return entry && open ? (
+      <PlacedFrame
+        key={entry.key}
+        entry={entry}
+        seat={open.seat}
+        where={where}
+        opened={opened}
+        heights={heights}
+        inert={inert}
+        pinLeft={pinLeft}
+        pinRight={pinRight}
+      />
+    ) : null;
+  });
 }
 
-type CentreFrame = Readonly<{ byKey: Found; opened: OpenWindows; inert: boolean }>;
+function pinTitle(side: Side, replaced: string | undefined) {
+  const pin = replaced ? `Pin bottom ${side}, replacing ${replaced}` : `Pin bottom ${side}`;
+  return `${pin} (${PIN_KEYS[side]})`;
+}
 
-function centreFrame({ byKey, opened, inert }: CentreFrame) {
-  const centre = opened.centre && byKey(opened.centre.key);
-  if (!centre || !opened.centre) {
-    return null;
+type PlacedFrameProps = Readonly<{
+  entry: TableWindow;
+  seat: string | undefined;
+  where: 'centre' | Side;
+  opened: OpenWindows;
+  heights: SlotHeights;
+  inert: boolean;
+  pinLeft: string;
+  pinRight: string;
+}>;
+
+/*
+ * One frame, in the centre or in a slot. Its content is new with every table update, but its buttons and handlers
+ * are made here from what stays, so the frame's title bar and buttons skip the updates that leave them alone.
+ * The centre and the slots share this one component, so a window pinned or unpinned moves rather than remounts.
+ */
+function PlacedFrame({ entry, seat, where, opened, heights, inert, pinLeft, pinRight }: PlacedFrameProps) {
+  const onRaise = () => opened.raise(where);
+  const onSeat = (shown: string) => opened.showSeat(where, entry.key, shown);
+  const onFaction = (shown: string) => opened.reveal(FACTION_INFO, shown);
+  if (where === 'centre') {
+    return (
+      <WindowFrame
+        entry={entry}
+        seat={seat}
+        where="centre"
+        inert={inert}
+        flash={pulseOf(opened.flash, 'centre')}
+        front={opened.front === 'centre'}
+        onRaise={onRaise}
+        onSeat={onSeat}
+        onFaction={onFaction}
+        actions={<CentreActions opened={opened} pinLeft={pinLeft} pinRight={pinRight} />}
+      />
+    );
   }
   return (
     <WindowFrame
-      key={centre.key}
-      entry={centre}
-      seat={opened.centre.seat}
-      where="centre"
+      entry={entry}
+      seat={seat}
+      where={where}
       inert={inert}
-      flash={pulseOf(opened.flash, 'centre')}
-      front={opened.front === 'centre'}
-      onRaise={() => opened.raise('centre')}
-      onSeat={(seat) => opened.showSeat('centre', centre.key, seat)}
-      onFaction={(seat) => opened.reveal(FACTION_INFO, seat)}
-      actions={<CentreActions byKey={byKey} opened={opened} />}
+      flash={pulseOf(opened.flash, where)}
+      bounce={pulseOf(heights.bounce, where)}
+      style={heights.styleOf(where)}
+      front={opened.front === where}
+      onRaise={onRaise}
+      resize={{
+        onPointerDown: heights.resize(where),
+        onNudge: (element, direction) => heights.nudge(where, element, direction),
+        onReset: () => heights.reset(where),
+      }}
+      onSeat={onSeat}
+      onFaction={onFaction}
+      actions={
+        <Tooltip label="Unpin: it disappears">
+          <button type="button" className={styles.iconButton} aria-label="Unpin" onClick={() => opened.unpin(where)}>
+            <PinOff size={16} />
+          </button>
+        </Tooltip>
+      }
     />
   );
 }
 
-/* The pin buttons say what they would replace. */
-function pinTitle(side: Side, byKey: Found, opened: OpenWindows) {
-  const replaced = opened.slots[side];
-  const pin = replaced ? `Pin bottom ${side}, replacing ${byKey(replaced.key)?.label}` : `Pin bottom ${side}`;
-  return `${pin} (${PIN_KEYS[side]})`;
-}
-
-function CentreActions({ byKey, opened }: Readonly<{ byKey: Found; opened: OpenWindows }>) {
+function CentreActions({
+  opened,
+  pinLeft,
+  pinRight,
+}: Readonly<{ opened: OpenWindows; pinLeft: string; pinRight: string }>) {
   return (
     <>
-      <Tooltip label={pinTitle('left', byKey, opened)}>
+      <Tooltip label={pinLeft}>
         <button
           type="button"
           className={styles.iconButton}
@@ -83,7 +145,7 @@ function CentreActions({ byKey, opened }: Readonly<{ byKey: Found; opened: OpenW
           <PanelLeft size={16} />
         </button>
       </Tooltip>
-      <Tooltip label={pinTitle('right', byKey, opened)}>
+      <Tooltip label={pinRight}>
         <button
           type="button"
           className={styles.iconButton}
@@ -97,49 +159,5 @@ function CentreActions({ byKey, opened }: Readonly<{ byKey: Found; opened: OpenW
         <CloseIcon />
       </button>
     </>
-  );
-}
-
-type SlotFrame = Readonly<{
-  side: Side;
-  byKey: Found;
-  opened: OpenWindows;
-  heights: SlotHeights;
-  inert: boolean;
-}>;
-
-function slotFrame({ side, byKey, opened, heights, inert }: SlotFrame) {
-  const slot = opened.slots[side];
-  const entry = slot && byKey(slot.key);
-  if (!entry || !slot) {
-    return null;
-  }
-  return (
-    <WindowFrame
-      key={entry.key}
-      entry={entry}
-      seat={slot.seat}
-      where={side}
-      inert={inert}
-      flash={pulseOf(opened.flash, side)}
-      bounce={pulseOf(heights.bounce, side)}
-      style={heights.styleOf(side)}
-      front={opened.front === side}
-      onRaise={() => opened.raise(side)}
-      resize={{
-        onPointerDown: heights.resize(side),
-        onNudge: (element, direction) => heights.nudge(side, element, direction),
-        onReset: () => heights.reset(side),
-      }}
-      onSeat={(seat) => opened.showSeat(side, entry.key, seat)}
-      onFaction={(seat) => opened.reveal(FACTION_INFO, seat)}
-      actions={
-        <Tooltip label="Unpin: it disappears">
-          <button type="button" className={styles.iconButton} aria-label="Unpin" onClick={() => opened.unpin(side)}>
-            <PinOff size={16} />
-          </button>
-        </Tooltip>
-      }
-    />
   );
 }

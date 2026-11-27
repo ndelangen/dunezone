@@ -276,9 +276,16 @@ type ConnectionControlsProps = Readonly<{
 
 type TableControlProps = Pick<ConnectionControlsProps, 'client' | 'table'>;
 
-/** Where the game stands, with the last turn its wheel counts up to. */
-function gameProgress(snapshot: TableProjection['snapshot']) {
-  return { ...tableProgressFor(snapshot.phase, snapshot.phases), lastTurn: lastTurnOf(snapshot) };
+/**
+ * Where the game stands, with the last turn its wheel counts up to.
+ * It takes the fields it reads rather than the snapshot, which is new on every update, so a caller keeps one progress while the phase stands and the table's trackers skip the updates that leave it alone.
+ */
+function gameProgress(phase: number, phases: TableProjection['snapshot']['phases'], lastTurn: number) {
+  return { ...tableProgressFor(phase, phases), lastTurn };
+}
+
+function snapshotProgress(snapshot: TableProjection['snapshot']) {
+  return gameProgress(snapshot.phase, snapshot.phases, lastTurnOf(snapshot));
 }
 
 /* A seat reads by the faction it carries; a seat with no faction yet, or a spectator, by what it is. */
@@ -578,7 +585,7 @@ function battlePlanCanOpen(table: TableProjection) {
 /** GameTable supplies the stage and phase controls beside these game actions. */
 function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay: boolean): TablePanel {
   const { setup, stage, battle } = table.snapshot;
-  const activePhaseId = gameProgress(table.snapshot).activePhaseId;
+  const activePhaseId = snapshotProgress(table.snapshot).activePhaseId;
   return {
     key: 'game',
     label: 'Game',
@@ -977,7 +984,9 @@ function ConnectedTable({
   discordNudgesAvailable = false,
 }: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
-  const progress = gameProgress(table.snapshot);
+  /* Read field by field: the snapshot is a new object on most updates, while these stay the same until the phase moves. */
+  const { phase, phases, lastTurn } = table.snapshot;
+  const progress = gameProgress(phase, phases, lastTurnOf({ lastTurn }));
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);

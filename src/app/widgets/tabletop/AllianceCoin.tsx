@@ -2,6 +2,7 @@
 
 import { TABLE_SURFACE_Y } from '@shared/play/tableGeometry';
 import { playUiColors } from '@shared/uiPalette';
+import { memo } from 'react';
 
 import { coinBand, coinRadius, coinTop } from './allianceCoinGeometry';
 import { BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS } from './boardRimGeometry';
@@ -25,8 +26,12 @@ export type AllianceCoinProps = Readonly<{
   base: number;
 }>;
 
-/** One coin under a faction token, centred on the token's place on the table. */
-export function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
+/**
+ * One coin under a faction token, centred on the token's place on the table.
+ * The coins are drawn from the whole table, which changes on every update;
+ * a coin whose colour and place stay skips it.
+ */
+export const AllianceCoin = memo(function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
   const palette = useTablePalette();
   const band = coinBand(count);
   const radius = coinRadius(index, count);
@@ -56,4 +61,4 @@ export function AllianceCoin({ color, index, count, base }: AllianceCoinProps) {
       <SoftShadow radius={radius} spread={SHADOW_SPREAD} y={0.001} opacity={SHADOW_OPACITY} />
     </group>
   );
-}
+});

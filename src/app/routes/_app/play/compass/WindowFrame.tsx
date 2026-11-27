@@ -84,14 +84,15 @@ export function WindowFrame({
       }}
     >
       {resize && <ResizeEdge resize={resize} />}
+      {/* The title takes the entry's fields rather than the entry, which is new with every table update, so it skips them. */}
       <WindowTitle
-        entry={entry}
-        actions={
-          <>
-            {entry.actions}
-            {actions}
-          </>
-        }
+        label={entry.label}
+        topic={entry.topic}
+        player={entry.player}
+        description={entry.description}
+        help={entry.help}
+        ownActions={entry.actions}
+        actions={actions}
         onFaction={onFaction}
       />
       <WindowContent entry={entry} seat={seat} onSeat={onSeat} />
@@ -176,24 +177,29 @@ function useFocusOnRaise(
   return pressed;
 }
 
-type WindowTitleProps = Readonly<{
-  entry: TableWindow;
-  actions: ReactNode;
-  onFaction: (seat: string) => void;
-}>;
+type WindowTitleProps = Readonly<
+  Pick<TableWindow, 'label' | 'topic' | 'player' | 'description' | 'help'> & {
+    /** The window's own buttons, ahead of the frame's. */
+    ownActions: ReactNode;
+    actions: ReactNode;
+    onFaction: (seat: string) => void;
+  }
+>;
 
 /* The title bar: the window's icon or the player's token, its name, its help and the frame's buttons. */
 /* A chat names only its player, since the token beside the name gives the faction; a long name ends in an ellipsis, with the whole of it in a tip. */
-function WindowTitle({ entry, actions, onFaction }: WindowTitleProps) {
-  const player = entry.player;
+function WindowTitle({ label, topic, player, description, help, ownActions, actions, onFaction }: WindowTitleProps) {
   return (
     <header className={styles.title}>
-      {player ? <FactionButton player={player} onFaction={onFaction} /> : <TopicIcon topic={entry.topic} size={18} />}
+      {player ? <FactionButton player={player} onFaction={onFaction} /> : <TopicIcon topic={topic} size={18} />}
       <span className={styles.name}>
-        <TruncatedText flex={1}>{entry.label}</TruncatedText>
+        <TruncatedText flex={1}>{label}</TruncatedText>
       </span>
-      <WindowHelp entry={entry} />
-      <span className={styles.actions}>{actions}</span>
+      <WindowHelp description={description} help={help} />
+      <span className={styles.actions}>
+        {ownActions}
+        {actions}
+      </span>
     </header>
   );
 }

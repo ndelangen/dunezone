@@ -2,7 +2,7 @@ import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 import { Keyboard, MessagesSquare } from 'lucide-react';
-import { lazy, Suspense, useContext, useRef } from 'react';
+import { lazy, memo, Suspense, useContext, useRef } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -78,7 +78,8 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
           player={ownToken}
           label={hasHand ? (recall ? 'Your recalled hand' : 'Hand & spice') : 'Faction info'}
           open={hasHand ? isOpen('hand') : isOpen(FACTION_INFO, ownToken.seat)}
-          onOpen={() => (hasHand ? onShow('hand') : onShow(FACTION_INFO, ownToken.seat))}
+          hasHand={hasHand}
+          onShow={onShow}
           pulse={motion ? arrival : 0}
         />
       )}
@@ -97,7 +98,8 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
               label={chatLabel}
               unread={tableChat.unread}
               open={isOpen(chatKey)}
-              onOpen={() => onShow(chatKey)}
+              chatKey={chatKey}
+              onShow={onShow}
             />
           )}
           {/* A token opens the chat with its player, or their faction's information when there is no chat to have. */}
@@ -106,7 +108,7 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
               key={player.seat}
               player={player}
               open={chattable(player) ? isOpen(`player:${player.seat}`) : isOpen(FACTION_INFO, player.seat)}
-              onOpen={() => (chattable(player) ? onShow(`player:${player.seat}`) : onShow(FACTION_INFO, player.seat))}
+              onShow={onShow}
             />
           ))}
         </nav>
@@ -116,20 +118,24 @@ export function ChatBar({ inert, hasHand, onToggleShortcuts, isOpen, onOpenCompa
 }
 
 /* The viewer's own faction, which opens their Hand & spice as H does; a spectator has no seat and no token. */
-function OwnToken({
+const OwnToken = memo(function OwnToken({
   player,
   label,
   open,
-  onOpen,
+  hasHand,
+  onShow,
   pulse = 0,
 }: Readonly<{
   player: CompassPlayer;
   label: string;
   open: boolean;
-  onOpen: () => void;
+  /** Whether it opens the Hand & spice; before there is a hand, it opens the viewer's Faction info. */
+  hasHand: boolean;
+  onShow: ChatBarProps['onShow'];
   /** Which faction arrival the ring pulses for; 0 for none. A new one restarts the ring, never the button, so focus stays. */
   pulse?: number;
 }>) {
+  const onOpen = () => (hasHand ? onShow('hand') : onShow(FACTION_INFO, player.seat));
   return (
     <Tooltip label={`You are playing as ${player.factionName}`} events={{ hover: true, focus: true, touch: false }}>
       <button
@@ -146,7 +152,7 @@ function OwnToken({
       </button>
     </Tooltip>
   );
-}
+});
 
 /* The keyboard shortcuts cheat sheet, shown and hidden as ? does; the game menu takes the button off the bar. */
 function ShortcutsButton({ open, onToggle }: Readonly<{ open: boolean; onToggle: () => void }>) {
@@ -167,12 +173,14 @@ function ShortcutsButton({ open, onToggle }: Readonly<{ open: boolean; onToggle:
   );
 }
 
-function GroupChatToken({
+const GroupChatToken = memo(function GroupChatToken({
   label,
   unread,
   open,
-  onOpen,
-}: Readonly<{ label: string; unread: number; open: boolean; onOpen: () => void }>) {
+  chatKey,
+  onShow,
+}: Readonly<{ label: string; unread: number; open: boolean; chatKey: string; onShow: ChatBarProps['onShow'] }>) {
+  const onOpen = () => onShow(chatKey);
   return (
     <Tooltip label={`${label} · Space →`} events={{ hover: true, focus: true, touch: false }}>
       <button
@@ -189,7 +197,7 @@ function GroupChatToken({
       </button>
     </Tooltip>
   );
-}
+});
 
 /* What waits on a player, said with their name: a vote to remove them, or a request for their empty seat. */
 function waiting(player: CompassPlayer) {
@@ -199,8 +207,14 @@ function waiting(player: CompassPlayer) {
   return player.attention ? 'seat request' : null;
 }
 
-function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; open: boolean; onOpen: () => void }>) {
+/* The bar re-renders with every table update; a token whose player, state and opener stay the same skips it. */
+const ChatToken = memo(function ChatToken({
+  player,
+  open,
+  onShow,
+}: Readonly<{ player: CompassPlayer; open: boolean; onShow: ChatBarProps['onShow'] }>) {
   const reason = waiting(player);
+  const onOpen = () => (chattable(player) ? onShow(`player:${player.seat}`) : onShow(FACTION_INFO, player.seat));
   return (
     <Tooltip
       label={words(player.name, player.factionName, reason, player.ally && 'ally · Space → →').join(' · ')}
@@ -223,4 +237,4 @@ function ChatToken({ player, open, onOpen }: Readonly<{ player: CompassPlayer; o
       </button>
     </Tooltip>
   );
-}
+});
