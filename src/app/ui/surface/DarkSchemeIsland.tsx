@@ -43,7 +43,9 @@ type MantineContextValue = NonNullable<ContextType<typeof MantineContext>>;
 
 function sameFields(a: MantineContextValue, b: MantineContextValue) {
   const keys = Object.keys(a) as (keyof MantineContextValue)[];
-  return keys.length === Object.keys(b).length && keys.every((key) => Object.is(a[key], b[key]));
+  return (
+    keys.length === Object.keys(b).length && keys.every((key) => Object.hasOwn(b, key) && Object.is(a[key], b[key]))
+  );
 }
 
 /*
@@ -52,7 +54,7 @@ function sameFields(a: MantineContextValue, b: MantineContextValue) {
  * box on the table's panels, whether or not its own parent changed. The fields themselves stay the same, so the island
  * provides the first object again until one of them changes.
  */
-function StableMantineContext({ children }: { children: ReactNode }) {
+export function StableMantineContext({ children }: { children: ReactNode }) {
   const value = use(MantineContext)!;
   const [kept, keep] = useState(value);
   const stable = kept === value || sameFields(kept, value) ? kept : value;

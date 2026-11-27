@@ -440,3 +440,36 @@ test('disposing a real renderer before startup stays idle and can be repeated', 
   expect(getContext).not.toHaveBeenCalled();
   expect(renderer.hasInitialized()).toBe(false);
 });
+
+test('configuring again with the same size props leaves the store alone, and a new size still reaches it', async () => {
+  const canvas = document.createElement('canvas');
+  const renderer = rendererFor(canvas);
+  const root = createRoot(canvas);
+  const props = (sizeProps: { width: number; height: number } | null) => ({
+    renderer: () => renderer as unknown as WebGPURenderer,
+    frameloop: 'never' as const,
+    size: { width: 10, height: 10, top: 0, left: 0 },
+    _sizeProps: sizeProps,
+    /* As `<Canvas>` passes them, so `configure` keeps the first ones. */
+    onPointerMissed: () => {},
+    onDragOverMissed: () => {},
+    onDropMissed: () => {},
+  });
+  await root.configure(props(null));
+  const store = _roots.get(canvas)!.store;
+  const notified = vi.fn();
+  const unsubscribe = store.subscribe(notified);
+  /* `<Canvas>` configures on every render, with `null` while it has no width or height of its own. */
+  await root.configure(props(null));
+  await root.configure(props(null));
+  expect(notified).not.toHaveBeenCalled();
+  await root.configure(props({ width: 20, height: 10 }));
+  expect(store.getState()._sizeProps).toEqual({ width: 20, height: 10 });
+  notified.mockClear();
+  await root.configure(props({ width: 20, height: 10 }));
+  expect(notified).not.toHaveBeenCalled();
+  unsubscribe();
+  await act(async () => {
+    root.unmount();
+  });
+});
