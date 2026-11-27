@@ -284,6 +284,12 @@ function gameProgress(phase: number, phases: TableProjection['snapshot']['phases
   return { ...tableProgressFor(phase, phases), lastTurn };
 }
 
+/* Read field by field: the snapshot is a new object on most updates, while these stay the same until the phase moves. */
+function useGameProgress(snapshot: TableProjection['snapshot']) {
+  const { phase, phases, lastTurn } = snapshot;
+  return useMemo(() => gameProgress(phase, phases, lastTurnOf({ lastTurn })), [phase, phases, lastTurn]);
+}
+
 function snapshotProgress(snapshot: TableProjection['snapshot']) {
   return gameProgress(snapshot.phase, snapshot.phases, lastTurnOf(snapshot));
 }
@@ -984,9 +990,7 @@ function ConnectedTable({
   discordNudgesAvailable = false,
 }: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
-  /* Read field by field: the snapshot is a new object on most updates, while these stay the same until the phase moves. */
-  const { phase, phases, lastTurn } = table.snapshot;
-  const progress = gameProgress(phase, phases, lastTurnOf({ lastTurn }));
+  const progress = useGameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
