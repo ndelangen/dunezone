@@ -11,7 +11,7 @@ import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Armchair, ChevronLeft, ChevronRight, Radio, Settings, X } from 'lucide-react';
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -463,8 +463,61 @@ export function GameMenu({
   sharing: ReactNode;
   voice?: ReactNode;
 }>) {
+  const stage = table.snapshot.stage;
+  const spectator = isSpectator(table);
+  const ends = endsTheGame(table);
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
-  const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
+  const seated = !spectator && stage !== undefined && stage !== 'discarded';
+  /* The menu reads only these from the table, so it skips the updates that leave them alone. */
+  return (
+    <GameMenuView
+      client={client}
+      onClearConfetti={onClearConfetti}
+      sharing={sharing}
+      voice={voice && stage !== 'finished' && stage !== 'discarded' && !table.playback ? voice : null}
+      spectator={spectator}
+      bidTimed={
+        stage === 'play' && offersActions(table) ? (table.snapshot.bidding?.timed ?? idleBidding().timed) : null
+      }
+      bidTimingDisabled={!table.canInteract || !table.snapshot.bank}
+      seatKey={`${table.viewer.viewerSeat}:${ends ? 'end' : 'leave'}`}
+      seatLabel={seated ? leavingLabel(table) : 'Give up your seat'}
+      endsGame={ends}
+      seatDisabled={!seated || seatLocked(table)}
+    />
+  );
+}
+
+type GameMenuViewProps = Readonly<{
+  client: TableSession;
+  onClearConfetti: (() => void) | undefined;
+  sharing: ReactNode;
+  voice: ReactNode;
+  /** A spectator has no seat to give up and no chats of their own. */
+  spectator: boolean;
+  /** Whether bidding is timed, offered while the game is in play to a viewer who acts; null where it is not offered. */
+  bidTimed: boolean | null;
+  bidTimingDisabled: boolean;
+  /** The held item that gives up the viewer's seat, or ends the game for its last player. */
+  seatKey: string;
+  seatLabel: string;
+  endsGame: boolean;
+  seatDisabled: boolean;
+}>;
+
+const GameMenuView = memo(function GameMenuView({
+  client,
+  onClearConfetti,
+  sharing,
+  voice,
+  spectator,
+  bidTimed,
+  bidTimingDisabled,
+  seatKey,
+  seatLabel,
+  endsGame,
+  seatDisabled,
+}: GameMenuViewProps) {
   return (
     /* Sized to the room below the button and scrolled past it, so short windows still reach the lobby and seat actions. */
     <Menu position="bottom-end" shadow="md" withinPortal middlewares={{ size: { padding: 8 } }}>
@@ -479,7 +532,7 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
-        {voice && table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback ? (
+        {voice ? (
           /* Framed like the game link above it, so the voice button keeps the menu's inset and the game link's width. */
           <Stack gap="xs" px="xs" pb="xs" maw={300}>
             {voice}
@@ -495,17 +548,17 @@ export function GameMenu({
         <PointerNamesItem />
         <TableLabelItems />
         <ShortcutsButtonItem />
-        {!isSpectator(table) && (
+        {!spectator && (
           <>
             <Menu.Divider />
             <ChatNoticesItem />
             <AutoClearChatsItem />
           </>
         )}
-        {table.snapshot.stage === 'play' && offersActions(table) && (
+        {bidTimed !== null && (
           <Menu.CheckboxItem
-            checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
-            disabled={!table.canInteract || !table.snapshot.bank}
+            checked={bidTimed}
+            disabled={bidTimingDisabled}
             closeMenuOnClick={false}
             rightSection={
               <Text size="xs" c="dimmed">
@@ -527,21 +580,21 @@ export function GameMenu({
          * Keyed by the seat and by what the hold does, so a hold started on one seat never departs the seat a trade moved the viewer to,
          * a leave countdown never turns into ending the game when another player leaves, and the item is ready again once the game has ended.
          */}
-        {!isSpectator(table) && (
+        {!spectator && (
           <HoldAction
             shape="menu-item"
-            key={`${table.viewer.viewerSeat}:${endsTheGame(table) ? 'end' : 'leave'}`}
-            label={seated ? leavingLabel(table) : 'Give up your seat'}
-            verb={endsTheGame(table) ? 'end' : 'leave'}
+            key={seatKey}
+            label={seatLabel}
+            verb={endsGame ? 'end' : 'leave'}
             closeMenuOnClick={false}
-            disabled={!seated || seatLocked(table)}
-            onConfirm={() => client.command(endsTheGame(table) ? { kind: 'result-end' } : { kind: 'seat-depart' })}
+            disabled={seatDisabled}
+            onConfirm={() => client.command(endsGame ? { kind: 'result-end' } : { kind: 'seat-depart' })}
           />
         )}
       </Menu.Dropdown>
     </Menu>
   );
-}
+});
 
 /** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
 export function seatLocked(table: TableProjection): boolean {

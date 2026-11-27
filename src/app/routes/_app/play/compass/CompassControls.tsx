@@ -171,7 +171,9 @@ function Controls({
   useOpenWindowsReport(windows, opened.isOpen, active ? onOpenWindows : undefined);
   /* The cheat sheet goes away as it came, by ? or the bar's button, from the centre or a slot alike. */
   const sheetSide = SIDES.find((side) => opened.slots[side]?.key === KEYBOARD_SHORTCUTS);
-  const toggleSheet = windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS)
+  /* Asked apart from the toggle, so the toggle stays the same across the table updates that rebuild the windows. */
+  const hasSheet = windows.some((entry) => entry.key === KEYBOARD_SHORTCUTS);
+  const toggleSheet = hasSheet
     ? () => (sheetSide ? opened.unpin(sheetSide) : opened.show(KEYBOARD_SHORTCUTS))
     : undefined;
   const compass = useCompass({

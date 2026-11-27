@@ -128,8 +128,7 @@ export function chattable(player: CompassPlayer) {
 }
 
 /** The (?) beside a window's name: one line on what the window is for, and its full guidance under it where there is one. */
-export function WindowHelp({ entry }: Readonly<{ entry: TableWindow }>) {
-  const { description, help } = entry;
+export function WindowHelp({ description, help }: Readonly<Pick<TableWindow, 'description' | 'help'>>) {
   const text = helpLines(description, help);
   return text ? <HelpMark text={text} /> : null;
 }

@@ -6,6 +6,7 @@ import { useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
+import { useKeptList } from '../keptList';
 import { factionColor } from './allianceColors';
 import { factionTokenFace } from './FactionTokenFace';
 import { seatFaction } from './tableFactions';
@@ -43,7 +44,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const viewerSeat = table.viewer.viewerSeat;
   const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
   const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
-  const players: CompassPlayer[] = seatPlayers(table).map((player) => {
+  const players = seatPlayers(table).map((player): CompassPlayer => {
     const faction = rosterSeat(table.snapshot.roster, player.seat)?.faction;
     const peerId = seatFaction(table, player.seat);
     const vote = votes.find((entry) => entry.target.seat === player.seat)?.id;
@@ -62,7 +63,8 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
     };
   });
   return {
-    players,
+    /* Kept while each player reads the same, so a token re-renders only when its own player changes. */
+    players: useKeptList(players),
     tableChat: conversations.context
       ? { unread: conversations.summaries.find((entry) => entry.peerId === TABLE_CONVERSATION)?.unread ?? 0 }
       : null,

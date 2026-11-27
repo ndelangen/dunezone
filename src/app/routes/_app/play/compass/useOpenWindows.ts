@@ -116,6 +116,8 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
    */
   const [front, setFront] = useState<Side | 'centre' | null>(null);
 
+  /* The windows' keys as one string, which stays the same across the table updates that rebuild the windows, so the openers below do too. */
+  const keys = windows.map((window) => window.key).join('\n');
   const opened = (key: string, seat?: string): Opened => (seat ? { key, seat } : { key });
   /* Already pinned: the slot shows it, so it lights up (on the seat asked for) rather than opening twice. */
   const showPinned = (side: Side, key: string, seat?: string) => {
@@ -158,7 +160,10 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       return;
     }
     /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
-    const free = SIDES.find((entry) => !windows.some((window) => window.key === slots[entry]?.key));
+    const free = SIDES.find((entry) => {
+      const pinned = slots[entry]?.key;
+      return !pinned || !keys.split('\n').includes(pinned);
+    });
     if (free) {
       setSlots((current) => ({ ...current, [free]: opened(key, seat) }));
       setFlash(pulse(free));

@@ -2,11 +2,12 @@ import { factionTokenOf, factionTokenRingAngle } from '@shared/play/factionToken
 import { hiddenZoneView, nextHiddenZoneSpot } from '@shared/play/hiddenZone';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { useKeptList } from '../../keptList';
 import { handGroups } from './handGroups';
 import { useHandOrder } from './useHandOrder';
 
@@ -15,8 +16,7 @@ type Outgoing = Readonly<{ where: 'table' | 'side'; commandId?: string }>;
 export type HandProps = Readonly<{ client: TableSession; table: TableProjection; hand: TablePiece[] }>;
 
 /** The table point just outside the viewer's faction token, where a piece played "in front of me" goes; the room finds the clear spot. */
-function frontOf(table: TableProjection, factionId: string | undefined): Vector3Tuple | null {
-  const token = factionId ? factionTokenOf(table.snapshot.table.pieces, factionId) : undefined;
+function frontOf(token: TablePiece | undefined): Vector3Tuple | null {
   if (!token) {
     return null;
   }
@@ -48,11 +48,8 @@ export function useHandActions({ client, table, hand }: HandProps) {
     []
   );
   const factionId = table.snapshot.bank?.factionId ?? hand[0]?.owner ?? undefined;
-  const order = useHandOrder(
-    client,
-    table,
-    hand.filter((piece) => !piece.hiddenZone)
-  );
+  /* The hand as it stood while its pieces stay the same, so the shelves skip the table's other updates. */
+  const order = useHandOrder(client, table, useKeptList(hand.filter((piece) => !piece.hiddenZone)));
   const inHand = order.pieces;
   const enabled = table.canHandleTable;
 
@@ -107,7 +104,9 @@ export function useHandActions({ client, table, hand }: HandProps) {
   /* A piece dragged out of the hand to the side-table, whose command has gone: it shows gone until the room answers. */
   const left = (piece: TablePiece, commandId: string) =>
     setOutgoing((current) => new Map(current).set(piece.id, { where: 'side', commandId }));
-  const front = frontOf(table, factionId);
+  /* Found first and read after, so the point stays the same while the token stays where it is. */
+  const token = factionId ? factionTokenOf(table.snapshot.table.pieces, factionId) : undefined;
+  const front = useMemo(() => frontOf(token), [token]);
   const playReason = !enabled
     ? 'You cannot handle the table right now.'
     : front
