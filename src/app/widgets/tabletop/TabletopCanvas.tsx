@@ -8,6 +8,7 @@ import { NeutralToneMapping } from 'three';
 import { SceneHoldsContext } from './sceneHolds';
 import type { SceneHolds } from './sceneHolds';
 import { releaseSharedMeshes } from './sharedMeshes';
+import { rendersInSoftware } from './softwareRendering';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { useTablePalette } from './tablePalette';
@@ -141,7 +142,8 @@ export function TabletopCanvas({
             /* Startup owns its first painted frames; later draws follow interaction and artwork changes. */
             frameloop={!painted ? 'always' : 'demand'}
             renderer={{
-              antialias: TABLE_ANTIALIAS,
+              /* Software WebGL spends seconds multisampling a frame, so it draws plain edges instead. */
+              antialias: TABLE_ANTIALIAS && !rendersInSoftware(),
               alpha: presentation === 'preview',
               powerPreference: 'high-performance',
               toneMapping: NeutralToneMapping,
