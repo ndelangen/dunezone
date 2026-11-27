@@ -63,7 +63,6 @@ import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResu
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
-import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
@@ -159,6 +158,13 @@ const ConnectedBattleHistoryPanel = lazy(() =>
 const ConnectedSpiceTransfersPanel = lazy(() =>
   import('../panels/transfers/useSpiceTransfersPanel').then((module) => ({
     default: module.ConnectedSpiceTransfersPanel,
+  }))
+);
+
+/* The private side-table is opened now and then, by ← ← or a drag out of the hand, so it loads when opened as well. */
+const ConnectedPrivateSideTablePanel = lazy(() =>
+  import('../panels/sideTable/usePrivateSideTablePanel').then((module) => ({
+    default: module.ConnectedPrivateSideTablePanel,
   }))
 );
 
@@ -530,7 +536,11 @@ function handPanels({ client, table }: TableControlProps) {
     },
     {
       ...PANEL_WINDOWS.sideTable,
-      content: <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />,
+      content: (
+        <OnDemandPanel name="Private side-table">
+          <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />
+        </OnDemandPanel>
+      ),
     },
   ];
 }
