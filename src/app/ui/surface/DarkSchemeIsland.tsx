@@ -2,14 +2,15 @@ import {
   convertCssVariables,
   DEFAULT_THEME,
   defaultCssVariablesResolver,
+  MantineContext,
   MantineProvider,
   mergeMantineTheme,
   mergeThemeOverrides,
 } from '@mantine/core';
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { appContentTheme } from '@ui/theme';
-import type { ReactNode } from 'react';
-import { useLayoutEffect, useMemo, useState } from 'react';
+import type { ContextType, ReactNode } from 'react';
+import { use, useLayoutEffect, useMemo, useState } from 'react';
 
 import './DarkSchemeIsland.css';
 
@@ -37,6 +38,29 @@ const islandSchemeManager: MantineColorSchemeManager = {
 };
 
 const noRootElement = () => undefined;
+
+type MantineContextValue = NonNullable<ContextType<typeof MantineContext>>;
+
+function sameFields(a: MantineContextValue, b: MantineContextValue) {
+  const keys = Object.keys(a) as (keyof MantineContextValue)[];
+  return keys.length === Object.keys(b).length && keys.every((key) => Object.is(a[key], b[key]));
+}
+
+/*
+ * Mantine's provider hands out a new context object on every render, and the island re-renders with the table, on every
+ * table update. Every Mantine component below reads that context, so each one re-rendered with it: every tooltip, disc and
+ * box on the table's panels, whether or not its own parent changed. The fields themselves stay the same, so the island
+ * provides the first object again until one of them changes.
+ */
+function StableMantineContext({ children }: { children: ReactNode }) {
+  const value = use(MantineContext)!;
+  const [kept, keep] = useState(value);
+  const stable = kept === value || sameFields(kept, value) ? kept : value;
+  if (stable !== kept) {
+    keep(stable);
+  }
+  return <MantineContext value={stable}>{children}</MantineContext>;
+}
 
 /* A Tooltip wrapping its target drops `attributes`, and tooltip colours key on an ancestor's scheme, so an island
    tooltip portals into this element instead: a child of `body` that carries the island's attributes, where no
@@ -92,7 +116,7 @@ export function DarkSchemeIsland({ children }: { children: ReactNode }) {
       withGlobalClasses={false}
     >
       <style data-mantine-styles dangerouslySetInnerHTML={{ __html: islandVariables }} />
-      {children}
+      <StableMantineContext>{children}</StableMantineContext>
     </MantineProvider>
   );
 }
