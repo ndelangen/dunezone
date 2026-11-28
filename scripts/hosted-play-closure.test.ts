@@ -76,6 +76,8 @@ describe('the hosted play closure', () => {
     ['src/app/routes/_app/rulesets/index.tsx', false],
     ['workers/game/session.test.ts', false],
     ['src/app/routes/_app/play/GameTable.stories.tsx', false],
+    ['src/app/play/table/GameTable.stories.tsx', false],
+    ['src/app/play/table/HostedTable.tsx', true],
     ['src/app/routes/_app/homepage/ConnectedTable.tsx', true],
     ['src/app/routes/_app/index.module.css', true],
     ['src/app/widgets/tabletop/TabletopScene.tsx', true],
