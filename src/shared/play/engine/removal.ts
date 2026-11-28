@@ -1,0 +1,217 @@
+import type { Viewer } from '../protocol';
+import { GameRejection } from '../rejection';
+import { removalThreshold } from '../removal';
+import type { RemovalAction, RemovalVote } from '../removal';
+import { SPECTATOR_SEAT } from '../schema';
+import type { ActorDirectory } from './actors';
+import { DELETED_USER, logContext } from './log';
+import type { PublicLog } from './log';
+import { revised } from './state';
+import type { StoredSnapshot } from './state';
+
+type Ballot = RemovalVote['ballots'][number] & { userId: string | null };
+type Vote = Omit<RemovalVote, 'target' | 'ballots'> & {
+  target: RemovalVote['target'] & { userId: string | null };
+  ballots: Ballot[];
+};
+type VoteOutcome = 'removed' | 'failed' | 'nullified';
+type VoteRow = {
+  sequence: number;
+  data: string;
+  result: VoteOutcome | null;
+  resolved_at: number | null;
+  phase: number;
+  context: string;
+};
+type RemovePlayer = (snapshot: StoredSnapshot, userId: string, commandId: string, now: number) => StoredSnapshot;
+
+/** Owns ballots and retained results; its caller owns the transaction and the resulting seat changes. */
+export class RemovalVotes {
+  constructor(
+    private readonly storage: DurableObjectStorage,
+    private readonly actors: ActorDirectory,
+    private readonly log: PublicLog
+  ) {
+    storage.sql.exec(
+      'CREATE TABLE IF NOT EXISTS removal_votes (sequence INTEGER PRIMARY KEY, vote_id TEXT UNIQUE NOT NULL, data TEXT NOT NULL, result TEXT, resolved_at INTEGER, phase INTEGER NOT NULL, context TEXT NOT NULL)'
+    );
+  }
+
+  apply(snapshot: StoredSnapshot, viewer: Viewer, action: RemovalAction, now: number): StoredSnapshot {
+    if (viewer.viewerSeat === SPECTATOR_SEAT) {
+      throw new GameRejection('Only current players in a real game can vote on removal.');
+    }
+    if (!snapshot.stage || snapshot.stage === 'discarded') {
+      throw new GameRejection('Only current players in a real game can vote on removal.');
+    }
+    if (action.kind === 'removal-start') {
+      return this.start(snapshot, viewer, action.seat, now);
+    }
+    return this.ballot(snapshot, viewer, action);
+  }
+
+  private ballot(snapshot: StoredSnapshot, viewer: Viewer, action: Extract<RemovalAction, { kind: 'removal-ballot' }>) {
+    const row = this.storage.sql
+      .exec<VoteRow>('SELECT * FROM removal_votes WHERE vote_id=? AND result IS NULL', action.voteId)
+      .toArray()[0];
+    if (!row) {
+      throw new GameRejection('That removal vote has ended.');
+    }
+    const vote: Vote = JSON.parse(row.data);
+    const ballot = vote.ballots.find((entry) => entry.userId === viewer.userId);
+    if (!ballot || vote.target.userId === viewer.userId) {
+      throw new GameRejection('You cannot vote on this removal.');
+    }
+    if (ballot.choice === action.choice) {
+      return snapshot;
+    }
+    ballot.choice = action.choice;
+    this.save(vote);
+    return revised(snapshot);
+  }
+
+  private start(snapshot: StoredSnapshot, viewer: Viewer, seat: string, now: number) {
+    const players = this.actors.occupants();
+    if (players.length < 3) {
+      throw new GameRejection('Removal requires at least three players.');
+    }
+    const target = players.find((player) => player.seat === seat);
+    if (!target || target.userId === viewer.userId) {
+      throw new GameRejection('Choose another current player.');
+    }
+    if (this.open().some((vote) => vote.target.userId === target.userId)) {
+      return snapshot;
+    }
+    const vote: Vote = {
+      id: `removal-${snapshot.revision + 1}`,
+      target,
+      openedAt: now,
+      threshold: removalThreshold(players.length),
+      ballots: players
+        .filter((player) => player.userId !== target.userId)
+        .map((player) => ({ ...player, choice: player.userId === viewer.userId ? 'remove' : null })),
+    };
+    this.storage.sql.exec(
+      'INSERT INTO removal_votes(vote_id,data,phase,context) VALUES(?,?,?,?)',
+      vote.id,
+      JSON.stringify(vote),
+      snapshot.phase,
+      logContext(snapshot)
+    );
+    return revised(snapshot);
+  }
+
+  /** Membership is re-read after each removal, so concurrent targets share one electorate. */
+  reconcile(snapshot: StoredSnapshot, now: number, remove: RemovePlayer): StoredSnapshot {
+    let next = snapshot;
+    let removed: boolean;
+    do {
+      removed = false;
+      for (const vote of this.open()) {
+        const players = this.actors.occupants();
+        const target = players.find((player) => player.userId === vote.target.userId);
+        if (!target) {
+          this.finish(vote, 'nullified', next, now);
+          next = revised(next);
+          continue;
+        }
+        vote.target = target;
+        vote.threshold = removalThreshold(players.length);
+        vote.ballots = players
+          .filter((player) => player.userId !== target.userId)
+          .map((player) => ({
+            ...player,
+            choice: vote.ballots.find((ballot) => ballot.userId === player.userId)?.choice ?? null,
+          }));
+        this.save(vote);
+        const result = voteResult(vote, players.length);
+        if (!result) {
+          continue;
+        }
+        this.finish(vote, result, next, now);
+        next = revised(next);
+        if (result === 'removed') {
+          next = remove(next, target.userId, vote.id, now);
+          removed = true;
+          break;
+        }
+      }
+    } while (removed);
+    return next;
+  }
+
+  current(): RemovalVote[] {
+    const votes = this.open();
+    if (!votes.length) {
+      return [];
+    }
+    const players = this.actors.occupants();
+    return votes.map((vote) =>
+      publicVote({
+        ...vote,
+        target: players.find((player) => player.userId === vote.target.userId) ?? vote.target,
+        ballots: vote.ballots.map((ballot) => ({
+          ...ballot,
+          ...players.find((player) => player.userId === ballot.userId),
+        })),
+      })
+    );
+  }
+
+  /** Retain every choice and result while removing all identifying data for a deleted account. */
+  scrub(userId: string) {
+    for (const row of this.storage.sql.exec<VoteRow>('SELECT * FROM removal_votes').toArray()) {
+      const vote: Vote = JSON.parse(row.data);
+      if (vote.target.userId === userId) {
+        vote.target = { ...vote.target, userId: null, name: DELETED_USER };
+      }
+      vote.ballots = vote.ballots.map((ballot) =>
+        ballot.userId === userId ? { ...ballot, userId: null, name: DELETED_USER } : ballot
+      );
+      this.save(vote);
+    }
+  }
+
+  private open(): Vote[] {
+    return this.storage.sql
+      .exec<{ data: string }>('SELECT data FROM removal_votes WHERE result IS NULL ORDER BY sequence')
+      .toArray()
+      .map((row) => JSON.parse(row.data));
+  }
+  private save(vote: Vote) {
+    this.storage.sql.exec('UPDATE removal_votes SET data=? WHERE vote_id=?', JSON.stringify(vote), vote.id);
+  }
+  /** The result and its final breakdown are retained on the vote and filed in the public log together. */
+  private finish(vote: Vote, result: VoteOutcome, snapshot: StoredSnapshot, now: number) {
+    const context = logContext(snapshot);
+    this.storage.sql.exec(
+      'UPDATE removal_votes SET data=?, result=?, resolved_at=?, phase=?, context=? WHERE vote_id=?',
+      JSON.stringify(vote),
+      result,
+      now,
+      snapshot.phase,
+      context,
+      vote.id
+    );
+    this.log.recordVote({ id: vote.id, result, target: vote.target, ballots: vote.ballots, context, at: now });
+  }
+}
+
+function publicVote(vote: Vote): RemovalVote {
+  return {
+    id: vote.id,
+    target: { name: vote.target.name, seat: vote.target.seat },
+    openedAt: vote.openedAt,
+    threshold: vote.threshold,
+    ballots: vote.ballots.map(({ name, seat, choice }) => ({ name, seat, choice })),
+  };
+}
+
+function voteResult(vote: Vote, playerCount: number): Exclude<VoteOutcome, 'nullified'> | null {
+  const yes = vote.ballots.filter((ballot) => ballot.choice === 'remove').length;
+  const uncast = vote.ballots.filter((ballot) => ballot.choice === null).length;
+  if (playerCount < 3 || yes + uncast < vote.threshold) {
+    return 'failed';
+  }
+  return yes >= vote.threshold ? 'removed' : null;
+}

@@ -1,10 +1,10 @@
 import { expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { hostedFixturePlan } from '../../src/shared/play/engine/fixture';
+import { Room } from '../../src/shared/play/engine/room';
 import type { Viewer } from '../../src/shared/play/protocol';
-import { hostedFixturePlan } from './fixture';
 import { LOAD_SEATS, loadFixturePlan, loadSnapshot } from './loadFixture';
-import { Room } from './room';
 
 const player = (index: number): Viewer => ({
   connectionId: `connection-${index}`,

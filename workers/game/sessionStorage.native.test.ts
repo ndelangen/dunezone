@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { describe, expect, test } from 'vite-plus/test';
 
-import { initializeSessionStorage } from './sessionStorage';
+import { initializeSessionStorage } from '../../src/shared/play/engine/sessionStorage';
 
 /* The part of a Durable Object's SqlStorage the initializer uses, over an in-memory SQLite database. */
 function sqlStorage(database: DatabaseSync) {

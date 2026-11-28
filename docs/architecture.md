@@ -53,7 +53,8 @@ flowchart LR
   shared state and retries nothing after a reconnect.
 - The messages both sides exchange are Zod schemas in `src/shared/play/protocol.ts`, versioned by
   `PLAY_PROTOCOL_VERSION`; the rules the browser previews with (carries, drops) are the same shared
-  functions the Worker runs.
+  functions the Worker runs. The Room and session themselves are the game engine in
+  `src/shared/play/engine`, which the tutorial and Play / Sandbox run in the page on in-memory storage.
 - Details: [Hosted table](./technical/play-hosted.md) for admission, seat passes, history and the
   protocol version; [Hosted table subscription](./technical/play-subscription.md) for what the
   browser owns and how it reconnects.

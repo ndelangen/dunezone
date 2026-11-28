@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import type { Metadata } from '../../src/shared/play/engine/session';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
 import { cardPage, deckPage } from './native-catalogue.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativeView } from './native-runtime.fixture.ts';
@@ -13,8 +15,6 @@ import {
   sendCommand,
   syncView,
 } from './native-runtime.fixture.ts';
-import type { Metadata } from './session';
-import type { StoredSnapshot } from './state';
 
 const FRONTS = ['supplies', 'shield', 'snooper'].map((slug) => `http://table.test/published/cards/${slug}/card.jpg`);
 const BACK = 'http://table.test/published/decks/dreamrules-treachery-deck/cardback.jpg';

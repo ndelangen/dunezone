@@ -255,6 +255,33 @@ describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => 
   });
 });
 
+describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
+  const ENGINE_ROOT = 'src/shared/play/engine';
+  const restricted = (output: string) => output.split('no-restricted-imports').length - 1;
+
+  test.each([
+    "import { DurableObject } from 'cloudflare:workers';\nexport const probe = DurableObject;\n",
+    "import { readFileSync } from 'node:fs';\nexport const probe = readFileSync;\n",
+    "import { api } from '../../../../convex/_generated/api';\nexport const probe = api;\n",
+    "import { GameSessionDurableObject } from '../../../../workers/game/index';\nexport const probe = GameSessionDurableObject;\n",
+    "import { router } from '@app/router';\nexport const probe = router;\n",
+    "import { Button } from '@mantine/core';\nexport const probe = Button;\n",
+  ])('bites on a host import in an engine file: %s', async (source) => {
+    expect(restricted(await lintDiagnostics('probe.ts', source, ENGINE_ROOT))).toBe(1);
+  });
+
+  test('leaves shared modules and the engine itself alone', async () => {
+    const source =
+      "import { z } from 'zod';\nimport { rejection } from '../rejection';\nimport { Room } from './room';\nexport const probe = [z, rejection, Room];\n";
+    expect(restricted(await lintDiagnostics('probe.ts', source, ENGINE_ROOT))).toBe(0);
+  });
+
+  test('leaves engine tests free to stand in for a host', async () => {
+    const source = "import { DatabaseSync } from 'node:sqlite';\nexport const probe = DatabaseSync;\n";
+    expect(restricted(await lintDiagnostics('probe.test.ts', source, ENGINE_ROOT))).toBe(0);
+  });
+});
+
 describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
   /* The rule once stripped any trailing star as if it were part of a `**\/` closer, so a glob at the end of a comment was reported on every run and its fix ate the glob a star at a time. */
   test('leaves a comment that ends in a glob alone', async () => {

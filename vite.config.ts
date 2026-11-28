@@ -98,8 +98,8 @@ function sandboxWorkerAsyncInDevelopment(): PluginOption {
 }
 
 /*
- * The tutorial runs the game Worker's table in the browser, so in the client build that table's Node crypto imports
- * resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
+ * The tutorial and Play / Sandbox run the game engine (src/shared/play/engine) in the browser, so in the client build
+ * the engine's Node crypto imports resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
  */
 function gameTableCryptoInBrowser(): PluginOption {
   const slice = fileURLToPath(new URL('./src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url));
@@ -109,7 +109,7 @@ function gameTableCryptoInBrowser(): PluginOption {
     resolveId(source, importer) {
       if (
         source === 'node:crypto' &&
-        importer?.includes('/workers/game/') &&
+        importer?.includes('/src/shared/play/engine/') &&
         this.environment.config.consumer === 'client'
       ) {
         return slice;

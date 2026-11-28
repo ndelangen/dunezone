@@ -1,7 +1,7 @@
 import { conversationPeerFor, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
+import type { GameSession } from '../../src/shared/play/engine/session';
 import type { ClientMessage, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import type { Connection, ConversationRequest } from './connection';
-import type { GameSession } from './session';
 
 type AnyMessage = Exclude<ServerMessage, { type: 'admission' }>;
 

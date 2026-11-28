@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
 import { DEFAULT_PHASE_PRIORITY } from '../../src/shared/factions/extraPhases';
+import { applyPatch } from '../../src/shared/play/engine/history';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../../src/shared/play/tableFurnitureLayout';
-import { applyPatch } from './history';
 import { draftingRuntime } from './native-drafting.fixture.ts';
 import { readSnapshot } from './native-runtime.fixture.ts';
 import type { NativeMessage } from './native-runtime.fixture.ts';
@@ -12,8 +14,6 @@ import type { NativeConnection } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.ts';
-import type { StoredSnapshot } from './state';
-import { storedSnapshotSchema } from './state';
 
 describe('Real-game setup progression', () => {
   let peer: NativePeer, runtime: NativeRuntime, offset: number;

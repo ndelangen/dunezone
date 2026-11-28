@@ -79,7 +79,7 @@ describe('the hosted play closure', () => {
     ['src/app/routes/_app/homepage/ConnectedTable.tsx', true],
     ['src/app/routes/_app/index.module.css', true],
     ['src/app/widgets/tabletop/TabletopScene.tsx', true],
-    ['workers/game/session.ts', true],
+    ['src/shared/play/engine/session.ts', true],
     ['convex/playAdmission.ts', true],
     ['src/shared/assetIds.ts', true],
     ['src/app/ui/control/Button.tsx', true],

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import type { Patch } from '../../src/shared/play/engine/history';
+import { applyPatch, diff } from '../../src/shared/play/engine/history';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import type { PieceAction } from '../../src/shared/play/protocol';
-import type { Patch } from './history';
-import { applyPatch, diff } from './history';
 import type { NativeMessage } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
@@ -16,8 +18,6 @@ import {
   sendCommand,
   syncView,
 } from './native-runtime.fixture.ts';
-import type { StoredSnapshot } from './state';
-import { storedSnapshotSchema } from './state';
 
 /** The diff every release before element-wise array patches stored: a changed array is replaced whole. */
 function wholeArrayDiff(

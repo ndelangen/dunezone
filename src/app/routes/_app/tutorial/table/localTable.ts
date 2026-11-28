@@ -1,6 +1,11 @@
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
 import type { BoardCapture } from '@shared/play/capture';
 import { describeCardDraw } from '@shared/play/cardDraw';
+import { expireBattle } from '@shared/play/engine/battle';
+import { applyResult, clocksAfterRecall, settleEnding } from '@shared/play/engine/result';
+import { Room } from '@shared/play/engine/room';
+import { internalAction, internalPieceId, RoomProjection, storedSnapshotSchema } from '@shared/play/engine/state';
+import type { StoredSnapshot } from '@shared/play/engine/state';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
 import { LOG_PAGE_SIZE } from '@shared/play/log';
@@ -11,16 +16,6 @@ import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '@shared/play/review';
 
-import { expireBattle } from '../../../../../../workers/game/battle';
-import { applyResult, clocksAfterRecall, settleEnding } from '../../../../../../workers/game/result';
-import { Room } from '../../../../../../workers/game/room';
-import {
-  internalAction,
-  internalPieceId,
-  RoomProjection,
-  storedSnapshotSchema,
-} from '../../../../../../workers/game/state';
-import type { StoredSnapshot } from '../../../../../../workers/game/state';
 import { isSessionAction, LocalSession } from './localSession';
 import type { RecordedDeal } from './localSession';
 

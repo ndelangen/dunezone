@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { HistoricalFactionPublicationObject, HeroKeyedHistoricalFactionObject } from '../../src/shared/factions/schema';
 import { factionDefinitionSchema } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import dreamrulesDecks from '../../src/shared/play/fixtures/dreamrulesDecks.json';
 import type { LogTab, LogEntry } from '../../src/shared/play/log';
@@ -30,8 +32,6 @@ import {
   provision,
   syncView,
 } from './native-runtime.fixture.ts';
-import { storedSnapshotSchema } from './state';
-import type { StoredSnapshot } from './state';
 
 /*
  * The recorder behind `journey.record.native.test.ts`: a real game on the native runtime, content from the Play story

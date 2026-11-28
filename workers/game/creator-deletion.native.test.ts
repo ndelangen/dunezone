@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import type { Metadata } from '../../src/shared/play/engine/session';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
@@ -7,7 +8,6 @@ import { required } from './native-runtime.fixture.ts';
 import type { NativeConnection } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import { admitPlayer, createPeer, createRuntime, eventually, provision, syncView } from './native-runtime.fixture.ts';
-import type { Metadata } from './session';
 
 describe('A real game removes its deleted creator from retained names', () => {
   let peer: NativePeer, runtime: NativeRuntime;

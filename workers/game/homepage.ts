@@ -18,6 +18,9 @@ import type { HomepageAction } from '../../src/shared/homepage/protocol';
 import { homepageSnapshot } from '../../src/shared/homepage/setup';
 import { boardCaptureSchema } from '../../src/shared/play/capture';
 import type { BoardCapture } from '../../src/shared/play/capture';
+import { Room } from '../../src/shared/play/engine/room';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
 import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol';
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -27,9 +30,6 @@ import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
-import { Room } from './room';
-import { storedSnapshotSchema } from './state';
-import type { StoredSnapshot } from './state';
 
 type Connection = {
   viewer: Viewer;

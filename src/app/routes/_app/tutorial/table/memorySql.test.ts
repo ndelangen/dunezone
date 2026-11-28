@@ -1,8 +1,8 @@
+import { ActorDirectory } from '@shared/play/engine/actors';
+import type { PublicLog } from '@shared/play/engine/log';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, test } from 'vite-plus/test';
 
-import { ActorDirectory } from '../../../../../../workers/game/actors';
-import type { PublicLog } from '../../../../../../workers/game/log';
 import { MemorySql } from './memorySql';
 
 const UNLOGGED = { recordSeat: () => {} } as unknown as PublicLog;

@@ -438,6 +438,51 @@
       }
     },
     {
+      /*
+       * The game engine (#2852) holds Play's rules, which four hosts run: the game Worker's rooms, the homepage table,
+       * the tutorial and Play / Sandbox. Each host supplies its own storage, clock and randomness, so an engine file
+       * imports only other shared modules and plain libraries: never a Workers runtime module, the Worker's host code,
+       * Convex, the app, or a Node built-in beyond the `node:crypto` the browser hosts still swap in (#2856 removes it).
+       * Restates the src/shared bans because an override replaces a rule's options for the files it matches.
+       * Tests are outside the ban: they stand in for a host.
+       */
+      "files": ["src/shared/play/engine/**"],
+      "excludeFiles": ["src/shared/play/engine/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@app", "@app/**", "@ui", "@ui/**", "@db", "@db/**", "**/app", "**/app/**"],
+                "message": "The game engine runs in the browser and the Worker alike, so it must not import the browser app."
+              },
+              {
+                "group": ["@mantine/*", "react", "react/*", "react-dom", "react-dom/*", "three", "three/*"],
+                "message": "The game engine draws nothing; the hosts' pages render what it answers."
+              },
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "The game engine must not import Convex. A host asks Convex and hands the engine what it answered."
+              },
+              {
+                "group": ["@game", "@game/**", "**/game", "**/game/**", "**/workers", "**/workers/**"],
+                "message": "The game engine must not import the game renderers or a Worker's host code. A host imports the engine, never the other way round."
+              },
+              {
+                "group": ["cloudflare:*"],
+                "message": "The game engine also runs in the browser, which has no Workers runtime. The host supplies storage, sockets and alarms."
+              },
+              {
+                "group": ["node:*", "!node:crypto"],
+                "message": "The game engine also runs in the browser, which has no Node built-ins."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["convex/**"],
       "rules": {
         "no-restricted-imports": [
