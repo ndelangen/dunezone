@@ -18,7 +18,8 @@ describe('The Play sandbox', () => {
     );
   });
 
-  test('every starting table shows each viewer a view the page accepts', () => {
+  /* The sweep builds a table on SQLite for each of the recording's fifty steps, so it runs longer than one table does. */
+  test('every starting table shows each viewer a view the page accepts', { timeout: 20_000 }, () => {
     /* Every frame carries the same board; checking it once keeps the run to the views themselves. */
     const first = new SandboxTable({ start: sandboxSteps()[0]!, seat: 'seat-1' });
     const { board } = first;

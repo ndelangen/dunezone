@@ -11,9 +11,12 @@ import initSqlJs from 'sql.js/dist/sql-asm-memory-growth.js';
 const SQL = await initSqlJs();
 const closes = new FinalizationRegistry<{ close: () => void }>((database) => database.close());
 
-/** A fresh, empty in-memory database as a game session's storage, and a call that frees it once the table is done. */
-export function pageStorage(): Readonly<{ storage: DurableObjectStorage; close: () => void }> {
-  const database = new SQL.Database();
+/** A page game session's storage, the call that copies its database out, and the call that frees it once the table is done. */
+export type PageStorage = Readonly<{ storage: DurableObjectStorage; image: () => Uint8Array; close: () => void }>;
+
+/** A fresh in-memory database as a game session's storage: empty, or a copy of the image another one gave. */
+export function pageStorage(image?: Uint8Array): PageStorage {
+  const database = new SQL.Database(image);
   const storage = sqlStorage({
     query: (text, bindings) => {
       const statement = database.prepare(text);
@@ -35,6 +38,7 @@ export function pageStorage(): Readonly<{ storage: DurableObjectStorage; close: 
   closes.register(storage, database, token);
   return {
     storage,
+    image: () => database.export(),
     close: () => {
       closes.unregister(token);
       database.close();

@@ -60,6 +60,24 @@ export type TableStart = Readonly<{
 /* A local table's secret guards nothing, since the whole table is the learner's own. */
 const LOCAL_SECRET = 'local';
 
+const PAGE_SESSION = { waitsAtTable: true, keepsRecordedTurn: true } as const;
+let schema: Uint8Array | undefined;
+
+/*
+ * The empty database a game session builds its tables in, made once per page.
+ * Every table then opens on a copy of it, which costs far less than building the schema again.
+ */
+function sessionSchema() {
+  if (!schema) {
+    const scratch = pageStorage();
+    /* Constructing a session is what builds its tables; the session itself is not kept. */
+    void new GameSession(scratch.storage, undefined, undefined, PAGE_SESSION);
+    schema = scratch.image();
+    scratch.close();
+  }
+  return schema;
+}
+
 /** One live table started from a stored state, answering the messages the page sends as the game Worker's room would. */
 export class LocalTable {
   private readonly session: GameSession;
@@ -96,12 +114,11 @@ export class LocalTable {
     this.seat = start.viewers[start.seat] ? start.seat : 'seat-1';
     const learner = start.viewers[this.seat]!;
     this.learner = learner.userId;
-    const { storage, close } = pageStorage();
+    const { storage, close } = pageStorage(sessionSchema());
     this.closeStorage = close;
     this.session = new GameSession(storage, undefined, undefined, {
       board: () => this.board,
-      waitsAtTable: true,
-      keepsRecordedTurn: true,
+      ...PAGE_SESSION,
     });
     const profiles = new Map(start.players.map((player) => [player.seat, player]));
     this.session.restore({

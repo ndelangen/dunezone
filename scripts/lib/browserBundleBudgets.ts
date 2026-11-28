@@ -30,11 +30,11 @@ function isThreeWebGpuChunk(file: Rolldown.OutputChunk): boolean {
 }
 
 /* Vite's empty stand-ins for the Node built-ins sql.js names but never loads in a browser, and the bundler's own helpers. */
-const BROWSER_STUB = /^\0|__vite-browser-external/u;
+const isBrowserStub = (id: string) => id.startsWith('\0') || id.includes('__vite-browser-external');
 
 /* The chunk holds sql.js alone, so nothing else grows under its larger budget. */
 function isSqliteChunk(file: Rolldown.OutputChunk): boolean {
-  const modules = Object.keys(file.modules).filter((id) => !BROWSER_STUB.test(id));
+  const modules = Object.keys(file.modules).filter((id) => !isBrowserStub(id));
   return modules.length === 1 && SQLITE_BUILD.test(modules[0]!);
 }
 
