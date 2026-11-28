@@ -21,7 +21,7 @@ const meta = testingPreview.meta({
 /**
  * The panels the compass opens: one at a time in the centre, Hand and Spice as one, and the header's phase controls outside them all.
  */
-export const PanelLookup = meta.story({
+export const Panels = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),

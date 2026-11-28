@@ -19,7 +19,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
-    pinWindow,
+    pinPanel,
     growSlot,
     point,
     coverAt,
@@ -182,7 +182,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     until,
     converged,
     capture,
-    pinWindow,
+    pinPanel,
     growSlot,
   });
   await act(a, 'Ready for battle');
@@ -293,7 +293,7 @@ async function verifySupport({
   until,
   converged,
   capture,
-  pinWindow,
+  pinPanel,
   growSlot,
 }: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinWindow' | 'growSlot'> & {
   a: HostedPeer;
@@ -328,7 +328,7 @@ async function verifySupport({
   /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
   await converged([a, b]);
   assert.equal(required(requireView(b).snapshot.battle, 'battle').revealed, undefined);
-  await pinWindow(a, 'Battle plan', 'left');
+  await pinPanel(a, 'Battle plan', 'left');
   await growSlot(a, 'left');
   await capture(a, 'after-battle-private-plan');
   await capture(observer, 'after-battle-observer-preparation');

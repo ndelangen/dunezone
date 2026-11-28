@@ -48,7 +48,7 @@ export async function verifyPublicControls({
   act,
   focus,
   openTab,
-  pinWindow,
+  pinPanel,
   growSlot,
   pickCatalogueAsset,
   point,
@@ -134,7 +134,7 @@ export async function verifyPublicControls({
       original
     );
     await button(a, 'Close the disc tokens catalogue').click();
-    await pinWindow(a, 'Shared table inventory', 'left');
+    await pinPanel(a, 'Shared table inventory', 'left');
     await growSlot(a, 'left');
     await button(a, 'Drag Recovery token onto the table').scrollIntoViewIfNeeded();
     await capture(a, 'after-sole-player-inventory');
@@ -173,7 +173,7 @@ export async function verifyPublicControls({
     ]) {
       assert.equal(await button(observer, name).count(), 0, `The observer was offered ${name}.`);
     }
-    await pinWindow(b, 'Shared table inventory', 'left');
+    await pinPanel(b, 'Shared table inventory', 'left');
     await growSlot(b, 'left');
     await button(b, 'Approve').scrollIntoViewIfNeeded();
     await capture(b, 'after-pending-request');
@@ -288,7 +288,7 @@ export async function verifyPublicControls({
     assert.ok(required(requireView(a).snapshot.controls, 'controls').ready.includes(requireView(a).viewer.viewerSeat));
     assert.deepEqual(requireView(a).snapshot.table.pieces, saved.table.pieces);
     assert.equal(await observer.page.getByRole('button', { name: /^Ready|Withdraw readiness/ }).count(), 0);
-    await pinWindow(a, 'Phase', 'left');
+    await pinPanel(a, 'Phase', 'left');
     await growSlot(a, 'left');
     await button(a, 'Withdraw readiness').scrollIntoViewIfNeeded();
     await capture(a, 'after-mentat-ready');

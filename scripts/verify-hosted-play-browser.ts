@@ -899,7 +899,7 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
   /* The request opens Seats & spectators for every player by itself, and its Approve names the requester. */
   await until(
-    async () => (await windowOf(approver, 'Seats & spectators').count()) > 0,
+    async () => (await panelOf(approver, 'Seats & spectators').count()) > 0,
     'The seat request did not open Seats & spectators.'
   );
   await openTab(approver, 'Seats & spectators');
@@ -1087,25 +1087,25 @@ async function converged(peers: HostedPeer[]) {
     'Recipient revisions did not converge.'
   );
 }
-/* The window a panel opens in: Hand and Spice share one. */
-const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
-/** The window named for a panel, by the label on its frame; the sections inside carry names of their own. */
-function windowOf(who: HostedPeer, name: string) {
-  return who.page.locator(`[data-panel][aria-label="${WINDOW_OF[name] ?? name}"]`);
+/* The frame a panel opens in: Hand and Spice share one. */
+const PANEL_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
+/** A panel's frame, found by the label on it; the sections inside carry names of their own. */
+function panelOf(who: HostedPeer, name: string) {
+  return who.page.locator(`[data-panel][aria-label="${PANEL_OF[name] ?? name}"]`);
 }
 /**
- * Opens one window of the controls through the compass's search unless it is open already, in the centre or pinned.
+ * Opens one panel of the controls through the compass's search unless it is open already, in the centre or pinned.
  * A phase opening its own window as it begins can land just after this looks, which moves the centre to another window.
- * So the search is repeated until the window asked for stays.
+ * So the search is repeated until the panel asked for stays.
  */
 async function openTab(who: HostedPeer, name: string) {
-  const label = WINDOW_OF[name] ?? name;
+  const label = PANEL_OF[name] ?? name;
   const deadline = Date.now() + 30_000;
   for (;;) {
-    if ((await windowOf(who, name).count()) > 0) {
-      /* A moment's grace lets a phase's own window, opened as the phase began, take the centre first. */
+    if ((await panelOf(who, name).count()) > 0) {
+      /* A moment's grace lets a phase's own panel, opened as the phase began, take the centre first. */
       await delay(400);
-      if ((await windowOf(who, name).count()) > 0) {
+      if ((await panelOf(who, name).count()) > 0) {
         return;
       }
     }
@@ -1125,18 +1125,18 @@ async function openTab(who: HostedPeer, name: string) {
       continue;
     }
     await option.click();
-    await windowOf(who, name)
+    await panelOf(who, name)
       .waitFor({ timeout: 2000 })
       .catch(() => {});
   }
 }
 type Slot = 'left' | 'right';
 /**
- * Pins a window into a bottom slot, opening it first when it is not open.
- * A pinned window stays through a press on the table, which closes the centre window, and through a board gesture, which holds the Controls button.
+ * Pins a panel into a bottom slot, opening it first when it is not open.
+ * A pinned panel stays through a press on the table, which closes the centre panel, and through a board gesture, which holds the Controls button.
  */
-async function pinWindow(who: HostedPeer, name: string, side: Slot) {
-  const frame = windowOf(who, name);
+async function pinPanel(who: HostedPeer, name: string, side: Slot) {
+  const frame = panelOf(who, name);
   await openTab(who, name);
   const where = await frame.getAttribute('data-side');
   if (where === side) {
@@ -1148,9 +1148,9 @@ async function pinWindow(who: HostedPeer, name: string, side: Slot) {
     await openTab(who, name);
   }
   await frame.getByRole('button', { name: `Pin to the bottom ${side}`, exact: true }).click();
-  await who.page.locator(`[data-panel][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
+  await who.page.locator(`[data-panel][data-side="${side}"][aria-label="${PANEL_OF[name] ?? name}"]`).waitFor();
 }
-/** Makes a pinned slot as tall as the table allows, so a capture shows as much of its window as fits. */
+/** Makes a pinned slot as tall as the table allows, so a capture shows as much of its panel as fits. */
 async function growSlot(who: HostedPeer, side: Slot) {
   const edge = who.page.locator(`[data-panel][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
   await edge.focus();
@@ -1459,8 +1459,8 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
 }
 
 /**
- * Closes the centre window a stage or phase opens by itself over the board, so a press or pixel read there reaches the board.
- * Escape closes it, and pinned windows stay.
+ * Closes the centre panel a stage or phase opens by itself over the board, so a press or pixel read there reaches the board.
+ * Escape closes it, and pinned panels stay.
  */
 async function clearCentre(who: HostedPeer) {
   const centre = who.page.locator('[data-panel][data-side="centre"]');
@@ -1473,7 +1473,7 @@ async function clearCentre(who: HostedPeer) {
       .catch(() => undefined);
   }
   if ((await centre.count()) > 0) {
-    throw new Error(`${who.label}'s centre window did not close on Escape.`);
+    throw new Error(`${who.label}'s centre panel did not close on Escape.`);
   }
 }
 /** What covers a page point, or null when the board's canvas is topmost there. */
@@ -1487,8 +1487,8 @@ async function coverAt(who: HostedPeer, at: Point) {
   }, at);
 }
 /*
- * Uncovers the board at a page point before a drag lands there: a window the table placed in a free slot by itself stays
- * through a press on the table, where a centre window would close, so the slot covering the point is unpinned.
+ * Uncovers the board at a page point before a drag lands there: a panel the table placed in a free slot by itself stays
+ * through a press on the table, where a centre panel would close, so the slot covering the point is unpinned.
  */
 async function uncover(who: HostedPeer, at: Point) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -1634,15 +1634,15 @@ async function displayedPhase(who: HostedPeer, index: number, { held = false } =
   const controls = who.page;
   await openTab(who, 'Phase');
   /*
-   * A real game names the phase's section for assistive technology only, and the Phase window's (?) brings the
-   * phase's instructions once the pointer rests on it. While this player holds a board gesture the window refuses
+   * A real game names the phase's section for assistive technology only, and the Phase panel's (?) brings the
+   * phase's instructions once the pointer rests on it. While this player holds a board gesture the panel refuses
    * the pointer, and hovering would move the held piece, so only the named section is checked then.
    */
   /* The phase's own section leads the panel; the Battle phase adds a battle section of the same name below it. */
   const section = controls.getByRole('region', { name: phase.label, exact: true }).first();
   await section.waitFor({ state: 'attached' });
   if (!held) {
-    await windowOf(who, 'Phase').getByRole('img', { name: 'Help', exact: true }).hover();
+    await panelOf(who, 'Phase').getByRole('img', { name: 'Help', exact: true }).hover();
     try {
       await controls.getByRole('tooltip').filter({ hasText: phase.instructions }).waitFor();
     } catch (error) {
@@ -1715,12 +1715,12 @@ async function sharedPhaseFlow(a: HostedPeer, b: HostedPeer) {
   await focus(a, 'map');
   await focus(b, 'map');
   /*
-   * Both players open the Phase window now: the windows are inert while a board gesture is held, so opening one during
+   * Both players open the Phase panel now: the panels are inert while a board gesture is held, so opening one during
    * the remote-carry step would be refused. B's is pinned, as B's press on the table to pick the piece up would close
-   * a window in the centre.
+   * a panel in the centre.
    */
   await openTab(a, 'Phase');
-  await pinWindow(b, 'Phase', 'left');
+  await pinPanel(b, 'Phase', 'left');
   await displayedPhase(a, 0);
   assert.equal(await previousPhaseDisabled(a), true);
   await a.page.getByRole('heading', { name: 'Storm sector', exact: true }).waitFor();
@@ -2052,10 +2052,10 @@ async function verifyTableReview(a: HostedPeer, b: HostedPeer) {
   await revision(a, before + 1);
   await revision(b, before + 1);
   await displayedPhase(a, TABLE_PHASES.length);
-  assert.equal(await windowOf(b, 'Replay').count(), 0);
+  assert.equal(await panelOf(b, 'Replay').count(), 0);
   await openTab(b, 'Mentat recall');
   const historyFrom = [a.rawMessages.length, b.rawMessages.length];
-  await windowOf(b, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
+  await panelOf(b, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
   await a.page.getByRole('group', { name: 'Mentat recall vote' }).getByRole('button', { name: 'Agree' }).click();
   for (const [index, who] of [a, b].entries()) {
     await who.page.getByRole('group', { name: 'Mentat recall in progress' }).waitFor();
@@ -2430,7 +2430,7 @@ async function verifyRender() {
   await visibleActivity(a, b, 'player-a-to-player-b');
   await sharedSpiceRoundTrip(a, b, 3, () => spiceBankShortcut(a, '3'), 'spice-key-3');
   await openTab(a, 'Phase');
-  await pinWindow(b, 'Phase', 'left');
+  await pinPanel(b, 'Phase', 'left');
   while (phaseAt(requireView(a).snapshot.phase).id !== 'mentat-pause') {
     await phaseStep(a, b);
   }
@@ -2471,8 +2471,8 @@ try {
     converged,
     focus,
     openTab,
-    windowOf,
-    pinWindow,
+    panelOf,
+    pinPanel,
     growSlot,
     point,
     coverAt,
@@ -2630,8 +2630,8 @@ export type HostedToolkit = {
   converged: typeof converged;
   focus: typeof focus;
   openTab: typeof openTab;
-  windowOf: typeof windowOf;
-  pinWindow: typeof pinWindow;
+  panelOf: typeof panelOf;
+  pinPanel: typeof pinPanel;
   growSlot: typeof growSlot;
   point: typeof point;
   coverAt: typeof coverAt;
