@@ -18,7 +18,7 @@ const bundle = await build({
     {
       name: 'native-sqlite-load-failure',
       setup(builder) {
-        builder.onResolve({ filter: /^\.\/session$/ }, ({ importer }) =>
+        builder.onResolve({ filter: /^\.\.\/\.\.\/src\/shared\/play\/engine\/session$/ }, ({ importer }) =>
           importer === productionEntry
             ? { path: fileURLToPath(new URL('./sqlite-recovery-session.native.fixture.ts', import.meta.url)) }
             : undefined
