@@ -95,7 +95,10 @@ describe('a tutorial table before the deal', () => {
     expect(stored().swapping?.closed).toBe(true);
     expect(sent).toHaveLength(2);
     for (const message of sent) {
-      expect(message).toMatchObject({ type: 'view', snapshot: { revision: settled.revision, stage: settled.stage } });
+      expect(message).toMatchObject({
+        type: 'view',
+        snapshot: { revision: settled.revision, stage: settled.stage, swapping: { closed: true } },
+      });
     }
   });
 
