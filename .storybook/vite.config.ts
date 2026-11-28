@@ -71,10 +71,14 @@ export default defineConfig({
       ...convexWorkerOptimizeDeps.include,
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
+      /* A testing story reaches it late in a run, and discovering it then reloads the page mid-run. */
+      '@testing-library/react',
       /* Prebundle the browser-only table before its lazy route is opened. */
       '@react-three/drei/webgpu',
       '@react-three/fiber/webgpu',
       'three',
+      /* The tutorial's SQLite, prebundled so opening a chapter does not reload the page mid-run. */
+      'sql.js/dist/sql-asm-memory-growth.js',
     ],
     /* The prebundled table runs the same fiber and drei code as the build. */
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },

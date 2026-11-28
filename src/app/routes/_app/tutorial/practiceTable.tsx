@@ -95,7 +95,7 @@ export function useTutorialTable(
       players: playersAt(() => holder.current),
       reset: () => {
         const { deliver, board: kept } = holder.current;
-        holder.current.dispose();
+        holder.current.close();
         holder.current = open(kept);
         holder.current.deliver = deliver;
         /* A read the old table left behind is answered now, so a stalled one does not hold the page's next request. */

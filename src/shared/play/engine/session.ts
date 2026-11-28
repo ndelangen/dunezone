@@ -5,7 +5,7 @@ import { propertyId } from '../../boards/schema';
 import type { playGameProvisionSchema } from '../admission';
 import type { BugReportBrowser } from '../bugReports';
 import { publicFaction } from '../capture';
-import type { CaptureReadiness } from '../capture';
+import type { BoardCapture, CaptureReadiness } from '../capture';
 import { emptySnapshot } from '../commands';
 import { isRecallConversation, TABLE_CONVERSATION } from '../conversations';
 import { conversationMembers } from '../conversations';
@@ -167,6 +167,18 @@ export function readinessProblem(readiness: CaptureReadiness): string | undefine
   return problem && `${problem.subject}, ${problem.reason}`;
 }
 
+/** What a host that runs a game without the catalogue behind it supplies in its place. */
+export type SessionOptions = Readonly<{
+  /* The board the table plays on, when the host reads it itself; the captured ruleset's otherwise. */
+  board?: () => BoardCapture | undefined;
+  /* Trading closes with the game waiting at the table, since building the setup table needs the captured faction content. */
+  waitsAtTable?: boolean;
+  /* The turn keeps the phases the recording held, since composing it needs the factions' captured phase declarations. */
+  keepsRecordedTurn?: boolean;
+}>;
+
+const WAITS_AT_TABLE: Pick<SetupSupply, 'enter'> = { enter: (snapshot) => snapshot };
+
 /** Owns game state and its durable transitions; the host owns connections and delivery. */
 export class GameSession {
   private readonly actors: ActorDirectory;
@@ -195,7 +207,9 @@ export class GameSession {
     /* What a fixture room seats and lays out: the hosted fixture's, unless a load entry supplies its own. */
     private readonly fixturePlan: FixturePlan = hostedFixturePlan,
     /* Whether a user is at the seat limit, which the host learns from each admission. */
-    atSeatLimit?: (userId: string) => boolean
+    atSeatLimit?: (userId: string) => boolean,
+    /* What a host without a catalogue behind it supplies instead (the tutorial); a Worker room passes nothing. */
+    private readonly options: SessionOptions = {}
   ) {
     this.log = new PublicLog(this.storage, () => (this.room ? logContext(this.room.snapshot) : 'Drafting'));
     this.actors = new ActorDirectory(this.storage, this.log);
@@ -207,7 +221,12 @@ export class GameSession {
     const sql = this.storage.sql;
     initializeSessionStorage(sql);
     this.participation = new Participation(this.storage, this.actors, atSeatLimit);
-    this.swapping = new Swapping(this.storage, this.actors, new SetupSupply(this.storage, this.captures), this.log);
+    this.swapping = new Swapping(
+      this.storage,
+      this.actors,
+      options.waitsAtTable ? WAITS_AT_TABLE : new SetupSupply(this.storage, this.captures),
+      this.log
+    );
     this.actors.participation = this.participation;
     this.removal = new RemovalVotes(this.storage, this.actors, this.log);
     this.reviews = new TableReviews(this.storage, this.actors, this.log, (id) => this.conversations.discardRecall(id));
@@ -240,7 +259,8 @@ export class GameSession {
   private withRoster<Snapshot extends StoredSnapshot>(snapshot: Snapshot): Snapshot {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
-    const composed = this.composedTurn(roster, settled.table);
+    /* A host without the faction captures keeps the turn its recording held, since the declarations come from the captures. */
+    const composed = this.options.keepsRecordedTurn ? settled.phases : this.composedTurn(roster, settled.table);
     /*
      * Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it.
      * A finished game keeps the order it ended in, since it can end mid-turn and continue there.
@@ -291,7 +311,7 @@ export class GameSession {
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs,
-      () => this.board().definition
+      () => this.board()?.definition
     );
     /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
     const dealt = new Map<string, readonly string[] | undefined>();
@@ -305,8 +325,14 @@ export class GameSession {
     return room;
   }
 
-  /* The board the table plays on: the one the game captured with its ruleset; a fixture, or a game retained before ruleset boards, plays on the bundled Arrakis. */
-  private board() {
+  /*
+   * The board the table plays on: the one the game captured with its ruleset; a fixture, or a game retained before ruleset boards, plays on the bundled Arrakis.
+   * A host that holds its own board answers for it, and until it has read one the table plays on none.
+   */
+  private board(): BoardCapture | undefined {
+    if (this.options.board) {
+      return this.options.board();
+    }
     return this.captures.ruleset()?.board ?? arrakisBoardCapture;
   }
 
@@ -392,6 +418,40 @@ export class GameSession {
     this.history.accept(0, snapshot);
   }
 
+  /**
+   * Opens the game at a recorded point instead of at creation: a host that plays from a recording (the tutorial) installs the stored state, the seating and the people at the table as a real game would hold them by then.
+   */
+  restore(opening: {
+    metadata: Metadata;
+    snapshot: StoredSnapshot;
+    people: readonly (PassProfile & { seat: Viewer['viewerSeat'] })[];
+    /* The last public log line the recording holds, so the lines this game adds follow it. */
+    logSequence?: number;
+  }) {
+    if (this.metadata) {
+      throw new Error('A session restores only into empty storage.');
+    }
+    const { metadata, snapshot } = opening;
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec('INSERT INTO metadata VALUES (1, ?)', JSON.stringify(metadata));
+      this.storage.sql.exec('INSERT INTO current_state VALUES (1, ?)', JSON.stringify(snapshot));
+      this.history.seed(snapshot);
+      if (snapshot.roster) {
+        this.actors.install(snapshot.roster);
+      }
+      for (const { seat, ...profile } of opening.people) {
+        this.actors.seatCreator(profile.userId, profile.displayName, seat, profile);
+      }
+      if (opening.logSequence) {
+        this.storage.sql.exec("INSERT INTO sqlite_sequence(name, seq) VALUES('public_log', ?)", opening.logSequence);
+      }
+    });
+    this.metadata = metadata;
+    this.log.enabled = Boolean(metadata.game);
+    this.room = this.openRoom(this.withRoster(this.spiceLedger.project(snapshot)));
+    this.history.accept(0, snapshot);
+  }
+
   private installSetupProgress() {
     const room = this.room;
     if (!room || room.snapshot.stage !== 'setup' || room.snapshot.setup) {
@@ -438,8 +498,9 @@ export class GameSession {
       return;
     }
     if (swapping.closed) {
+      /* A table that waits at the table stays closed and swapping once trading ends; there is no setup table left to build. */
       const filled = room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id));
-      if (!filled) {
+      if (!filled || this.options.waitsAtTable) {
         return;
       }
     }
@@ -974,7 +1035,7 @@ export class GameSession {
   }
   /* A spice blow's territory takes its name from the captured board, never from the page, so the log says where the spice went. */
   private namedOnBoard<Action extends PieceAction>(action: Action): Action {
-    const board = action.kind === 'spice-blow' ? this.board().definition : undefined;
+    const board = action.kind === 'spice-blow' ? this.board()?.definition : undefined;
     if (action.kind !== 'spice-blow' || !board) {
       return action;
     }
@@ -1065,21 +1126,33 @@ export class GameSession {
   }
 
   /** Records the public assignment and forms the opening swapping state inside the deal's transaction. */
-  private recordAssignment(stored: StoredSnapshot, current: DraftState, deal: ReturnType<typeof dealSeats>) {
+  private recordAssignment(
+    stored: StoredSnapshot,
+    current: DraftState,
+    deal: ReturnType<typeof dealSeats>,
+    tokens: Readonly<Record<string, string>> = {}
+  ) {
     return this.withRoster(
       dealtSnapshot(stored, current, deal, {
         seats: this.actors.seats(),
-        tokens: this.assignmentTokens(deal),
+        tokens: { ...this.assignmentTokens(deal), ...tokens },
         closeRosterRequests: (controls, now) => this.participation.closeRosterRequests(controls, now),
         now: hostNow(),
       })
     );
   }
 
-  completeAssignment(prepared: NonNullable<ReturnType<GameSession['prepareAssignment']>>) {
+  /**
+   * Deals the drafted factions to the seats at random.
+   * A host replaying a recording (the tutorial) passes its own deal, with the faction tokens it recorded in place of the captures a game reads them from.
+   */
+  completeAssignment(
+    prepared: NonNullable<ReturnType<GameSession['prepareAssignment']>>,
+    recorded?: Readonly<{ deal: ReturnType<typeof dealSeats>; tokens: Readonly<Record<string, string>> }>
+  ) {
     const { seated, factions, stamp } = prepared;
     const room = this.room!;
-    const deal = dealSeats(seated, factions, unbiased);
+    const deal = recorded?.deal ?? dealSeats(seated, factions, unbiased);
     const committed = this.storage.transactionSync(() => {
       const stored = this.storedSnapshot();
       const current = stored.draft;
@@ -1089,7 +1162,7 @@ export class GameSession {
       }
       this.installDeal(deal, current);
       this.storage.sql.exec("UPDATE metadata SET data=json_set(data, '$.seatCount', ?) WHERE id=1", seated.length);
-      const next = this.recordAssignment(stored, current, deal);
+      const next = this.recordAssignment(stored, current, deal, recorded?.tokens);
       const history = this.history.checkpoint(next);
       this.log.recordStage(stored, next);
       this.writeState(next);
@@ -1104,6 +1177,16 @@ export class GameSession {
     this.history.accept(committed.history.step, committed.next);
     room.accept(committed.next);
     return true;
+  }
+
+  /** The live table, for a host that runs the session in the page and reads its state directly (the tutorial). */
+  get liveRoom(): Room | undefined {
+    return this.room;
+  }
+
+  /** Logs a chat clear for a host that keeps its conversations itself (the tutorial's scripted chat); true when it added a line. */
+  recordChatClear(clear: Readonly<{ factionId: string; peerId: string; through: number }>) {
+    return this.log.recordChatClear({ snapshot: this.room!.snapshot, holders: this.actors.occupants(), ...clear });
   }
 
   get info(): Readonly<Metadata> | undefined {
@@ -1229,6 +1312,14 @@ export class GameSession {
   seatFor(userId: string) {
     return this.actors.seatFor(userId);
   }
+  /** Every seat a player sits in now. */
+  seats() {
+    return this.actors.seats();
+  }
+  /** Who holds a seat now, if anyone. */
+  holderOf(seat: string) {
+    return this.actors.holderOf(seat);
+  }
   /** The identity the provisioning replay commands as (#1594): the creator at their seat, or a placeholder the room admits as a spectator. */
   provisionViewer(userId: string, displayName: string): Viewer {
     return this.actors.viewer(`provision:${userId}`, { userId, displayName, issuedAt: 0 }, { seatNewcomers: false });
@@ -1317,7 +1408,7 @@ export class GameSession {
     if (stage !== undefined && stage !== 'finished' && this.reviews.running()?.step !== step) {
       throw new GameRejection('Replay opens once the game is finished.');
     }
-    if (step > this.history.steps) {
+    if (!Number.isInteger(step) || step < 0 || step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }
     /*

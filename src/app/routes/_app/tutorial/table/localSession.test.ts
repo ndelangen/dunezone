@@ -73,6 +73,46 @@ describe('a tutorial table before the deal', () => {
     expect(table.viewer('seat-1').userId).not.toBe(table.viewer('seat-2').userId);
   });
 
+  test('closes trading once, then waits at the table without rewriting it', () => {
+    for (const entry of deal()) {
+      act({ kind: 'draft-pick', factionId: entry.factionId }, entry.seat);
+    }
+    for (const entry of deal()) {
+      act({ kind: 'draft-ready', ready: true }, entry.seat);
+    }
+    for (const entry of deal()) {
+      act({ kind: 'swap-ready', round: stored().swapping!.round, seat: entry.seat, ready: true }, entry.seat);
+    }
+    expect(table.refusal).toBeUndefined();
+    expect(stored().swapping?.closed).toBe(true);
+    const settled = stored();
+    sent = [];
+    table.receive({ type: 'sync' }, table.seat);
+    table.receive({ type: 'sync' }, table.seat);
+    /* Each sync shows the same settled table: still trading, still closed, at the same revision. */
+    expect(stored().revision).toBe(settled.revision);
+    expect(stored().stage).toBe(settled.stage);
+    expect(stored().swapping?.closed).toBe(true);
+    expect(sent).toHaveLength(2);
+    for (const message of sent) {
+      expect(message).toMatchObject({
+        type: 'view',
+        snapshot: { revision: settled.revision, stage: settled.stage, swapping: { closed: true } },
+      });
+    }
+  });
+
+  test('names the watching spectator in every view, and no longer once they are seated', () => {
+    const watcher = table.viewer(SPECTATOR_SEAT);
+    expect(table.frame('seat-1').snapshot.controls?.spectators.map((entry) => entry.name)).toEqual([
+      watcher.displayName,
+    ]);
+    table.viewAs(SPECTATOR_SEAT);
+    act({ kind: 'seat-request' }, SPECTATOR_SEAT);
+    act({ kind: 'seat-approve', requestId: stored().controls!.seatRequests[0]!.id }, 'seat-1');
+    expect(table.frame('seat-1').snapshot.controls?.spectators).toEqual([]);
+  });
+
   test('seats a spectator once a player approves their request', () => {
     table.viewAs(SPECTATOR_SEAT);
     act({ kind: 'seat-request' }, SPECTATOR_SEAT);

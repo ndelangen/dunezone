@@ -8,7 +8,7 @@ import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
 import type { ChapterScript } from '../chapterScripts/chapterScript';
-import type { RecordedDeal } from '../table/localSession';
+import type { RecordedDeal } from '../table/localTable';
 import type { TableStart } from '../table/localTable';
 import spiceBlows from './spiceBlows.json';
 

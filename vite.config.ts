@@ -14,7 +14,7 @@ import {
 } from './.storybook/worker-async-transform.ts';
 import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
-import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
+import { browserBundleBudgets, SQLITE_BUILD, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
 import { convexSourceVersion } from './scripts/lib/convexSourceVersion.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
 import { quietBuildReportInCi } from './scripts/lib/quietBuildReport.ts';
@@ -223,6 +223,8 @@ const config = defineConfig({
                 { name: 'lucide', test: /\/lucide-react\//u, maxSize: 500_000, entriesAware: true },
                 /* Three's three builds share one vendor chunk, the shape the bundle budget recognises, whichever renderer modules import them. */
                 { name: 'three', test: THREE_BUILD },
+                /* sql.js stands alone in its chunk, the shape its bundle budget recognises. */
+                { name: 'sqlite', test: SQLITE_BUILD },
                 { name: 'media-index', test: /\/src\/app\/routes\/_app\/media\/media-index\.json$/u },
               ],
             },
@@ -259,7 +261,8 @@ const config = defineConfig({
   optimizeDeps: {
     /* The sandbox worker's packages stay on the transform path that lowers their async functions. */
     exclude: convexWorkerOptimizeDeps.exclude,
-    include: convexWorkerOptimizeDeps.include,
+    /* The tutorial's SQLite is prebundled up front, so opening a chapter does not reload the page. */
+    include: [...convexWorkerOptimizeDeps.include, 'sql.js/dist/sql-asm-memory-growth.js'],
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },
   },
   resolve: {

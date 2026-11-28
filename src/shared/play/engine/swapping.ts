@@ -18,7 +18,7 @@ export class Swapping {
   constructor(
     private readonly storage: DurableObjectStorage,
     private readonly actors: ActorDirectory,
-    private readonly supply: SetupSupply,
+    private readonly supply: Pick<SetupSupply, 'enter'>,
     private readonly log: PublicLog
   ) {
     storage.sql.exec(

@@ -1,6 +1,6 @@
 /*
  * The slice of the Workers runtime's Durable Object storage types that the game Worker's session classes use,
- * declared for the app's build, which runs those classes on `MemorySql` and has no Workers runtime types of its own.
+ * declared for the app's build, which runs those classes on sql.js through `sqlStorage` and has no Workers runtime types of its own.
  * Copied from `workers/game/worker-configuration.d.ts`, the generated declarations the Worker itself is checked against.
  */
 

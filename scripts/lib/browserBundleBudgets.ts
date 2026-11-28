@@ -7,8 +7,11 @@ import type { Plugin, Rolldown } from 'vite-plus';
 const DEFAULT_BYTES = 500_000;
 const WEBGPU_BYTES = 1_120_000;
 const DRACO_BYTES = 740_000;
+const SQLITE_BYTES = 1_400_000;
 /** Three's three prebuilt WebGPU modules, which `vite.config.ts` also groups into the one chunk this budget recognises. */
 export const THREE_BUILD = /\/node_modules\/three\/build\/three\.(core|webgpu|tsl)\.js$/u;
+/** sql.js's asm.js build with a growing heap, SQLite as plain JavaScript for a page's own game session; `vite.config.ts` gives it a chunk of its own. */
+export const SQLITE_BUILD = /\/node_modules\/sql\.js\/dist\/sql-asm-memory-growth\.js$/u;
 const digest = (source: string | Uint8Array) => createHash('sha256').update(source).digest('hex');
 const require = createRequire(import.meta.url);
 const dracoDigests = new Set(
@@ -26,11 +29,26 @@ function isThreeWebGpuChunk(file: Rolldown.OutputChunk): boolean {
   return modules.length === 3 && new Set(modules).size === 3 && modules.every((kind) => kind !== undefined);
 }
 
+/* The largest helper the bundler adds beside sql.js; a virtual module bigger than this is code, and counts as such. */
+const STUB_BYTES = 4096;
+
+/* Vite's empty stand-ins for the Node built-ins sql.js names but never loads in a browser, and the bundler's own small helpers. */
+function isBrowserStub(id: string, module: Rolldown.RenderedModule | undefined) {
+  return id.includes('__vite-browser-external') || (id.startsWith('\0') && (module?.renderedLength ?? 0) <= STUB_BYTES);
+}
+
+/* The chunk holds sql.js alone, so nothing else grows under its larger budget. */
+function isSqliteChunk(file: Rolldown.OutputChunk): boolean {
+  const modules = Object.keys(file.modules).filter((id) => !isBrowserStub(id, file.modules[id]));
+  return modules.length === 1 && SQLITE_BUILD.test(modules[0]!);
+}
+
 function payloadBudget(file: OutputFile): Budget {
   if (file.type === 'chunk') {
-    return isThreeWebGpuChunk(file)
-      ? { limit: WEBGPU_BYTES, identity: 'Three WebGPU/core/TSL vendor modules' }
-      : defaultBudget;
+    if (isThreeWebGpuChunk(file)) {
+      return { limit: WEBGPU_BYTES, identity: 'Three WebGPU/core/TSL vendor modules' };
+    }
+    return isSqliteChunk(file) ? { limit: SQLITE_BYTES, identity: 'sql.js asm.js build' } : defaultBudget;
   }
   return dracoDigests.has(digest(file.source))
     ? { limit: DRACO_BYTES, identity: 'unchanged Three Draco decoder' }
@@ -51,7 +69,7 @@ function inspectJavaScriptFile(file: OutputFile): string[] {
   return limit === DEFAULT_BYTES ? [] : [`${file.fileName}: ${bytes}/${limit} bytes, ${identity}`];
 }
 
-/** Fail browser JavaScript growth; only verified Three vendor payloads have larger budgets. */
+/** Fail browser JavaScript growth; only verified Three vendor payloads and the sql.js build have larger budgets. */
 export function inspectBrowserJavaScript(bundle: Rolldown.OutputBundle): string[] {
   return Object.values(bundle)
     .filter((file) => /\.[cm]?js$/u.test(file.fileName))
