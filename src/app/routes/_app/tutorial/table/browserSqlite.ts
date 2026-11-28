@@ -1,6 +1,6 @@
 import { sqlStorage } from '@shared/play/engine/sqlStorage';
-import initSqlJs from 'sql.js/dist/sql-asm-memory-growth.js';
 import type { Statement } from 'sql.js';
+import initSqlJs from 'sql.js/dist/sql-asm-memory-growth.js';
 
 /*
  * SQLite compiled to plain JavaScript (asm.js), for the game session a page runs itself (the tutorial's chapters, Pages / Play / Sandbox).
