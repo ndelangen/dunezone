@@ -4,8 +4,8 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { FACTION_INFO } from '../../play/compass/windows';
-import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
+import { FACTION_INFO } from '../../../../play/compass/windows';
+import { PANEL_WINDOWS } from '../../../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
 

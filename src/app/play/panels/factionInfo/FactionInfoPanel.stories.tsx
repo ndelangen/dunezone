@@ -1,0 +1,95 @@
+import preview from '@sb/preview';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
+import { expect, waitFor } from 'storybook/test';
+
+import { playingSnapshot, swappingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
+import {
+  factionInfoArgs,
+  factionInfoPanelMeta,
+  observerArgs,
+  removalSnapshot,
+  treacheryTrackerArgs,
+  vacantSnapshot,
+} from './FactionInfoPanel.stories.fixture';
+
+/*
+ * The Faction info window on its own, for one seat of a six-seat game mid-play, as seat 2 sees it:
+ * who sits there, their faction and alliance, what the faction starts with, and any vote against the player.
+ * The seat's trade has its own stories with the table; requests for a seat are in Seats & spectators.
+ */
+const meta = preview.meta({ ...factionInfoPanelMeta, title: 'Play/Panels/Faction info' });
+
+/** Central's House Atreides in seat 1: its page, its alliance, and its leaders, with the advantages open. */
+export const AnotherPlayer = meta.story({
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('House Atreides · Seat 1')).toBeVisible();
+  },
+});
+
+/** The viewer's own seat, marked as theirs, with no removal vote to start. */
+export const OwnSeat = meta.story({
+  args: factionInfoArgs(playingSnapshot(), 'seat-2'),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/\(you\)$/)).toBeVisible();
+  },
+});
+
+/** An open seat, named by its faction. */
+export const OpenSeat = meta.story({
+  args: factionInfoArgs(vacantSnapshot(), 'seat-6'),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Seat 6')).toBeVisible();
+  },
+});
+
+/** A game that captured no faction sheet: the seat's player and alliance only. */
+export const WithoutTheFactionSheet = meta.story({
+  args: factionInfoArgs(playingSnapshot(), 'seat-1', 'seat-2', { captured: false }),
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole('button', { name: 'Advantages' })).toBeNull();
+  },
+});
+
+/** A vote to remove Central, which the viewer has voted to remove. */
+export const RemovalVote = meta.story({
+  args: factionInfoArgs(removalSnapshot()),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Remove' })).toHaveAttribute('aria-pressed', 'true');
+  },
+});
+
+/** The vote as its target sees it: the ballots, and no vote of their own. */
+export const RemovalVoteOnYou = meta.story({
+  args: factionInfoArgs(removalSnapshot(), 'seat-1', 'seat-1'),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('You cannot vote on your own removal.')).toBeVisible();
+  },
+});
+
+/** An observer reads the seat, with no action at all. */
+export const Observer = meta.story({
+  args: observerArgs(),
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole('button', { name: /^(Offer alliance|Start removal vote)$/ })).toBeNull();
+  },
+});
+
+/** While seats are traded: the trade sits in the toolbar with the other actions, and the window says nothing about who is ready. */
+export const WhileTrading = meta.story({
+  args: factionInfoArgs(swappingSnapshot(), 'seat-1', 'seat-2', { captured: false }),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('toolbar', { name: 'Seat actions' })).toBeVisible();
+    await expect(canvas.queryByText(/^(Not ready|Ready)$/)).toBeNull();
+  },
+});
+
+/** A faction whose rules keep the Treachery tracker says so under Setup, so every player sees why that seat has one. */
+export const KeepsATreacheryTracker = meta.story({
+  args: treacheryTrackerArgs(),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Setup' }));
+    /* The Setup section opens with a transition, so its text is in the document a moment before it shows. */
+    const rule = await canvas.findByText(TREACHERY_TRACKER_RULE);
+    await waitFor(() => expect(rule).toBeVisible());
+  },
+});

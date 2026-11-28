@@ -12,8 +12,8 @@ import { within } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 import { CameraLookContext, createCameraLook } from '@app/widgets/tabletop/cameraLook';
 
+import { NoticeLifetime } from '../../../play/notices/noticeLifetime';
 import { install } from './game.stories.fixture';
-import { NoticeLifetime } from './multiplayer/noticeLifetime';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 /** The seat the soft notification stories watch from. */

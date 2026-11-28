@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-li
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';
+import { stubMatchMedia } from '@app/play/table/jsdom.test.fixture';
 import { useSpeech } from '@app/widgets/speech/speech';
 
 import { ReadAloud } from './ReadAloud';

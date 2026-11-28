@@ -13,7 +13,7 @@ const meta = preview.meta({
   title: 'Play/Alliances',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

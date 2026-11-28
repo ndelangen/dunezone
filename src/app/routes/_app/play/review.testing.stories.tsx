@@ -11,7 +11,7 @@ const meta = testingPreview.meta({
   title: 'Play/Panels/Mentat recall',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

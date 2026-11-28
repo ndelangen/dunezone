@@ -13,6 +13,10 @@ import { join } from 'node:path';
 
 const ALLOWED = new Map([
   ['db', 'the domain data modules, and the only doorway to Convex'],
+  [
+    'play',
+    'the Play table client: the hosted table, its compass and panels, shared by the Play routes and the tutorial',
+  ],
   ['pickers', 'domain controls that lazily fetch their own options; never mutate'],
   ['print', 'the game renderers as printable documents: the sheet bridge, the capture page'],
   ['routeTree.gen.ts', 'generated'],

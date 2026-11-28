@@ -20,7 +20,7 @@ const meta = testingPreview.meta({
   title: 'Play/Own faction',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],

@@ -255,6 +255,16 @@ Outside the kit:
   - **Domain, not kit.** A Picker knows *what* it fetches, so it can never live in the domain-free
     kit; it renders *through* the kit (a `Select`, an `AssignPopover`). It is a peer of Widgets, not
     a seventh kit category.
+- **The Play table client** (`src/app/play`) is the hosted table the Play routes and the tutorial both
+  mount: `table/` (`HostedTable`, `GameTable`, `StageHeader` and the table's own plumbing), the
+  `compass/` that opens panels, the `panels/` themselves (one folder per panel, see ADR-0005), and the
+  table's other parts filed by area (`battle/`, `bidding/`, `drafting/`, `hand/`, `movement/`,
+  `notices/`, `prediction/`, `results/`, `review/`, `seats/`, `spice/`). It is not a widget, because
+  it talks to the table session and asks for admission itself, and it is not one route's
+  composition, because the tutorial installs it too. The routes under `routes/_app/play` keep only
+  the pages and the page stories; outside its own stories and tests nothing in `src/app/play`
+  imports a route. What the compass opens is a **panel** in code as on screen: `PanelFrame`,
+  `CompassPanel`, `PANELS`, never "window".
 - **Game assets** (`src/game`) are print-faithful renderers. They own their colours and are never
   themed. The glue that turns them into documents lives in **`src/app/print/`** and belongs to this
   world, not to the interface taxonomy: `print/sheet/` is the bridge a `Faction` row crosses to
@@ -276,8 +286,8 @@ beside it; `dnd-sortable-ids.ts` had two files in one widget, so it is that widg
 formatters and the publishing copy turn data into words, which is Content's job, so they are support
 modules in the kit.
 
-**`src/app`'s top level is a closed set**, one entry per role: `db`, `pickers`, `print`, `routes`,
-`shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
+**`src/app`'s top level is a closed set**, one entry per role: `db`, `pickers`, `play`, `print`,
+`routes`, `shell`, `styles`, `ui`, `widgets`, plus `router.tsx` and the generated route tree.
 `bun run check:app-layout` fails on anything else, because folders outlive the scheme that created
 them and the ones above sat empty-but-alive for months. Adding a role means documenting it here
 first. Inside `routes/`, **a route file is `index.tsx`, or its last dot-segment is `route`**

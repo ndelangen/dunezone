@@ -4,7 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { PANEL_WINDOWS } from '../../play/panels/panelWindows';
+import { PANEL_WINDOWS } from '../../../../play/panels/panelWindows';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, onBoard, openedWindow, task, windowShown } from './guideChecks';
 

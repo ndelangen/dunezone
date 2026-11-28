@@ -561,7 +561,7 @@ publish, leave, and so on) and a shape: an icon trigger in toolbars, a full-widt
 account-deletion page, or a menu item, such as deleting a piece from a Play table. Every held action
 goes through it; a new verb is one more entry in its word table. The Play compass's
 "Clear all chats" suggestion holds the same five seconds through the compass's own keys, since its search field
-keeps focus ([`useHeldSuggestion`](../../src/app/routes/_app/play/compass/useHeldSuggestion.ts)). One `window.confirm` survives, at
+keeps focus ([`useHeldSuggestion`](../../src/app/play/compass/useHeldSuggestion.ts)). One `window.confirm` survives, at
 the asset move on the group page, which is not a delete and is pending its own treatment.*
 
 ### A tab icon is an icon, never a proof

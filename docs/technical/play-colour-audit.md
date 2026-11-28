@@ -48,8 +48,8 @@ These eight swatches belong to `playUiColors`. None comes from an artwork file o
 
 | Colour | Code role | Exact use |
 | --- | --- | --- |
-| `#211D18` | `fallbackFaction` | Background for the hand-count emblem when a faction token is missing. [`HandCounts.tsx`](../../src/app/routes/_app/play/multiplayer/HandCounts.tsx). |
-| `#BFB09A` | `unknownFaction` | Neutral colour for an unassigned seat's swap token. [`SwapScene.tsx`](../../src/app/routes/_app/play/multiplayer/SwapScene.tsx). |
+| `#211D18` | `fallbackFaction` | Background for the hand-count emblem when a faction token is missing. [`HandCounts.tsx`](../../src/app/play/hand/HandCounts.tsx). |
+| `#BFB09A` | `unknownFaction` | Neutral colour for an unassigned seat's swap token. [`SwapScene.tsx`](../../src/app/play/drafting/SwapScene.tsx). |
 | `#171511` | `boardDivider` | Narrow divider bars between the board rim's player-station sections. [`TabletopBoard.tsx`](../../src/app/widgets/tabletop/TabletopBoard.tsx). |
 | `#D7C299` | `stationGround` | The small circular pad at each player station. It is procedural geometry beneath the faction token. Same renderer. |
 | `#C92A2A` | `stormSector` | The translucent sector overlay under the moving storm marker. Same renderer. |

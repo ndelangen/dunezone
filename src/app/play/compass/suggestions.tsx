@@ -1,0 +1,408 @@
+import { TopicIcon } from '@ui/content/TopicIcon';
+import { Eraser } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { SiDiscord } from 'react-icons/si';
+
+import { setBoardSkin, setPlanetShading } from '../../widgets/tabletop/boardSkinPreference';
+import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase } from '../../widgets/tabletop/cameraFollowsPhase';
+import type { TableView } from '../../widgets/tabletop/playView';
+import type { CompassPlayer, CompassTable } from './compassTable';
+import { PlayerToken } from './PlayerToken';
+import { SHORTCUTS } from './shortcuts';
+import type { Command, TableCommand } from './shortcuts';
+import { FACTION_INFO } from './windows';
+import type { TableWindow } from './windows';
+
+/** One line under the search field: a window to open or a command to run. */
+export type Suggestion = Readonly<{
+  key: string;
+  /** A visible command that this mode does not allow. */
+  disabled?: boolean;
+  label: string;
+  hint: string;
+  icon: ReactNode;
+  run: () => void;
+  /** The letter that does the same with the compass shut. */
+  shortcut?: string;
+  /** A destructive command runs only after a five-second hold; this is its countdown's verb, such as "Clearing". */
+  held?: string;
+}>;
+
+/* `typedOnly` keeps a candidate out of the list shown with nothing typed. */
+type Candidate = Suggestion & Readonly<{ text: string; weight: number; typedOnly?: true }>;
+
+/* How many suggestions show with nothing typed, and once something is. */
+const SUGGESTED = 6;
+const MATCHES = 8;
+
+/* U turns the camera straight down whenever Flip faction token up does not have it (useCompass.ts). */
+const TOP_VIEW_SHORTCUT = SHORTCUTS.faceUp;
+
+const CAMERA_VIEWS: Record<TableView, string> = {
+  map: 'board',
+  left: 'left bay',
+  right: 'right bay',
+  bottom: 'bottom bay',
+  top: 'top-down',
+};
+
+/** Letters in order, anywhere in the text: "shinv" finds Shared table inventory. Earlier and closer letters score higher. */
+export function fuzzy(text: string, query: string): number | null {
+  const haystack = text.toLowerCase();
+  const needle = query.toLowerCase().replace(/\s+/g, '');
+  let score = 0;
+  let from = 0;
+  for (const letter of needle) {
+    const at = haystack.indexOf(letter, from);
+    if (at < 0) {
+      return null;
+    }
+    score += letterScore(haystack, at, from);
+    from = at + 1;
+  }
+  return score - haystack.length * 0.01;
+}
+
+/* A letter right after the last one scores most, one starting a word next, any other least. */
+function letterScore(haystack: string, at: number, from: number) {
+  if (at === from) {
+    return 3;
+  }
+  return at === 0 || haystack[at - 1] === ' ' ? 2 : 1;
+}
+
+/* What a window's line says under its name: the player's faction and unread count, or the window's group or description. */
+function hintOf(entry: TableWindow) {
+  if (entry.player) {
+    const unread = entry.player.unread ? ` · ${entry.player.unread} unread` : '';
+    return `${entry.player.factionName ?? 'Player'}${unread}`;
+  }
+  return entry.group === entry.label ? (entry.description ?? '') : entry.group;
+}
+
+/* With nothing typed, unread chats and the phase lead; the player's own window trails. */
+function weightOf(entry: TableWindow) {
+  return (entry.player?.unread ?? 0) * 10 + (entry.key === 'phase' ? 5 : 0) + (entry.player?.own ? -5 : 0);
+}
+
+/** The suggestions for what is typed: the best matches, or with nothing typed the windows and commands worth reaching first. */
+export function rankSuggestions(all: readonly Candidate[], query: string): Suggestion[] {
+  if (!query.trim()) {
+    return all
+      .filter((entry) => !entry.typedOnly)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, SUGGESTED);
+  }
+  return all
+    .map((entry) => ({ entry, score: fuzzy(entry.text, query) }))
+    .filter((match): match is { entry: Candidate; score: number } => match.score !== null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MATCHES)
+    .map((match) => match.entry);
+}
+
+export type SuggestionActions = Readonly<{
+  frozen?: boolean;
+  /** Opens a window; the faction information on the seat asked for. */
+  open: (key: string, seat?: string) => void;
+  /** Everyone at the table, the viewer too, whose faction information the search finds by faction or player name. */
+  players: readonly CompassPlayer[];
+  /** Steps the table to the next phase; null while the table refuses it, as the header's button is then disabled. */
+  nextPhase: (() => void) | null | undefined;
+  /** Clears every chat from the viewer's own view; null while there is nothing to clear. */
+  clearChats?: (() => void) | null;
+  /** Sends one Discord mention to a chosen occupied seat. */
+  nudge?: CompassTable['nudge'];
+  /** Places the spice of every face-up spice card on the table; null while there is none to place or the viewer cannot act. */
+  spiceBlow?: (() => void) | null;
+  /** Moves the camera, as the dial does. */
+  view: (view: TableView) => void;
+  /** The viewer's own faction token on the table, when they have one. */
+  token: Readonly<{ faceUp: boolean; flip: () => void }> | null | undefined;
+  /** The table's lettered commands, each null while the table does not offer it. */
+  commands: Readonly<Record<Command, TableCommand | null>>;
+  /** The letter of each window an arm of the compass opens, by the window's key. */
+  shortcuts: Readonly<Record<string, string>>;
+  /** Closes the compass before a command runs. */
+  close: () => void;
+}>;
+
+/* What each lettered command is called, and the words it is found by. */
+const COMMANDS: Readonly<Record<Command, Readonly<{ label: string; text: string }>>> = {
+  pass: { label: 'Pass', text: 'pass' },
+  raise: { label: 'Up the bid by 1', text: 'up raise the bid by 1 one' },
+  lower: { label: 'Lower the bid', text: 'lower the bid down' },
+  faceUp: { label: 'Flip faction token up', text: 'flip faction token up face up' },
+};
+
+/* Turning the token over, and the lettered commands the table offers now: a bid while the bidder points at the viewer. */
+function commandCandidates(actions: SuggestionActions): Candidate[] {
+  const icon = <TopicIcon topic="flip" size={18} />;
+  const token = actions.token;
+  const flip: Candidate[] = token
+    ? [
+        {
+          key: 'cmd:token:flip',
+          label: 'Flip faction token',
+          hint: 'Command',
+          icon,
+          run: () => {
+            actions.close();
+            token.flip();
+          },
+          text: 'flip faction token',
+          weight: 0,
+        },
+      ]
+    : [];
+  const lettered = (Object.keys(COMMANDS) as Command[]).flatMap((command): Candidate[] => {
+    const offered = actions.commands[command];
+    if (!offered) {
+      return [];
+    }
+    /* Raise is offered exactly while the bidder points at the viewer, when Pass hands it on rather than turning the token over. */
+    const bid = command === 'raise' || command === 'lower' || (command === 'pass' && actions.commands.raise !== null);
+    return [
+      {
+        key: `cmd:${command}`,
+        label: COMMANDS[command].label,
+        hint: offered.hint,
+        icon: bid ? <TopicIcon topic="bidding" size={18} /> : icon,
+        run: () => {
+          actions.close();
+          offered.run();
+        },
+        shortcut: SHORTCUTS[command],
+        text: COMMANDS[command].text,
+        /* A bid waiting on the viewer leads the suggestions. */
+        weight: bid ? 6 : 0,
+      },
+    ];
+  });
+  return [...lettered, ...flip];
+}
+
+/* Next phase, only while the table takes it: the header's button is disabled otherwise, and a command that does nothing would only close the compass. */
+function nextPhaseCandidate(nextPhase: SuggestionActions['nextPhase'], close: () => void): Candidate[] {
+  if (!nextPhase) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:next',
+      label: 'Next phase',
+      hint: 'Command',
+      icon: <TopicIcon topic="turn" size={18} />,
+      run: () => {
+        close();
+        nextPhase();
+      },
+      text: 'next phase',
+      weight: 4,
+    },
+  ];
+}
+
+/* Clearing every chat, found by name, never suggested unasked and held like every delete: each player clears only their own copy (#2674). */
+function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close: () => void): Candidate[] {
+  if (!clearChats) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:clear-chats',
+      label: 'Clear all chats',
+      hint: 'Hold to clear; others keep theirs',
+      icon: <Eraser size={18} aria-hidden />,
+      run: () => {
+        close();
+        clearChats();
+      },
+      text: 'clear all chats chat messages text erase',
+      weight: -1,
+      typedOnly: true,
+      held: 'Clearing',
+    },
+  ];
+}
+
+/* Discord nudges are explicit commands, found by the recipient's player or faction name. */
+function nudgeCandidates(nudge: SuggestionActions['nudge'], close: () => void): Candidate[] {
+  if (!nudge) {
+    return [];
+  }
+  return nudge.targets.map((player) => ({
+    key: `cmd:nudge:${player.seat}`,
+    label: `Nudge ${player.factionName ?? player.name}`,
+    hint: `Mention ${player.name} in Discord voice chat`,
+    icon: <SiDiscord size={18} aria-hidden />,
+    run: () => {
+      close();
+      nudge.send(player.seat);
+    },
+    text: `nudge ping discord mention ${player.name} ${player.factionName ?? ''}`,
+    weight: -1,
+    typedOnly: true,
+  }));
+}
+
+/* Spice blow, only while a face-up spice card lies on the table for the viewer to place. */
+function spiceBlowCandidate(spiceBlow: SuggestionActions['spiceBlow'], close: () => void): Candidate[] {
+  if (!spiceBlow) {
+    return [];
+  }
+  return [
+    {
+      key: 'cmd:spice-blow',
+      label: 'Spice blow',
+      hint: 'Place the spice of every face-up spice card',
+      icon: <TopicIcon topic="spiceBlow" size={18} />,
+      run: () => {
+        close();
+        spiceBlow();
+      },
+      text: 'spice blow',
+      weight: 3,
+    },
+  ];
+}
+
+/* A choice this viewer turns on or off, as in the game menu: one candidate for each side. */
+function toggleCandidates(
+  close: () => void,
+  icon: ReactNode,
+  toggle: Readonly<{
+    key: string;
+    label: string;
+    set: (on: boolean) => void;
+    text: Readonly<{ on: string; off: string }>;
+  }>
+): Candidate[] {
+  return (['on', 'off'] as const).map((side): Candidate => ({
+    key: `look:${toggle.key}:${side}`,
+    label: `${toggle.label}: ${side}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      toggle.set(side === 'on');
+    },
+    text: toggle.text[side],
+    weight: -1,
+  }));
+}
+
+/* This viewer's board look, as in the game menu: each skin, planet shading on or off, and whether the camera follows phases. Found by name, never suggested unasked. */
+function lookCandidates(close: () => void): Candidate[] {
+  const icon = <TopicIcon topic="board" size={18} />;
+  const skins = BOARD_SKINS.map((skin): Candidate => ({
+    key: `look:skin:${skin}`,
+    label: `Board skin: ${BOARD_SKIN_LABELS[skin]}`,
+    hint: 'Only you see it',
+    icon,
+    run: () => {
+      close();
+      setBoardSkin(skin);
+    },
+    text: `board skin texture ${BOARD_SKIN_LABELS[skin]}`,
+    weight: -1,
+  }));
+  const shading = toggleCandidates(close, icon, {
+    key: 'planet',
+    label: 'Planet shading',
+    set: setPlanetShading,
+    text: { on: 'planet shading shade board skin on', off: 'planet shading shade board skin off' },
+  });
+  /* Each side carries its own words, so "keep view" finds following off and "follow" finds it on. */
+  const following = toggleCandidates(close, icon, {
+    key: 'camera-follows-phase',
+    label: 'Camera follows phase',
+    set: setCameraFollowsPhase,
+    text: { on: 'camera follows phase move reset on', off: 'camera follows phase keep my view stay off' },
+  });
+  return [...skins, ...shading, ...following];
+}
+
+/* A window as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
+function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candidate {
+  return {
+    key: entry.key,
+    label: entry.label,
+    hint: hintOf(entry),
+    icon: entry.player ? <PlayerToken player={entry.player} size={20} /> : <TopicIcon topic={entry.topic} size={18} />,
+    run: () => actions.open(entry.key),
+    shortcut: actions.shortcuts[entry.key],
+    text: `${entry.label} ${entry.player?.factionName ?? ''} ${entry.group} ${entry.keywords ?? ''}`,
+    weight: weightOf(entry),
+  };
+}
+
+/*
+ * The faction information by its own name, as every window is found, and once more for each player, found by their faction or
+ * name: "Atreides" opens it on the Atreides.
+ */
+function factionCandidates(entry: TableWindow, actions: SuggestionActions): Candidate[] {
+  const seats = actions.players.map((player): Candidate => ({
+    key: `${entry.key}:${player.seat}`,
+    label: player.factionName ?? player.name,
+    hint: `${entry.label} · ${player.own ? 'You' : player.name}`,
+    icon: <PlayerToken player={player} size={20} />,
+    run: () => actions.open(entry.key, player.seat),
+    text: `${player.factionName ?? ''} ${entry.label} ${player.name}`,
+    /* With nothing typed, the windows and commands lead; a faction is looked up by name. */
+    weight: -1,
+  }));
+  return [windowCandidate(entry, actions), ...seats];
+}
+
+/** Every window and command the search can reach. */
+export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
+  const frozen: Candidate[] = actions.frozen
+    ? [
+        'Next phase',
+        'Move a piece',
+        'Draw a card',
+        'Flip a piece',
+        'Peek at a card',
+        'Rearrange hand',
+        'Raise the bid',
+        'Pass',
+      ].map((label) => ({
+        key: `frozen:${label}`,
+        label,
+        hint: 'Disabled during Mentat recall',
+        icon: <TopicIcon topic="controls" size={18} />,
+        disabled: true,
+        run: () => {},
+        text: label.toLowerCase(),
+        weight: -100,
+      }))
+    : [];
+  return [
+    ...frozen,
+    ...windows.flatMap((entry): Candidate[] =>
+      entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
+    ),
+    ...nextPhaseCandidate(actions.nextPhase, actions.close),
+    ...spiceBlowCandidate(actions.spiceBlow, actions.close),
+    ...commandCandidates(actions),
+    ...clearChatsCandidate(actions.clearChats, actions.close),
+    ...nudgeCandidates(actions.nudge, actions.close),
+    ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
+      key: `cmd:camera:${view}`,
+      label: `Camera: ${CAMERA_VIEWS[view]}`,
+      hint: 'Command',
+      icon: <TopicIcon topic="board" size={18} />,
+      run: () => {
+        actions.close();
+        actions.view(view);
+      },
+      /* U turns the camera straight down, unless it is flipping the viewer's token up just now. */
+      shortcut: view === 'top' && !actions.commands.faceUp ? TOP_VIEW_SHORTCUT : undefined,
+      text: `camera ${view} view ${CAMERA_VIEWS[view]}`,
+      weight: 0,
+    })),
+    ...lookCandidates(actions.close),
+  ];
+}
