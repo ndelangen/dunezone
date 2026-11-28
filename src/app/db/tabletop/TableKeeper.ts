@@ -30,7 +30,7 @@ export class TableKeeper {
 
   constructor(
     private readonly game: string,
-    private readonly store: TableStore | undefined,
+    private readonly store: () => TableStore | undefined,
     private readonly monotonicNow: () => number
   ) {}
 
@@ -41,7 +41,7 @@ export class TableKeeper {
 
   /** The table this tab saved for a reload, now kept as the one to save again; null when it saved none. */
   restore(): StoredTable | null {
-    const stored = this.store?.read(this.game);
+    const stored = this.store()?.read(this.game);
     if (!stored) {
       return null;
     }
@@ -58,7 +58,7 @@ export class TableKeeper {
   forget() {
     this.kept = null;
     this.lastSaved = null;
-    this.store?.clear(this.game);
+    this.store()?.clear(this.game);
   }
 
   /*
@@ -77,7 +77,7 @@ export class TableKeeper {
     if (this.kept) {
       const { viewer, snapshot } = this.kept;
       this.lastSaved = { viewer, snapshot, pending, live: live !== null, at: now };
-      this.store?.save(this.game, { ...this.kept, pending }, live !== null);
+      this.store()?.save(this.game, { ...this.kept, pending }, live !== null);
     }
   }
 

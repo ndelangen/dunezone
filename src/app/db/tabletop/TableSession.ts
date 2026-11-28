@@ -198,10 +198,14 @@ export class TableSession {
       hasRoom: () => this.unanswered.size < UNANSWERED_COMMANDS_LIMIT,
     });
     this.pages = new TablePages((message) => this.send(message), runtime.monotonicNow, emit);
-    this.keeper = new TableKeeper(game, runtime.tables, runtime.monotonicNow);
+    this.keeper = new TableKeeper(
+      game,
+      () => runtime.tables,
+      () => runtime.monotonicNow()
+    );
     this.playback = new TablePlayback({
       send: (message) => this.send(message),
-      monotonicNow: runtime.monotonicNow,
+      monotonicNow: () => runtime.monotonicNow(),
       serverNow: () => this.subscription.serverNow(),
       hidePointer: () => this.publishPointer(null),
       flushQueues: () => this.flushQueues(),
@@ -281,7 +285,7 @@ export class TableSession {
       return;
     }
     const live = this.status === 'authorized' ? this.subscription.getSnapshot() : null;
-    this.keeper.keep(live, this.conversations.unconfirmed(), this.subscription.serverNow);
+    this.keeper.keep(live, this.conversations.unconfirmed(), () => this.subscription.serverNow());
   }
   private get status() {
     return this.subscription.status;
@@ -645,7 +649,8 @@ export class TableSession {
       case 'view':
         this.phaseCooldownUntil = this.runtime.monotonicNow() + (message.phaseCooldownMs ?? 0);
         this.battleCountdownUntil = this.runtime.monotonicNow() + (message.battleCountdownMs ?? 0);
-        if (!this.playback.liveStepsAre(message.historySteps) && this.movesOnlyPointers(message)) {
+        const historyMoved = this.playback.recordLiveSteps(message.historySteps);
+        if (!historyMoved && this.movesOnlyPointers(message)) {
           this.pointers = message.pointers;
           this.emitPointers();
           this.showCountdown();

@@ -72,7 +72,7 @@ export class TablePlayback {
   }
 
   /** Records the live room's newest history step, and answers whether it moved. */
-  liveStepsAre(steps: number | undefined) {
+  recordLiveSteps(steps: number | undefined) {
     const next = steps ?? this.liveSteps;
     const moved = next !== this.liveSteps;
     this.liveSteps = next;

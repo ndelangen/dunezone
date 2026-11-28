@@ -8,8 +8,8 @@ records the accepted ownership and recovery contract.
 assembles patches and requests a fresh view when an update cannot apply. Old admission attempts and
 retired sockets cannot update the current subscription. A fresh full view is required before gameplay commands can resume.
 
-`TableSession` owns selection, unfinished carries, pending actions, playback and presentation.
-It is a thin facade: each interaction area keeps its state in a part of its own in
+`TableSession` is the browser's table: selection, unfinished carries, pending actions, playback and
+presentation. It is a thin facade: each interaction area keeps its state in a part of its own in
 `src/app/db/tabletop`, and the session routes the room's messages to them, gates and sends
 commands, and derives the one table the scene and panels read. `CarryController` holds the piece in
 hand (pick-up, moves, drops, spice gifts, troops back to reserves), `PieceTurns` and `PieceFlips`
