@@ -9,8 +9,8 @@ import { conversationMessages, conversationPair, tableMessages } from '../../../
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import { factionToken } from '../../seats/FactionTokenFace';
 import { ServerClockContext } from '../../table/useServerNow';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { ConversationPanel } from './ConversationPanel';
 import type { ConversationPanelProps } from './ConversationPanel';
 import { tableMentions } from './useConversationPanel';
@@ -130,12 +130,12 @@ export function pendingMessage(delivery: ConversationPanelProps['pending'][numbe
   };
 }
 
-/** The chat window with a player: named by its player in the table, so here by Central. */
-const PLAYER_CHAT_WINDOW = { ...PANEL_WINDOWS.playerChat, label: 'Central', fill: true };
+/** The chat panel with a player: named by its player in the table, so here by Central. */
+const PLAYER_CHAT_PANEL = { ...PANEL_INFO.playerChat, label: 'Central', fill: true };
 
 export const conversationPanelMeta = {
-  ...panelMeta(PLAYER_CHAT_WINDOW),
-  decorators: [serverClock, ...panelMeta(PLAYER_CHAT_WINDOW).decorators],
+  ...panelMeta(PLAYER_CHAT_PANEL),
+  decorators: [serverClock, ...panelMeta(PLAYER_CHAT_PANEL).decorators],
   component: ConversationPanel,
   args: playerChatArgs(),
 };

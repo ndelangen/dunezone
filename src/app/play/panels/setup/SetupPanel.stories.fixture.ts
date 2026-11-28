@@ -3,10 +3,10 @@ import { fn } from 'storybook/test';
 
 import { predictionSnapshot } from '../../../routes/_app/play/game.stories.fixture';
 import { preparedSnapshot, setupSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
 import { SetupPanel } from './SetupPanel';
 import type { SetupPanelProps } from './SetupPanel';
-import { setupPanelProps, setupWindow } from './useSetupPanel';
+import { setupPanelProps, setupPanel } from './useSetupPanel';
 
 /** The panel's props as the table hands them for this snapshot, seen from a seat, with spied actions. */
 export function setupArgs(snapshot: GameSnapshot, seat = 'seat-2'): SetupPanelProps {
@@ -18,8 +18,8 @@ export function setupArgs(snapshot: GameSnapshot, seat = 'seat-2'): SetupPanelPr
   })!;
 }
 
-/** The Setup window as the table names it for this snapshot's step, for a story's `panelWindow` parameter. */
-export const inSetupWindow = (snapshot: GameSnapshot) => ({ panelWindow: setupWindow(snapshot.setup!) });
+/** The Setup panel as the table names it for this snapshot's step, for a story's `panelInfo` parameter. */
+export const inSetupPanel = (snapshot: GameSnapshot) => ({ panelInfo: setupPanel(snapshot.setup!) });
 
 /* The six-seat game's setup, seen from seat 2 on the traitors step, then on starting troops; seat 6 predicts the winner. */
 const traitors = setupSnapshot;
@@ -37,7 +37,7 @@ export function sharedNames() {
 }
 
 export const setupPanelMeta = {
-  ...panelMeta(setupWindow(traitors().setup!)),
+  ...panelMeta(setupPanel(traitors().setup!)),
   component: SetupPanel,
   args: setupArgs(traitors()),
 };

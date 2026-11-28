@@ -114,7 +114,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     /* The Battle window in the centre can sit over the near rim, so it closes for the right-click and opens again after. */
     await who.page.mouse.move(10, 10);
     await who.page.keyboard.press('Escape');
-    await who.page.locator('[data-window][data-side="centre"]').waitFor({ state: 'detached' });
+    await who.page.locator('[data-panel][data-side="centre"]').waitFor({ state: 'detached' });
     const cover = await coverAt(who, at);
     assert.equal(cover, null, `${who.label}: the piece to take is covered by ${cover}.`);
     await who.page.mouse.click(at.x, at.y, { button: 'right' });

@@ -4,8 +4,8 @@ import { fn } from 'storybook/test';
 
 import { storyPlayer } from '../../../routes/_app/play/drafting.stories.fixture';
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { SeatsPanel } from './SeatsPanel';
 import type { SeatsPanelProps } from './SeatsPanel';
 import { seatsPanelProps } from './useSeatsPanel';
@@ -67,7 +67,7 @@ export function ownRequestProps(): SeatsPanelProps {
 }
 
 export const seatsPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.seats),
+  ...panelMeta(PANEL_INFO.seats),
   component: SeatsPanel,
   args: seatsProps(),
 };

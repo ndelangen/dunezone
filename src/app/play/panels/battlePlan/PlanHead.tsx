@@ -12,7 +12,7 @@ import { capableFaces, planLocks, planPieces, toggleCard, toggleLeader } from '.
 import type { BattlePlanViewProps } from './planView';
 
 /**
- * The plan as the battle wheel shows it, always in view at the top of the window: the strength and the opponent, the wheel with its leader and its cards peeking over the window's top edge, and Ready.
+ * The plan as the battle wheel shows it, always in view at the top of the panel: the strength and the opponent, the wheel with its leader and its cards peeking over the panel's top edge, and Ready.
  * A click on a piece on the wheel takes it back into the hand.
  */
 export function PlanHead({ view }: { view: BattlePlanViewProps }) {

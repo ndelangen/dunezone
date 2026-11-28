@@ -50,8 +50,8 @@ import { BidderScene, biddingPhase } from '../bidding/Bidder';
 import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
-import { usePlayerWindows } from '../compass/playerWindows';
-import { FACTION_INFO } from '../compass/windows';
+import { FACTION_INFO } from '../compass/panels';
+import { usePlayerPanels } from '../compass/playerPanels';
 import { DraftingOverlay, DraftingPanel } from '../drafting/Drafting';
 import { SwapScene } from '../drafting/SwapScene';
 import { HandCountsScene } from '../hand/HandCounts';
@@ -69,11 +69,11 @@ import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
 import { ConnectedLogPanel } from '../panels/log/useLogPanel';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from '../panels/panelGuidance';
-import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { PANEL_INFO } from '../panels/panelInfo';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
 import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
-import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { ConnectedSetupPanel, setupPanel } from '../panels/setup/useSetupPanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
@@ -91,11 +91,11 @@ import { GameLink } from './GameLink';
 import { GameTable } from './GameTable';
 import type { TablePanel } from './GameTable';
 import { OptionalChunkBoundary } from './OptionalChunkBoundary';
+import { initialPanelFocus, nextPanelFocus } from './panelFocus';
 import { nextPhaseStep, PhaseTurns, stageStatus, stageToolbar } from './StageHeader';
 import type { GameIdentity } from './StageHeader';
 import { isSpectator, offersActions, stageInPlay, viewerFaction } from './tableFactions';
 import { ServerClockContext } from './useServerNow';
-import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import './dune-play.css';
 
 /* Only a faction whose rules keep the Treachery tracker loads it, so the table's own bundle stays within its budget. */
@@ -329,7 +329,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   );
 }
 
-/* A battle the viewer's faction fights in opens the Battle window once, when that faction takes its side. */
+/* A battle the viewer's faction fights in opens the Battle panel once, when that faction takes its side. */
 function battleFocus(table: TableProjection) {
   const battle = table.snapshot.battle;
   const own = viewerFaction(table);
@@ -341,7 +341,7 @@ function battleFocus(table: TableProjection) {
 }
 
 /*
- * The panel each phase is about, whose window opens once as the phase begins.
+ * The panel each phase is about, whose panel opens once as the phase begins.
  * Phases played on the table alone (spice blow, revival, movement) open nothing.
  */
 const PHASE_PANELS: Partial<Record<string, string>> = {
@@ -356,8 +356,8 @@ const PHASE_PANELS: Partial<Record<string, string>> = {
 /* A seat's own panels are not a spectator's, so only the battle, which they came to watch, opens for them. */
 const SPECTATOR_PHASE_PANELS = new Set(['battle']);
 
-/* The window this phase opens for this viewer, or null when the phase opens nothing. */
-function phaseWindow(table: TableProjection, activePhaseId: string) {
+/* The panel this phase opens for this viewer, or null when the phase opens nothing. */
+function phasePanel(table: TableProjection, activePhaseId: string) {
   if (table.playback || table.snapshot.stage !== 'play') {
     return null;
   }
@@ -365,14 +365,14 @@ function phaseWindow(table: TableProjection, activePhaseId: string) {
   return isSpectator(table) && key && !SPECTATOR_PHASE_PANELS.has(key) ? null : key;
 }
 
-/* The windows follow the live table: each phase change, battle and end-of-game event opens its window once (see windowFocus.ts). */
-function useWindowFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
+/* The panels follow the live table: each phase change, battle and end-of-game event opens its panel once (see panelFocus.ts). */
+function usePanelFocus(table: TableProjection, progress: ReturnType<typeof gameProgress>) {
   const phase = `${table.snapshot.stage}:${progress.turn}:${progress.activePhaseId}`;
-  const [state, setState] = useState(() => initialWindowFocus(phase, table.snapshot.stage === 'play'));
-  const next = nextWindowFocus(state, {
+  const [state, setState] = useState(() => initialPanelFocus(phase, table.snapshot.stage === 'play'));
+  const next = nextPanelFocus(state, {
     playback: Boolean(table.playback),
     phase,
-    phaseTab: phaseWindow(table, progress.activePhaseId),
+    phaseTab: phasePanel(table, progress.activePhaseId),
     events: [resultFocus(table), battleFocus(table), stageFocus(table), ...seatRequestFocus(table)],
   });
   if (next !== state) {
@@ -381,27 +381,27 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
   return next.focus;
 }
 
-type WindowFocus = ReturnType<typeof useWindowFocus>;
+type PanelFocus = ReturnType<typeof usePanelFocus>;
 
 /*
- * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
+ * A panel the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
  * The table's next event focus, or a fresh start of the controls, takes over again.
  */
 /* A notice opens its panel on the newest page: a spice toast shows the transfer it is about, not an earlier page read before. */
-function useNoticePanelOpener(client: TableSession, openWindow: (key: string, seat?: string) => void) {
+function useNoticePanelOpener(client: TableSession, openPanel: (key: string, seat?: string) => void) {
   return useCallback(
     (key: string, seat?: string) => {
       if (key === 'transfers') {
         client.readSpiceHistory();
       }
-      openWindow(key, seat);
+      openPanel(key, seat);
     },
-    [client, openWindow]
+    [client, openPanel]
   );
 }
 
-function useAskedWindow(focus: WindowFocus) {
-  /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
+function useAskedPanel(focus: PanelFocus) {
+  /* The tutorial's Reset starts the controls afresh, so a panel asked for before it must not open itself on the next run. */
   const epoch = useContext(CompassEpochContext);
   const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre'; seat?: string } | null>(null);
   const [followed, setFollowed] = useState({ token: focus?.token, epoch });
@@ -439,10 +439,10 @@ function stageFocus(table: TableProjection) {
  * Spectators, a past table and a finished game approve nothing, so it opens for none of them.
  */
 function seatRequestFocus(table: TableProjection) {
-  return waitingSeatRequests(table).map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
+  return waitingSeatRequests(table).map((row) => ({ key: PANEL_INFO.seats.key, token: `seat-request:${row.id}` }));
 }
 
-/* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */
+/* The end of the game opens the Result panel once for everyone: when someone starts determining the winner, and when it is declared. */
 function resultFocus(table: TableProjection) {
   const { ending, result, stage } = table.snapshot;
   if (table.playback) {
@@ -503,7 +503,7 @@ function seatsPanel({ client, table, error }: ConnectionControlsProps) {
     return [];
   }
   return [
-    { ...PANEL_WINDOWS.seats, content: withTableError(error, <ConnectedSeatsPanel client={client} table={table} />) },
+    { ...PANEL_INFO.seats, content: withTableError(error, <ConnectedSeatsPanel client={client} table={table} />) },
   ];
 }
 
@@ -514,7 +514,7 @@ function alliancesPanel({ client, table, error }: ConnectionControlsProps) {
   }
   return [
     {
-      ...PANEL_WINDOWS.alliances,
+      ...PANEL_INFO.alliances,
       content: withTableError(error, <ConnectedAlliancesPanel client={client} table={table} />),
     },
   ];
@@ -528,7 +528,7 @@ function handPanels({ client, table }: TableControlProps) {
   }
   return [
     {
-      ...PANEL_WINDOWS.hand,
+      ...PANEL_INFO.hand,
       content: (
         <Stack gap="xs">
           <BattlePlanHint />
@@ -537,7 +537,7 @@ function handPanels({ client, table }: TableControlProps) {
       ),
     },
     {
-      ...PANEL_WINDOWS.sideTable,
+      ...PANEL_INFO.sideTable,
       content: (
         <OnDemandPanel name="Private side-table">
           <ConnectedPrivateSideTablePanel client={client} table={table} hand={hand} />
@@ -552,7 +552,7 @@ function resultPanels({ client, table, error, declare }: Omit<ControlPanelsProps
   return resultFocus(table)
     ? [
         {
-          ...PANEL_WINDOWS.result,
+          ...PANEL_INFO.result,
           content: withTableError(error, <ConnectedResultPanel client={client} table={table} declare={declare} />),
         },
       ]
@@ -574,12 +574,12 @@ function yoursGroup({
     panels: [
       ...handPanels({ client, table }),
       ...(table.snapshot.bank
-        ? [{ ...PANEL_WINDOWS.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
+        ? [{ ...PANEL_INFO.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
         : []),
       ...(tracker
         ? [
             {
-              ...PANEL_WINDOWS.treacheryTracker,
+              ...PANEL_INFO.treacheryTracker,
               content: (
                 <Suspense fallback={<Loader size="sm" />}>
                   <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />
@@ -614,7 +614,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
       ...(setup && stage === 'setup'
         ? [
             {
-              ...setupWindow(setup),
+              ...setupPanel(setup),
               content: withTableError(error, <ConnectedSetupPanel client={client} table={table} />),
             },
           ]
@@ -622,7 +622,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
       ...(inPlay && (battle || activePhaseId === 'battle')
         ? [
             {
-              ...PANEL_WINDOWS.battlePlan,
+              ...PANEL_INFO.battlePlan,
               help: battleHelp(table),
               content: withTableError(
                 error,
@@ -630,7 +630,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
                   <ConnectedBattlePlanPanel client={client} table={table} />
                 </Suspense>
               ),
-              /* The plan fills its window under the wheel, whose cards peek over the window's top edge. */
+              /* The plan fills its panel under the wheel, whose cards peek over the panel's top edge. */
               ...(battle && table.snapshot.battlePlan && table.snapshot.bank
                 ? { fill: true, peek: true, actions: <BattleModeToggle client={client} table={table} /> }
                 : {}),
@@ -653,11 +653,11 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
     description: 'Shared pieces and table settings.',
     content: null,
     panels: [
-      { ...PANEL_WINDOWS.inventory, content: <ConnectedSharedInventoryPanel client={client} table={table} /> },
+      { ...PANEL_INFO.inventory, content: <ConnectedSharedInventoryPanel client={client} table={table} /> },
       ...(tableHandlingOpen(table.snapshot.stage)
         ? [
             {
-              ...PANEL_WINDOWS.tints,
+              ...PANEL_INFO.tints,
               content: withTableError(
                 error,
                 <OnDemandPanel name="Territory tints">
@@ -670,7 +670,7 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
       ...(table.snapshot.stage === 'play'
         ? [
             {
-              ...PANEL_WINDOWS.settings,
+              ...PANEL_INFO.settings,
               content: withTableError(
                 error,
                 <OnDemandPanel name="Game length">
@@ -693,7 +693,7 @@ function lookBackPanels({ client, table, error }: ConnectionControlsProps): Tabl
   const recall = review
     ? [
         {
-          ...(review.finished ? PANEL_WINDOWS.finishedReview : PANEL_WINDOWS.review),
+          ...(review.finished ? PANEL_INFO.finishedReview : PANEL_INFO.review),
           content: <TableReviewPanel client={client} table={table} error={error} />,
         },
       ]
@@ -702,7 +702,7 @@ function lookBackPanels({ client, table, error }: ConnectionControlsProps): Tabl
     ? [
         ...recall,
         {
-          ...PANEL_WINDOWS.replay,
+          ...PANEL_INFO.replay,
           content: (
             <>
               {error && !table.playback && <FormError title="From the table">{error}</FormError>}
@@ -737,12 +737,12 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
     ...LOG_GUIDANCE,
     content: null,
     panels: [
-      { ...PANEL_WINDOWS.gameLog, content: <ConnectedLogPanel client={client} table={table} tab="game" /> },
-      { ...PANEL_WINDOWS.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
+      { ...PANEL_INFO.gameLog, content: <ConnectedLogPanel client={client} table={table} tab="game" /> },
+      { ...PANEL_INFO.audit, content: <ConnectedLogPanel client={client} table={table} tab="audit" /> },
       ...(hasInventory
         ? [
             {
-              ...PANEL_WINDOWS.battles,
+              ...PANEL_INFO.battles,
               content: (
                 <OnDemandPanel name="Battles">
                   <ConnectedBattleHistoryPanel table={table} />
@@ -750,7 +750,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
               ),
             },
             {
-              ...PANEL_WINDOWS.transfers,
+              ...PANEL_INFO.transfers,
               content: (
                 <OnDemandPanel name="Spice transfers">
                   <ConnectedSpiceTransfersPanel client={client} table={table} />
@@ -791,7 +791,7 @@ function controlPanels(
       : []),
     /* Every viewer, seated or watching, can look up the keys. */
     {
-      ...PANEL_WINDOWS.shortcuts,
+      ...PANEL_INFO.shortcuts,
       content: (
         <Suspense fallback={<Loader size="sm" />}>
           <ConnectedKeyboardShortcutsPanel />
@@ -921,7 +921,7 @@ function useHostedControls(
   useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
-  const players = usePlayerWindows(client, table);
+  const players = usePlayerPanels(client, table);
   const whispers = useWhisperFeed(client, table);
   const compassTable: CompassTable = {
     ...players,
@@ -1003,21 +1003,21 @@ function ConnectedTable({
 }: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = useGameProgress(table.snapshot);
-  const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
+  const [focus, openPanel] = useAskedPanel(usePanelFocus(table, progress));
   const celebration = useResultCelebration(client, table);
   useChatSounds(client, table);
-  /* Only whether the planner is open matters here, so other windows opening and closing re-render nothing. */
+  /* Only whether the planner is open matters here, so other panels opening and closing re-render nothing. */
   const [battleOpen, setBattleOpen] = useState(false);
-  const hearOpenWindows = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
+  const hearOpenPanels = useCallback((keys: readonly string[]) => setBattleOpen(keys.includes('battle')), []);
   const planCanOpen = battlePlanCanOpen(table) && !battleOpen;
   const noticeStart = useNoticeStart(table);
   const feeds = useNoticeFeeds(client);
-  const battlePlanOpener = useMemo(() => (planCanOpen ? () => openWindow('battle') : null), [planCanOpen, openWindow]);
-  const openNoticePanel = useNoticePanelOpener(client, openWindow);
+  const battlePlanOpener = useMemo(() => (planCanOpen ? () => openPanel('battle') : null), [planCanOpen, openPanel]);
+  const openNoticePanel = useNoticePanelOpener(client, openPanel);
   /* A battle toast brings the planner forward even when it is open behind another panel. */
   const noticeBattleOpener = useMemo(
-    () => (battlePlanCanOpen(table) ? () => openWindow('battle') : null),
-    [table, openWindow]
+    () => (battlePlanCanOpen(table) ? () => openPanel('battle') : null),
+    [table, openPanel]
   );
   const declare = useDeclareChoice(table);
   const tracker = useTrackerSeat(client, table);
@@ -1052,8 +1052,8 @@ function ConnectedTable({
                   error,
                   bidderFaded,
                   onBidderFadedChange: setBidderFaded,
-                  onOpenRecall: () => openWindow('review'),
-                  onOpenAlliances: () => openWindow('alliances'),
+                  onOpenRecall: () => openPanel('review'),
+                  onOpenAlliances: () => openPanel('alliances'),
                 })}
                 /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
                 requestedView={
@@ -1088,7 +1088,7 @@ function ConnectedTable({
                   ) : undefined
                 }
                 focus={focus}
-                onOpenWindows={hearOpenWindows}
+                onOpenPanels={hearOpenPanels}
                 panels={controlPanels({
                   client,
                   table: normal,

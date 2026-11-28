@@ -3,7 +3,7 @@ import { Eraser } from 'lucide-react';
 
 import styles from './ClearChatAction.module.css';
 
-/** The eraser in a chat window's title bar, beside unpin: held like any action that loses something, though only the viewer loses the messages (#2674). */
+/** The eraser in a chat panel's title bar, beside unpin: held like any action that loses something, though only the viewer loses the messages (#2674). */
 export function ClearChatAction({ onClear }: Readonly<{ onClear: () => void }>) {
   return (
     <HoldAction

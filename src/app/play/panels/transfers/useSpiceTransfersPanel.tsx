@@ -51,7 +51,7 @@ export function spiceTransferLines(table: TableProjection, transfers: readonly S
   return transfers.map((transfer) => ({ key: transfer.revision, text: spiceTransferText(labels, transfer) }));
 }
 
-/** The Spice transfers window from the table: the page on show, read from the snapshot until an older page is asked for. */
+/** The Spice transfers panel from the table: the page on show, read from the snapshot until an older page is asked for. */
 function useSpiceTransfersPanel({ client, table }: Props): SpiceTransfersPanelProps {
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const entries = view.spiceHistory?.entries ?? table.snapshot.spiceTransfers ?? [];
@@ -66,7 +66,7 @@ function useSpiceTransfersPanel({ client, table }: Props): SpiceTransfersPanelPr
   };
 }
 
-/** The Spice transfers window's content at a live table. */
+/** The Spice transfers panel's content at a live table. */
 export function ConnectedSpiceTransfersPanel(props: Props) {
   return <SpiceTransfersPanel {...useSpiceTransfersPanel(props)} />;
 }

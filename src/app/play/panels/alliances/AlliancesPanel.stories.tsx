@@ -13,7 +13,7 @@ import {
 } from './AlliancesPanel.stories.fixture';
 
 /*
- * The Alliances window on its own, as seat 2 sees a six-seat game mid-play: every other faction by its token,
+ * The Alliances panel on its own, as seat 2 sees a six-seat game mid-play: every other faction by its token,
  * its allies and status, and the one action the viewer has about it. Each story shows one alliance state.
  */
 const meta = preview.meta({ ...alliancesPanelMeta, title: 'Play/Panels/Alliances' });

@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronsRight } from 'lucide-react';
 export type SpiceTransfersPanelProps = Readonly<{
   /** The transfers on show, newest first, each as its line reads. */
   transfers: readonly Readonly<{ key: number; text: string }>[];
-  /** The heading is only for assistive technology inside a game's window. */
+  /** The heading is only for assistive technology inside a game's panel. */
   hiddenHeading: boolean;
   /** Older transfers follow this page. */
   more: boolean;

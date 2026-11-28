@@ -44,8 +44,8 @@ function inOrderOf(pieces: readonly TablePiece[], ids: readonly string[], shown:
 }
 
 /**
- * The viewer's plan as the Battle plan window shows it: data from the table in, each intent sent to the table.
- * Its pieces come in the player's own order, which the Hand & spice window shares and either window changes;
+ * The viewer's plan as the Battle plan panel shows it: data from the table in, each intent sent to the table.
+ * Its pieces come in the player's own order, which the Hand & spice panel shares and either panel changes;
  * pieces on the private side-table have no place in that order, so they follow at the end and keep their places.
  */
 function usePlanView({ client, table, plan, battle }: PlanProps): BattlePlanViewProps {
@@ -100,7 +100,7 @@ function LivePlan(props: PlanProps) {
   return <BattlePlanPanel plan={usePlanView(props)} notice="" help={battleHelp(props.table)} />;
 }
 
-/** The Battle plan window's content at a live table: the viewer's own plan, or why there is none. */
+/** The Battle plan panel's content at a live table: the viewer's own plan, or why there is none. */
 export function ConnectedBattlePlanPanel({ client, table }: Props) {
   const { battle, battlePlan } = table.snapshot;
   if (battlePlan && battle && table.snapshot.bank) {

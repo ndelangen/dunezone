@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import {
-  inSetupWindow,
+  inSetupPanel,
   predicting,
   predictionLocked,
   setupArgs,
@@ -49,7 +49,7 @@ export const ObserverSeesNoActions = meta.story({
 /** Picking a winner unlocks Lock prediction, which locks the winner and the turn. */
 export const LocksAPrediction = meta.story({
   args: setupArgs(predicting(), 'seat-6'),
-  parameters: inSetupWindow(predicting()),
+  parameters: inSetupPanel(predicting()),
   play: async ({ args, canvas, canvasElement }) => {
     const [first] = predicting().roster!.seats;
     await userEvent.click(canvas.getByRole('combobox', { name: 'Predicted winner' }));
@@ -66,7 +66,7 @@ export const LocksAPrediction = meta.story({
 /** Reveal prediction reveals the viewer's locked prediction. */
 export const RevealsAPrediction = meta.story({
   args: setupArgs(predictionLocked(), 'seat-6'),
-  parameters: inSetupWindow(predictionLocked()),
+  parameters: inSetupPanel(predictionLocked()),
   play: async ({ args, canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Reveal prediction' }));
     await expect(args.onRevealPrediction).toHaveBeenCalledWith('prediction');
@@ -76,7 +76,7 @@ export const RevealsAPrediction = meta.story({
 /** Two seats carry factions with one name, so each reads with its player among the predicted winners (#1667). */
 export const SharedFactionNames = meta.story({
   args: setupArgs(sharedNames(), 'seat-6'),
-  parameters: inSetupWindow(sharedNames()),
+  parameters: inSetupPanel(sharedNames()),
   play: async ({ canvas, canvasElement }) => {
     const snapshot = sharedNames();
     const [first, second] = snapshot.controls!.players;

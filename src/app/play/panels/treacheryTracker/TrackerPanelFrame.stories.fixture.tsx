@@ -8,11 +8,11 @@ import type { TrackerState } from '@app/widgets/treachery-tracker/tracker';
 import { FACTIONS } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
 import compassStyles from '../../compass/CompassControls.module.css';
-import { WindowFrame } from '../../compass/WindowFrame';
-import type { TableWindow } from '../../compass/windows';
+import { PanelFrame } from '../../compass/PanelFrame';
+import type { CompassPanel } from '../../compass/panels';
 import '../../table/dune-play.css';
 
-const TRACKER_WINDOW: Omit<TableWindow, 'content'> = {
+const TRACKER_PANEL: Omit<CompassPanel, 'content'> = {
   key: 'treachery-tracker',
   label: 'Treachery tracker',
   group: 'Table',
@@ -21,8 +21,8 @@ const TRACKER_WINDOW: Omit<TableWindow, 'content'> = {
   layout: 'stack',
 };
 
-/** The tracker as a pinned compass slot shows it, live: its own window and title. */
-export function TrackerWindow({ initial }: Readonly<{ initial: () => TrackerState }>) {
+/** The tracker as a pinned compass slot shows it, live: its own panel and title. */
+export function TrackerPanelFrame({ initial }: Readonly<{ initial: () => TrackerState }>) {
   const [state, dispatch] = useReducer(trackerReducer, undefined, initial);
   return (
     <DarkSchemeIsland>
@@ -32,9 +32,9 @@ export function TrackerWindow({ initial }: Readonly<{ initial: () => TrackerStat
         style={{ width: 'calc(400px + 24px)', height: '100vh' }}
       >
         <div className={compassStyles.root} style={{ '--slot-width': '400px' } as CSSProperties}>
-          <WindowFrame
+          <PanelFrame
             entry={{
-              ...TRACKER_WINDOW,
+              ...TRACKER_PANEL,
               content: <AuctionTracker factions={FACTIONS} state={state} onAction={dispatch} />,
             }}
             where="left"

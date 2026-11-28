@@ -45,7 +45,7 @@ export function stageToolbar({
   error: string | null;
   bidderFaded: boolean;
   onBidderFadedChange: (faded: boolean) => void;
-  /** Opens the Mentat recall window, as the header's open recall vote links to it. */
+  /** Opens the Mentat recall panel, as the header's open recall vote links to it. */
   onOpenRecall?: () => void;
   /** Opens the Alliances panel, as the header's alliance offer notice links to it. */
   onOpenAlliances?: () => void;

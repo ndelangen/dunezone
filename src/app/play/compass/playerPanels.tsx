@@ -38,7 +38,7 @@ export function standInToken(table: TableProjection, player: Player) {
 }
 
 /** The players as the compass shows them: a token each in the chat bar, with what waits on them. */
-export function usePlayerWindows(client: TableSession, table: TableProjection) {
+export function usePlayerPanels(client: TableSession, table: TableProjection) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const votes = table.snapshot.removalVotes ?? [];
   const viewerSeat = table.viewer.viewerSeat;

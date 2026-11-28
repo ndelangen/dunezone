@@ -15,7 +15,7 @@ type ActionProps = Readonly<{
   size: ActionSize;
 }>;
 
-/** How large the action stands: `row` beside a list entry, `toolbar` among a window's toolbar actions. */
+/** How large the action stands: `row` beside a list entry, `toolbar` among a panel's toolbar actions. */
 export type ActionSize = 'row' | 'toolbar';
 
 /* The glyph for each size; the question bubble is drawn larger, so it reads on the green tile. */
@@ -54,7 +54,7 @@ const ACTIONS: Readonly<Record<Relation, (props: ActionProps) => ReactNode>> = {
       onClick={() => send('alliance-break')}
     />
   ),
-  /* A question in a speech bubble, as they are asking; a check would read as already accepted, and the window's (?) is a plain circle. Drawn larger and bolder, so the question reads on the green tile. */
+  /* A question in a speech bubble, as they are asking; a check would read as already accepted, and the panel's (?) is a plain circle. Drawn larger and bolder, so the question reads on the green tile. */
   incoming: ({ blocked, send, size }) => (
     <IconAction
       size={TILE[size]}

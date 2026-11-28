@@ -6,7 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
+import { unpinPanel, WAIT, panelNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport, SIX } from './product.stories.fixture';
@@ -71,7 +71,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
     await userEvent.click(within(bar).getByText('No winner'));
-    await unpinWindow(page, 'Result');
+    await unpinPanel(page, 'Result');
     await waitFor(() => expect(page.queryByText('Declare the result')).toBeNull());
     await openTab(page, 'Result');
     const back = (await page.findByText('Declare the result')).closest('section')!;
@@ -80,7 +80,7 @@ export const DeclaringKeepsChoiceAcrossTabs = meta.story({
   },
 });
 
-/* Once the Result panel goes, its window goes with it, and Phase stays in reach. */
+/* Once the Result panel goes, its frame goes with it, and Phase stays in reach. */
 export const StoppedDeclaringKeepsGameReachable = meta.story({
   beforeEach: install(() => {
     const snapshot = mentatSnapshot('seat-2');
@@ -91,15 +91,15 @@ export const StoppedDeclaringKeepsGameReachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByText('Declare the result', {}, { timeout: 30_000 });
     session.transport.deliver(session.transport.view({ ...mentatSnapshot('seat-2'), revision: 1 }));
-    await waitFor(() => expect(windowNamed(page, 'Result')).toBeNull());
+    await waitFor(() => expect(panelNamed(page, 'Result')).toBeNull());
     await openTab(page, 'Phase');
     await expect(page.findByRole('button', { name: 'Determine winner' })).resolves.toBeVisible();
   },
 });
 
-/* What sits over a point instead, named by its nearest label and the window holding it, for a failure to read. */
+/* What sits over a point instead, named by its nearest label and the panel holding it, for a failure to read. */
 function coverOf(hit: Element | null) {
-  const frame = hit?.closest('[data-window]');
+  const frame = hit?.closest('[data-panel]');
   const label = hit?.closest('[aria-label]')?.getAttribute('aria-label');
   return `${hit?.tagName ?? 'nothing'} ${label ?? ''} in ${frame ? `the ${frame.getAttribute('data-side')} window` : 'no window'}`;
 }
@@ -115,7 +115,7 @@ function touchScrollers(element: Element) {
   return scrollers;
 }
 
-/* On a phone the Result window outgrows the screen; it scrolls inside its frame, so Declare is in reach. */
+/* On a phone the Result panel outgrows the screen; it scrolls inside its frame, so Declare is in reach. */
 export const DeclaringOnAPhone = meta.story({
   globals: { viewport: { value: 'appMobile' }, motion: 'reduce' },
   beforeEach: install(() => {
@@ -131,14 +131,14 @@ export const DeclaringOnAPhone = meta.story({
     const declare = within(bar).getByRole('button', { name: 'Declare' });
     await waitFor(async () => {
       const box = declare.getBoundingClientRect();
-      /* Below the window, or below the bottom of the slot that clips it, where the board shows instead. */
+      /* Below the panel, or below the bottom of the slot that clips it, where the board shows instead. */
       const covered = !declare.contains(canvasElement.ownerDocument.elementFromPoint(box.left + 4, box.top + 4));
       if (box.bottom > view.innerHeight || covered) {
         const scrollers = touchScrollers(declare);
         await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
           0
         );
-        /* Each scroller scrolls to Declare, not to its end: the section first and then the window around it. */
+        /* Each scroller scrolls to Declare, not to its end: the section first and then the panel around it. */
         for (const scroller of scrollers) {
           const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);
           scroller.scrollTop += Math.max(0, declare.getBoundingClientRect().bottom - bottom);
@@ -150,7 +150,7 @@ export const DeclaringOnAPhone = meta.story({
       await expect(declare.contains(hit), `Declare is covered by ${coverOf(hit)}`).toBe(true);
       /* The section holds its whole content, so Declare sits inside its frame. */
       await expect(shown.bottom).toBeLessThanOrEqual(bar.getBoundingClientRect().bottom);
-      /* The window the table opened by itself settles into its slot over a few frames, which a slow runner draws seconds apart. */
+      /* The panel the table opened by itself settles into its slot over a few frames, which a slow runner draws seconds apart. */
     }, WAIT);
     /* An alliance is declared only once its factions are picked, and the declaration names them. */
     await expect(declare).toHaveAttribute('aria-disabled', 'true');
@@ -287,7 +287,7 @@ export const ReplayingAFinishedGame = meta.story({
   },
 });
 
-/* A refused checkpoint stays visible in an observer's Replay window, which offers the replay again. */
+/* A refused checkpoint stays visible in an observer's Replay panel, which offers the replay again. */
 export const ReplayRefusal = meta.story({
   beforeEach: install(() => productTransport(SPECTATOR_SEAT, finishedSnapshot(SPECTATOR_SEAT))),
   play: async ({ canvasElement }) => {
@@ -300,7 +300,7 @@ export const ReplayRefusal = meta.story({
       requestId: 'message',
       message: 'That checkpoint could not be loaded.',
     });
-    const replay = within(windowNamed(page, 'Replay')!);
+    const replay = within(panelNamed(page, 'Replay')!);
     await expect(replay.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
     await expect(replay.getByRole('button', { name: 'Replay from start' })).not.toHaveAttribute(
       'aria-disabled',

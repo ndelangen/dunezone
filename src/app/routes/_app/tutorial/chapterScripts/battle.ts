@@ -4,9 +4,9 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { PANEL_WINDOWS } from '../../../../play/panels/panelWindows';
+import { PANEL_INFO } from '../../../../play/panels/panelInfo';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, element, onBoard, openedWindow, task, windowShown } from './guideChecks';
+import { at, element, onBoard, openedPanel, task, panelShown } from './guideChecks';
 
 /*
  * "Battle": one battle from the battle marker to an agreed result.
@@ -110,7 +110,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Choose a leader',
       detail:
         'Who will lead your troops? Choose a leader in the Leader row. Their strength adds to your total.\n\nYour plan stays private until both sides are ready.',
-      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Leader"]') },
+      anchor: { kind: 'page', element: element('[data-panel="battle"] [aria-label="Leader"]') },
       begin: () => undefined,
       done: () => (plan()?.leaderIds.length ?? 0) > 0,
     }),
@@ -119,7 +119,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Add a card to your plan',
       detail:
         'Choose Shield in the Cards row. Click a selected card again to remove it.\n\nYou and your opponent apply the card effects yourselves.',
-      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Put Shield into the plan"]') },
+      anchor: { kind: 'page', element: element('[data-panel="battle"] [aria-label="Put Shield into the plan"]') },
       begin: () => undefined,
       done: () => (plan()?.cardIds.length ?? 0) > 0,
     }),
@@ -128,7 +128,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Dial in two troops',
       detail:
         'Increase either the regular troop dial or the Fedaykin dial by two.\n\nLeave the eye button alone for now so your dial stays private.',
-      anchor: { kind: 'page', element: element('[data-window="battle"] [aria-label="Troops and spice"]') },
+      anchor: { kind: 'page', element: element('[data-panel="battle"] [aria-label="Troops and spice"]') },
       begin: () => undefined,
       /* Clicking the eye first fixes the dial where it stands, so a shown dial moves the chapter on too, to its own step. */
       done: () =>
@@ -144,9 +144,9 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         kind: 'page',
         element: () =>
           document.querySelector('[aria-label="Open battle plan"]') ??
-          document.querySelector('[data-window="battle"] button[aria-label="Unpin"]'),
+          document.querySelector('[data-panel="battle"] button[aria-label="Unpin"]'),
       },
-      ...openedWindow(windowShown(PANEL_WINDOWS.battlePlan.key)),
+      ...openedPanel(panelShown(PANEL_INFO.battlePlan.key)),
     }),
     task({
       id: 'ready',
@@ -187,7 +187,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         'Some cards and advantages require an early reveal.\n\nPress the eye beside your dial to make it public. Once revealed, it cannot change during this battle.\n\nLeaders and cards have their own eye buttons.',
       anchor: {
         kind: 'page',
-        element: element('[data-window="battle"] [aria-label="Show your dial to everyone now"]'),
+        element: element('[data-panel="battle"] [aria-label="Show your dial to everyone now"]'),
       },
       begin: () => undefined,
       done: () => plan()?.disclosed.dial === true,

@@ -63,7 +63,7 @@ const table: CompassTable = {
 };
 
 /* A new epoch starts the controls afresh, as the tutorial's Reset does, and leaves the table's scene standing: building it again is the slow part of a Reset. */
-test('a new epoch closes the open window and keeps the scene mounted', () => {
+test('a new epoch closes the open panel and keeps the scene mounted', () => {
   let mounts = 0;
   function Scene() {
     useEffect(() => {
@@ -97,7 +97,7 @@ test('a new epoch closes the open window and keeps the scene mounted', () => {
   expect(mounts).toBe(1);
 });
 
-test('recall retains the self token without adding live faction or player windows', () => {
+test('recall retains the self token without adding live faction or player panels', () => {
   render(
     <MantineProvider>
       <CompassTableContext

@@ -4,8 +4,8 @@ import { expect } from 'storybook/test';
 
 import { playingSnapshot, swappingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import { alliedSnapshot, incomingSnapshot } from '../alliances/AlliancesPanel.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { factionInfoArgs, removalSnapshot } from './FactionInfoPanel.stories.fixture';
 import { FactionInfoToolbar } from './FactionInfoToolbar';
 import type { FactionInfoToolbarProps } from './FactionInfoToolbar';
@@ -31,11 +31,11 @@ function trading(change: (swapping: NonNullable<ReturnType<typeof swappingSnapsh
 }
 
 /*
- * The row of icon actions under a seat's Faction info header, as seat 2 sees it, in the Faction info window.
- * Each story shows one action's state; the panel's stories show the window around it.
+ * The row of icon actions under a seat's Faction info header, as seat 2 sees it, in the Faction info panel.
+ * Each story shows one action's state; the panel's stories show the panel around it.
  */
 const meta = preview.meta({
-  ...panelMeta(PANEL_WINDOWS.factionInfo),
+  ...panelMeta(PANEL_INFO.factionInfo),
   title: 'Play/Panels/Faction info/Toolbar',
   component: FactionInfoToolbar,
   args: toolbarArgs(playingSnapshot()),

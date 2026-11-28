@@ -1,6 +1,6 @@
 /*
  * The compass controls' root over the table, in the table's sand-on-leather palette, and the small pieces every part
- * shares. The root is the size container: the windows, the slots and the compass take their measure from the table's
+ * shares. The root is the size container: the panels, the slots and the compass take their measure from the table's
  * box, not the viewport, so a table beside other content lays out as a table of that size. The board alone keeps a
  * minimum width, and scrolls sideways under the controls in a box narrower than that.
  */

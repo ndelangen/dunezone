@@ -124,7 +124,7 @@ function Spectators({ spectators, guests }: Pick<SeatsPanelProps, 'spectators' |
 }
 
 /**
- * The Seats & spectators window: how the seats stand, the open requests for a seat with a player's Approve beside each, and everyone watching.
+ * The Seats & spectators panel: how the seats stand, the open requests for a seat with a player's Approve beside each, and everyone watching.
  * It opens for every player when a spectator asks for a seat.
  */
 export function SeatsPanel({ seats, requests, spectators, guests, approve }: SeatsPanelProps) {

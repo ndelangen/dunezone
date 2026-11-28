@@ -12,7 +12,7 @@ import {
 } from './ResultPanel.stories.fixture';
 
 /*
- * The Result window on its own, at the end of a six-seat game seen from seat 2: declaring the result, waiting while someone else does, and the finished game.
+ * The Result panel on its own, at the end of a six-seat game seen from seat 2: declaring the result, waiting while someone else does, and the finished game.
  * Each story shows one state.
  */
 const meta = preview.meta({ ...resultPanelMeta, title: 'Play/Panels/Result' });
@@ -40,7 +40,7 @@ export const Determining = meta.story({
   },
 });
 
-/** The viewer's locked prediction is a card in hand, so placing it on the table is the reveal and the window offers no button. */
+/** The viewer's locked prediction is a card in hand, so placing it on the table is the reveal and the panel offers no button. */
 export const DeterminingWithAPredictionCard = meta.story({
   args: resultArgs(determiningSnapshot('seat-1', 'seat-2', { card: true })),
   play: async ({ canvas }) => {

@@ -53,8 +53,8 @@ export const FactionTokensScroll = meta.story({
     await expect(picker.scrollWidth, 'Six tokens outgrow the slot, so the row scrolls.').toBeGreaterThan(
       picker.clientWidth
     );
-    /* The rule under the tokens runs from the window's border to its scrolling body's far edge, short only of a scrollbar. */
-    const frame = picker.closest('[data-window]')!.getBoundingClientRect();
+    /* The rule under the tokens runs from the panel's border to its scrolling body's far edge, short only of a scrollbar. */
+    const frame = picker.closest('[data-panel]')!.getBoundingClientRect();
     const body = picker.parentElement!;
     const scrollbar = body.offsetWidth - body.clientWidth;
     const rule = picker.getBoundingClientRect();

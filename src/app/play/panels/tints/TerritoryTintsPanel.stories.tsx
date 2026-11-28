@@ -4,7 +4,7 @@ import { expect } from 'storybook/test';
 import { tintsPanelMeta, tintsProps, untintedSnapshot } from './TerritoryTintsPanel.stories.fixture';
 
 /*
- * The Territory tints window on its own: each tint with its show, paint, outline, sticker, colour and remove controls,
+ * The Territory tints panel on its own: each tint with its show, paint, outline, sticker, colour and remove controls,
  * the new-tint swatches and the board's presets under them.
  */
 const meta = preview.meta({ ...tintsPanelMeta, title: 'Play/Panels/Territory tints' });

@@ -5,7 +5,7 @@ import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from '
 
 import type { ConversationView } from '../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../db/tabletop/TableSession';
-import { CompassWindowsContext } from '../../compass/compassWindows';
+import { CompassPanelsContext } from '../../compass/compassPanels';
 import { tableMentions } from '../../notices/mentions';
 import { snapshotFactionToken } from '../../seats/FactionTokenFace';
 import type { FactionToken } from '../../seats/FactionTokenFace';
@@ -55,7 +55,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
         : [],
     [senders, table, view.context]
   );
-  const windows = useContext(CompassWindowsContext);
+  const panels = useContext(CompassPanelsContext);
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
@@ -82,9 +82,9 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       /* The room decides by its live stage, which the conversations follow even while the viewer looks back at a past step. */
       announced={!shared && view.context?.announced === true}
       mentions={mentions}
-      /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
-      onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}
-      onMentionChat={peerId === TABLE_CONVERSATION ? windows?.chat : undefined}
+      /* Only the table's chat has the seats' panels beside it; a recall shows only the viewer's own. */
+      onMentionInfo={peerId === TABLE_CONVERSATION ? panels?.factionInfo : undefined}
+      onMentionChat={peerId === TABLE_CONVERSATION ? panels?.chat : undefined}
     />
   );
 }

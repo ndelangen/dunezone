@@ -8,8 +8,8 @@ import { afterEach, expect, test, vi } from 'vite-plus/test';
 import { ChatBar } from './ChatBar';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer, CompassTable } from './compassTable';
+import { FACTION_INFO, KEYBOARD_SHORTCUTS } from './panels';
 import { setShortcutsButton } from './shortcutsButton';
-import { FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 /* jsdom has no matchMedia, which Mantine asks for. */
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
@@ -125,7 +125,7 @@ test('a spectator has no own token', () => {
   expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
 });
 
-test('before the table has a Hand & spice window the own token opens their own Faction info (#2987)', () => {
+test('before the table has a Hand & spice panel the own token opens their own Faction info (#2987)', () => {
   const onShow = renderBar([player('seat-1', true)], false);
   fireEvent.click(screen.getByRole('button', { name: /^Faction info, you are playing as/ }));
   expect(onShow).toHaveBeenCalledWith(FACTION_INFO, 'seat-1');

@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { PANEL_WINDOWS } from '../panelWindows';
+import { PANEL_INFO } from '../panelInfo';
 import {
   conversationPanelMeta,
   pendingMessage,
@@ -13,7 +13,7 @@ import {
 } from './ConversationPanel.stories.fixture';
 
 /*
- * A chat window on its own, as seat 2 sees it: the conversation's saved history, the viewer's messages on their way, and the composer.
+ * A chat panel on its own, as seat 2 sees it: the conversation's saved history, the viewer's messages on their way, and the composer.
  * Each story shows one state of one conversation.
  */
 const meta = preview.meta({ ...conversationPanelMeta, title: 'Play/Panels/Chat' });
@@ -28,7 +28,7 @@ export const WithAPlayer = meta.story({
 /** The table's chat: behind each writer's name, their faction's token and name. */
 export const WithTheTable = meta.story({
   args: tableChatArgs(),
-  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  parameters: { panelInfo: { ...PANEL_INFO.tableChat, fill: true } },
   play: async ({ canvas, canvasElement, args }) => {
     await expect(canvas.getByText('Who is bidding on this one?')).toBeVisible();
     /* Each message names its writer's faction beside the faction's token face as it lies on the table. */
@@ -48,7 +48,7 @@ export const WithTheTable = meta.story({
  */
 export const WithWhisperNotices = meta.story({
   args: tableChatWhispersArgs(),
-  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  parameters: { panelInfo: { ...PANEL_INFO.tableChat, fill: true } },
   play: async ({ canvasElement }) => {
     const lines = [...canvasElement.querySelectorAll<HTMLElement>('[data-whisper-line]')];
     await expect(lines).toHaveLength(3);
@@ -68,7 +68,7 @@ export const AnnouncedToTheTable = meta.story({
 /** Typing @ at the table suggests every other seat: its faction, with its token and player beside it. */
 export const SuggestsMentions = meta.story({
   args: tableChatArgs(),
-  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  parameters: { panelInfo: { ...PANEL_INFO.tableChat, fill: true } },
   play: async ({ canvas, args, userEvent }) => {
     await userEvent.type(canvas.getByRole('textbox', { name: 'Message' }), '@');
     const options = await within(document.body).findAllByRole('option');
@@ -81,7 +81,7 @@ export const SuggestsMentions = meta.story({
 /** A message that names a seat after an @ underlines it; hovering it, or a writer's token, shows the seat's card (see Mention card). */
 export const NamesASeat = meta.story({
   args: tableChatNamingArgs(),
-  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  parameters: { panelInfo: { ...PANEL_INFO.tableChat, fill: true } },
   play: async ({ canvasElement }) => {
     const named = canvasElement.querySelector<HTMLElement>('[data-mention]');
     await expect(named).toBeVisible();

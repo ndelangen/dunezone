@@ -7,13 +7,13 @@ import { STORYBOOK_NOW } from '@db/storybook';
 import { removalSnapshot } from '../../../routes/_app/play/game.stories.fixture';
 import { capturedFactions, factions, playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import { seatTrade } from '../../drafting/Swapping';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { FactionInfoPanel } from './FactionInfoPanel';
 import type { FactionInfoPanelProps } from './FactionInfoPanel';
 import { factionInfoProps } from './useFactionInfoPanel';
 
-/** Where the window's actions go: the table's commands, which the panel's props and header model call with what they name. */
+/** Where the panel's actions go: the table's commands, which the panel's props and header model call with what they name. */
 export const actions = { onBallot: fn(), onStartRemoval: fn(), onAlliance: fn(), onTrade: fn() };
 
 /**
@@ -49,7 +49,7 @@ export const observerArgs = () => factionInfoArgs(playingSnapshot(), 'seat-1', S
 export { removalSnapshot };
 
 export const factionInfoPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.factionInfo),
+  ...panelMeta(PANEL_INFO.factionInfo),
   component: FactionInfoPanel,
   args: factionInfoArgs(playingSnapshot()),
 };

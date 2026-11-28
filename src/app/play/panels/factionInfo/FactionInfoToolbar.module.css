@@ -1,6 +1,6 @@
 /*
  * One row of icon actions between the header and the content: the way out to the faction page on the left, what the viewer can do about the seat on the right.
- * It runs to the window's edges, taking back the body's padding, so its rules above and below span the whole window.
+ * It runs to the panel's edges, taking back the body's padding, so its rules above and below span the whole panel.
  */
 .toolbar {
   display: flex;
@@ -8,8 +8,8 @@
   justify-content: space-between;
   gap: var(--space-xs);
   min-width: 0;
-  margin-inline: calc(-1 * var(--window-body-pad-inline, 0px));
-  padding: var(--space-xs) var(--window-body-pad-inline, 0px);
+  margin-inline: calc(-1 * var(--panel-body-pad-inline, 0px));
+  padding: var(--space-xs) var(--panel-body-pad-inline, 0px);
   border-block: 1px solid var(--edge);
 }
 

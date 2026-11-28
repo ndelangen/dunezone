@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { CheckpointPicker } from './CheckpointPicker';
 import { longGameCheckpoints, offeredCheckpoints } from './checkpointPicker.stories.fixture';
 
-/* The checkpoint a table review asks for, chosen as it sits in the Table review window. */
+/* The checkpoint a table review asks for, chosen as it sits in the Table review panel. */
 const meta = preview.meta({
   title: 'Play/Panels/Checkpoint picker',
   component: CheckpointPicker,

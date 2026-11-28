@@ -2,11 +2,11 @@ import preview from '@sb/preview';
 import { expect } from 'storybook/test';
 
 import { AUDIT_LOG, GAME_LOG } from '../../../routes/_app/play/game.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { PANEL_INFO } from '../panelInfo';
 import { BUG_REPORT_ENTRY, DELETION_ENTRY, logPage, logPanelMeta, RESTORED_ENTRIES } from './LogPanel.stories.fixture';
 
 /*
- * The Game log and Audit windows on their own: one tab of the table's public log, newest first,
+ * The Game log and Audit panels on their own: one tab of the table's public log, newest first,
  * each entry tagged with its kind and the phase it happened in.
  */
 const meta = preview.meta({ ...logPanelMeta, title: 'Play/Panels/Log' });
@@ -47,7 +47,7 @@ export const Restored = meta.story({ args: { page: logPage([...RESTORED_ENTRIES,
 /** The audit log: seats taken and left, and a removal vote. */
 export const Audit = meta.story({
   args: { tab: 'audit', page: logPage(AUDIT_LOG) },
-  parameters: { panelWindow: PANEL_WINDOWS.audit },
+  parameters: { panelInfo: PANEL_INFO.audit },
 });
 
 /** A new table has written nothing yet. */

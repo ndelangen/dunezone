@@ -5,13 +5,13 @@ import { useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { BattlePlanPanel } from './BattlePlanPanel';
-import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.stories.fixture';
+import { battlePlanPanelMeta, PLAN_PANEL, planArgs } from './BattlePlanPanel.stories.fixture';
 
 const meta = testingPreview.meta({
   ...battlePlanPanelMeta,
   title: 'Play/Panels/Battle plan',
   /* Keeps the frame's full-screen layout: centred, the frame collapses to no width and its clipping hides the adjustment popover. */
-  parameters: { ...battlePlanPanelMeta.parameters, panelWindow: PLAN_WINDOW },
+  parameters: { ...battlePlanPanelMeta.parameters, panelInfo: PLAN_PANEL },
 });
 
 /** A finished plan locks in with Ready. */

@@ -26,7 +26,7 @@ const meta = testingPreview.meta({
   ],
 });
 
-/** A player's public information in their window: the faction's name opens its page, with the leaders it starts with, in a new browser tab. */
+/** A player's public information in their panel: the faction's name opens its page, with the leaders it starts with, in a new browser tab. */
 export const Info = meta.story({
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),

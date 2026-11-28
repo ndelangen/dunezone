@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { openFactionInfo, windowNamed } from './controls.stories.fixture';
+import { openFactionInfo, panelNamed } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import {
   beforeTheDeal,
@@ -31,8 +31,8 @@ const WAIT = { timeout: 30_000 };
 
 /* Faction info, open on the viewer's own faction. */
 async function expectOwnFactionInfo(page: ReturnType<typeof within>) {
-  await waitFor(() => expect(windowNamed(page, 'Faction info')).not.toBeNull(), WAIT);
-  const picker = within(within(windowNamed(page, 'Faction info')!).getByRole('group', { name: 'Factions' }));
+  await waitFor(() => expect(panelNamed(page, 'Faction info')).not.toBeNull(), WAIT);
+  const picker = within(within(panelNamed(page, 'Faction info')!).getByRole('group', { name: 'Factions' }));
   await expect(picker.getByRole('button', { name: `You, ${VIEWER_FACTION}` })).toHaveAttribute('aria-pressed', 'true');
 }
 

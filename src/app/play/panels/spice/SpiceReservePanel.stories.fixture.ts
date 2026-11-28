@@ -1,13 +1,13 @@
 import { createElement } from 'react';
 import { fn } from 'storybook/test';
 
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { SpiceReservePanel } from './SpiceReservePanel';
 import type { SpiceReservePanelProps } from './SpiceReservePanel';
 
 export const spiceReservePanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.spice),
+  ...panelMeta(PANEL_INFO.spice),
   component: SpiceReservePanel,
   render: (args: Extract<SpiceReservePanelProps, { isFrozen?: false }>) => createElement(SpiceReservePanel, args),
   args: {

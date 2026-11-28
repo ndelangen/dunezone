@@ -4,7 +4,7 @@ import { PlanHarness, scenario } from './battlePlan.stories.fixture';
 import type { Scenario, SlotSize } from './battlePlan.stories.fixture';
 
 /*
- * The Battle plan window's content in the window's real frame at slot size.
+ * The Battle plan panel's content in the panel's real frame at slot size.
  * The plan is live: every click changes it as the table would. Scenario and slot size are story controls.
  */
 type Args = { scenario: Scenario; size: SlotSize };
@@ -41,7 +41,7 @@ const render = (args: unknown) => (
   <PlanHarness key={(args as Args).scenario} initial={scenario((args as Args).scenario)} size={(args as Args).size} />
 );
 
-/** The ledger: the wheel at the top, its cards peeking over the window's edge; the whole plan on one sheet below it. */
+/** The ledger: the wheel at the top, its cards peeking over the panel's edge; the whole plan on one sheet below it. */
 export const Ledger = meta.story({ render });
 
 /** The Fremen: two troop types, dialed for free, so no spice row and no Custom mode. */

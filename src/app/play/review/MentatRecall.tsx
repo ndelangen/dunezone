@@ -22,7 +22,7 @@ import { PieceArtwork } from '@app/widgets/tabletop/PieceArtwork';
 import type { CompassTable } from '../compass/compassTable';
 import { ConnectedConversationPanel } from '../panels/chat/useConversationPanel';
 import { HandPanel } from '../panels/hand/HandPanel';
-import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { PANEL_INFO } from '../panels/panelInfo';
 import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './CheckpointPicker';
@@ -161,8 +161,8 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
             },
           ]
         : []),
-      /* The keys still steer the camera and ping during a recall, so the shortcuts window stays within reach; nothing is held or bid on in a recall. */
-      { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
+      /* The keys still steer the camera and ping during a recall, so the shortcuts panel stays within reach; nothing is held or bid on in a recall. */
+      { ...PANEL_INFO.shortcuts, content: <KeyboardShortcutsPanel /> },
     ],
   };
 }

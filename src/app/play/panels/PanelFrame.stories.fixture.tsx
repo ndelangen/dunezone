@@ -5,30 +5,30 @@ import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { storedProjection } from '../../db/tabletop/tableProjection';
 import type { TableProjection } from '../../db/tabletop/TableSession';
 import compass from '../compass/CompassControls.module.css';
-import { WindowFrame } from '../compass/WindowFrame';
-import type { PanelWindow } from './panelWindows';
+import { PanelFrame } from '../compass/PanelFrame';
+import type { PanelInfo } from './panelInfo';
 import '../table/dune-play.css';
 
-/** Where a panel story frames its panel: a pinned slot at its default height, or the centre window the compass opens. */
-type PanelFrame = 'slot' | 'centre';
+/** Where a panel story frames its panel: a pinned slot at its default height, or the centre panel the compass opens. */
+type FramePlace = 'slot' | 'centre';
 
 /* A pinned slot's default height, as the compass first gives it. */
 const SLOT_HEIGHT = 448;
 
 /**
- * A panel story's frame: the panel in its own window, on the table's dark ground, as the compass shows it, without the table.
- * The window's name, glyph and (?) come from the same entry the table installs, so the story is the window a player sees.
- * A story frames the panel in the centre with the `panelFrame` parameter, or in another window that shows it with `panelWindow`.
+ * A panel story's frame: the panel in its own frame, on the table's dark ground, as the compass shows it, without the table.
+ * The panel's name, glyph and (?) come from the same entry the table installs, so the story is the panel a player sees.
+ * A story frames the panel in the centre with the `panelFrame` parameter, or in another panel that shows it with `panelInfo`.
  */
-export function panelMeta(window: PanelWindow) {
+export function panelMeta(panel: PanelInfo) {
   const frame: Decorator = (Story, { parameters }) => {
-    const where = (parameters.panelFrame as PanelFrame | undefined) ?? 'slot';
-    const shown = (parameters.panelWindow as PanelWindow | undefined) ?? window;
+    const where = (parameters.panelFrame as FramePlace | undefined) ?? 'slot';
+    const shown = (parameters.panelInfo as PanelInfo | undefined) ?? panel;
     return (
       <DarkSchemeIsland>
         <div className="dune-play-shell" style={{ height: '100vh' }}>
           <div className={compass.root}>
-            <WindowFrame
+            <PanelFrame
               entry={{
                 ...shown,
                 group: '',

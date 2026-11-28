@@ -1091,7 +1091,7 @@ async function converged(peers: HostedPeer[]) {
 const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
 /** The window named for a panel, by the label on its frame; the sections inside carry names of their own. */
 function windowOf(who: HostedPeer, name: string) {
-  return who.page.locator(`[data-window][aria-label="${WINDOW_OF[name] ?? name}"]`);
+  return who.page.locator(`[data-panel][aria-label="${WINDOW_OF[name] ?? name}"]`);
 }
 /**
  * Opens one window of the controls through the compass's search unless it is open already, in the centre or pinned.
@@ -1148,11 +1148,11 @@ async function pinWindow(who: HostedPeer, name: string, side: Slot) {
     await openTab(who, name);
   }
   await frame.getByRole('button', { name: `Pin to the bottom ${side}`, exact: true }).click();
-  await who.page.locator(`[data-window][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
+  await who.page.locator(`[data-panel][data-side="${side}"][aria-label="${WINDOW_OF[name] ?? name}"]`).waitFor();
 }
 /** Makes a pinned slot as tall as the table allows, so a capture shows as much of its window as fits. */
 async function growSlot(who: HostedPeer, side: Slot) {
-  const edge = who.page.locator(`[data-window][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
+  const edge = who.page.locator(`[data-panel][data-side="${side}"]`).getByRole('button', { name: /^Resize/u });
   await edge.focus();
   for (let step = 0; step < 40; step++) {
     await edge.press('ArrowUp');
@@ -1463,7 +1463,7 @@ async function redPixels(recipient: HostedPeer, sender: HostedPeer, center: Poin
  * Escape closes it, and pinned windows stay.
  */
 async function clearCentre(who: HostedPeer) {
-  const centre = who.page.locator('[data-window][data-side="centre"]');
+  const centre = who.page.locator('[data-panel][data-side="centre"]');
   for (let attempt = 0; attempt < 3 && (await centre.count()) > 0; attempt += 1) {
     await who.page.mouse.move(10, 10);
     await who.page.keyboard.press('Escape');
@@ -1493,7 +1493,7 @@ async function coverAt(who: HostedPeer, at: Point) {
 async function uncover(who: HostedPeer, at: Point) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const side = await who.page.evaluate(({ x, y }) => {
-      const frame = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-window]');
+      const frame = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-panel]');
       return frame?.dataset.side ?? null;
     }, at);
     if (side === null) {
@@ -1502,7 +1502,7 @@ async function uncover(who: HostedPeer, at: Point) {
     if (side === 'centre') {
       await clearCentre(who);
     } else {
-      const frame = who.page.locator(`[data-window][data-side="${side}"]`);
+      const frame = who.page.locator(`[data-panel][data-side="${side}"]`);
       await frame.getByRole('button', { name: 'Unpin', exact: true }).click();
       await frame.waitFor({ state: 'detached' });
     }
@@ -1604,7 +1604,7 @@ async function visibleActivity(sender: HostedPeer, recipient: HostedPeer, name: 
 async function capturePhaseTooltip(page: Page) {
   return page
     .evaluate(() => {
-      const tab = document.querySelector('[data-window="phase"] [role="img"][aria-label="Help"]');
+      const tab = document.querySelector('[data-panel="phase"] [role="img"][aria-label="Help"]');
       const box = tab?.getBoundingClientRect();
       const hit = box && document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
       return {

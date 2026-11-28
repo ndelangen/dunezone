@@ -53,7 +53,7 @@ export type PrivateSideTablePanelProps = Readonly<{
   onPlace: (pieceId: string) => void;
 }>;
 
-/* The height the window scrolling the zone shows, so the zone fills the window without scrolling, whatever its height. */
+/* The height the panel scrolling the zone shows, so the zone fills the panel without scrolling, whatever its height. */
 function useScrollParentHeight(ref: RefObject<HTMLElement | null>) {
   const [height, setHeight] = useState<number | null>(null);
   useEffect(() => {
@@ -329,7 +329,7 @@ export function PrivateSideTablePanel({ hand, enabled, onLay, awaiting, onPlace 
   }, []);
 
   /*
-   * Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the windows behind it.
+   * Escape puts a carried piece back where it was, as the browser's own drags do, and keeps Escape from the panels behind it.
    * Leaving the window does too, as the table's own carries do, so a release it never saw cannot move the piece later.
    */
   const carryingPiece = carry?.pieceId ?? null;
@@ -549,7 +549,7 @@ export function PrivateSideTablePanel({ hand, enabled, onLay, awaiting, onPlace 
                 >
                   <PieceImage piece={piece} width={pieceWidth} height={pieceDepth} />
                   {/*
-                   * The carried piece itself, on the page's body so a window's transform cannot shift it: it follows the pointer
+                   * The carried piece itself, on the page's body so a panel's transform cannot shift it: it follows the pointer
                    * within the zone. Its place in the zone keeps the pointer, unseen, until it is let go.
                    */}
                   {carried &&

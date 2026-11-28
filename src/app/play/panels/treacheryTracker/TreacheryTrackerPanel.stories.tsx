@@ -3,10 +3,10 @@ import { expect } from 'storybook/test';
 
 import { midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
-import { TrackerWindow } from './TrackerWindow.stories.fixture';
+import { TrackerPanelFrame } from './TrackerPanelFrame.stories.fixture';
 
 /*
- * The chosen option, Auction first, in its own pinned compass window.
+ * The chosen option, Auction first, in its own pinned compass panel.
  * Turn 2 of a six-faction Dreamrules game, with Hunter Seeker up for bid. Everything is live.
  */
 const meta = preview.meta({
@@ -16,7 +16,7 @@ const meta = preview.meta({
 
 /** The card on bid, whole, beside the tokens that record who won it; one turn's auction at a time; a row per faction. */
 export const Tracker = meta.story({
-  render: () => <TrackerWindow initial={midGameTracker} />,
+  render: () => <TrackerPanelFrame initial={midGameTracker} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Fremen won Hunter Seeker' })).toBeVisible();
   },

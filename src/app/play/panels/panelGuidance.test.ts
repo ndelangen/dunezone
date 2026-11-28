@@ -4,7 +4,7 @@ import { expect, test } from 'vite-plus/test';
 import * as guidance from './panelGuidance';
 
 /*
- * A window's (?) reads as a few short lines, never a wall of text (Norbert, 2026-10-27).
+ * A panel's (?) reads as a few short lines, never a wall of text (Norbert, 2026-10-27).
  * The caps hold the words the app writes itself; a faction's own phase instructions are its author's to keep.
  */
 const MAX_LINE = 100;
@@ -29,6 +29,6 @@ test.each(texts)('%s stays a few short lines', (_name, text) => {
   }
 });
 
-test('the hand and spice window covers both panels', () => {
+test('the hand and spice panel covers both panels', () => {
   expect(guidance.HAND_AND_SPICE_GUIDANCE.help).toBe(helpLines(guidance.SPICE_RESERVE_HELP, guidance.HAND_HELP));
 });

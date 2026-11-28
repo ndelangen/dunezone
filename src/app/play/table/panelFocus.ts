@@ -1,23 +1,23 @@
 /*
- * Which window the table opens on its own, and when.
- * A window opens only when something happens: the live phase changes, a battle starts, the end of the game begins or is declared.
- * A request that merely stays around is never applied again, so the player's own choice of windows stands until the next event.
+ * Which panel the table opens on its own, and when.
+ * A panel opens only when something happens: the live phase changes, a battle starts, the end of the game begins or is declared.
+ * A request that merely stays around is never applied again, so the player's own choice of panels stands until the next event.
  */
 
 type FocusRequest = Readonly<{ key: string; token: string }>;
 
-export type WindowFocusInput = Readonly<{
+export type PanelFocusInput = Readonly<{
   /* Browsing a replay pauses the opening: nothing it shows is an event, and returning to live is not one either. */
   playback: boolean;
   /* The live stage and phase; a change is a phase transition, including one back to a phase seen before. */
   phase: string;
-  /* The phase's own window for this viewer, or null when the phase opens nothing. */
+  /* The phase's own panel for this viewer, or null when the phase opens nothing. */
   phaseTab: string | null;
   /* Battle and result requests, earlier ones winning when several begin together. */
   events: readonly (FocusRequest | null)[];
 }>;
 
-export type WindowFocusState = Readonly<{
+export type PanelFocusState = Readonly<{
   /* Set while a replay is open, so the first live render after it catches up without opening anything. */
   paused: boolean;
   phase: string | null;
@@ -26,19 +26,19 @@ export type WindowFocusState = Readonly<{
   focus: FocusRequest | null;
 }>;
 
-/* The table loaded mid-play opens nothing for its phase; one loaded during setup or drafting still opens the first phase's window. */
-export function initialWindowFocus(phase: string, inPlay: boolean): WindowFocusState {
+/* The table loaded mid-play opens nothing for its phase; one loaded during setup or drafting still opens the first phase's panel. */
+export function initialPanelFocus(phase: string, inPlay: boolean): PanelFocusState {
   return { paused: false, phase: inPlay ? phase : null, events: [], arrivals: 0, focus: null };
 }
 
 /* The state after this render, or the same state when nothing happened. */
-export function nextWindowFocus(state: WindowFocusState, input: WindowFocusInput): WindowFocusState {
+export function nextPanelFocus(state: PanelFocusState, input: PanelFocusInput): PanelFocusState {
   if (input.playback) {
     return state.paused ? state : { ...state, paused: true };
   }
   const events = input.events.filter((request): request is FocusRequest => request !== null);
   const tokens = events.map((request) => request.token);
-  /* What the live game did while the player browsed the replay is not news to open a window for. */
+  /* What the live game did while the player browsed the replay is not news to open a panel for. */
   if (state.paused) {
     return { ...state, paused: false, phase: input.phase, events: tokens };
   }
@@ -61,11 +61,11 @@ export function nextWindowFocus(state: WindowFocusState, input: WindowFocusInput
   };
 }
 
-/* The request that just began: a new event first, else the phase's own window when the phase changed. */
+/* The request that just began: a new event first, else the phase's own panel when the phase changed. */
 function freshRequest(
-  state: WindowFocusState,
+  state: PanelFocusState,
   events: readonly FocusRequest[],
-  changedPhase: WindowFocusInput | null
+  changedPhase: PanelFocusInput | null
 ): FocusRequest | null {
   const event = events.find((request) => !state.events.includes(request.token));
   if (event) {

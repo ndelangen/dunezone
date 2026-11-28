@@ -1,12 +1,12 @@
 import preview from '@sb/preview';
 import { expect, waitFor } from 'storybook/test';
 
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 
 /* The keyboard shortcuts panel on its own, in the centre panel that ? and the bar's key button open. */
-const frame = panelMeta(PANEL_WINDOWS.shortcuts);
+const frame = panelMeta(PANEL_INFO.shortcuts);
 const meta = preview.meta({
   ...frame,
   component: KeyboardShortcutsPanel,

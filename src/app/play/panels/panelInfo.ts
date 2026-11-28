@@ -18,17 +18,17 @@ import {
   TINTS_GUIDANCE,
 } from './panelGuidance';
 
-/* Mentat recall is one window whose guidance depends on whether the game is finished. */
-const REVIEW_WINDOW = { key: 'review', label: 'Mentat recall', topic: 'turn' } as const;
+/* Mentat recall is one panel whose guidance depends on whether the game is finished. */
+const REVIEW_PANEL = { key: 'review', label: 'Mentat recall', topic: 'turn' } as const;
 
-/** What a window says about itself, apart from its content: its key, name, glyph and guidance. */
-export type PanelWindow = Omit<TablePanel, 'content' | 'panels' | 'actions'>;
+/** What a panel says about itself, apart from its content: its key, name, glyph and guidance. */
+export type PanelInfo = Omit<TablePanel, 'content' | 'panels' | 'actions'>;
 
 /*
- * Each panel's window, once: the table installs it from here, and its stories frame the panel in the same window.
- * A window whose guidance depends on the table (Setup, Battle plan) adds that where it installs the panel.
+ * Each panel's entry, once: the table installs it from here, and its stories frame the panel with the same entry.
+ * A panel whose guidance depends on the table (Setup, Battle plan) adds that where it installs the panel.
  */
-export const PANEL_WINDOWS = {
+export const PANEL_INFO = {
   alliances: { key: 'alliances', label: 'Alliances', topic: 'alliance', ...ALLIANCES_GUIDANCE },
   seats: {
     key: 'seats',
@@ -57,13 +57,13 @@ export const PANEL_WINDOWS = {
   result: { key: 'result', label: 'Result', topic: 'result', ...RESULT_GUIDANCE },
   replay: { key: 'replay', label: 'Replay', topic: 'turn', ...REPLAY_GUIDANCE },
   review: {
-    ...REVIEW_WINDOW,
+    ...REVIEW_PANEL,
     description:
       'Ask the table to look back at a recent checkpoint together. It starts when a majority of the players agree; everyone sees the same board and nothing can be moved or peeked at until play resumes.',
   },
-  /* Once the game is finished, the same window starts a recall of any checkpoint without a vote. */
+  /* Once the game is finished, the same panel starts a recall of any checkpoint without a vote. */
   finishedReview: {
-    ...REVIEW_WINDOW,
+    ...REVIEW_PANEL,
     description:
       'Look back over the finished game together. Any player can start a recall of any checkpoint without a vote; everyone sees the same board.',
   },
@@ -89,4 +89,4 @@ export const PANEL_WINDOWS = {
       'Every key the table answers to: the keys for right now first, then the whole keyboard, then every key by group. Point at a key for how to remember it. Press ? to show or hide this sheet.',
     keywords: 'keys hotkeys help cheat sheet',
   },
-} as const satisfies Record<string, PanelWindow>;
+} as const satisfies Record<string, PanelInfo>;

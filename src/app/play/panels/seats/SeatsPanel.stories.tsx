@@ -12,7 +12,7 @@ import {
 } from './SeatsPanel.stories.fixture';
 
 /*
- * The Seats & spectators window on its own, as seat 2 sees a six-seat game mid-play with seat 3 given up:
+ * The Seats & spectators panel on its own, as seat 2 sees a six-seat game mid-play with seat 3 given up:
  * how the seats stand, any spectator's request for the open seat, and who is watching. Each story shows one state.
  */
 const meta = preview.meta({ ...seatsPanelMeta, title: 'Play/Panels/Seats & spectators' });
@@ -25,7 +25,7 @@ export const Watched = meta.story({
   },
 });
 
-/** IHasPinecone asks for seat 3: the request leads the window, with the one Approve a player needs. */
+/** IHasPinecone asks for seat 3: the request leads the panel, with the one Approve a player needs. */
 export const SeatRequested = meta.story({
   args: seatsProps(requestSnapshot()),
   play: async ({ canvas }) => {

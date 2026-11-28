@@ -20,7 +20,7 @@ function besideOwnToken(table: TableProjection): Vector3Tuple {
     : Math.PI / 2;
   return [Math.cos(angle) * PLAYER_RING_RADIUS, 0, Math.sin(angle) * PLAYER_RING_RADIUS];
 }
-/** The Private side-table window's content at a live table: the viewer's hand, and the commands that lay, return and play its pieces. */
+/** The Private side-table panel's content at a live table: the viewer's hand, and the commands that lay, return and play its pieces. */
 export function ConnectedPrivateSideTablePanel({ client, table, hand }: Props) {
   return (
     <PrivateSideTablePanel

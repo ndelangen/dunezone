@@ -39,7 +39,7 @@ function table(width = 1500) {
   toolbar.className = 'seated-toolbar';
   header.append(chip, toolbar);
   const slot = place(document.createElement('section'), { left: 16, top: 436, width: 400, height: 448 });
-  slot.dataset.window = 'hand';
+  slot.dataset.panel = 'hand';
   slot.dataset.side = 'left';
   const grip = document.createElement('button');
   slot.append(grip);

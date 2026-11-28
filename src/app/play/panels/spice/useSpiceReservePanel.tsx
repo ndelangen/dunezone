@@ -5,7 +5,7 @@ import { SpiceReservePanel } from './SpiceReservePanel';
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
 /**
- * The Spice window's content at a live table: the viewer's reserve, or nothing for a viewer without one.
+ * The Spice panel's content at a live table: the viewer's reserve, or nothing for a viewer without one.
  * Its handlers read the live table when they run, so they stay the same for the table's life and the reserve skips the updates that leave its balance alone.
  */
 export function ConnectedSpiceReservePanel({ client, table }: Props) {

@@ -87,7 +87,7 @@ test('screen nudges preserve their distance and refuse destinations beyond the v
   expect(moveSpicePosition(canvas, camera, position, [0, -bounds.height], preview)).toBeNull();
 });
 
-test('initial placement avoids the centered hand window and movement cannot enter it', () => {
+test('initial placement avoids the centered hand panel and movement cannot enter it', () => {
   const { canvas, camera } = scene([3, 8, 1], [3, 0.18, 0]);
   panel(new DOMRect(bounds.left + 350, bounds.top + 250, 300, 400));
   const position = visibleSpicePosition(canvas, camera, preview)!;

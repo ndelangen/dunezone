@@ -3,28 +3,28 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { press } from './gameInteractions.stories.fixture';
 
 /*
- * The shortcut the Play stories share: open one window of the controls through the compass,
+ * The shortcut the Play stories share: open one panel of the controls through the compass,
  * so a story shows a panel in one state without finding its way there first.
  */
 
 type Page = ReturnType<typeof within>;
 
-/* The window a panel opens in: Hand and Spice share one. */
-const WINDOW_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
+/* The frame a panel opens in: Hand and Spice share one. */
+const PANEL_OF: Record<string, string> = { Hand: 'Hand & spice', Spice: 'Hand & spice' };
 
-/** The window named for a panel, by the label on its frame, which groups the sections inside it. */
-export function windowNamed(page: Page, name: string) {
-  const label = WINDOW_OF[name] ?? name;
+/** A panel's frame, found by the label on it, which groups the sections inside it. */
+export function panelNamed(page: Page, name: string) {
+  const label = PANEL_OF[name] ?? name;
   return (
-    page.queryAllByRole('group', { name: label }).find((group: HTMLElement) => group.matches('[data-window]')) ?? null
+    page.queryAllByRole('group', { name: label }).find((group: HTMLElement) => group.matches('[data-panel]')) ?? null
   );
 }
 
-/** Unpins a window the table placed in a slot by itself, which takes it off the table until it is opened again. */
-export async function unpinWindow(page: Page, name: string) {
-  const frame = await waitFor(() => windowNamed(page, name) ?? Promise.reject(new Error(`No ${name} window.`)));
+/** Unpins a panel the table placed in a slot by itself, which takes it off the table until it is opened again. */
+export async function unpinPanel(page: Page, name: string) {
+  const frame = await waitFor(() => panelNamed(page, name) ?? Promise.reject(new Error(`No ${name} window.`)));
   await userEvent.click(within(frame).getByRole('button', { name: 'Unpin' }));
-  await waitFor(() => expect(windowNamed(page, name)).toBeNull());
+  await waitFor(() => expect(panelNamed(page, name)).toBeNull());
 }
 
 /** Opens the compass from its button, unless it is open already. */
@@ -36,14 +36,14 @@ export async function openCompass(page: Page) {
 }
 
 /**
- * Opens a window through the compass's search: typed whole, the window's own name is its first match.
- * A window already open, in the centre or pinned, stays as it is, since asking the compass again would close it.
+ * Opens a panel through the compass's search: typed whole, the panel's own name is its first match.
+ * A panel already open, in the centre or pinned, stays as it is, since asking the compass again would close it.
  * The table's own openings (a battle, the end of the game) come with its first render, so that render is awaited first.
  */
 export async function openControl(page: Page, name: string) {
-  const label = WINDOW_OF[name] ?? name;
+  const label = PANEL_OF[name] ?? name;
   await page.findByRole('button', { name: /^Controls/ }, { timeout: 30_000 });
-  if (windowNamed(page, name)) {
+  if (panelNamed(page, name)) {
     return;
   }
   const compass = await openCompass(page);
@@ -63,10 +63,10 @@ export async function openControl(page: Page, name: string) {
     { timeout: 30_000 }
   );
   await userEvent.click(option);
-  await waitFor(() => expect(windowNamed(page, name)).toBeVisible(), { timeout: 30_000 });
+  await waitFor(() => expect(panelNamed(page, name)).toBeVisible(), { timeout: 30_000 });
 }
 
-/** Proves the compass has no window of that name to offer, then closes. */
+/** Proves the compass has no panel of that name to offer, then closes. */
 export async function expectNoControl(page: Page, name: string) {
   const compass = await openCompass(page);
   const search = compass.getByRole('textbox', { name: 'Search controls' });
@@ -81,7 +81,7 @@ export async function expectNoControl(page: Page, name: string) {
   await waitFor(() => expect(page.queryByRole('dialog', { name: 'Controls compass' })).toBeNull());
 }
 
-/** Opens a controls window from a story's canvas. */
+/** Opens a controls panel from a story's canvas. */
 export async function openPanel(canvasElement: HTMLElement, name: string) {
   const page = within(canvasElement.ownerDocument.body);
   await openControl(page, name);
@@ -95,11 +95,11 @@ export async function openChat(canvasElement: HTMLElement, player: string) {
   return page;
 }
 
-/** Opens the Faction info window and sets it on a player's faction by their token. */
+/** Opens the Faction info panel and sets it on a player's faction by their token. */
 export async function openFactionInfo(canvasElement: HTMLElement, player: string) {
   const page = within(canvasElement.ownerDocument.body);
   await openControl(page, 'Faction info');
-  const picker = within(within(windowNamed(page, 'Faction info')!).getByRole('group', { name: 'Factions' }));
+  const picker = within(within(panelNamed(page, 'Faction info')!).getByRole('group', { name: 'Factions' }));
   const token = await picker.findByRole('button', { name: (name) => name === player || name.startsWith(`${player},`) });
   if (token.getAttribute('aria-pressed') !== 'true') {
     await userEvent.click(token);
@@ -108,5 +108,5 @@ export async function openFactionInfo(canvasElement: HTMLElement, player: string
   return page;
 }
 
-/* A window's content can commit well after it opens on a slow runner, so every read waits as long as the opening does. */
+/* A panel's content can commit well after it opens on a slow runner, so every read waits as long as the opening does. */
 export const WAIT = { timeout: 30_000 };

@@ -8,7 +8,7 @@ import { factionName, isSpectator } from '../table/tableFactions';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
-/** The finished game's words for the phase chip: who won, as the Result window says it. */
+/** The finished game's words for the phase chip: who won, as the Result panel says it. */
 export function resultTitle(table: TableProjection): string | undefined {
   const { result, stage } = table.snapshot;
   return stage === 'finished' && result

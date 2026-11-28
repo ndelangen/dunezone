@@ -30,14 +30,14 @@ export const PlayedThrough = meta.story({
     const page = within(document.body);
     const current = () => document.querySelector('[data-state="current"]')?.textContent ?? '';
     const step = (title: string) => waitForFrame(() => expect(current()).toContain(title), { timeout: 60_000 });
-    const openWindow = async (name: string) => {
+    const openPanel = async (name: string) => {
       await userEvent.click(await page.findByRole('button', { name: 'Controls Space' }));
       await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
       await userEvent.keyboard('{Enter}');
     };
     await page.findByRole('banner', { name: 'Chapter 17: Ending a game' }, { timeout: 60_000 });
     await step('Determine the winner');
-    await openWindow('Phase');
+    await openPanel('Phase');
     await userEvent.click(await page.findByRole('button', { name: 'Determine winner' }));
     await step('Declare the result');
     await userEvent.click(await page.findByRole('combobox', { name: 'Winning faction' }));

@@ -2,15 +2,15 @@ import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { helpLines } from '@ui/content/helpLines';
 import { fn } from 'storybook/test';
 
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { scenario } from './battlePlan.stories.fixture';
 import type { Scenario } from './battlePlan.stories.fixture';
 import { BattlePlanPanel } from './BattlePlanPanel';
 import type { BattlePlanPanelProps } from './BattlePlanPanel';
 
-/** The window as the table shows it while the viewer has a plan: filled by the plan, the wheel's cards peeking over its top edge. */
-export const PLAN_WINDOW = { ...PANEL_WINDOWS.battlePlan, help: 'Battle at Arrakeen', fill: true, peek: true };
+/** The panel as the table shows it while the viewer has a plan: filled by the plan, the wheel's cards peeking over its top edge. */
+export const PLAN_PANEL = { ...PANEL_INFO.battlePlan, help: 'Battle at Arrakeen', fill: true, peek: true };
 
 /** The viewer's side of the story battle at Arrakeen, as the table hands it to the panel, each intent spied. */
 export function planArgs(name: Scenario = 'fresh'): BattlePlanPanelProps {
@@ -26,7 +26,7 @@ export function planArgs(name: Scenario = 'fresh'): BattlePlanPanelProps {
 }
 
 export const battlePlanPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.battlePlan),
+  ...panelMeta(PANEL_INFO.battlePlan),
   component: BattlePlanPanel,
   args: planArgs(),
 };

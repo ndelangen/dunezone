@@ -8,13 +8,13 @@ import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../widgets/tabletop/boardSkin
 import { setCameraFollowsPhase } from '../../widgets/tabletop/cameraFollowsPhase';
 import type { TableView } from '../../widgets/tabletop/playView';
 import type { CompassPlayer, CompassTable } from './compassTable';
+import { FACTION_INFO } from './panels';
+import type { CompassPanel } from './panels';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import type { Command, TableCommand } from './shortcuts';
-import { FACTION_INFO } from './windows';
-import type { TableWindow } from './windows';
 
-/** One line under the search field: a window to open or a command to run. */
+/** One line under the search field: a panel to open or a command to run. */
 export type Suggestion = Readonly<{
   key: string;
   /** A visible command that this mode does not allow. */
@@ -72,8 +72,8 @@ function letterScore(haystack: string, at: number, from: number) {
   return at === 0 || haystack[at - 1] === ' ' ? 2 : 1;
 }
 
-/* What a window's line says under its name: the player's faction and unread count, or the window's group or description. */
-function hintOf(entry: TableWindow) {
+/* What a panel's line says under its name: the player's faction and unread count, or the panel's group or description. */
+function hintOf(entry: CompassPanel) {
   if (entry.player) {
     const unread = entry.player.unread ? ` · ${entry.player.unread} unread` : '';
     return `${entry.player.factionName ?? 'Player'}${unread}`;
@@ -81,12 +81,12 @@ function hintOf(entry: TableWindow) {
   return entry.group === entry.label ? (entry.description ?? '') : entry.group;
 }
 
-/* With nothing typed, unread chats and the phase lead; the player's own window trails. */
-function weightOf(entry: TableWindow) {
+/* With nothing typed, unread chats and the phase lead; the player's own panel trails. */
+function weightOf(entry: CompassPanel) {
   return (entry.player?.unread ?? 0) * 10 + (entry.key === 'phase' ? 5 : 0) + (entry.player?.own ? -5 : 0);
 }
 
-/** The suggestions for what is typed: the best matches, or with nothing typed the windows and commands worth reaching first. */
+/** The suggestions for what is typed: the best matches, or with nothing typed the panels and commands worth reaching first. */
 export function rankSuggestions(all: readonly Candidate[], query: string): Suggestion[] {
   if (!query.trim()) {
     return all
@@ -104,7 +104,7 @@ export function rankSuggestions(all: readonly Candidate[], query: string): Sugge
 
 export type SuggestionActions = Readonly<{
   frozen?: boolean;
-  /** Opens a window; the faction information on the seat asked for. */
+  /** Opens a panel; the faction information on the seat asked for. */
   open: (key: string, seat?: string) => void;
   /** Everyone at the table, the viewer too, whose faction information the search finds by faction or player name. */
   players: readonly CompassPlayer[];
@@ -122,7 +122,7 @@ export type SuggestionActions = Readonly<{
   token: Readonly<{ faceUp: boolean; flip: () => void }> | null | undefined;
   /** The table's lettered commands, each null while the table does not offer it. */
   commands: Readonly<Record<Command, TableCommand | null>>;
-  /** The letter of each window an arm of the compass opens, by the window's key. */
+  /** The letter of each panel an arm of the compass opens, by the panel's key. */
   shortcuts: Readonly<Record<string, string>>;
   /** Closes the compass before a command runs. */
   close: () => void;
@@ -324,8 +324,8 @@ function lookCandidates(close: () => void): Candidate[] {
   return [...skins, ...shading, ...following];
 }
 
-/* A window as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
-function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candidate {
+/* A panel as the search lists it: its name, its hint, and the letter an arm of the compass opens it with. */
+function panelCandidate(entry: CompassPanel, actions: SuggestionActions): Candidate {
   return {
     key: entry.key,
     label: entry.label,
@@ -339,10 +339,10 @@ function windowCandidate(entry: TableWindow, actions: SuggestionActions): Candid
 }
 
 /*
- * The faction information by its own name, as every window is found, and once more for each player, found by their faction or
+ * The faction information by its own name, as every panel is found, and once more for each player, found by their faction or
  * name: "Atreides" opens it on the Atreides.
  */
-function factionCandidates(entry: TableWindow, actions: SuggestionActions): Candidate[] {
+function factionCandidates(entry: CompassPanel, actions: SuggestionActions): Candidate[] {
   const seats = actions.players.map((player): Candidate => ({
     key: `${entry.key}:${player.seat}`,
     label: player.factionName ?? player.name,
@@ -350,14 +350,14 @@ function factionCandidates(entry: TableWindow, actions: SuggestionActions): Cand
     icon: <PlayerToken player={player} size={20} />,
     run: () => actions.open(entry.key, player.seat),
     text: `${player.factionName ?? ''} ${entry.label} ${player.name}`,
-    /* With nothing typed, the windows and commands lead; a faction is looked up by name. */
+    /* With nothing typed, the panels and commands lead; a faction is looked up by name. */
     weight: -1,
   }));
-  return [windowCandidate(entry, actions), ...seats];
+  return [panelCandidate(entry, actions), ...seats];
 }
 
-/** Every window and command the search can reach. */
-export function candidatesOf(windows: readonly TableWindow[], actions: SuggestionActions): Candidate[] {
+/** Every panel and command the search can reach. */
+export function candidatesOf(panels: readonly CompassPanel[], actions: SuggestionActions): Candidate[] {
   const frozen: Candidate[] = actions.frozen
     ? [
         'Next phase',
@@ -381,8 +381,8 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
     : [];
   return [
     ...frozen,
-    ...windows.flatMap((entry): Candidate[] =>
-      entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [windowCandidate(entry, actions)]
+    ...panels.flatMap((entry): Candidate[] =>
+      entry.key === FACTION_INFO ? factionCandidates(entry, actions) : [panelCandidate(entry, actions)]
     ),
     ...nextPhaseCandidate(actions.nextPhase, actions.close),
     ...spiceBlowCandidate(actions.spiceBlow, actions.close),

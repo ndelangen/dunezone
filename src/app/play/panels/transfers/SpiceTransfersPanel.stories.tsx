@@ -4,7 +4,7 @@ import { expect } from 'storybook/test';
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import { transfersPanelMeta, transfersProps } from './SpiceTransfersPanel.stories.fixture';
 
-/* The Spice transfers window on its own: the table's public spice movements, newest first. */
+/* The Spice transfers panel on its own: the table's public spice movements, newest first. */
 const meta = preview.meta({ ...transfersPanelMeta, title: 'Play/Panels/Spice transfers' });
 
 /** Every kind of transfer, each end named in words (#1664): a faction's spice reserve by its name, the table, the Spice Bank, and a faction gone from the roster as such. */

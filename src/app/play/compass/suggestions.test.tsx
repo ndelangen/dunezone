@@ -1,7 +1,7 @@
 import { expect, test } from 'vite-plus/test';
 
 import { readCameraFollowsPhase } from '../../widgets/tabletop/cameraFollowsPhase';
-import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { PANEL_INFO } from '../panels/panelInfo';
 import { commandsOf } from './shortcuts';
 import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
 
@@ -103,7 +103,7 @@ test('Pass closes the compass and turns the token over', () => {
   expect(calls).toEqual(['close', 'flip']);
 });
 
-test('a window an arm of the compass opens carries its letter', () => {
+test('a panel an arm of the compass opens carries its letter', () => {
   const hand = {
     key: 'hand',
     label: 'Hand & spice',
@@ -168,7 +168,7 @@ test('the search switches this viewer’s board skin and planet shading, ranked 
     'Planet shading: on',
     'Planet shading: off',
   ]);
-  /* They sit below every window and command, so they surface only once typed for. */
+  /* They sit below every panel and command, so they surface only once typed for. */
   expect(all.filter((entry) => entry.key.startsWith('look:')).every((entry) => entry.weight < 0)).toBe(true);
   expect(rankSuggestions(all, 'treachery')[0]?.label).toBe('Board skin: Treachery Online');
 });
@@ -227,11 +227,11 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
     player('seat-2', 'Paul', 'Atreides'),
     player('seat-3', 'Ada', 'Fremen'),
   ];
-  const window = (key: string, label: string, extra = {}) =>
+  const panel = (key: string, label: string, extra = {}) =>
     ({ key, label, group: 'Players', topic: 'factions', content: null, layout: 'stack', ...extra }) as const;
-  const windows = [window('player:seat-2', 'Paul', { player: players[1] }), window('faction-info', 'Faction info')];
+  const panels = [panel('player:seat-2', 'Paul', { player: players[1] }), panel('faction-info', 'Faction info')];
   const opened: string[] = [];
-  const all = candidatesOf(windows, {
+  const all = candidatesOf(panels, {
     ...actions(null),
     players,
     open: (key, seat) => opened.push(`${key}@${seat}`),
@@ -243,7 +243,7 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
   ]);
   found[0]!.run();
   expect(opened).toEqual(['faction-info@seat-2']);
-  /* The viewer's own faction is found too, and "faction info" finds the window itself and every seat's. */
+  /* The viewer's own faction is found too, and "faction info" finds the panel itself and every seat's. */
   expect(rankSuggestions(all, 'harkonnen')[0]).toMatchObject({
     label: 'Harkonnen',
     hint: 'Faction info · You',
@@ -268,7 +268,7 @@ test('"clear" finds Clear all chats only while a chat has messages to clear, and
   });
   found[0]!.run();
   expect(cleared).toBe(1);
-  /* It sits below every window and command, so it surfaces only once typed for. */
+  /* It sits below every panel and command, so it surfaces only once typed for. */
   expect(found[0]!).toMatchObject({ key: 'cmd:clear-chats' });
   expect(all.find((entry) => entry.key === 'cmd:clear-chats')!.weight).toBeLessThan(0);
   expect(rankSuggestions(all, '').map((entry) => entry.key)).not.toContain('cmd:clear-chats');
@@ -279,8 +279,8 @@ test('"clear" finds Clear all chats only while a chat has messages to clear, and
 
 test('the keyboard shortcuts cheat sheet is found by its name and by its keywords, with ? beside it', () => {
   const sheet = {
-    ...PANEL_WINDOWS.shortcuts,
-    group: PANEL_WINDOWS.shortcuts.label,
+    ...PANEL_INFO.shortcuts,
+    group: PANEL_INFO.shortcuts.label,
     content: null,
     layout: 'stack' as const,
   };

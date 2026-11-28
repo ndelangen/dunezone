@@ -171,7 +171,7 @@ type ReportFormProps = {
   check: () => void;
 };
 
-/** The hosted page owns the draft so closing or pinning its compass window does not lose a report in flight. */
+/** The hosted page owns the draft so closing or pinning its compass panel does not lose a report in flight. */
 export function useBugReport(context: ReportContext): ReactNode {
   const [draft, dispatch] = useReducer(reduce, initial);
   const submission = useRef(new ReportSubmission());

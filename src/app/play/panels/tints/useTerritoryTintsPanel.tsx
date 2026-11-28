@@ -169,7 +169,7 @@ export function tintPresets(table: TableProjection) {
   return board ? territoryTintPresets(board) : [];
 }
 
-/** The Territory tints window from the table: its tints with their paintbrush and removal state, and the commands each control sends. */
+/** The Territory tints panel from the table: its tints with their paintbrush and removal state, and the commands each control sends. */
 function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelProps {
   const tints = useMemo(() => table.snapshot.tints ?? [], [table.snapshot.tints]);
   const board = table.snapshot.board?.definition;
@@ -199,7 +199,7 @@ function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelPr
   };
 }
 
-/** The Territory tints window's content at a live table. */
+/** The Territory tints panel's content at a live table. */
 export function ConnectedTerritoryTintsPanel(props: Props) {
   return <TerritoryTintsPanel {...useTerritoryTintsPanel(props)} />;
 }

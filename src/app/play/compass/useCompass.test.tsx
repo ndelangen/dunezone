@@ -3,15 +3,15 @@
 import { act, cleanup, fireEvent, renderHook } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { PANEL_INFO } from '../panels/panelInfo';
 import type { CompassTable } from './compassTable';
 import { useCompass } from './useCompass';
 
 afterEach(cleanup);
 
 const sheet = {
-  ...PANEL_WINDOWS.shortcuts,
-  group: PANEL_WINDOWS.shortcuts.label,
+  ...PANEL_INFO.shortcuts,
+  group: PANEL_INFO.shortcuts.label,
   content: null,
   layout: 'stack' as const,
 };
@@ -22,7 +22,7 @@ function compass(onToggleSheet?: () => void) {
       open: false,
       onOpen: () => {},
       inert: false,
-      windows: [sheet],
+      openable: [sheet],
       table: null,
       onView: () => {},
       onShow: () => {},
@@ -66,7 +66,7 @@ function clearingCompass() {
       open: true,
       onOpen,
       inert: false,
-      windows: [],
+      openable: [],
       table,
       onView: () => {},
       onShow: () => {},
@@ -149,7 +149,7 @@ test('letting go of Space after steering onto it starts no countdown: a key alre
         open = next;
       },
       inert: false,
-      windows: [],
+      openable: [],
       table,
       onView: () => {},
       onShow: () => {},

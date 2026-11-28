@@ -38,7 +38,7 @@ test('prediction locks into the learner hand and only its close-up, followed by 
   expect(game.snapshot().hand?.some((piece) => piece.items[0]?.artwork?.type === 'card-prediction')).toBe(true);
   const preview = game.step('hand');
   document.body.innerHTML =
-    '<div data-window="hand"></div><div data-piece-close-up data-piece-type="card-traitor"></div>';
+    '<div data-panel="hand"></div><div data-piece-close-up data-piece-type="card-traitor"></div>';
   expect(preview.done()).toBe(false);
   document.querySelector('[data-piece-close-up]')!.remove();
   expect(preview.done()).toBe(false);

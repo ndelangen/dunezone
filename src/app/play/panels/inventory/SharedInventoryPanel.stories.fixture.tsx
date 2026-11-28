@@ -7,10 +7,10 @@ import { fn } from 'storybook/test';
 
 import { cardBack, factions } from '../../../routes/_app/play/product.stories.fixture';
 import compass from '../../compass/CompassControls.module.css';
-import { WindowFrame } from '../../compass/WindowFrame';
+import { PanelFrame } from '../../compass/PanelFrame';
 import '../../table/dune-play.css';
-import type { TableWindow } from '../../compass/windows';
-import { PANEL_WINDOWS } from '../panelWindows';
+import type { CompassPanel } from '../../compass/panels';
+import { PANEL_INFO } from '../panelInfo';
 import { inventoryRows } from './inventoryRows';
 import { dreamrulesTechTokenPieces } from './techTokens.stories.fixture';
 import { drawHelp } from './useSharedInventory';
@@ -78,15 +78,15 @@ export function inventoryArgs(): SharedInventoryViewProps {
   };
 }
 
-/* The window as HostedTable lists it, with its title and (?). */
-const INVENTORY_WINDOW: Omit<TableWindow, 'content'> = { ...PANEL_WINDOWS.inventory, group: 'Table', layout: 'stack' };
+/* The panel as HostedTable lists it, with its title and (?). */
+const INVENTORY_PANEL: Omit<CompassPanel, 'content'> = { ...PANEL_INFO.inventory, group: 'Table', layout: 'stack' };
 
 /*
- * The panel alone, in its window's real frame, title and (?), as a pinned slot shows it:
- * inside the play shell and the compass, whose styles give the window its glass, edge and corners and the pieces their sand.
- * The shell's ground is left out, so only the window sits on the canvas.
+ * The panel alone, in its panel's real frame, title and (?), as a pinned slot shows it:
+ * inside the play shell and the compass, whose styles give the panel its glass, edge and corners and the pieces their sand.
+ * The shell's ground is left out, so only the panel sits on the canvas.
  */
-export const inWindow: Decorator = (Story) => (
+export const inPanel: Decorator = (Story) => (
   <DarkSchemeIsland>
     <div
       className="dune-play-shell"
@@ -94,8 +94,8 @@ export const inWindow: Decorator = (Story) => (
       style={{ width: '46rem', height: '52rem', background: 'transparent' }}
     >
       <div className={compass.root} style={{ '--slot-width': '44rem' } as CSSProperties}>
-        <WindowFrame
-          entry={{ ...INVENTORY_WINDOW, content: <Story /> }}
+        <PanelFrame
+          entry={{ ...INVENTORY_PANEL, content: <Story /> }}
           where="left"
           inert={false}
           style={{ height: '50rem' }}

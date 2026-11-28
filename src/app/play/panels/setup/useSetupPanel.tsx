@@ -6,7 +6,7 @@ import type { TableProjection, TableSession } from '../../../db/tabletop/TableSe
 import { predictionCardInHand } from '../../prediction/predictionCardInHand';
 import { factionName, factionOptions, offersActions, viewerFaction } from '../../table/tableFactions';
 import { setupGuidance, setupHelp } from '../panelGuidance';
-import type { PanelWindow } from '../panelWindows';
+import type { PanelInfo } from '../panelInfo';
 import { SetupPanel } from './SetupPanel';
 import type { PredictionRow, SetupPanelProps } from './SetupPanel';
 
@@ -19,8 +19,8 @@ const SETUP_TOPICS = {
   instruction: 'setup',
 } as const satisfies Record<string, TopicIconTopic>;
 
-/** The Setup window, named and explained by the current setup step. */
-export function setupWindow(setup: SetupState): PanelWindow {
+/** The Setup panel, named and explained by the current setup step. */
+export function setupPanel(setup: SetupState): PanelInfo {
   const step = setupStep(setup);
   return { key: 'setup', label: 'Setup', topic: SETUP_TOPICS[step.kind], ...setupGuidance(step) };
 }
@@ -65,7 +65,7 @@ function predictionRows(table: TableProjection, setup: SetupState): PredictionRo
     });
 }
 
-/** The Setup window's props for this table, or null once setup is over. */
+/** The Setup panel's props for this table, or null once setup is over. */
 export function setupPanelProps(
   table: TableProjection,
   actions: Pick<SetupPanelProps, 'onGatherTraitors' | 'onDealTraitors' | 'onLockPrediction' | 'onRevealPrediction'>
@@ -75,7 +75,7 @@ export function setupPanelProps(
     return null;
   }
   const step = setupStep(setup);
-  /* The viewer's own starting troops lead, so a narrow window shows the line that seat has to follow. */
+  /* The viewer's own starting troops lead, so a narrow panel shows the line that seat has to follow. */
   const ownFaction = viewerFaction(table);
   const instructions =
     step.kind === 'forces'
@@ -105,7 +105,7 @@ function traitorDeck(table: TableProjection) {
   return decks.length === 1 && !decks[0]!.locked ? decks[0] : undefined;
 }
 
-/** The Setup window's content at a live table. */
+/** The Setup panel's content at a live table. */
 export function ConnectedSetupPanel({ client, table }: Props) {
   const props = setupPanelProps(table, {
     onGatherTraitors: () => client.command({ kind: 'traitors-gather' }),

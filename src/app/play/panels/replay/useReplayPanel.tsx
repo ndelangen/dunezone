@@ -15,7 +15,7 @@ function replayState(table: TableProjection): ReplayState {
     : { kind: 'live', canStart: !table.state.draftMove && !table.reconnecting };
 }
 
-/** The Replay window from the table: where it stands, and the reads that step through the saved phases. */
+/** The Replay panel from the table: where it stands, and the reads that step through the saved phases. */
 function useReplayPanel({ client, table }: Props): ReplayPanelProps {
   return {
     replay: replayState(table),
@@ -25,7 +25,7 @@ function useReplayPanel({ client, table }: Props): ReplayPanelProps {
   };
 }
 
-/** The Replay window's content at a live table. */
+/** The Replay panel's content at a live table. */
 export function ConnectedReplayPanel(props: Props) {
   return <ReplayPanel {...useReplayPanel(props)} />;
 }

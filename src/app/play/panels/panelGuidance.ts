@@ -7,8 +7,8 @@ import type { TableProjection } from '../../db/tabletop/TableSession';
 
 /*
  * What each panel of the table's controls says about itself.
- * The window's (?) gives the one-line description and the full help under it, and the compass's search shows the description as a hint;
- * the section the window holds keeps the same help for assistive technology, so both read from here.
+ * The panel's (?) gives the one-line description and the full help under it, and the compass's search shows the description as a hint;
+ * the section the panel holds keeps the same help for assistive technology, so both read from here.
  * Help is a few short lines, one thought each, joined by line breaks the tooltip keeps (Norbert, 2026-10-27: a wall of text helps nobody).
  * Controls with a keyboard placement mode include its keys in their help.
  */
@@ -55,7 +55,7 @@ export function battleHelp(table: TableProjection) {
   return helpLines(`Battle at ${battle.territory}`, dialing && `${dialing.label} dialing.\n${dialing.description}`);
 }
 
-/** The Battle plan window's line; its help says where the battle is, which only the table knows. */
+/** The Battle plan panel's line; its help says where the battle is, which only the table knows. */
 export const BATTLE_PLAN_GUIDANCE: Guidance = { description: 'The battle on the table and your private plan.' };
 
 export const ALLIANCES_HELP = helpLines(
@@ -111,7 +111,7 @@ export const SPICE_GUIDANCE: Guidance = {
   help: SPICE_RESERVE_HELP,
 };
 
-/** Hand and Spice share one window: one line for both, then the spice's help and the hand's, in the order the window shows them. */
+/** Hand and Spice share one panel: one line for both, then the spice's help and the hand's, in the order the panel shows them. */
 export const HAND_AND_SPICE_GUIDANCE: Guidance = {
   description: 'Your cards, leaders and spice. Only you see them.',
   help: helpLines(SPICE_RESERVE_HELP, HAND_HELP),
@@ -125,7 +125,7 @@ export const GAME_LOG_GUIDANCE: Guidance = {
 
 export const AUDIT_LOG_GUIDANCE: Guidance = { description: 'Seats and removal votes.' };
 
-/** What Previous does once the game is under way, said in the Phase window and on a plain table alike. */
+/** What Previous does once the game is under way, said in the Phase panel and on a plain table alike. */
 export const PHASE_PREVIOUS = 'Previous moves the tracker back. Pieces and storm stay put.';
 
 export function phaseHelp(table: TableProjection) {

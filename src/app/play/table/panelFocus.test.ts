@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { initialWindowFocus, nextWindowFocus } from './windowFocus';
-import type { WindowFocusInput, WindowFocusState } from './windowFocus';
+import { initialPanelFocus, nextPanelFocus } from './panelFocus';
+import type { PanelFocusInput, PanelFocusState } from './panelFocus';
 
 const TABS: Record<string, string | null> = {
   storm: 'phase',
@@ -12,11 +12,11 @@ const TABS: Record<string, string | null> = {
 };
 
 /* Plays renders through the reducer, as the hook does, and returns the focus after each one. */
-function play(state: WindowFocusState, renders: readonly Partial<WindowFocusInput>[]) {
+function play(state: PanelFocusState, renders: readonly Partial<PanelFocusInput>[]) {
   const seen: (string | null)[] = [];
   for (const render of renders) {
     const phase = render.phase ?? 'play:1:storm';
-    state = nextWindowFocus(state, {
+    state = nextPanelFocus(state, {
       playback: false,
       phase,
       phaseTab: TABS[phase.split(':')[2] ?? ''] ?? null,
@@ -28,10 +28,10 @@ function play(state: WindowFocusState, renders: readonly Partial<WindowFocusInpu
   return seen;
 }
 
-describe('the windows follow the live table', () => {
+describe('the panels follow the live table', () => {
   test('each seat request opens Seats & spectators once; one withdrawn never makes an older one still waiting look new', () => {
     const request = (id: string) => ({ key: 'seats', token: `seat-request:${id}` });
-    const tokens = play(initialWindowFocus('play:1:blow', true), [
+    const tokens = play(initialPanelFocus('play:1:blow', true), [
       { phase: 'play:1:blow', events: [request('a')] },
       { phase: 'play:1:blow', events: [request('a'), request('b')] },
       { phase: 'play:1:blow', events: [request('a')] },
@@ -43,8 +43,8 @@ describe('the windows follow the live table', () => {
     expect(tokens[3]).toMatch(/^seat-request:c#/);
   });
 
-  test('the phase the table loaded on opens nothing, and a later return to it opens its window', () => {
-    const tokens = play(initialWindowFocus('play:1:choam', true), [
+  test('the phase the table loaded on opens nothing, and a later return to it opens its panel', () => {
+    const tokens = play(initialPanelFocus('play:1:choam', true), [
       { phase: 'play:1:choam' },
       { phase: 'play:1:bidding' },
       { phase: 'play:1:choam' },
@@ -55,12 +55,12 @@ describe('the windows follow the live table', () => {
   });
 
   test('a table loaded during setup opens the first phase’s tab when play begins', () => {
-    const [token] = play(initialWindowFocus('setup:1:storm', false), [{ phase: 'play:1:storm' }]);
+    const [token] = play(initialPanelFocus('setup:1:storm', false), [{ phase: 'play:1:storm' }]);
     expect(token).toMatch(/^phase:play:1:storm#/);
   });
 
   test('returning to a phase whose tab was the last one opened opens it again', () => {
-    const tokens = play(initialWindowFocus('play:1:mentat', true), [
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
       { phase: 'play:1:storm' },
       { phase: 'play:1:blow' },
       { phase: 'play:1:storm' },
@@ -73,7 +73,7 @@ describe('the windows follow the live table', () => {
 
   test('browsing a replay and coming back to live opens nothing', () => {
     const result = { key: 'result', token: 'ending-1' };
-    const tokens = play(initialWindowFocus('play:1:mentat', true), [
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
       { phase: 'play:1:battle', events: [result] },
       { phase: 'play:1:storm', playback: true, events: [null] },
       { phase: 'play:1:battle', events: [result] },
@@ -83,7 +83,7 @@ describe('the windows follow the live table', () => {
   });
 
   test('a live game that moved on during a replay opens nothing on return, and the next change does', () => {
-    const tokens = play(initialWindowFocus('play:1:mentat', true), [
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
       { phase: 'play:1:storm' },
       { phase: 'play:1:storm', playback: true },
       { phase: 'play:1:bidding' },
@@ -95,7 +95,7 @@ describe('the windows follow the live table', () => {
 
   test('an event wins over the phase change it arrives with, and goes again only when it comes back', () => {
     const battle = { key: 'battle', token: 'battle-7' };
-    const tokens = play(initialWindowFocus('play:1:blow', true), [
+    const tokens = play(initialPanelFocus('play:1:blow', true), [
       { phase: 'play:1:battle', events: [battle] },
       { phase: 'play:1:battle', events: [battle] },
       { phase: 'play:1:battle', events: [null] },

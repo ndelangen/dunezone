@@ -92,7 +92,7 @@ function agreedCount(current: TableReview) {
 
 /**
  * The header while a review is asked for or runs: who asked to look back at what, and what the viewer can answer;
- * Mentat recall links to its window, where the proposer withdraws.
+ * Mentat recall links to its panel, where the proposer withdraws.
  * A running review replaces the stage's controls, since the table takes no move until play resumes.
  */
 export function TableReviewBar({ client, table, onOpenRecall }: Props & Readonly<{ onOpenRecall?: () => void }>) {

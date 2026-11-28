@@ -4,8 +4,8 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { battleStory } from '../../../routes/_app/play/playing.stories.fixture';
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import { scenario } from '../battlePlan/battlePlan.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { BattleHistoryPanel } from './BattleHistoryPanel';
 import type { BattleHistoryPanelProps } from './BattleHistoryPanel';
 
@@ -54,7 +54,7 @@ export function agreedBattle(): BattleHistoryPanelProps {
 }
 
 export const battleHistoryPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.battles),
+  ...panelMeta(PANEL_INFO.battles),
   component: BattleHistoryPanel,
   args: agreedBattle(),
 };

@@ -39,7 +39,7 @@ test('Alt over a held tech token shows it larger with what it does', () => {
   expect(closeUp?.textContent).toContain('Ship two extra troops.');
 });
 
-test('a suspended window shows no close-up', () => {
+test('a suspended panel shows no close-up', () => {
   mounted(false);
   fireEvent.pointerEnter(screen.getByRole('listitem', { name: 'Heighliners' }));
   fireEvent.keyDown(window, { key: 'Alt', altKey: true });

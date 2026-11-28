@@ -2,10 +2,10 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { dragOnto, dragTo } from '../../../routes/_app/play/sortable.stories.fixture';
-import { at, handWindowMeta } from './HandWindow.stories.fixture';
+import { at, handPanelMeta } from './HandPanelFrame.stories.fixture';
 
 const meta = testingPreview.meta({
-  ...handWindowMeta,
+  ...handPanelMeta,
   title: 'Play/Panels/Hand and spice',
   parameters: { layout: 'fullscreen' },
 });
@@ -15,7 +15,7 @@ export const HandActions = meta.story({
   beforeEach: at('Battle plan'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* A right-click on a card sets it on the side-table, where the side-table window shows it. */
+    /* A right-click on a card sets it on the side-table, where the side-table panel shows it. */
     const crysknife = await page.findByRole('button', { name: 'Drag Crysknife from hand' }, { timeout: 30_000 });
     await userEvent.pointer({ keys: '[MouseRight]', target: crysknife });
     await userEvent.click(await page.findByRole('menuitem', { name: 'Move to private side-table' }));

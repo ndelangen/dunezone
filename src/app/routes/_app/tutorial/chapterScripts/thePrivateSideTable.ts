@@ -6,7 +6,7 @@ import { CARD_DEPTH, CARD_WIDTH } from '@shared/play/tableGeometry';
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript } from './chapterScript';
-import { element, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { element, openedPanel, task, viaCompass, panelShown } from './guideChecks';
 import { ATREIDES_BATTLE_LOSS_COUNTER, KWISATZ_HADERACH } from './kwisatzHaderach';
 
 /*
@@ -23,8 +23,8 @@ const COUNTER = 'Atreides Battle Loss Counter';
 /** The tracker and its counter, as the game holds a captured card and token, owned by whichever faction the chapter seats. */
 const hand: StoredPiece[] = [KWISATZ_HADERACH, ATREIDES_BATTLE_LOSS_COUNTER];
 
-const inHand = (name: string) => `[data-window="hand"] [aria-label="Drag ${name} from hand"]`;
-const onSideTable = (name: string) => `[data-window="hidden-zone"] [aria-label="Move ${name} on private side-table"]`;
+const inHand = (name: string) => `[data-panel="hand"] [aria-label="Drag ${name} from hand"]`;
+const onSideTable = (name: string) => `[data-panel="hidden-zone"] [aria-label="Move ${name} on private side-table"]`;
 
 type Spot = Readonly<{ x: number; y: number; turn?: number }>;
 
@@ -85,7 +85,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         "You're playing Atreides. Let's use a private side-table to track your Kwisatz Haderach.\n\nPress {H} to open your hand and find the card and its counter.",
       anchor: { kind: 'page', element: viaCompass('hand') },
-      ...openedWindow(windowShown('hand')),
+      ...openedPanel(panelShown('hand')),
     }),
     task({
       id: 'pin-hand',
@@ -93,7 +93,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail: 'Use the left pin beside the panel title, or press {[}, to keep your hand open in the bottom left.',
       anchor: { kind: 'page', element: element('[aria-label="Pin to the bottom left"]') },
       begin: () => null,
-      done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
+      done: () => document.querySelector('[data-side="left"][data-panel="hand"]') !== null,
     }),
     task({
       id: 'open-zone',
@@ -101,7 +101,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       detail:
         "Press {J} to open your private side-table. It's yours alone: only you can see the pieces you place here.",
       anchor: { kind: 'page', element: viaCompass('hidden') },
-      ...openedWindow(windowShown('hidden-zone')),
+      ...openedPanel(panelShown('hidden-zone')),
     }),
     task({
       id: 'card',
@@ -135,7 +135,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: { kind: 'page', element: element(onSideTable(COUNTER)) },
       begin: () => null,
       done: () =>
-        Number(document.querySelector('[data-window="hidden-zone"] [data-zoom]')?.getAttribute('data-zoom')) >= 2,
+        Number(document.querySelector('[data-panel="hidden-zone"] [data-zoom]')?.getAttribute('data-zoom')) >= 2,
     }),
     task({
       id: 'first-loss',

@@ -10,14 +10,14 @@ import { useRemembered } from './useRemembered';
 /*
  * Where each pinned slot stands and how tall it is: its bottom edge beside the chat bar or above it, its height
  * dragged by its top edge or nudged with the arrow keys, remembered, and held under the chrome drawn over the table.
- * The same measurement hangs the camera dial under the toolbar and stands the centre window over the chat bar.
+ * The same measurement hangs the camera dial under the toolbar and stands the centre panel over the chat bar.
  */
 
 type Heights = Record<Side, number | null>;
 
 /** The CSS custom property the camera dial's top edge reads, set on the controls' root. */
 const CAMERA_TOP = '--compass-camera-top';
-/** The CSS custom property the centre window's bottom edge reads: over the chat bar, however many rows it wraps to. */
+/** The CSS custom property the centre panel's bottom edge reads: over the chat bar, however many rows it wraps to. */
 const CENTRE_BOTTOM = '--compass-centre-bottom';
 
 const NONE: Heights = { left: null, right: null };
@@ -27,12 +27,12 @@ export type SlotHeights = ReturnType<typeof useSlotHeights>;
 
 /* The slot pinned to a side, by the attributes its frame carries. */
 function slotOn(root: HTMLElement, side: Side) {
-  return root.querySelector<HTMLElement>(`[data-window][data-side="${side}"]`);
+  return root.querySelector<HTMLElement>(`[data-panel][data-side="${side}"]`);
 }
 
 /*
  * Sets where the chrome around the chat bar stands: the camera dial under the toolbar (Next phase, settings) by the gap
- * a slot keeps from it, the centre window over the bar, and the slots beside the bar while the table is wide enough
+ * a slot keeps from it, the centre panel over the bar, and the slots beside the bar while the table is wide enough
  * for both and the bar, else above it.
  */
 function placeCamera(root: HTMLElement) {
@@ -84,7 +84,7 @@ export function useSlotHeights(
     return () => stopResize.current?.();
   }, [active]);
 
-  /* Before paint, so a window pinned into a slot never shows a frame beside the bar and then rises above it. */
+  /* Before paint, so a panel pinned into a slot never shows a frame beside the bar and then rises above it. */
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) {
@@ -120,7 +120,7 @@ export function useSlotHeights(
     for (const bar of root.querySelectorAll('[data-compass-bar]')) {
       observer.observe(bar);
     }
-    /* A slot widens as its window's contents arrive, which can lift both slots over the bar. */
+    /* A slot widens as its panel's contents arrive, which can lift both slots over the bar. */
     for (const side of SIDES) {
       const slot = slotOn(root, side);
       if (slot) {

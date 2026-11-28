@@ -13,7 +13,7 @@ import {
 } from './FactionInfoPanel.stories.fixture';
 
 /*
- * The Faction info window on its own, for one seat of a six-seat game mid-play, as seat 2 sees it:
+ * The Faction info panel on its own, for one seat of a six-seat game mid-play, as seat 2 sees it:
  * who sits there, their faction and alliance, what the faction starts with, and any vote against the player.
  * The seat's trade has its own stories with the table; requests for a seat are in Seats & spectators.
  */
@@ -74,7 +74,7 @@ export const Observer = meta.story({
   },
 });
 
-/** While seats are traded: the trade sits in the toolbar with the other actions, and the window says nothing about who is ready. */
+/** While seats are traded: the trade sits in the toolbar with the other actions, and the panel says nothing about who is ready. */
 export const WhileTrading = meta.story({
   args: factionInfoArgs(swappingSnapshot(), 'seat-1', 'seat-2', { captured: false }),
   play: async ({ canvas }) => {

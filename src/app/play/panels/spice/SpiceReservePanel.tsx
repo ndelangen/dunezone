@@ -12,7 +12,7 @@ import styles from './SpiceReservePanel.module.css';
 export type SpiceReservePanelProps = Readonly<{
   /** The faction's spice in its private reserve. */
   balance: number;
-  /** The heading is only for assistive technology inside a game's window. */
+  /** The heading is only for assistive technology inside a game's panel. */
   hiddenHeading: boolean;
 }> &
   (

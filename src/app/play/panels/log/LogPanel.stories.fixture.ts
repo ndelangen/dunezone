@@ -2,8 +2,8 @@ import type { LogEntry } from '@shared/play/log';
 import { fn } from 'storybook/test';
 
 import { GAME_LOG } from '../../../routes/_app/play/game.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { LogPanel } from './LogPanel';
 import type { LogPanelProps } from './LogPanel';
 
@@ -46,7 +46,7 @@ export const RESTORED_ENTRIES: LogEntry[] = [
 ];
 
 export const logPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.gameLog),
+  ...panelMeta(PANEL_INFO.gameLog),
   component: LogPanel,
   args: {
     tab: 'game',

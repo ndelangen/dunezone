@@ -264,7 +264,7 @@ Outside the kit:
   composition, because the tutorial installs it too. The routes under `routes/_app/play` keep only
   the pages and the page stories; outside its own stories and tests nothing in `src/app/play`
   imports a route. What the compass opens is a **panel** in code as on screen: `PanelFrame`,
-  `CompassPanel`, `PANELS`, never "window".
+  `CompassPanel`, `PANEL_INFO`, never "window".
 - **Game assets** (`src/game`) are print-faithful renderers. They own their colours and are never
   themed. The glue that turns them into documents lives in **`src/app/print/`** and belongs to this
   world, not to the interface taxonomy: `print/sheet/` is the bridge a `Faction` row crosses to

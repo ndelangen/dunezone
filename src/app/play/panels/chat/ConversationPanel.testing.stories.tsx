@@ -72,7 +72,7 @@ export const EscapeLeavesTheComposer = meta.story({
   },
 });
 
-/* The suggestions open in a portal, beside the window rather than inside it. */
+/* The suggestions open in a portal, beside the panel rather than inside it. */
 const suggestions = () => within(document.body);
 
 /** Tab writes the highlighted name with one space after it; the arrows move the highlight first, and a second space typed straight after is not written. */

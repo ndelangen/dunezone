@@ -6,11 +6,11 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, buttonIn, closePieceMenu, closeUpShown, nextPhaseButton, onBoard, task, viaCompass } from './guideChecks';
 
 /*
- * "Setup": the game's setup steps as the Setup window runs them, from the Bene Gesserit prediction to the starting troops.
+ * "Setup": the game's setup steps as the Setup panel runs them, from the Bene Gesserit prediction to the starting troops.
  * The learner plays the Bene Gesserit, the one faction in the shared setup with a prediction, so the chapter opens on it.
  * Then the learner combines and shuffles the tabletop traitors, deals four, keeps one and clears the discards,
  * and the starting troops go onto the board once the map shows. What a faction keeps and where its troops start are its own
- * rules, which the Setup window quotes; the chapter teaches where they happen, never the rules.
+ * rules, which the Setup panel quotes; the chapter teaches where they happen, never the rules.
  */
 
 /* How long apart the other players say they are ready, so the count beside Ready climbs one player at a time. */
@@ -66,7 +66,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         kind: 'page',
         element: () => {
           const lock = buttonIn('setup', 'Lock prediction')();
-          return lock && !lock.disabled ? lock : document.querySelector('[data-window="setup"] input');
+          return lock && !lock.disabled ? lock : document.querySelector('[data-panel="setup"] input');
         },
       },
       begin: () => undefined,
@@ -119,7 +119,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector(`[data-window="setup"] button[aria-label="Deal 4 to ${CSS.escape(myName())}"]`) ??
+          document.querySelector(`[data-panel="setup"] button[aria-label="Deal 4 to ${CSS.escape(myName())}"]`) ??
           viaCompass('setup')(),
       },
       begin: () => players.acceptedActions().length,
@@ -142,7 +142,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Choose your traitor',
       detail:
         'Open Hand & spice with {H} and have a look at your four traitors. Hold {Alt} over a card to read it.\n\nKeep one you like and drag the other three onto the table. They land face down, so your choice stays secret.',
-      anchor: { kind: 'page', element: () => document.querySelector('[data-window="hand"]') ?? viaCompass('hand')() },
+      anchor: { kind: 'page', element: () => document.querySelector('[data-panel="hand"]') ?? viaCompass('hand')() },
       begin: tabletopTraitors,
       done: (count) => traitorsInHand() === 1 && tabletopTraitors() >= count + 3,
     }),

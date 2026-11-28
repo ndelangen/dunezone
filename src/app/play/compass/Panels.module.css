@@ -1,6 +1,6 @@
-/* A window over the table: in the centre above the chat bar, or pinned into the bottom-left or bottom-right slot. */
+/* A panel over the table: in the centre above the chat bar, or pinned into the bottom-left or bottom-right slot. */
 
-.window {
+.panel {
   position: absolute;
   z-index: 12;
   display: flex;
@@ -13,10 +13,10 @@
   backdrop-filter: blur(10px);
 }
 
-/* The centre window keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
-/* A window whose content peeks over its top edge lets it out: the body no longer clips, and the content scrolls its own parts. */
-.window[data-peek],
-.window[data-peek] .body {
+/* The centre panel keeps clear of the slots either side, and on a narrow table takes the width it needs over them. */
+/* A panel whose content peeks over its top edge lets it out: the body no longer clips, and the content scrolls its own parts. */
+.panel[data-peek],
+.panel[data-peek] .body {
   overflow: visible;
 }
 
@@ -30,8 +30,8 @@
   animation: rise 200ms ease-out;
 }
 
-/* Where the centre window reaches over a slot, the one last brought up or pressed is on top. */
-.window[data-front] {
+/* Where the centre panel reaches over a slot, the one last brought up or pressed is on top. */
+.panel[data-front] {
   z-index: 14;
 }
 
@@ -158,7 +158,7 @@
   outline: none;
 }
 
-/* The title row: the window's glyph or a chat's faction token, its name, its help, and the frame's own buttons. */
+/* The title row: the panel's glyph or a chat's faction token, its name, its help, and the frame's own buttons. */
 .title {
   display: flex;
   align-items: center;
@@ -181,7 +181,7 @@
   letter-spacing: inherit;
 }
 
-/* Only the name gives way to a narrow window; the token, the help and the frame's buttons keep their size. */
+/* Only the name gives way to a narrow panel; the token, the help and the frame's buttons keep their size. */
 .title > :not(.name) {
   flex-shrink: 0;
 }
@@ -220,9 +220,9 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  --window-body-pad-block: 0.9rem;
-  --window-body-pad-inline: 1rem;
-  padding: var(--window-body-pad-block) var(--window-body-pad-inline) 1rem;
+  --panel-body-pad-block: 0.9rem;
+  --panel-body-pad-inline: 1rem;
+  padding: var(--panel-body-pad-block) var(--panel-body-pad-inline) 1rem;
   --nested-tabs-panel-inset: 1rem;
 }
 
@@ -242,7 +242,7 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-/* With motion reduced a window appears in place, and a slot stops at its limit without the knock. */
+/* With motion reduced a panel appears in place, and a slot stops at its limit without the knock. */
 :global(html[data-motion="reduce"]) .centre,
 :global(html[data-motion="reduce"]) .slot[data-bounce] {
   animation: none;

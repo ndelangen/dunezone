@@ -13,7 +13,7 @@ export function handMenuAnchor(event: MouseEvent, pieceId: string): HandMenuAnch
 
 /*
  * An empty positioning anchor at the pointer, not a control, as the table's piece menu uses.
- * It lives on the body: fixed against the viewport only there, since a window with a transform or a backdrop filter
+ * It lives on the body: fixed against the viewport only there, since a panel with a transform or a backdrop filter
  * (the compass's) would otherwise be its containing block and put it off-screen, where the dropdown hides itself.
  */
 function PointerAnchor({ x, y, style, ...target }: ComponentProps<'span'> & { x: number; y: number }) {

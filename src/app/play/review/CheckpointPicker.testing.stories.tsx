@@ -19,7 +19,7 @@ const meta = testingPreview.meta({
   ],
 });
 
-/** A retained window starts partway through Turn 10; only the start of Turn 11 is marked. */
+/** A retained panel starts partway through Turn 10; only the start of Turn 11 is marked. */
 export const RetainedTurnStarts = meta.story({
   args: {
     checkpoints: offeredCheckpoints(),

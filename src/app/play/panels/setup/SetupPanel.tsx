@@ -40,15 +40,15 @@ export type PredictionRow = Readonly<{
   stepId: string;
   title: string;
   help: string;
-  /** The current step's heading is the window's own (?), so only the others show theirs. */
+  /** The current step's heading is the panel's own (?), so only the others show theirs. */
   current: boolean;
   state: PredictionState;
 }>;
 
 export type SetupPanelProps = Readonly<{
-  /** The current setup step, or the window shows only the predictions. */
+  /** The current setup step, or the panel shows only the predictions. */
   step: Pick<ReturnType<typeof setupStep>, 'kind' | 'title'> & Readonly<{ help: string }>;
-  /** A hosted game names the step in the window's (?); a table without a stage shows its heading. */
+  /** A hosted game names the step in the panel's (?); a table without a stage shows its heading. */
   hiddenHeading: boolean;
   /** For the starting-troops step: each faction's line, the viewer's own first. */
   instructions: readonly StartingTroops[];
@@ -181,7 +181,7 @@ function Prediction({
   Readonly<{ row: PredictionRow }>) {
   const { state } = row;
   return (
-    /* The Setup window's guidance names the current step only, so every other declaration keeps its heading in view. */
+    /* The Setup panel's guidance names the current step only, so every other declaration keeps its heading in view. */
     <Section hiddenHeading={hiddenHeading && row.current} title={row.title} help={row.help}>
       <Stack gap="sm">
         {state.kind === 'locked' ? (
@@ -213,7 +213,7 @@ function Prediction({
   );
 }
 
-/** The Setup window: the current setup step's instructions and action, then every prediction at the table. */
+/** The Setup panel: the current setup step's instructions and action, then every prediction at the table. */
 export function SetupPanel(props: SetupPanelProps) {
   const {
     step,

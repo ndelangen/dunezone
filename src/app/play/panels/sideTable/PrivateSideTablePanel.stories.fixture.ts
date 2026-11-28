@@ -2,8 +2,8 @@ import type { TablePiece } from '@shared/play/model';
 import { fn } from 'storybook/test';
 
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { PrivateSideTablePanel } from './PrivateSideTablePanel';
 import type { PrivateSideTablePanelProps } from './PrivateSideTablePanel';
 
@@ -27,7 +27,7 @@ function laidOut(): TablePiece[] {
 }
 
 export const sideTablePanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.sideTable),
+  ...panelMeta(PANEL_INFO.sideTable),
   component: PrivateSideTablePanel,
   args: {
     hand: laidOut(),

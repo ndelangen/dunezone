@@ -1,4 +1,4 @@
-/* The pieces every battle plan window shares: the mode toggle, piece tiles, the reveal eye, the battle line, the sum and Ready. */
+/* The pieces every battle plan panel shares: the mode toggle, piece tiles, the reveal eye, the battle line, the sum and Ready. */
 
 .adjustButton {
   display: inline-grid;

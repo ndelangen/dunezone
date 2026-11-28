@@ -31,7 +31,7 @@ function useLogPanel({ client, table, tab }: Props): LogPanelProps {
   };
 }
 
-/** A log window's content at a live table. */
+/** A log panel's content at a live table. */
 export function ConnectedLogPanel(props: Props) {
   return <LogPanel {...useLogPanel(props)} />;
 }

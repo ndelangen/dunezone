@@ -2,7 +2,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { PAN_LETTERS, TABLE_KEYS } from '../../../widgets/tabletop/TableKeyboard';
 import { SHORTCUTS } from '../../compass/shortcuts';
-import { PIN_KEYS } from '../../compass/useOpenWindows';
+import { PIN_KEYS } from '../../compass/useOpenPanels';
 import { SHORTCUT_ENTRIES, actionOf, capOfEvent, capsOf, entriesForCap, meaningNow } from './keyboardShortcuts';
 
 const cap = (letter: string) => letter.toUpperCase();

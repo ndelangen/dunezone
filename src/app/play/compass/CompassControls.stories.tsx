@@ -8,11 +8,11 @@ import { battleStory } from '../../routes/_app/play/playing.stories.fixture';
 import { playingSnapshot, productTransport } from '../../routes/_app/play/product.stories.fixture';
 import { voiceParameters } from '../../routes/discord.stories.fixture';
 import { requestSnapshot } from '../panels/seats/SeatsPanel.stories.fixture';
-import type { Slots } from './useOpenWindows';
+import type { Slots } from './useOpenPanels';
 
 /*
  * The compass controls: the compass with search at its centre and suggestions below,
- * and two slots, bottom left and bottom right, that a window can be pinned into. The camera dial sits top right.
+ * and two slots, bottom left and bottom right, that a panel can be pinned into. The camera dial sits top right.
  */
 const meta = preview.meta({
   ...gameMeta,

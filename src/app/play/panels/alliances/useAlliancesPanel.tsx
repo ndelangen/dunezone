@@ -31,7 +31,7 @@ export function sendAllianceAction(
   }
 }
 
-/** The Alliances window's rows from the table: each seated faction in seat order but the viewer's own. */
+/** The Alliances panel's rows from the table: each seated faction in seat order but the viewer's own. */
 export function allianceRows(table: TableProjection): AllianceRow[] {
   const { snapshot } = table;
   const names = snapshotFactionLabels(snapshot);
@@ -54,7 +54,7 @@ export function allianceRows(table: TableProjection): AllianceRow[] {
   );
 }
 
-/** The Alliances window from the table: its rows, and each row's action sent as the command it stands for. */
+/** The Alliances panel from the table: its rows, and each row's action sent as the command it stands for. */
 function useAlliancesPanel({ client, table }: Props): AlliancesPanelProps {
   return {
     rows: allianceRows(table),
@@ -63,7 +63,7 @@ function useAlliancesPanel({ client, table }: Props): AlliancesPanelProps {
   };
 }
 
-/** The Alliances window's content at a live table. */
+/** The Alliances panel's content at a live table. */
 export function ConnectedAlliancesPanel(props: Props) {
   return <AlliancesPanel {...useAlliancesPanel(props)} />;
 }

@@ -7,8 +7,8 @@ import { STORYBOOK_NOW } from '@db/storybook';
 
 import { faction, VIEWER } from '../../../routes/_app/play/alliances.stories.fixture';
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { AlliancesPanel } from './AlliancesPanel';
 import type { AlliancesPanelProps } from './AlliancesPanel';
 import { allianceRows } from './useAlliancesPanel';
@@ -71,7 +71,7 @@ export const observerProps = () => alliancesProps(othersAlliedSnapshot(), SPECTA
 export const seatFaction = (name: string) => faction(aloneSnapshot(), name);
 
 export const alliancesPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.alliances),
+  ...panelMeta(PANEL_INFO.alliances),
   component: AlliancesPanel,
   args: alliancesProps(),
 };

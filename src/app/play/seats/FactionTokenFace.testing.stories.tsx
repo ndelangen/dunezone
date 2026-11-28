@@ -3,7 +3,7 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { expect, within } from 'storybook/test';
 
 import { alliancesSnapshot, faction } from '../../routes/_app/play/alliances.stories.fixture';
-import { tableOf } from '../panels/PanelWindow.stories.fixture';
+import { tableOf } from '../panels/PanelFrame.stories.fixture';
 import { factionToken, FactionTokenGroup } from './FactionTokenFace';
 
 /* Two allies' tokens as the table has them: their faces, faction colours and names. */

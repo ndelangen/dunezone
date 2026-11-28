@@ -2,7 +2,7 @@ import { PAN_LETTERS, TABLE_KEYS } from '../../../widgets/tabletop/TableKeyboard
 import type { PieceKey } from '../../../widgets/tabletop/TableKeyboard';
 import { SHORTCUTS } from '../../compass/shortcuts';
 import type { Command } from '../../compass/shortcuts';
-import { PIN_KEYS } from '../../compass/useOpenWindows';
+import { PIN_KEYS } from '../../compass/useOpenPanels';
 import { TABLE_LABEL_OPTIONS } from '../../table/tableLabels';
 
 /*

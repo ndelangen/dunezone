@@ -4,8 +4,8 @@ import { fn } from 'storybook/test';
 
 import { SIX } from '../../../routes/_app/play/product.stories.fixture';
 import { finishedSnapshot, mentatSnapshot } from '../../../routes/_app/play/results.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { ResultPanel } from './ResultPanel';
 import type { Choice, ResultPanelProps } from './ResultPanel';
 import { predictionReveal, resultState } from './useResultPanel';
@@ -37,7 +37,7 @@ export const finishedArgs = (seat = 'seat-2') => resultArgs(finishedSnapshot(sea
 export const observerArgs = () => finishedArgs(SPECTATOR_SEAT);
 
 export const resultPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.result),
+  ...panelMeta(PANEL_INFO.result),
   component: ResultPanel,
   args: declaringArgs(),
 };

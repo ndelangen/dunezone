@@ -26,7 +26,7 @@ export type AlliancesPanelProps = Readonly<{
 }>;
 
 /**
- * The Alliances window: every faction at the table in seat order, its alliance, and what the viewer can do about it.
+ * The Alliances panel: every faction at the table in seat order, its alliance, and what the viewer can do about it.
  * Like trading seats during setup, each row carries the one action that fits, so offers start here.
  */
 export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps) {

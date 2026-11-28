@@ -2,8 +2,8 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { fn } from 'storybook/test';
 
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { TerritoryTintsPanel } from './TerritoryTintsPanel';
 import type { TerritoryTintsPanelProps } from './TerritoryTintsPanel';
 import { tintPresets, tintRows } from './useTerritoryTintsPanel';
@@ -72,7 +72,7 @@ export function untintedSnapshot(): GameSnapshot {
 }
 
 export const tintsPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.tints),
+  ...panelMeta(PANEL_INFO.tints),
   component: TerritoryTintsPanel,
   args: tintsProps(),
 };

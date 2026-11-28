@@ -3,19 +3,19 @@ import type { ReactNode } from 'react';
 
 import type { TileSpot } from './compassSpots';
 import type { CompassPlayer, CompassTable } from './compassTable';
+import type { CompassPanel } from './panels';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
-import type { TableWindow } from './windows';
 
-/** One tile at the end of a compass arm: the window it opens, and what it says while that window is missing. */
+/** One tile at the end of a compass arm: the panel it opens, and what it says while that panel is missing. */
 export type Tile = Readonly<{
   spot: TileSpot;
-  window?: TableWindow;
+  panel?: CompassPanel;
   label: string;
   detail: ReactNode;
   icon: ReactNode;
   keys: string;
-  /** The letter that opens the window with the compass shut. */
+  /** The letter that opens the panel with the compass shut. */
   shortcut: string;
   disabled?: boolean;
   hidden?: boolean;
@@ -24,77 +24,77 @@ export type Tile = Readonly<{
 
 const ICON = { size: 30, strokeWidth: 1.6 };
 
-type Windows = (key: string) => TableWindow | undefined;
+type PanelLookup = (key: string) => CompassPanel | undefined;
 
-function handTile(windowOf: Windows): Tile {
-  const window = windowOf('hand');
+function handTile(panelOf: PanelLookup): Tile {
+  const panel = panelOf('hand');
   return {
     spot: 'hand',
-    window,
-    label: window?.label ?? 'Hand',
+    panel,
+    label: panel?.label ?? 'Hand',
     detail: 'Cards, leaders and spice',
     icon: <Hand {...ICON} />,
     keys: '←',
     shortcut: SHORTCUTS.hand,
-    disabled: !window,
+    disabled: !panel,
   };
 }
 
-function hiddenTile(windowOf: Windows): Tile {
-  const window = windowOf('hidden-zone');
+function hiddenTile(panelOf: PanelLookup): Tile {
+  const panel = panelOf('hidden-zone');
   return {
     spot: 'hidden',
-    window,
+    panel,
     label: 'Private side-table',
     detail: 'Pieces only you see',
     icon: <EyeOff {...ICON} />,
     keys: '← ←',
     shortcut: SHORTCUTS.hidden,
-    disabled: !window,
+    disabled: !panel,
   };
 }
 
-function tableTile(windowOf: Windows, unread: number | undefined): Tile {
-  const window = windowOf('table-chat');
+function tableTile(panelOf: PanelLookup, unread: number | undefined): Tile {
+  const panel = panelOf('table-chat');
   return {
     spot: 'table',
-    window,
+    panel,
     label: 'Table chat',
     detail: unread ? `${unread} unread` : 'Everyone at the table',
     icon: <MessagesSquare {...ICON} />,
     keys: '→',
     shortcut: SHORTCUTS.table,
     badge: unread,
-    disabled: !window,
+    disabled: !panel,
   };
 }
 
-function allyTile(windowOf: Windows, ally: CompassPlayer | undefined): Tile {
-  const window = ally ? windowOf(`player:${ally.seat}`) : undefined;
+function allyTile(panelOf: PanelLookup, ally: CompassPlayer | undefined): Tile {
+  const panel = ally ? panelOf(`player:${ally.seat}`) : undefined;
   return {
     spot: 'ally',
-    window,
+    panel,
     label: 'Ally chat',
     detail: ally ? [ally.name, ally.factionName].filter(Boolean).join(' · ') : 'No ally yet',
     icon: ally ? <PlayerToken player={ally} size={34} /> : <Handshake {...ICON} />,
     keys: '→ →',
     shortcut: SHORTCUTS.ally,
     badge: ally?.unread,
-    disabled: !window,
+    disabled: !panel,
   };
 }
 
-function battleTile(windowOf: Windows): Tile {
-  const window = windowOf('battle');
+function battleTile(panelOf: PanelLookup): Tile {
+  const panel = panelOf('battle');
   return {
     spot: 'battle',
-    window,
+    panel,
     label: 'Battle plan',
-    detail: window ? 'Your plan for this battle' : 'No battle right now',
+    detail: panel ? 'Your plan for this battle' : 'No battle right now',
     icon: <Swords {...ICON} />,
     keys: '↑',
     shortcut: SHORTCUTS.battle,
-    disabled: !window,
+    disabled: !panel,
   };
 }
 
@@ -102,48 +102,48 @@ function battleTile(windowOf: Windows): Tile {
  * While a spectator asks for a seat, the top arm leads to Seats & spectators instead of the battle plan (Norbert, 2026-11-05),
  * so a player sees the request the next time they open the compass. The arm keeps its key and letter.
  */
-function seatsTile(windowOf: Windows, requests: number): Tile {
+function seatsTile(panelOf: PanelLookup, requests: number): Tile {
   return {
     spot: 'battle',
-    window: windowOf('seats'),
+    panel: panelOf('seats'),
     label: 'Seats & spectators',
     detail: requests === 1 ? 'A spectator asks for a seat' : `${requests} spectators ask for a seat`,
     icon: <Armchair {...ICON} />,
     keys: '↑',
     shortcut: SHORTCUTS.battle,
     badge: requests,
-    disabled: !windowOf('seats'),
+    disabled: !panelOf('seats'),
   };
 }
 
-/** The five tiles, from the windows the table has right now. */
-export function tilesOf(windows: readonly TableWindow[], table: CompassTable | null): Record<TileSpot, Tile> {
-  const windowOf: Windows = (key) => windows.find((entry) => entry.key === key);
+/** The five tiles, from the panels the table has right now. */
+export function tilesOf(panels: readonly CompassPanel[], table: CompassTable | null): Record<TileSpot, Tile> {
+  const panelOf: PanelLookup = (key) => panels.find((entry) => entry.key === key);
   return {
-    hand: handTile(windowOf),
-    hidden: hiddenTile(windowOf),
+    hand: handTile(panelOf),
+    hidden: hiddenTile(panelOf),
     table: table?.recall
       ? {
           spot: 'table',
-          window: windowOf('recall-chat'),
+          panel: panelOf('recall-chat'),
           label: 'Recall chat',
           detail: 'Discarded when recall closes',
           icon: <MessagesSquare {...ICON} />,
           keys: '→',
           shortcut: SHORTCUTS.table,
-          disabled: !windowOf('recall-chat'),
+          disabled: !panelOf('recall-chat'),
         }
-      : tableTile(windowOf, table?.tableChat?.unread),
+      : tableTile(panelOf, table?.tableChat?.unread),
     ally: table?.recall
       ? { spot: 'ally', label: '', detail: '', icon: null, keys: '', shortcut: '', disabled: true, hidden: true }
       : allyTile(
-          windowOf,
+          panelOf,
           table?.players.find((player) => player.ally)
         ),
     battle: table?.recall
       ? {
           spot: 'battle',
-          window: windowOf('recall-history'),
+          panel: panelOf('recall-history'),
           label: 'Shared history',
           detail: 'One checkpoint for everyone',
           icon: <Clock3 {...ICON} />,
@@ -151,7 +151,7 @@ export function tilesOf(windows: readonly TableWindow[], table: CompassTable | n
           shortcut: SHORTCUTS.battle,
         }
       : table?.seatRequests
-        ? seatsTile(windowOf, table.seatRequests)
-        : battleTile(windowOf),
+        ? seatsTile(panelOf, table.seatRequests)
+        : battleTile(panelOf),
   };
 }

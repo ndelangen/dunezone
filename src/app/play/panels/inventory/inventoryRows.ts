@@ -28,7 +28,7 @@ function spawnTypeOf(piece: TablePiece): SpawnType | null {
   return type && isSpawnType(type) ? type : null;
 }
 
-/* A shelf as the window lists it. */
+/* A shelf as the panel lists it. */
 function shelf(key: string, label: string, pieces: TablePiece[], spawnType: SpawnType | null): InventoryRow {
   return {
     key,

@@ -185,7 +185,7 @@ function SlidingNumber({ value }: { value: number }) {
 }
 
 /**
- * Max or Custom as one icon button for the window's title bar: pressed is Custom, where the player sets the plain and spiced troops themselves.
+ * Max or Custom as one icon button for the panel's title bar: pressed is Custom, where the player sets the plain and spiced troops themselves.
  */
 export function ModeToggle({
   mode,

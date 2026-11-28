@@ -36,7 +36,7 @@ export const AlliedPlayerInfo = meta.story({
     const ally = alliancesSnapshot().controls!.players.find((player) => player.seat === 'seat-4')!;
     const page = await openFactionInfo(canvasElement, ally.name);
     const partner = alliancesSnapshot().roster!.seats.find((seat) => seat.id === 'seat-5')!.faction!.name;
-    /* The faction's ally stands in the window's toolbar as its token, named after it. */
+    /* The faction's ally stands in the panel's toolbar as its token, named after it. */
     await waitFor(() =>
       expect(
         within(page.getByRole('toolbar', { name: 'Seat actions' })).getByRole('img', { name: partner })

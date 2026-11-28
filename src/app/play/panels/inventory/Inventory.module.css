@@ -1,4 +1,4 @@
-/* The shared table inventory, inside a compass window: the window's own ink, edge and sand accent, as the hand's shelves use. */
+/* The shared table inventory, inside a compass panel: the panel's own ink, edge and sand accent, as the hand's shelves use. */
 
 .requests {
   position: sticky;
@@ -100,7 +100,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Each shelf after the first is divided from the one above by the window's own edge line. */
+/* Each shelf after the first is divided from the one above by the panel's own edge line. */
 .shelf + .shelf {
   border-top: 1px solid var(--edge);
   padding-top: var(--mantine-spacing-md);

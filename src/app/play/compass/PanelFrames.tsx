@@ -3,36 +3,36 @@ import { PanelLeft, PanelRight, PinOff } from 'lucide-react';
 
 import styles from './CompassControls.module.css';
 import { CloseIcon } from './glyphs';
+import { PanelFrame } from './PanelFrame';
+import { FACTION_INFO } from './panels';
+import type { CompassPanel } from './panels';
 import { pulseOf } from './pulse';
 import { SIDES } from './slotLimits';
 import type { Side } from './slotLimits';
-import { PIN_KEYS } from './useOpenWindows';
-import type { OpenWindows } from './useOpenWindows';
+import { PIN_KEYS } from './useOpenPanels';
+import type { OpenPanels } from './useOpenPanels';
 import type { SlotHeights } from './useSlotHeights';
-import { WindowFrame } from './WindowFrame';
-import { FACTION_INFO } from './windows';
-import type { TableWindow } from './windows';
 
 /*
- * The open windows over the table: one in the centre, with buttons to pin or close it, and one in each pinned slot,
+ * The open panels over the table: one in the centre, with buttons to pin or close it, and one in each pinned slot,
  * with a resize edge and a button to unpin it.
  */
 
-type WindowFramesProps = Readonly<{
-  windows: readonly TableWindow[];
-  opened: OpenWindows;
+type PanelFramesProps = Readonly<{
+  openable: readonly CompassPanel[];
+  opened: OpenPanels;
   heights: SlotHeights;
   inert: boolean;
 }>;
 
-type Found = (key: string) => TableWindow | undefined;
+type Found = (key: string) => CompassPanel | undefined;
 
 /**
  * One flat list of frames keyed by what they show.
- * Pinning then moves a window rather than remounting it, and whatever it holds (a chat draft, a scroll position) comes along.
+ * Pinning then moves a panel rather than remounting it, and whatever it holds (a chat draft, a scroll position) comes along.
  */
-export function WindowFrames({ windows, opened, heights, inert }: WindowFramesProps) {
-  const byKey: Found = (key) => windows.find((entry) => entry.key === key);
+export function PanelFrames({ openable, opened, heights, inert }: PanelFramesProps) {
+  const byKey: Found = (key) => openable.find((entry) => entry.key === key);
   const places = [
     { where: 'centre' as const, open: opened.centre },
     ...SIDES.map((side) => ({ where: side, open: opened.slots[side] })),
@@ -64,10 +64,10 @@ function pinTitle(side: Side, replaced: string | undefined) {
 }
 
 type PlacedFrameProps = Readonly<{
-  entry: TableWindow;
+  entry: CompassPanel;
   seat: string | undefined;
   where: 'centre' | Side;
-  opened: OpenWindows;
+  opened: OpenPanels;
   heights: SlotHeights;
   inert: boolean;
   pinLeft: string;
@@ -77,7 +77,7 @@ type PlacedFrameProps = Readonly<{
 /*
  * One frame, in the centre or in a slot.
  * Its content is new with every table update, but its buttons and handlers are made here from what stays, so the frame's title bar and buttons skip the updates that leave them alone.
- * The centre and the slots share this one component, so a window pinned or unpinned moves rather than remounts.
+ * The centre and the slots share this one component, so a panel pinned or unpinned moves rather than remounts.
  */
 function PlacedFrame({ entry, seat, where, opened, heights, inert, pinLeft, pinRight }: PlacedFrameProps) {
   const onRaise = () => opened.raise(where);
@@ -85,7 +85,7 @@ function PlacedFrame({ entry, seat, where, opened, heights, inert, pinLeft, pinR
   const onFaction = (shown: string) => opened.reveal(FACTION_INFO, shown);
   if (where === 'centre') {
     return (
-      <WindowFrame
+      <PanelFrame
         entry={entry}
         seat={seat}
         where="centre"
@@ -100,7 +100,7 @@ function PlacedFrame({ entry, seat, where, opened, heights, inert, pinLeft, pinR
     );
   }
   return (
-    <WindowFrame
+    <PanelFrame
       entry={entry}
       seat={seat}
       where={where}
@@ -132,7 +132,7 @@ function CentreActions({
   opened,
   pinLeft,
   pinRight,
-}: Readonly<{ opened: OpenWindows; pinLeft: string; pinRight: string }>) {
+}: Readonly<{ opened: OpenPanels; pinLeft: string; pinRight: string }>) {
   return (
     <>
       <Tooltip label={pinLeft}>

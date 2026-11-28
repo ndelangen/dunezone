@@ -190,8 +190,8 @@ export const SpicePlacementLeavesFocusAlone = meta.story({
   },
 });
 
-/** The centered hand window must never cover the compact keyboard placement. */
-export const SpicePlacementClearsHandWindow = meta.story({
+/** The centered hand panel must never cover the compact keyboard placement. */
+export const SpicePlacementClearsHandPanel = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),

@@ -3,7 +3,7 @@
   /* The compass's rule colour; the card opens in a portal, outside the compass that sets it. */
   --edge: rgb(from var(--ui-highlight) r g b / 0.2);
   padding: var(--space-xs) var(--space-sm);
-  /* One line however long the names, within the window: the names give way, the actions stay. */
+  /* One line however long the names, within the panel: the names give way, the actions stay. */
   max-width: min(28rem, calc(100vw - 2 * var(--space-md)));
 }
 

@@ -90,7 +90,7 @@ test('a letter typed in an editable region does nothing, however the region says
   expect(onShortcut).not.toHaveBeenCalled();
 });
 
-test('a letter in a non-editable island inside an editable region still opens its window', () => {
+test('a letter in a non-editable island inside an editable region still opens its panel', () => {
   const { button } = page();
   const onShortcut = vi.fn((_shortcut: Shortcut) => true);
   renderHook(() => useShortcutKeys(true, onShortcut));

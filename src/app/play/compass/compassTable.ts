@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import type { TablePanel } from '../table/GameTable';
 
-/** One player as the compass's chat bar, tiles, chat windows and faction information see them. */
+/** One player as the compass's chat bar, tiles, chat panels and faction information see them. */
 export type CompassPlayer = Readonly<{
   seat: string;
   name: string;
@@ -25,7 +25,7 @@ export type Whisper = Readonly<{ key: number; from: string; to: string }>;
 
 /** What the hosted table hands the compass: the players, the table's chat, a chat with one player, one seat's faction, and the phase step. */
 export type CompassTable = Readonly<{
-  /** The shared recall's windows, separate from the normal personal layout. */
+  /** The shared recall's panels, separate from the normal personal layout. */
   recall?: Readonly<{
     id: string;
     context: string;

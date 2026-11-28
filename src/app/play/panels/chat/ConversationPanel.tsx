@@ -373,7 +373,7 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
       onVisible();
     }
   };
-  /* A viewport-root observer accounts for both the scrollback and the surrounding window being off-screen. */
+  /* A viewport-root observer accounts for both the scrollback and the surrounding panel being off-screen. */
   const observer = new IntersectionObserver(
     ([entry]) => {
       /* Fractional scroll rounding can clip part of this one-pixel end marker. */
@@ -392,7 +392,7 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
 
 /*
  * The writer's name, then at the table their faction's token and name; hovering the token shows their seat's card, as an @ naming it does.
- * In a narrow window the token and faction name move under the name together, and the time onto its own line, rather than overlap.
+ * In a narrow panel the token and faction name move under the name together, and the time onto its own line, rather than overlap.
  */
 function SavedMessageHeader({
   message,

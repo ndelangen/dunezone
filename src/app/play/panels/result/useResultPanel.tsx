@@ -14,7 +14,7 @@ const NO_CHOICE: Choice = { kind: 'faction', faction: null, alliance: [] };
 export type DeclareChoice = Readonly<{ choice: Choice; change: (patch: Partial<Choice>) => void }>;
 
 /**
- * The declaring player's pending choice, held above the Result window so opening another window (Hand, to reveal a prediction) keeps it.
+ * The declaring player's pending choice, held above the Result panel so opening another panel (Hand, to reveal a prediction) keeps it.
  * A new ending sequence starts from no choice.
  */
 export function useDeclareChoice(table: TableProjection): DeclareChoice {
@@ -112,7 +112,7 @@ function useResultPanel({ client, table, declare }: Props & Readonly<{ declare: 
   };
 }
 
-/** The Result window's content at a live table. */
+/** The Result panel's content at a live table. */
 export function ConnectedResultPanel(props: Props & Readonly<{ declare: DeclareChoice }>) {
   return <ResultPanel {...useResultPanel(props)} />;
 }

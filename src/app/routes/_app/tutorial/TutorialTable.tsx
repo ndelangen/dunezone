@@ -35,7 +35,7 @@ export default function ChapterPlay({
   exit: ReactNode;
   viewer: TutorialViewer;
 }>) {
-  /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
+  /* Reset starts the controls afresh as well, so a pinned panel from the last run cannot do a task for the player. */
   const [controlsEpoch, setControlsEpoch] = useState(0);
   const people = useTutorialPlayers(viewer);
   const fixedPlayers = useContext(TutorialPlayersContext);

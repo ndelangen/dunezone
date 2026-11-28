@@ -29,8 +29,8 @@ function movedBefore(pieces: readonly TablePiece[], move: Move) {
 
 /**
  * The player's own order of what they hold: the plain hand and the pieces they put in a battle plan, which the room stores.
- * Every window that lists them sorts them here and reorders through here, so the Hand & spice shelves and the Battle plan window always agree.
- * Pass the pieces the window lists;
+ * Every panel that lists them sorts them here and reorders through here, so the Hand & spice shelves and the Battle plan panel always agree.
+ * Pass the pieces the panel lists;
  * the side-table's pieces have no place in it.
  * A move shows at once, in its new place, until the room answers it.
  */

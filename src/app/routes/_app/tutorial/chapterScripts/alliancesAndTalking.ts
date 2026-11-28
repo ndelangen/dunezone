@@ -4,10 +4,10 @@ import type { GameSnapshot } from '@shared/play/protocol';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { FACTION_INFO } from '../../../../play/compass/windows';
-import { PANEL_WINDOWS } from '../../../../play/panels/panelWindows';
+import { FACTION_INFO } from '../../../../play/compass/panels';
+import { PANEL_INFO } from '../../../../play/panels/panelInfo';
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { at, buttonIn, element, openedWindow, pressEnter, task, viaCompass, windowShown } from './guideChecks';
+import { at, buttonIn, element, openedPanel, pressEnter, task, viaCompass, panelShown } from './guideChecks';
 
 /*
  * "Talking & Alliances": a word with one player, a look at their faction, and an alliance from offer to break.
@@ -76,13 +76,13 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
   const seatOf = (name: string) => () => snapshot().roster?.seats.find((seat) => seat.faction?.name === name);
   const partner = seatOf(PARTNER);
   const suitor = seatOf(SUITOR);
-  const chatWindow = (seat: () => Seat | undefined) => `[data-window="player:${seat()?.id}"]`;
-  const history = () => document.querySelector(`${chatWindow(partner)} [aria-label="Conversation history"]`);
+  const chatPanel = (seat: () => Seat | undefined) => `[data-panel="player:${seat()?.id}"]`;
+  const history = () => document.querySelector(`${chatPanel(partner)} [aria-label="Conversation history"]`);
   const allies = () => alliesOf(snapshot().alliances, snapshot().bank?.factionId ?? '');
   const alliedWith = (seat: () => Seat | undefined) => () => allies().includes(seat()?.faction?.id ?? '');
   const tokenOf = (seat: () => Seat | undefined) => () =>
     at(factionTokenOf(snapshot().table.pieces, seat()?.faction?.id ?? ''));
-  const alliancesOpened = openedWindow(windowShown(PANEL_WINDOWS.alliances.key));
+  const alliancesOpened = openedPanel(panelShown(PANEL_INFO.alliances.key));
   const suitorOffered = () => hasOffer(snapshot().alliances, suitor()?.faction?.id, snapshot().bank?.factionId);
   return [
     task({
@@ -94,7 +94,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         kind: 'page',
         element: () =>
           document.querySelector(
-            history() ? `${chatWindow(partner)} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`
+            history() ? `${chatPanel(partner)} [aria-label="Message"]` : `[aria-label*=", ${PARTNER}"]`
           ),
       },
       /* Conversations outlive a Reset, so only entries dated after the task began count: the learner's message and the answer. */
@@ -108,8 +108,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Get to know Atreides',
       detail:
         'Want to check what your new friend can do? Click the Atreides token beside the chat title to see their faction rules and leaders.',
-      anchor: { kind: 'page', element: element(`${chatWindow(partner)} header button[aria-label="${PARTNER} info"]`) },
-      ...openedWindow(windowShown(FACTION_INFO)),
+      anchor: { kind: 'page', element: element(`${chatPanel(partner)} header button[aria-label="${PARTNER} info"]`) },
+      ...openedPanel(panelShown(FACTION_INFO)),
     }),
     task({
       id: 'offer',
@@ -159,7 +159,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Switch sides',
       detail:
         "Press the alliance button beside Fremen's offer to accept it.\n\nAccepting a new alliance ends the one you have, so Atreides is on their own again.",
-      anchor: { kind: 'page', element: buttonIn(PANEL_WINDOWS.alliances.key, 'Accept alliance') },
+      anchor: { kind: 'page', element: buttonIn(PANEL_INFO.alliances.key, 'Accept alliance') },
       begin: () => suitorOffers(snapshot, players, suitor),
       done: alliedWith(suitor),
     }),
@@ -169,7 +169,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         'Close the Alliances panel, then press {F} to open your ally chat.\n\nYou can also hold {Space}, tap {→} twice and release.',
       anchor: { kind: 'page', element: viaCompass('ally') },
-      ...openedWindow(() => document.querySelector(chatWindow(suitor)) !== null),
+      ...openedPanel(() => document.querySelector(chatPanel(suitor)) !== null),
     }),
     task({
       id: 'break',

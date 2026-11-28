@@ -15,10 +15,10 @@ import type { ComponentProps } from 'react';
 import type { TroopToken } from '@game/assets/faction/troop/Troop';
 import type { BackgroundRenderer } from '@game/assets/utils/BackgroundRenderer';
 
-/** What a battle plan window says it wants: a plan edit, a piece moved in the player's own order, readiness, or a part shown or hidden before the reveal. */
+/** What a battle plan panel says it wants: a plan edit, a piece moved in the player's own order, readiness, or a part shown or hidden before the reveal. */
 type PlanIntents = Readonly<{
   onEdit: (patch: Partial<BattlePlanInput>) => void;
-  /** Moves a piece to just before another, or to the end with null, in the order every window lists the player's pieces in. */
+  /** Moves a piece to just before another, or to the end with null, in the order every panel lists the player's pieces in. */
   onReorder: (piece: TablePiece, before: string | null) => void;
   onReady: (ready: boolean) => void;
   onDisclose: (disclosure: Disclosure, shown: boolean) => void;
@@ -36,9 +36,9 @@ export type WheelArt = Readonly<{
 export type Opponent = Readonly<{ name: string; ready: boolean }>;
 
 /**
- * Everything a battle plan window shows: the viewer's own plan, the pieces they could commit, their spice and the battle around it.
+ * Everything a battle plan panel shows: the viewer's own plan, the pieces they could commit, their spice and the battle around it.
  * Data in, intents out;
- * the window never sends a command itself.
+ * the panel never sends a command itself.
  */
 export type BattlePlanViewProps = Readonly<{
   plan: BattlePlan;
@@ -134,7 +134,7 @@ export function totalOf(plan: BattlePlan, faceId: string) {
 export function setTotal(plan: BattlePlan, faceId: string, total: number): Partial<BattlePlanInput> {
   const troops = withTroops(plan, faceId, { undialed: Math.max(0, total), dialed: 0 });
   if (plan.dialing === 'kiss') {
-    /* KISS spice follows the troops, so the window shows what the dial costs before the room answers. */
+    /* KISS spice follows the troops, so the panel shows what the dial costs before the room answers. */
     return { troops, spice: kissSpice(troops, plan.faces) };
   }
   if (plan.dialing === 'gf92') {

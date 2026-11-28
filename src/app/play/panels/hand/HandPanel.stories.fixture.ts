@@ -3,8 +3,8 @@ import { createElement } from 'react';
 import { fn } from 'storybook/test';
 
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { handGroups } from './handGroups';
 import { HandPanel } from './HandPanel';
 import type { HandPanelProps } from './HandPanel';
@@ -33,7 +33,7 @@ export function handActions(inHand: TablePiece[] = heldPieces()): HandActions {
 }
 
 export const handPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.hand),
+  ...panelMeta(PANEL_INFO.hand),
   component: HandPanel,
   render: (args: Extract<HandPanelProps, { actions: HandActions }>) => createElement(HandPanel, args),
   args: { isFrozen: false as const, actions: handActions() },

@@ -7,14 +7,14 @@ import type { CompassProps } from './Compass';
 import type { Spot } from './compassSpots';
 import type { CompassTable } from './compassTable';
 import { tilesOf } from './compassTiles';
+import { KEYBOARD_SHORTCUTS } from './panels';
+import type { CompassPanel } from './panels';
 import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
 import type { Shortcut } from './shortcuts';
 import { candidatesOf, rankSuggestions } from './suggestions';
 import type { Suggestion } from './suggestions';
 import { useCompassKeys } from './useCompassKeys';
 import { useHeldSuggestion } from './useHeldSuggestion';
-import { KEYBOARD_SHORTCUTS } from './windows';
-import type { TableWindow } from './windows';
 
 /*
  * The compass itself: where it points, what was typed into its search, which suggestion the cursor is on, and what
@@ -26,10 +26,10 @@ type CompassInputs = Readonly<{
   onOpen: (open: boolean) => void;
   /** A board gesture holds the table, and Space stays with it. */
   inert: boolean;
-  windows: readonly TableWindow[];
+  openable: readonly CompassPanel[];
   table: CompassTable | null;
   onView: (view: TableView) => void;
-  /** Opens a window over the table. */
+  /** Opens a panel over the table. */
   onShow: (key: string, seat?: string) => void;
   /** Shows or hides the keyboard shortcuts cheat sheet, wherever it stands; absent when the table has none. */
   onToggleSheet?: () => void;
@@ -43,7 +43,7 @@ function confirmable(suggestion: Suggestion | undefined, letGo: boolean): sugges
   return !letGo || !suggestion.held;
 }
 
-export function useCompass({ open, onOpen, inert, windows, table, onView, onShow, onToggleSheet }: CompassInputs) {
+export function useCompass({ open, onOpen, inert, openable, table, onView, onShow, onToggleSheet }: CompassInputs) {
   const [spot, setSpot] = useState<Spot>('hub');
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -66,7 +66,7 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     close();
     onShow(key, seat);
   };
-  const tiles = tilesOf(windows, table);
+  const tiles = tilesOf(openable, table);
   const commands = commandsOf(table);
   const chooseSpot: Dispatch<SetStateAction<Spot>> = (next) => {
     release();
@@ -75,15 +75,15 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return target === 'ally' && tiles.ally.hidden ? 'table' : target;
     });
   };
-  /* A window an arm opens shows the arm's letter in the search too. */
+  /* A panel an arm opens shows the arm's letter in the search too. */
   const shortcuts = {
     ...Object.fromEntries(
-      Object.values(tiles).flatMap((tile) => (tile.window ? [[tile.window.key, SHORTCUTS[tile.spot]]] : []))
+      Object.values(tiles).flatMap((tile) => (tile.panel ? [[tile.panel.key, SHORTCUTS[tile.spot]]] : []))
     ),
     ...(onToggleSheet ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
   };
   const suggestions = rankSuggestions(
-    candidatesOf(windows, {
+    candidatesOf(openable, {
       open: show,
       players: table?.players ?? [],
       nextPhase: table?.nextPhase,
@@ -125,13 +125,13 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
       return;
     }
     const tile = tiles[at];
-    if (tile.disabled || !tile.window) {
+    if (tile.disabled || !tile.panel) {
       setRefused((count) => count + 1);
       return;
     }
-    show(tile.window.key);
+    show(tile.panel.key);
   };
-  /* A letter opens its arm's window, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
+  /* A letter opens its arm's panel, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
   const shortcut = (pressed: Shortcut) => {
     /* ? shows the cheat sheet, and hides it again even pinned; without the sheet it falls through to nothing. */
     if (pressed === 'help' && onToggleSheet) {
@@ -140,8 +140,8 @@ export function useCompass({ open, onOpen, inert, windows, table, onView, onShow
     }
     if (pressed in tiles) {
       const tile = tiles[pressed as keyof typeof tiles];
-      if (tile.window && !tile.disabled) {
-        onShow(tile.window.key);
+      if (tile.panel && !tile.disabled) {
+        onShow(tile.panel.key);
         return true;
       }
       return false;

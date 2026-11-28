@@ -2,30 +2,30 @@ import { useEffect, useEffectEvent, useState } from 'react';
 
 import { brushTakes, territoryBrush } from '../../widgets/tabletop/territoryBrush';
 import { isTypingTarget } from '../table/typingTarget';
+import type { CompassPanel } from './panels';
 import { pulse } from './pulse';
 import type { Pulse } from './pulse';
 import { SIDES } from './slotLimits';
 import type { Side } from './slotLimits';
 import { useRemembered } from './useRemembered';
-import type { TableWindow } from './windows';
 
 /*
- * Which windows are open: one in the centre, which goes when the table is clicked, and one pinned in each bottom slot,
- * which stays until unpinned. Pinning moves the centre window into a slot, replacing whatever was pinned there.
+ * Which panels are open: one in the centre, which goes when the table is clicked, and one pinned in each bottom slot,
+ * which stays until unpinned. Pinning moves the centre panel into a slot, replacing whatever was pinned there.
  */
 
-/** An open window; the faction information also has the seat it is set on. */
+/** An open panel; the faction information also has the seat it is set on. */
 export type Opened = Readonly<{ key: string; seat?: string }>;
 
 export type Slots = Readonly<Record<Side, Opened | null>>;
 
-/** The open windows and the ways to open, pin, unpin and close them. */
-export type OpenWindows = ReturnType<typeof useOpenWindows>;
+/** The open panels and the ways to open, pin, unpin and close them. */
+export type OpenPanels = ReturnType<typeof useOpenPanels>;
 
 /*
  * Something that takes Escape first: a menu, a list, a dialog, the control whose popover is open, a piece carried in the hidden zone
  * or along a sortable row, a field with an edit Escape drops, or the territory paintbrush.
- * Escape then stops painting and leaves the window open, and a second Escape closes it.
+ * Escape then stops painting and leaves the panel open, and a second Escape closes it.
  */
 const OPEN_ABOVE = '[role="menu"], [role="listbox"], [role="dialog"], [aria-modal="true"]';
 const EXPANDED = '[aria-expanded="true"]';
@@ -55,9 +55,9 @@ function escapeTaken(event: KeyboardEvent) {
 
 /*
  * A primary press on the table itself: not on any of the chrome over it, and not the secondary press that opens a piece's menu.
- * While the territory paintbrush is on, a press paints, so the window that holds the brush stays open.
+ * While the territory paintbrush is on, a press paints, so the panel that holds the brush stays open.
  */
-function closesWindow(event: PointerEvent) {
+function closesPanel(event: PointerEvent) {
   const onTable = event.target instanceof HTMLCanvasElement && event.button === 0;
   return onTable && territoryBrush() === null;
 }
@@ -69,8 +69,8 @@ function useTablePress(onPress: () => void, enabled: boolean) {
       return;
     }
     const listener = (event: PointerEvent) => {
-      if (closesWindow(event)) {
-        /* A field commits its draft on blur, which has to happen before the press closes its window. */
+      if (closesPanel(event)) {
+        /* A field commits its draft on blur, which has to happen before the press closes its panel. */
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
@@ -82,10 +82,10 @@ function useTablePress(onPress: () => void, enabled: boolean) {
   }, [enabled]);
 }
 
-/* The keys that pin the centre window: [ to the bottom left and ] to the bottom right. */
+/* The keys that pin the centre panel: [ to the bottom left and ] to the bottom right. */
 export const PIN_KEYS: Readonly<Record<Side, string>> = { left: '[', right: ']' };
 
-/* A bare [ or ] away from a text field pins the centre window, as its pin buttons do. */
+/* A bare [ or ] away from a text field pins the centre panel, as its pin buttons do. */
 function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
   const pinTo = useEffectEvent(onPin);
   useEffect(() => {
@@ -105,19 +105,19 @@ function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
   }, [enabled]);
 }
 
-export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boolean, active = true) {
+export function useOpenPanels(panels: readonly CompassPanel[], compassOpen: boolean, active = true) {
   const [centre, setCentre] = useState<Opened | null>(null);
   const [slots, setSlots] = useRemembered<Slots>('slots', { left: null, right: null });
-  /* Bumps when a pinned window is asked for again, lighting its slot up. */
+  /* Bumps when a pinned panel is asked for again, lighting its slot up. */
   const [flash, setFlash] = useState<Pulse>(null);
   /*
-   * On a narrow table the centre window reaches over the slots, so the window last brought up or pressed comes to the front:
+   * On a narrow table the centre panel reaches over the slots, so the panel last brought up or pressed comes to the front:
    * the faction information a centre chat opens in a slot shows above that chat.
    */
   const [front, setFront] = useState<Side | 'centre' | null>(null);
 
-  /* The windows' keys as one string, which stays the same across the table updates that rebuild the windows, so the openers below do too. */
-  const keys = windows.map((window) => window.key).join('\n');
+  /* The panels' keys as one string, which stays the same across the table updates that rebuild the panels, so the openers below do too. */
+  const keys = panels.map((panel) => panel.key).join('\n');
   const opened = (key: string, seat?: string): Opened => (seat ? { key, seat } : { key });
   /* Already pinned: the slot shows it, so it lights up (on the seat asked for) rather than opening twice. */
   const showPinned = (side: Side, key: string, seat?: string) => {
@@ -128,7 +128,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     setFront(side);
     setCentre(null);
   };
-  /** Opens a window in the centre; asking again for the one already there closes it. */
+  /** Opens a panel in the centre; asking again for the one already there closes it. */
   const show = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
     if (side) {
@@ -142,9 +142,9 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
     );
   };
   /*
-   * Brings a window into view without closing anything, as the table's own openings and a chat's faction token do:
+   * Brings a panel into view without closing anything, as the table's own openings and a chat's faction token do:
    * a pinned one lights up, one already in the centre stays, either set on the seat asked for.
-   * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a window.
+   * Else it goes into a free slot, beside the board rather than over it, and only into the centre when both slots hold a panel.
    */
   const reveal = (key: string, seat?: string) => {
     const side = SIDES.find((entry) => slots[entry]?.key === key);
@@ -159,7 +159,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       setFront(where);
       return;
     }
-    /* A slot is free when it holds nothing, or a window the table no longer has, such as the last battle's. */
+    /* A slot is free when it holds nothing, or a panel the table no longer has, such as the last battle's. */
     const free = SIDES.find((entry) => {
       const pinned = slots[entry]?.key;
       return !pinned || !keys.split('\n').includes(pinned);
@@ -182,7 +182,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
   };
   const unpin = (side: Side) => setSlots((current) => ({ ...current, [side]: null }));
   const close = () => setCentre(null);
-  /** Sets an open window on another seat where it stands, as the faction information's tokens do. */
+  /** Sets an open panel on another seat where it stands, as the faction information's tokens do. */
   const showSeat = (side: Side | 'centre', key: string, seat: string) => {
     if (side === 'centre') {
       setCentre(opened(key, seat));
@@ -190,13 +190,13 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
       setSlots((current) => ({ ...current, [side]: opened(key, seat) }));
     }
   };
-  /** Whether a window is open anywhere, in the centre or pinned; with a seat, whether it is set on that seat. */
+  /** Whether a panel is open anywhere, in the centre or pinned; with a seat, whether it is set on that seat. */
   const isOpen = (key: string, seat?: string) =>
     [centre, slots.left, slots.right].some(
       (entry) => entry?.key === key && (seat === undefined || entry.seat === seat)
     );
 
-  /* Escape closes the centre window once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
+  /* Escape closes the centre panel once the compass is not there to take it, and no menu, list, popover or dialog is open to take it first. */
   useEffect(() => {
     if (!active || compassOpen || centre === null) {
       return;
@@ -206,7 +206,7 @@ export function useOpenWindows(windows: readonly TableWindow[], compassOpen: boo
         setCentre(null);
       }
     };
-    /* Seen first, before whatever is open answers the key and goes, so the window stays while Escape closed something else. */
+    /* Seen first, before whatever is open answers the key and goes, so the panel stays while Escape closed something else. */
     window.addEventListener('keydown', escape, true);
     return () => window.removeEventListener('keydown', escape, true);
   }, [active, compassOpen, centre]);

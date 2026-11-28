@@ -199,7 +199,7 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
 
 /**
  * A spectator's seat, behind one action in the header toolbar beside the game menu (Norbert, 2026-10-02).
- * The table keeps its windows for the controls, and the header keeps its one row.
+ * The table keeps its panels for the controls, and the header keeps its one row.
  */
 export function SeatPopover({
   client,
@@ -208,7 +208,7 @@ export function SeatPopover({
 }: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
   const notice = useSpectatorSeat(client, table);
   /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open.
-     Playback shows a past snapshot, so its seat actions would be stale; the windows drop them then too. */
+     Playback shows a past snapshot, so its seat actions would be stale; the panels drop them then too. */
   return notice && !table.playback ? <SeatNoticePopover notice={notice} error={error} /> : null;
 }
 

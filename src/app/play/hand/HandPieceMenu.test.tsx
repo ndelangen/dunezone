@@ -17,10 +17,10 @@ globalThis.ResizeObserver ??= class {
 
 afterEach(cleanup);
 
-test('the menu anchors at the pointer on the body, outside a window whose transform would re-base a fixed anchor', () => {
+test('the menu anchors at the pointer on the body, outside a panel whose transform would re-base a fixed anchor', () => {
   const { container } = render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <section data-window="hand" style={{ transform: 'translateX(-50%)', backdropFilter: 'blur(10px)' }}>
+      <section data-panel="hand" style={{ transform: 'translateX(-50%)', backdropFilter: 'blur(10px)' }}>
         <HandPieceMenu anchor={{ pieceId: 'card', x: 63, y: 559 }} label="Hand actions" onClose={vi.fn()}>
           <Menu.Item>Move to private side-table</Menu.Item>
         </HandPieceMenu>

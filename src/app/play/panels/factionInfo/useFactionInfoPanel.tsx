@@ -9,8 +9,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { useFactionPageSlug } from '@db/factions';
 
 import type { TableProjection, TableSession } from '../../../db/tabletop/TableSession';
-import { seatPlayers, standInToken } from '../../compass/playerWindows';
-import type { Player } from '../../compass/playerWindows';
+import { seatPlayers, standInToken } from '../../compass/playerPanels';
+import type { Player } from '../../compass/playerPanels';
 import { SwappingSeat } from '../../drafting/Swapping';
 import { factionToken, FactionTokenFace } from '../../seats/FactionTokenFace';
 import { isSpectator } from '../../table/tableFactions';
@@ -91,7 +91,7 @@ function headerModel(
   };
 }
 
-/** What the window reads beyond the table: the faction's sheet and page, the table's time, the parts it shows as they are, and where its actions go. */
+/** What the panel reads beyond the table: the faction's sheet and page, the table's time, the parts it shows as they are, and where its actions go. */
 export type FactionInfoSources = Readonly<{
   error: string | null;
   details: PublicFaction | undefined;
@@ -103,7 +103,7 @@ export type FactionInfoSources = Readonly<{
   onAlliance: (factionId: string, kind: AllianceCommandKind) => void;
 }>;
 
-/** The Faction info window's props for a seat, or null for a seat nobody can be shown at. */
+/** The Faction info panel's props for a seat, or null for a seat nobody can be shown at. */
 export function factionInfoProps(
   table: TableProjection,
   seat: string,

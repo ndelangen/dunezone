@@ -17,7 +17,7 @@ function useGameLengthPanel({ client, table }: Props): GameLengthPanelProps {
   };
 }
 
-/** The Settings window's content at a live table, while the game is in play. */
+/** The Settings panel's content at a live table, while the game is in play. */
 export function ConnectedGameLengthPanel(props: Props) {
   const panel = useGameLengthPanel(props);
   return props.table.snapshot.stage === 'play' ? <GameLengthPanel {...panel} /> : null;

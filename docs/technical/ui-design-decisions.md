@@ -94,17 +94,17 @@ and a kit `Card` on a pane of its own), and the kit `Section` an earlier one had
 title at 1.3:1 because the shell pinned none of the tokens it reads. So the line is drawn at what the kit
 has no concern for. Play's own set is the 3D scene and the labels it projects, the overlays on the
 table, the phase symbol and status, and the table-view picker; `dune-play.css` carries those rules
-and nothing else. The compass over the table, its windows and the two slots they pin into are play's
-as well, each in its own CSS module under `play/compass/`. A window's (?) is the kit's `HelpMark`,
-the one glyph the control block's help uses. A window's content holds `Section`, `Eyebrow`, Mantine
+and nothing else. The compass over the table, its panels and the two slots they pin into are play's
+as well, each in its own CSS module under `play/compass/`. A panel's (?) is the kit's `HelpMark`,
+the one glyph the control block's help uses. A panel's content holds `Section`, `Eyebrow`, Mantine
 controls and the rest of the kit, on the dark-scheme island the
 shell declares with `data-scheme-dark` (`tokens.css` gives that subtree the dark block even outside the app
 chrome, and a nested provider re-emits Mantine's root-scoped scheme variables under it; a
 stylesheet keyed on `html[data-mantine-color-scheme]` does not follow the island). A Select, Menu or
 Combobox dropdown portals out of the shell, so the provider gives every Popover dropdown it renders
 the island's attributes. A tooltip's colours key on an ancestor, so the provider portals its
-tooltips into a child of `body` that carries those attributes. A window paints the ground, and
-nothing inside a window brings a pane of its own. The island shares the app's warm mineral tokens and Mantine ramps. It keeps the provider and portal
+tooltips into a child of `body` that carries those attributes. A panel paints the ground, and
+nothing inside a panel brings a pane of its own. The island shares the app's warm mineral tokens and Mantine ramps. It keeps the provider and portal
 scoping so controls still paint correctly outside the table, without maintaining a second palette.
 The Three scene reads resolved theme variables from its canvas through `tablePalette.ts`, including
 its table materials, ground and lights. UI colours live in `src/shared/uiPalette.ts`: scoped UI variables,
@@ -130,10 +130,10 @@ per accepted part naming the kit component it becomes or the one concern that ma
 component under the taxonomy; a delivery ticket names what it builds with; and the independent
 review checks that line before the merge.
 
-Play's tooltips are raised rather than glass so they remain distinct from the windows (#2048). The island sets `--tip-surface`,
+Play's tooltips are raised rather than glass so they remain distinct from the panels (#2048). The island sets `--tip-surface`,
 `--tip-ring` and `--tip-title` in `DarkSchemeIsland.css` (not `tokens.css`, which the faction sheet renderer bundles), and the Tooltip class in `appContentTheme` reads them with
 the glass as fallback, so every tooltip on the island is a warm mineral card with a brass ring and shadow, a
-titled one takes the pale sand title, and nothing outside the island changes. A window's guidance lives
+titled one takes the pale sand title, and nothing outside the island changes. A panel's guidance lives
 behind the (?) in its header, the kit's `HelpMark`: hovering or focusing it shows the one-line
 description and the full help under it, and the compass's search shows the description as each
 window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope

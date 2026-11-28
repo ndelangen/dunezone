@@ -12,10 +12,10 @@ import styles from './ChatBar.module.css';
 import base from './CompassControls.module.css';
 import { CompassTableContext } from './compassTable';
 import type { CompassPlayer } from './compassTable';
+import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './panels';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import { useShortcutsButton } from './shortcutsButton';
-import { chattable, FACTION_INFO, KEYBOARD_SHORTCUTS } from './windows';
 
 /* Only a game that announces private messages draws whisper threads, so their code loads only there. */
 const WhisperThreads = lazy(() => import('./WhisperThreads').then((module) => ({ default: module.WhisperThreads })));
@@ -27,14 +27,14 @@ const WhisperThreads = lazy(() => import('./WhisperThreads').then((module) => ({
 
 type ChatBarProps = Readonly<{
   inert: boolean;
-  /** Whether the table has a Hand & spice window yet, which the own token opens; before it, the token opens the viewer's Faction info. */
+  /** Whether the table has a Hand & spice panel yet, which the own token opens; before it, the token opens the viewer's Faction info. */
   hasHand: boolean;
   /** Shows or hides the keyboard shortcuts cheat sheet; absent when the table has none, and the key button with it. */
   onToggleShortcuts?: (() => void) | undefined;
-  /** Whether a window is open anywhere, so its token shows pressed. */
+  /** Whether a panel is open anywhere, so its token shows pressed. */
   isOpen: (key: string, seat?: string) => boolean;
   onOpenCompass: () => void;
-  /** Opens a window, the faction information on the seat given. */
+  /** Opens a panel, the faction information on the seat given. */
   onShow: (key: string, seat?: string) => void;
 }>;
 

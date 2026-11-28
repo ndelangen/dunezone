@@ -11,7 +11,7 @@ import { gameMeta, install } from '../../../routes/_app/play/game.stories.fixtur
 import { chapter, journeySteps, journeyViewers } from '../../../routes/_app/play/journey.stories.fixture';
 import { sandboxTransport } from '../../../routes/_app/play/sandbox.stories.fixture';
 import compass from '../../compass/CompassControls.module.css';
-import { WindowFrame } from '../../compass/WindowFrame';
+import { PanelFrame } from '../../compass/PanelFrame';
 import { HAND_AND_SPICE_GUIDANCE, HIDDEN_ZONE_GUIDANCE } from '../panelGuidance';
 import { ConnectedPrivateSideTablePanel } from '../sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../spice/useSpiceReservePanel';
@@ -19,11 +19,11 @@ import { ConnectedHandPanel } from './useHandPanel';
 import '../../table/dune-play.css';
 
 /*
- * The Hand & spice window on its own: a live table session from the story's transport, and the window in a bottom-left slot
- * on the table's dark ground, as the compass composes it, without the table itself. The real Private side-table window
+ * The Hand & spice panel on its own: a live table session from the story's transport, and the panel in a bottom-left slot
+ * on the table's dark ground, as the compass composes it, without the table itself. The real Private side-table panel
  * sits bottom right, so a piece set aside is seen arriving; the Play debugger panel shows the room's state for the rest.
  */
-function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: string }>) {
+function HandPanelHarness({ height = 448 }: Readonly<{ height?: number; seat?: string }>) {
   const runtime = useContext(GameRuntimeContext);
   const [client] = useState(
     () =>
@@ -48,7 +48,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
         <div className={compass.root}>
           {!hand && <p style={{ padding: 16 }}>{view.error ?? `Table: ${view.status}`}</p>}
           {table && hand && (
-            <WindowFrame
+            <PanelFrame
               entry={{
                 key: 'hand',
                 label: 'Hand & spice',
@@ -72,7 +72,7 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
             />
           )}
           {table && hand && (
-            <WindowFrame
+            <PanelFrame
               entry={{
                 key: 'hidden-zone',
                 label: 'Private side-table',
@@ -96,9 +96,9 @@ function HandWindowHarness({ height = 448 }: Readonly<{ height?: number; seat?: 
   );
 }
 
-/* The window's stories and its behaviour tests share one setup: the harness on the game's decorators, motion on, and a seat control. */
-export const handWindowMeta = {
-  component: HandWindowHarness,
+/* The panel's stories and its behaviour tests share one setup: the harness on the game's decorators, motion on, and a seat control. */
+export const handPanelMeta = {
+  component: HandPanelHarness,
   decorators: gameMeta.decorators,
   globals: { motion: 'on' },
   argTypes: { seat: { control: 'select' as const, options: journeyViewers().filter((seat) => seat !== 'neutral') } },

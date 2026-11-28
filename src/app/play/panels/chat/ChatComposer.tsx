@@ -5,7 +5,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { focusTable } from '../../../widgets/tabletop/focusTable';
-import { WINDOW_FOCUS_ATTRIBUTE } from '../../compass/windowFocus';
+import { PANEL_FOCUS_ATTRIBUTE } from '../../compass/panelFocus';
 import { completeMention, matchMentions, mentionQuery } from '../../notices/mentions';
 import type { Mention, MentionQuery } from '../../notices/mentions';
 import { FactionTokenFace } from '../../seats/FactionTokenFace';
@@ -133,9 +133,9 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
             onKeyDown={keyDown}
             onFocus={() => mention.focus(true)}
             onBlur={() => mention.focus(false)}
-            /* Escape here hands the keyboard to the table rather than closing the window; a second Escape closes it. */
+            /* Escape here hands the keyboard to the table rather than closing the panel; a second Escape closes it. */
             data-takes-escape
-            {...{ [WINDOW_FOCUS_ATTRIBUTE]: '' }}
+            {...{ [PANEL_FOCUS_ATTRIBUTE]: '' }}
             maxLength={MESSAGE_LIMIT}
             minRows={2}
             maxRows={5}

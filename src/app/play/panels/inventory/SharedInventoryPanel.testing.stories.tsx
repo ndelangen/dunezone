@@ -2,12 +2,12 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { SharedInventoryPanel } from './SharedInventoryPanel';
-import { inventoryArgs, inWindow } from './SharedInventoryPanel.stories.fixture';
+import { inventoryArgs, inPanel } from './SharedInventoryPanel.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Play/Panels/Shared table inventory',
   component: SharedInventoryPanel,
-  decorators: [inWindow],
+  decorators: [inPanel],
   args: inventoryArgs(),
 });
 

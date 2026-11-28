@@ -45,7 +45,7 @@ export function seatRequestsWaiting(table: TableProjection): number {
   return waitingSeatRequests(table).length;
 }
 
-/** The Seats & spectators window's props from the table. */
+/** The Seats & spectators panel's props from the table. */
 export function seatsPanelProps(table: TableProjection, onApprove: (requestId: string) => void): SeatsPanelProps {
   const controls = publicControlsOf(table);
   return {
@@ -62,7 +62,7 @@ export function seatsPanelProps(table: TableProjection, onApprove: (requestId: s
   };
 }
 
-/** The Seats & spectators window's content at a live table. */
+/** The Seats & spectators panel's content at a live table. */
 export function ConnectedSeatsPanel({ client, table }: Props) {
   return <SeatsPanel {...seatsPanelProps(table, (requestId) => client.command({ kind: 'seat-approve', requestId }))} />;
 }

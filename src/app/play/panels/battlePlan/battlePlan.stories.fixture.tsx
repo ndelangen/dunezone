@@ -19,8 +19,8 @@ import { useState } from 'react';
 
 import { cardBack, factions, playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
 import compassStyles from '../../compass/CompassControls.module.css';
-import { WindowFrame } from '../../compass/WindowFrame';
-import type { TableWindow } from '../../compass/windows';
+import { PanelFrame } from '../../compass/PanelFrame';
+import type { CompassPanel } from '../../compass/panels';
 import { LedgerPlan } from './LedgerPlan';
 import { ModeToggle } from './parts';
 import { planLocks, planPieces, supportMatters } from './planView';
@@ -335,7 +335,7 @@ export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSiz
     <SlotFrame
       size={size}
       actions={
-        /* Only Advanced supports troops one by one, so only its window has the Custom toggle. */
+        /* Only Advanced supports troops one by one, so only its panel has the Custom toggle. */
         dialsFlat(state.plan.dialing) ? null : (
           <ModeToggle
             mode={state.plan.mode}
@@ -363,7 +363,7 @@ export function PlanHarness({ initial, size }: { initial: Harness; size: SlotSiz
   );
 }
 
-const BATTLE_WINDOW: Omit<TableWindow, 'content'> = {
+const BATTLE_PANEL: Omit<CompassPanel, 'content'> = {
   key: 'battle',
   label: 'Battle plan',
   group: 'Table',
@@ -373,7 +373,7 @@ const BATTLE_WINDOW: Omit<TableWindow, 'content'> = {
   peek: true,
 };
 
-/* Room above the slot for the wheel's cards, which peek over the window's top edge. */
+/* Room above the slot for the wheel's cards, which peek over the panel's top edge. */
 const PEEK_ROOM = 60;
 
 export type SlotSize = 'slot' | 'narrow' | 'wide' | 'tall';
@@ -385,7 +385,7 @@ const SLOT_SIZES: Readonly<Record<SlotSize, { width: string; height: string }>> 
   tall: { width: '24rem', height: '34rem' },
 };
 
-/** The window as a pinned slot shows it, alone on the table's ground: its real frame, title and (?) included. */
+/** The panel as a pinned slot shows it, alone on the table's ground: its real frame, title and (?) included. */
 function SlotFrame({ size, actions, children }: { size: SlotSize; actions: ReactNode; children: ReactNode }) {
   const { width, height } = SLOT_SIZES[size];
   return (
@@ -396,8 +396,8 @@ function SlotFrame({ size, actions, children }: { size: SlotSize; actions: React
         style={{ width: `calc(${width} + 24px)`, height: `calc(${height} + 24px + ${PEEK_ROOM}px)` }}
       >
         <div className={compassStyles.root} style={{ '--slot-width': width } as CSSProperties}>
-          <WindowFrame
-            entry={{ ...BATTLE_WINDOW, content: children }}
+          <PanelFrame
+            entry={{ ...BATTLE_PANEL, content: children }}
             where="left"
             inert={false}
             style={{ height }}

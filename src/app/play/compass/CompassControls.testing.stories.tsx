@@ -106,7 +106,7 @@ export const OpenedChatTakesTheKeys = meta.story({
     const document = canvasElement.ownerDocument;
     const { buttons } = await chatBar(canvasElement);
     await userEvent.click(buttons[0]!);
-    const chat = await waitFor(() => document.querySelector<HTMLElement>('[data-window="table-chat"]')!);
+    const chat = await waitFor(() => document.querySelector<HTMLElement>('[data-panel="table-chat"]')!);
     const composer = await within(chat).findByRole('textbox', { name: 'Message' });
     await waitFor(() => expect(composer).toHaveFocus());
     await userEvent.keyboard('{Escape}');

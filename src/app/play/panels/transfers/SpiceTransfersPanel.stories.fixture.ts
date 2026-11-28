@@ -2,8 +2,8 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { fn } from 'storybook/test';
 
 import { playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
-import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
-import { PANEL_WINDOWS } from '../panelWindows';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
 import { SpiceTransfersPanel } from './SpiceTransfersPanel';
 import type { SpiceTransfersPanelProps } from './SpiceTransfersPanel';
 import { spiceTransferLines } from './useSpiceTransfersPanel';
@@ -37,7 +37,7 @@ export function transfersProps(snapshot: GameSnapshot = transfersSnapshot()): Sp
 }
 
 export const transfersPanelMeta = {
-  ...panelMeta(PANEL_WINDOWS.transfers),
+  ...panelMeta(PANEL_INFO.transfers),
   component: SpiceTransfersPanel,
   args: transfersProps(),
 };

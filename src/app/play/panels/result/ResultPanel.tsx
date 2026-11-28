@@ -63,7 +63,7 @@ export type ResultPanelProps = Readonly<{
   onDeclare: () => void;
 }>;
 
-/** One state of the end of the game, as the Result window's section: what is happening, and what this viewer can do. */
+/** One state of the end of the game, as the Result panel's section: what is happening, and what this viewer can do. */
 function ResultSection({
   eyebrow,
   title,
@@ -174,7 +174,7 @@ function DeclareBar({
   );
 }
 
-/* Every other window while one player determines the winner: the reveal reminder, never a block. */
+/* Every other panel while one player determines the winner: the reveal reminder, never a block. */
 function DeterminingBar({
   name,
   prediction,
@@ -214,7 +214,7 @@ function FinishedBar({
 }
 
 /**
- * The Result window for the end of the game, in the accepted arrangement (#1016): the declaring player chooses and declares, every other window names who is determining the winner and reminds a prediction holder to reveal, and a finished game names its result with Continue playing.
+ * The Result panel for the end of the game, in the accepted arrangement (#1016): the declaring player chooses and declares, every other panel names who is determining the winner and reminds a prediction holder to reveal, and a finished game names its result with Continue playing.
  * Nothing reveals by itself and nothing waits for a reveal.
  */
 export function ResultPanel(props: ResultPanelProps) {

@@ -10,7 +10,7 @@ export type FactionInfoHeaderModel = Readonly<{
   /** The player, or the faction's name for a vacant seat. */
   name: string;
   faction: string | null;
-  /** The seat's id, such as `seat-2`, which a guide finds the seat's window by. */
+  /** The seat's id, such as `seat-2`, which a guide finds the seat's panel by. */
   seatId: string;
   /** The seat as the header names it, such as Seat 2. */
   seat: string;

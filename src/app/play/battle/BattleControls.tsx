@@ -185,7 +185,7 @@ export function BattleWheel({ plan, factionId, factionName, client, active, artw
   );
 }
 
-/** Max or Custom support, in the Battle plan window's title bar while the viewer has a plan. */
+/** Max or Custom support, in the Battle plan panel's title bar while the viewer has a plan. */
 export function BattleModeToggle({ client, table }: Props) {
   const { battle, battlePlan: plan, bank } = table.snapshot;
   if (!plan || !battle || !bank) {

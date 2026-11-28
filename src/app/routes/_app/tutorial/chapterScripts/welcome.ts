@@ -14,7 +14,7 @@ import {
   element,
   gameMenuButton,
   nextPhaseButton,
-  openedWindow,
+  openedPanel,
   phaseOf,
   pressEnter,
   task,
@@ -120,7 +120,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
   const tokens = tour(() => tokenStops(snapshot));
   const phases = tour(() => phaseStops(snapshot));
   const phaseRead = pressEnter();
-  const menu = openedWindow(() => copyLink() !== null);
+  const menu = openedPanel(() => copyLink() !== null);
   return [
     task({
       id: 'speaking-mode',
