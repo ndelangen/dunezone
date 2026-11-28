@@ -1,4 +1,4 @@
-import { GameSession as StoredGameSession } from './session';
+import { GameSession as StoredGameSession } from '../../src/shared/play/engine/session';
 
 let armed = false;
 let failure: string | undefined;

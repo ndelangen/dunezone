@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import type { Metadata } from '../../src/shared/play/engine/session';
+import type { StoredSnapshot } from '../../src/shared/play/engine/state';
 import type { TableSeatCount } from '../../src/shared/play/tableSettings';
 import { PLAYER_RING_RADIUS, tableSeatAngles } from '../../src/shared/play/tableSettings';
 import { required } from './native-runtime.fixture.ts';
@@ -13,8 +15,6 @@ import {
   sendCommand,
   syncView,
 } from './native-runtime.fixture.ts';
-import type { Metadata } from './session';
-import type { StoredSnapshot } from './state';
 
 const FIXTURE_ROSTER = {
   seatCount: 6,

@@ -50,7 +50,7 @@ The game Worker owns one SQLite Durable Object per game. Its transactions save t
 command receipts and phase-boundary history. Seat changes have their own durable history.
 Carries and pointers belong to the live connection. Pointer positions stay out of game history.
 
-`workers/game/session.ts` owns the Room, durable metadata, domain stores and history boundary.
+`src/shared/play/engine/session.ts` owns the Room, durable metadata, domain stores and history boundary.
 Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
 retained content. `workers/game/index.ts` owns authorization, sockets and external requests, and
 handles the alarm when it fires. It asks the session for projections instead of reading or changing
@@ -83,7 +83,7 @@ and released carries settle before delivery; broadcasting only reads the complet
 reconstructs stored checkpoints and patches with continuity checks, then applies viewer privacy.
 It never executes past commands again.
 
-The history table holds two kinds of row (`workers/game/sessionHistory.ts`). A `checkpoint` stores
+The history table holds two kinds of row (`src/shared/play/engine/sessionHistory.ts`). A `checkpoint` stores
 the whole snapshot. It is written for a reset, for the step that leaves setup (the Next that opens
 Turn 1), for every later phase change that moves into another turn, for a revealed battle that
 settles (by agreed outcome or by cancel), and by `GameSession` for the faction assignment and the
@@ -92,7 +92,7 @@ plays without a battle. Every other playback step is a `patch` against the step 
 changes within a turn, declaring a result and continuing past it, setup actions, Ready while
 setup gates on it, and a battle's reveal. A restore loads the latest checkpoint at or before the
 step and replays the patches after it, checking that each row's `base_revision` matches. `diff` in
-`workers/game/history.ts` changes an array entry by entry when that is smaller than storing it
+`src/shared/play/engine/history.ts` changes an array entry by entry when that is smaller than storing it
 whole: a changed entry by its index, an added one at its new index, and a shorter array by its
 `length`. These are the set and remove operations `applyPatch` has always read, so a room rolled
 back to an earlier release still restores rows the later one wrote. `anonymizeHistory` uses the
@@ -100,9 +100,9 @@ same `diff`, so its first scrub of a room written before entry-by-entry patches 
 rows in the new shape.
 
 Each command names the revision its sender last saw, and `Room.assertRevision` in
-`workers/game/room.ts` refuses one sent against a table that has changed since with "The table
+`src/shared/play/engine/room.ts` refuses one sent against a table that has changed since with "The table
 changed. Try the action again." Every move declares how it is judged in one place, `ACTION_POLICY`
-in `workers/game/actionPolicy.ts`, and a new move does not compile until it has an entry there.
+in `src/shared/play/engine/actionPolicy.ts`, and a new move does not compile until it has an entry there.
 Moves marked `tolerant` (battle actions, bids, draft picks, seat requests, alliance offers, hand
 arrangement and more) name what they change and are checked against the live table instead, so
 seats acting at the same moment do not turn each other away. Moves marked `readiness` (`ready`,
@@ -116,7 +116,17 @@ bounded per connection and is released on disconnect. Ended carry IDs are never 
 that connection remains live, so delayed messages cannot revive an old carry.
 
 The shared rules and geometry live in `src/shared/play`, and the Play route imports them as
-`@shared/play/<module>`. `commands.ts`, `workers/game/room.ts` and `history.ts` extend the
+`@shared/play/<module>`. The game engine, the Room, the session and their domain stores, lives in
+`src/shared/play/engine` (#2852). Four hosts run it: the game Worker's rooms, the homepage table,
+the tutorial and Play / Sandbox, and each supplies its own storage. Each also installs an engine
+host (`src/shared/play/engine/host.ts`) for the clock, randomness and card-identity signing: the
+Worker's (`workers/game/engineHost.ts`) uses Node's crypto, the browser's
+(`src/app/routes/_app/tutorial/table/engineHost.ts`) Web Crypto and crypto-js, and unit tests run
+on the Worker's or install a fixed one. The Worker keeps only host code in `workers/game`: sockets,
+admission, HTTP, alarms and the Convex calls. An `.oxlintrc.json` override keeps the engine from
+importing a Workers runtime module, Worker host code, Convex, the app or a Node built-in, and
+`local/engine-host-only` keeps it from reading `Date`, `Math.random`, `performance` or `crypto`
+itself. `commands.ts`, `src/shared/play/engine/room.ts` and `history.ts` extend the
 accepted source implementation preserved in the
 [source history bundle](https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle)
 on the `proof-assets` release; the

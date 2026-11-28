@@ -7,19 +7,19 @@ import {
   playProvisionRequestSchema,
 } from '../../src/shared/play/admission';
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import { FIXTURE_TREACHERY_DECK } from '../../src/shared/play/engine/fixture';
+import type { FixturePlan } from '../../src/shared/play/engine/fixture';
+import type { GameSession } from '../../src/shared/play/engine/session';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { GameCatalogue } from './catalogue';
 import type { GameDiagnostics } from './diagnostics';
-import { FIXTURE_TREACHERY_DECK } from './fixture';
-import type { FixturePlan } from './fixture';
 import type { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import type { RoomAlarm } from './roomAlarm';
 import type { RoomDraft } from './roomDraft';
 import { json, readRequest, refused } from './roomHttp';
-import type { GameSession } from './session';
 
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */

@@ -1,0 +1,1146 @@
+import { arrakisBoardCapture } from '../../boards/arrakisPreset';
+import type { Board } from '../../boards/schema';
+import { tableHandlingOpen } from '../admission';
+import { isAllianceAction } from '../alliances';
+import type { AllianceAction } from '../alliances';
+import { isBattleAction } from '../battle';
+import type { BattleAction } from '../battle';
+import { isBiddingAction } from '../bidding';
+import type { BiddingAction } from '../bidding';
+import { bribePilePosition, factionTokenUnder } from '../bribes';
+import { accepted, applyPieceAction, drawTechTokenInState, nextSnapshot, requireAccepted } from '../commands';
+import type { DraftAction } from '../drafting';
+import { emptyPublicControls, isPublicAction } from '../inventory';
+import type { PublicAction, StoredSpawnContents } from '../inventory';
+import type { LastTurnAction } from '../lastTurn';
+import { gestureBlockReason } from '../model';
+import type { DraftMove, TablePiece, TableState, Vector3Tuple } from '../model';
+import type { MovementAction } from '../movement';
+import { seatSubject } from '../participation';
+import type { SeatAction } from '../participation';
+import { isPeekAction } from '../peeking';
+import { PHASE_CHANGE_COOLDOWN_MS, requirePhaseCooldownElapsed, STANDARD_PHASES, stepPhase } from '../phases';
+import { PIECE_FLIP_DURATION_MS } from '../pieceFlip';
+import { pointerRiders } from '../pointerRiders';
+import { carryPieceId, tableForViewer } from '../protocol';
+import type {
+  ClientMessage,
+  GameSnapshot,
+  PieceAction,
+  TableAction,
+  Viewer,
+  PublicCarry,
+  PublicPointer,
+  RestoreAction,
+} from '../protocol';
+import { GameRejection } from '../rejection';
+import type { RemovalAction } from '../removal';
+import type { ResultAction } from '../result';
+import type { ReviewAction } from '../review';
+import { SPECTATOR_SEAT } from '../schema';
+import { isSetupAction, phaseGate } from '../setup';
+import type { SpiceGiftChoice, SpiceReserveAction } from '../spiceReserve';
+import type { SwapAction } from '../swapping';
+import { isPlate } from '../tableGeometry';
+import { TABLE_SECTOR_COUNT } from '../tableSettings';
+import {
+  applyDraftToState,
+  draftForGesture,
+  draftWithAdditionalTop,
+  heldPieceFor,
+  canFlipInHand,
+  giveSpiceDraft,
+  returnTroopsDraftToReserves,
+  projectCarryAtPosition,
+  noRoomMessage,
+  settleCarryAtPosition,
+} from '../tableState';
+import type { TroopReserveLanding } from '../tableState';
+import { isTerritoryTintAction } from '../territoryTints';
+import type { TerritoryTintAction } from '../territoryTints';
+import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../troopReserves';
+import {
+  allowedDuringSetup,
+  allowedWhenFinished,
+  isReadiness,
+  leavesTableSettled,
+  revisionTolerant,
+} from './actionPolicy';
+import { allianceCommand } from './alliances';
+import { battleCommand } from './battle';
+import { biddingAfterTable, biddingCommand } from './bidding';
+import { concealCards, deckCommand } from './decks';
+import { restoreCommand, withDeletions } from './deletions';
+import { dealFixtureDeck } from './fixture';
+import { hostNow, hostRandomInt, hostRandomUUID } from './host';
+import { lastTurnCommand } from './lastTurn';
+import { isMovementAction, movementAfterTable, movementCommand } from './movement';
+import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
+import { publicControlsCommand } from './publicControls';
+import { setupCommand, gatherTraitors } from './setup-progress';
+import { collectSpice, stationFront, withdrawSpice } from './spiceReserveCommand';
+import { storedSnapshotSchema } from './state';
+import type { StoredSnapshot } from './state';
+import { territoryTintCommand } from './territoryTints';
+
+export type Identity = Viewer;
+
+function samePointerIdentity(pointer: PublicPointer, identity: Identity): boolean {
+  return (
+    pointer.viewerSeat === identity.viewerSeat &&
+    pointer.displayName === identity.displayName &&
+    pointer.avatarUrl === identity.avatarUrl &&
+    pointer.color === identity.color
+  );
+}
+/* The session routes the lifecycle families to their own modules; the room applies every other action. */
+type FactionSetting = BiddingAction | LastTurnAction | MovementAction | TerritoryTintAction;
+function isFactionSetting(action: { kind: string }): action is FactionSetting {
+  return (
+    action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
+  );
+}
+function isSeatedCommand(action: PieceAction): action is AllianceAction | RestoreAction {
+  return action.kind === 'restore' || isAllianceAction(action);
+}
+
+type RoomAction = Exclude<
+  PieceAction,
+  SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
+>;
+type Carry = Identity & {
+  id: string;
+  draft: DraftMove;
+  versions: Map<string, number>;
+  lastSeen: number;
+  seq: number;
+  beginPayload: string;
+  takes: Map<string, string>;
+  /* What rode the carried plate when it was picked up, by id, to the handle pages knew it by then; nothing for any other piece. */
+  riders?: ReadonlyMap<string, string | undefined>;
+};
+type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
+
+/*
+ * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
+ * A drop without a count keeps the carry's, as an older page sends none.
+ */
+/** Where a carried piece is set down, and how many times it was turned over in hand. */
+type CarryLanding = { position: Vector3Tuple; orientation: number; flips?: number; give?: SpiceGiftChoice };
+/* A carry let go as a gift: the table guarded against other carries, the held draft, where it landed and the riders set down late. */
+type GiftDrop = {
+  guarded: TableState;
+  draft: DraftMove;
+  landing: CarryLanding & { give: SpiceGiftChoice };
+  late: ReadonlySet<string>;
+};
+
+function carryFlips(draft: DraftMove, flips: number | undefined) {
+  const current = draft.flips ?? 0;
+  return flips === undefined || flips < current ? current : flips;
+}
+
+/** The carry IDs a connection may use before it reconnects; the room never forgets one while the connection lasts. */
+const CARRY_HISTORY_LIMIT = 1024;
+
+/** The refusal of a carry from a connection that used every carry ID the room remembers; only a new connection may start more. */
+export class CarryHistoryExhausted extends GameRejection {}
+
+/**
+ * Withdrawing readiness confirms no table, so it never waits on the revision.
+ * A swap withdrawal still names its trading round;
+ * a draft or setup withdrawal is judged by the room's current stage and phase.
+ */
+function withdrawsReadiness(action: { kind: string; ready?: boolean }) {
+  return isReadiness(action.kind) && action.ready === false;
+}
+
+/** Whether a commit left the game at the same stage, phase, setup step and trading round. */
+function samePlace(before: GameSnapshot, after: GameSnapshot) {
+  return (
+    before.stage === after.stage &&
+    before.phase === after.phase &&
+    before.setup?.index === after.setup?.index &&
+    before.swapping?.round === after.swapping?.round
+  );
+}
+
+export class Room {
+  private current!: StoredSnapshot;
+  /** The room's table. Every state it takes, accepted, restored or re-rostered, closes the peeks whose piece changed since their grant. */
+  get snapshot(): StoredSnapshot {
+    return this.current;
+  }
+  set snapshot(snapshot: StoredSnapshot) {
+    this.current = closeLostPeeks(snapshot);
+  }
+  /* A new epoch tells pages their carries are gone; a room woken from hibernation resumes the old one, since it held none. */
+  epoch: string = hostRandomUUID();
+  /** The revision of the last commit that changed more than who is ready. */
+  private settledRevision: number;
+  readonly carries = new Map<string, Carry>();
+  readonly reservations = new Map<string, string>();
+  readonly pointers = new Map<string, PublicPointer>();
+  private readonly usedCarryIds = new Map<string, Set<string>>();
+  private readonly flipUntil = new Map<string, number>();
+  /** The troop kinds a faction was dealt, in setup order, from its capture; the session sets it, and a room without it orders the kinds on the table by key. */
+  dealtTroops: (factionId: string) => readonly string[] | undefined = () => undefined;
+  constructor(
+    snapshot: GameSnapshot | StoredSnapshot,
+    private readonly seatedPlayers: () => Identity['viewerSeat'][],
+    private readonly factionFor: (userId: string) => string | undefined = () => undefined,
+    /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
+    public fixtureDeck?: StoredSpawnContents,
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
+    /**
+     * The board the game captured with its ruleset;
+     * a table without one plays on the bundled Arrakis preset.
+     * The homepage and tutorial tables follow the saved Arrakis instead, and have no territories until it arrives.
+     */
+    private readonly board: () => Board | undefined = () => arrakisBoardCapture.definition
+  ) {
+    this.snapshot = storedSnapshotSchema.parse(snapshot);
+    this.settledRevision = this.snapshot.revision;
+  }
+
+  /** Refuses a command sent against a table that has since changed in a way the command depends on. */
+  assertRevision(
+    action: { kind: string; ready?: boolean },
+    expectedRevision: number,
+    message = 'The table changed. Try the action again.'
+  ) {
+    const { kind } = action;
+    const current = this.snapshot.revision;
+    const crossed =
+      expectedRevision < current &&
+      (revisionTolerant(kind) ||
+        withdrawsReadiness(action) ||
+        (isReadiness(kind) && expectedRevision >= this.settledRevision));
+    if (expectedRevision !== current && !crossed) {
+      throw new GameRejection(message);
+    }
+  }
+
+  /** Commits one command; readiness or a seat request that left the game in place keeps the table settled, so another seat's readiness against the same table still lands. */
+  commit(kind: string | undefined, apply: () => void) {
+    const before = this.snapshot;
+    const settled = this.settledRevision;
+    apply();
+    if (kind && leavesTableSettled(kind) && samePlace(before, this.snapshot)) {
+      this.settledRevision = settled;
+    }
+  }
+
+  /** When the current phase's cooldown ends on the Worker's clock. */
+  get phaseCooldownEndsAt() {
+    return (this.snapshot.controls?.phaseChangedAt ?? 0) + this.phaseCooldownMs;
+  }
+
+  private player(identity: Identity) {
+    if (identity.viewerSeat === SPECTATOR_SEAT) {
+      throw new GameRejection('Spectators can watch but cannot change the table or publish a cursor.');
+    }
+  }
+
+  private available(pieceId: string, carryId?: string) {
+    const owner = this.reservations.get(pieceId);
+    if (owner !== undefined && owner !== carryId) {
+      throw new GameRejection('Another player is carrying that piece.');
+    }
+  }
+
+  private carry(identity: Identity, carryId: string): Carry {
+    this.player(identity);
+    const carry = this.carries.get(carryId);
+    if (!carry || carry.connectionId !== identity.connectionId) {
+      throw new GameRejection('That carry has ended. Pick the piece up again.');
+    }
+    this.assertCarrySources(carry);
+    return carry;
+  }
+
+  private assertCarrySources(carry: Carry) {
+    for (const [id, version] of carry.versions) {
+      if (this.reservations.get(id) !== carry.id || this.snapshot.versions[id] !== version) {
+        throw new GameRejection('A carried source changed. Pick the piece up again.');
+      }
+    }
+  }
+
+  // Reserved sources remain physical obstacles until their owner's drop is accepted.
+  // They cannot become somebody else's merge target while being carried.
+  /** The table as a seat sees it, on the board the game captured, whose territories stacks keep inside. */
+  private viewerTable(viewerSeat: Identity['viewerSeat']): TableState {
+    const table = tableForViewer(this.snapshot, viewerSeat);
+    return { ...table, board: this.board() };
+  }
+
+  private table(identity: Identity, ownCarryId?: string): TableState {
+    return this.lockReserved(this.viewerTable(identity.viewerSeat), ownCarryId);
+  }
+
+  /** The table with every piece a carry holds locked, other than the given carry's own. */
+  private lockReserved(state: TableState, ownCarryId?: string): TableState {
+    return {
+      ...state,
+      pieces: state.pieces.map((piece) => {
+        const reserved = this.reservations.get(piece.id);
+        return reserved && reserved !== ownCarryId ? { ...piece, locked: true } : piece;
+      }),
+    };
+  }
+
+  begin(identity: Identity, input: CarryInput<'begin'>, now = hostNow()): DraftMove {
+    const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
+    this.assertTableAvailable();
+    this.player(identity);
+    const payload = JSON.stringify({ sourceId, expectedVersion, pickup });
+    const existing = this.carries.get(id);
+    if (existing) {
+      if (existing.connectionId !== identity.connectionId || existing.beginPayload !== payload) {
+        throw new GameRejection('That carry ID was already used.');
+      }
+      existing.lastSeen = now;
+      return existing.draft;
+    }
+    const draft = this.newCarryDraft(identity, input);
+    const riders = this.ridersOn(identity, sourceId);
+    this.rememberCarryId(identity, input);
+    this.reservations.set(sourceId, id);
+    this.carries.set(id, {
+      ...identity,
+      id,
+      draft,
+      versions: new Map([[sourceId, expectedVersion]]),
+      lastSeen: now,
+      seq: -1,
+      beginPayload: payload,
+      takes: new Map(),
+      riders,
+    });
+    return draft;
+  }
+
+  private ridersOn(identity: Identity, pieceId: string): ReadonlyMap<string, string | undefined> | undefined {
+    /* A piece another player holds is locked here, as on the drop, so it never counts as riding. */
+    const { pieces } = this.table(identity);
+    const plate = pieces.find((piece) => piece.id === pieceId);
+    if (!plate || !isPlate(plate)) {
+      return undefined;
+    }
+    return new Map(pointerRiders(pieces, plate).map((rider) => [rider.id, this.snapshot.pieceHandles[rider.id]]));
+  }
+
+  /*
+   * A rider whose handle the room has since retired, as when a card went into a hand and came back face down, is a new piece to everyone else:
+   * naming it as a rider would tie it to what it was, so it no longer counts as one.
+   */
+  private retireRiders(snapshot: StoredSnapshot) {
+    for (const carry of this.carries.values()) {
+      const riders = carry.riders;
+      if (riders && [...riders].some(([id, handle]) => snapshot.pieceHandles[id] !== handle)) {
+        carry.riders = new Map([...riders].filter(([id, handle]) => snapshot.pieceHandles[id] === handle));
+      }
+    }
+  }
+
+  /*
+   * A piece another player set down where a carried plate lay, once nobody could see the plate there, never rode it:
+   * it is held in place, as a reserved piece is, so the plate's drop leaves it behind.
+   */
+  private lateRiders(state: TableState, carry: Carry): ReadonlySet<string> {
+    const plate = state.pieces.find((piece) => piece.id === carry.draft.sourcePieceId);
+    const riders = plate ? pointerRiders(state.pieces, plate) : [];
+    return new Set(riders.filter((rider) => !carry.riders?.has(rider.id)).map((rider) => rider.id));
+  }
+
+  private assertCarryHistory(identity: Identity, input: CarryInput<'begin'>) {
+    const used = this.usedCarryIds.get(identity.connectionId);
+    if (used?.has(input.carryId)) {
+      throw new GameRejection('That carry ID has ended. Start a new carry.');
+    }
+    if (used && used.size >= CARRY_HISTORY_LIMIT) {
+      throw new CarryHistoryExhausted('Reconnect to the table before starting another carry.');
+    }
+  }
+
+  private assertCarryCapacity(identity: Identity) {
+    if ([...this.carries.values()].some((carry) => carry.connectionId === identity.connectionId)) {
+      throw new GameRejection('Finish the current carry first.');
+    }
+    if (this.carries.size >= TABLE_SECTOR_COUNT) {
+      throw new GameRejection('The table already has too many active carries.');
+    }
+  }
+
+  /** The carry IDs a connection has used, which a room woken from hibernation must go on refusing. */
+  carryHistory(connectionId: string): string[] {
+    return [...(this.usedCarryIds.get(connectionId) ?? [])];
+  }
+
+  restoreCarryHistory(connectionId: string, carryIds: readonly string[]) {
+    if (carryIds.length) {
+      this.usedCarryIds.set(connectionId, new Set(carryIds));
+    }
+  }
+
+  private rememberCarryId(identity: Identity, input: CarryInput<'begin'>) {
+    const used = this.usedCarryIds.get(identity.connectionId) ?? new Set<string>();
+    used.add(input.carryId);
+    this.usedCarryIds.set(identity.connectionId, used);
+  }
+
+  private newCarryDraft(identity: Identity, input: CarryInput<'begin'>): DraftMove {
+    const { carryId: id, sourcePieceId: sourceId, pickup } = input;
+    /* A carry still in hand is refused as such first, so only a connection with nothing left to finish is sent to reconnect. */
+    this.assertCarryCapacity(identity);
+    this.assertCarryHistory(identity, input);
+    this.available(sourceId);
+    const state = this.viewerTable(identity.viewerSeat);
+    const source = this.pickupSource(state, input);
+    const draft = draftForGesture(source, pickup);
+    if (!draft) {
+      throw new GameRejection('There is nothing to carry.');
+    }
+    if (draft.withdrawals.length) {
+      draft.pieceId = carryPieceId(id);
+    }
+    if (state.pieces.some((piece) => piece.id === draft.pieceId && piece.id !== source.id)) {
+      throw new GameRejection('That carried piece ID already exists.');
+    }
+    return draft;
+  }
+
+  private pickupSource(state: TableState, input: CarryInput<'begin'>): TablePiece {
+    const source = state.pieces.find((piece) => piece.id === input.sourcePieceId);
+    if (!source || this.snapshot.versions[input.sourcePieceId] !== input.expectedVersion) {
+      throw new GameRejection('That piece changed. Try again from the current table.');
+    }
+    const blocked = gestureBlockReason(source);
+    if (blocked) {
+      throw new GameRejection(blocked);
+    }
+    return source;
+  }
+
+  pose(identity: Identity, input: CarryInput<'pose'>, now = hostNow()): boolean {
+    const { carryId: id, seq, position, orientation } = input;
+    const carry = this.carry(identity, id);
+    if (seq <= carry.seq) {
+      return false;
+    }
+    const draft = projectCarryAtPosition(this.table(identity, id), { ...carry.draft, orientation }, position);
+    if (!draft) {
+      throw new GameRejection('That carried piece is no longer available.');
+    }
+    carry.draft = draft;
+    carry.seq = seq;
+    carry.lastSeen = now;
+    return true;
+  }
+
+  /** Turns the held piece over in hand; the count only adds up, so a repeated message changes nothing. */
+  flip(identity: Identity, input: CarryInput<'flip'>, now = hostNow()): DraftMove {
+    const carry = this.carry(identity, input.carryId);
+    const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
+    if (!canFlipInHand(held, this.unrevealedPrediction)) {
+      throw new GameRejection('That piece cannot be turned over in hand.');
+    }
+    carry.draft = { ...carry.draft, flips: carryFlips(carry.draft, input.flips) };
+    carry.lastSeen = now;
+    return carry.draft;
+  }
+
+  private readonly unrevealedPrediction = (stepId: string) =>
+    this.snapshot.privatePredictions[stepId]?.revealedAt === null;
+
+  /** The carry's piece as the room holds it, every face showing; a page is sent it only through the projection. */
+  heldFor(carryId: string): TablePiece | null {
+    const carry = this.carries.get(carryId);
+    return carry ? (this.publicCarry(carry)[0]?.held ?? null) : null;
+  }
+
+  take(identity: Identity, input: CarryInput<'take'>, now = hostNow()): DraftMove {
+    const { carryId: id, requestId, donorPieceId: donorId } = input;
+    const carry = this.carry(identity, id);
+    const previous = carry.takes.get(requestId);
+    if (previous !== undefined) {
+      if (previous !== donorId) {
+        throw new GameRejection('That take ID was already used for another donor.');
+      }
+      return carry.draft;
+    }
+    const next = this.takeDraft(identity, carry, input);
+    this.reservations.set(donorId, id);
+    carry.versions.set(donorId, this.snapshot.versions[donorId]);
+    carry.draft = next;
+    carry.takes.set(requestId, donorId);
+    carry.lastSeen = now;
+    return next;
+  }
+
+  private takeDraft(identity: Identity, carry: Carry, input: CarryInput<'take'>): DraftMove {
+    const { carryId: id, donorPieceId: donorId } = input;
+    if (carry.takes.size >= 128) {
+      throw new GameRejection('Finish this carry before taking more items.');
+    }
+    this.available(donorId, id);
+    const state = this.table(identity, id);
+    const projected = projectCarryAtPosition(state, carry.draft, carry.draft.position);
+    if (projected?.targetPieceId !== donorId) {
+      throw new GameRejection('Move the carried piece over that donor first.');
+    }
+    const next = draftWithAdditionalTop(state, projected);
+    if (!next) {
+      throw new GameRejection('That donor has no compatible top item available.');
+    }
+    return next;
+  }
+
+  drop(identity: Identity, id: string, landing: CarryLanding): StoredSnapshot {
+    this.assertTableAvailable();
+    const carry = this.carry(identity, id);
+    const reserved = this.table(identity, id);
+    const late = this.lateRiders(reserved, carry);
+    const guarded = {
+      ...reserved,
+      pieces: reserved.pieces.map((piece) => (late.has(piece.id) ? { ...piece, locked: true } : piece)),
+    };
+    const turns = canFlipInHand(heldPieceFor(guarded, carry.draft), this.unrevealedPrediction);
+    const flips = turns ? carryFlips(carry.draft, landing.flips) : 0;
+    const draft = { ...carry.draft, orientation: landing.orientation, flips };
+    if (landing.give) {
+      return this.dropAsGift(identity, { guarded, draft, landing: { ...landing, give: landing.give }, late });
+    }
+    const reserves = this.reservesUnder(guarded, draft, landing.position);
+    if (reserves) {
+      /* Returned troops always go back face up, so turns made in hand are dropped rather than logged. */
+      const home = { ...draft, flips: 0 };
+      const returned = returnTroopsDraftToReserves(guarded, home, reserves, seatSubject(identity.viewerSeat));
+      const table = requireAccepted(guarded, returned);
+      const raw = this.viewerTable(identity.viewerSeat);
+      return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
+    }
+    const settled = settleCarryAtPosition(guarded, draft, landing.position);
+    if (!settled) {
+      throw new GameRejection(noRoomMessage(guarded, draft, landing.position));
+    }
+    if (settled.targetPieceId) {
+      this.available(settled.targetPieceId, id);
+    }
+    const raw = this.viewerTable(identity.viewerSeat);
+    // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
+    // the temporary reservation locks are then put back as stored, never persisted.
+    const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
+    const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
+    /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
+    return { ...next, ...biddingAfterTable(this.snapshot, next, hostNow()) };
+  }
+
+  /** The reserves of the faction whose troops are held, when they are let go over that faction's own token. */
+  private reservesUnder(
+    guarded: TableState,
+    draft: DraftMove,
+    position: Vector3Tuple
+  ): TroopReserveLanding | undefined {
+    const factionId = troopFactionOf(heldPieceFor(guarded, draft));
+    if (!factionId || factionTokenUnder(guarded.pieces, position) !== factionId) {
+      return undefined;
+    }
+    const keys = troopReserveKeys(guarded.pieces, factionId, this.dealtTroops(factionId));
+    const spots = troopReserveSpots(this.snapshot.roster, factionId, keys);
+    return spots && { factionName: this.factionName(factionId), spots };
+  }
+
+  /** Spice let go over another faction's token goes to that faction: into its spice reserve as a payment, or onto its bribe pile. */
+  private dropAsGift(identity: Identity, drop: GiftDrop): StoredSnapshot {
+    const { guarded, draft, landing, late } = drop;
+    const target = this.giftTarget(identity, guarded, landing);
+    const { as } = landing.give;
+    const amount = heldPieceFor(guarded, draft)?.items.length ?? 0;
+    const banks = this.paidBanks(target, as === 'payment' ? amount : 0);
+    const factionName = this.factionName(target);
+    const pile = as === 'bribe' ? bribePilePosition(guarded.pieces, this.snapshot.roster, target) : undefined;
+    const gift = { as, factionName, pile };
+    const table = requireAccepted(guarded, giveSpiceDraft(guarded, draft, gift, seatSubject(identity.viewerSeat)));
+    const raw = this.viewerTable(identity.viewerSeat);
+    return { ...nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late)), factionBanks: banks };
+  }
+
+  /**
+   * The other seated faction the gift was offered to, whose token must still lie under where it was let go.
+   * A token moved in the meantime, by a swap in storm order, refuses the gift rather than hand the spice to whoever stands there now.
+   */
+  private giftTarget(identity: Identity, guarded: TableState, landing: GiftDrop['landing']): string {
+    const giver = this.requireFaction(identity);
+    const target = landing.give.factionId;
+    const receives = target !== giver && Object.hasOwn(this.snapshot.factionBanks, target);
+    if (!receives || factionTokenUnder(guarded.pieces, landing.position) !== target) {
+      throw new GameRejection("Let go of the spice over another faction's token to give it.");
+    }
+    return target;
+  }
+
+  /** The spice reserves once `amount` is paid into `factionId`'s. */
+  private paidBanks(factionId: string, amount: number) {
+    const balance = this.snapshot.factionBanks[factionId]! + amount;
+    if (!Number.isSafeInteger(balance)) {
+      throw new GameRejection('This payment exceeds the spice reserve capacity.');
+    }
+    return { ...this.snapshot.factionBanks, [factionId]: balance };
+  }
+
+  private factionName(factionId: string) {
+    return this.snapshot.roster?.seats.find((seat) => seat.faction?.id === factionId)?.faction?.name ?? 'a faction';
+  }
+
+  /* Phase, battle and catalogue controls belong to play; setup opens only physical handling. */
+  private assertPlaying() {
+    if (this.snapshot.stage === 'finished') {
+      throw new GameRejection('The game is finished. Continue playing to change the table.');
+    }
+    if (this.snapshot.stage && this.snapshot.stage !== 'play') {
+      throw new GameRejection('The game has not started playing yet.');
+    }
+  }
+
+  private assertTableAvailable() {
+    if (!tableHandlingOpen(this.snapshot.stage)) {
+      this.assertPlaying();
+    }
+  }
+
+  private assertActionStage(action: PieceAction) {
+    /* A finished game leaves the table as it was; a locked prediction can still be revealed, and a peek can still be closed. */
+    if (this.snapshot.stage === 'finished' && allowedWhenFinished(action.kind)) {
+      return;
+    }
+    this.assertTableAvailable();
+    if (this.snapshot.stage === 'setup' && !allowedDuringSetup(action.kind)) {
+      throw new GameRejection('That control is not available during setup.');
+    }
+  }
+
+  /** The bidder, the last turn, finishing a Shipment and Movement turn and the territory tints: commands any seated faction sends that touch no piece. */
+  private factionSettingCommand(identity: Identity, action: FactionSetting, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    if (isTerritoryTintAction(action)) {
+      return territoryTintCommand(this.snapshot, action);
+    }
+    if (isMovementAction(action)) {
+      return movementCommand(this.snapshot, action);
+    }
+    return action.kind === 'last-turn'
+      ? lastTurnCommand(this.snapshot, action)
+      : biddingCommand(this.snapshot, factionId, action, now);
+  }
+
+  /** An alliance or a restore from the game log: only a seated faction sends either, and neither waits on the table to settle. */
+  private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'restore'
+      ? this.restoreCommand(action, seatSubject(identity.viewerSeat))
+      : allianceCommand(this.snapshot, factionId, action, now);
+  }
+
+  /* A restore packs around what other players carry, as a drop does, and leaves every carried piece as it was; their temporary locks are then put back as stored. */
+  private restoreCommand(action: RestoreAction, actorName: string): StoredSnapshot {
+    const raw = this.viewerTable(SPECTATOR_SEAT);
+    const guarded = this.lockReserved(raw);
+    return restoreCommand(this.snapshot, action, actorName, {
+      table: guarded,
+      settle: (placed) => {
+        this.assertReservationsUnchanged(guarded, placed);
+        return this.restoreReservationLocks(raw, placed);
+      },
+    });
+  }
+
+  private requireFaction(identity: Identity): string {
+    const factionId = this.factionFor(identity.userId);
+    if (!factionId) {
+      throw new GameRejection('Only a current faction player can use this control.');
+    }
+    return factionId;
+  }
+
+  command(identity: Identity, action: RoomAction, expectedRevision: number, now = hostNow()): StoredSnapshot {
+    const applied = this.applyCommand(identity, action, expectedRevision, now);
+    const next = withDeletions(this.snapshot, applied, action);
+    /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
+    const moved =
+      next.phase !== this.snapshot.phase ||
+      next.stage !== this.snapshot.stage ||
+      next.setup?.index !== this.snapshot.setup?.index;
+    return moved ? closePeeksForNewPhase(next) : next;
+  }
+
+  private applyCommand(identity: Identity, action: RoomAction, expectedRevision: number, now: number): StoredSnapshot {
+    this.assertActionStage(action);
+    this.assertCommand(identity, action, expectedRevision);
+    if (isSetupAction(action) || (this.snapshot.stage === 'setup' && ['phase', 'ready'].includes(action.kind))) {
+      return setupCommand(this.snapshot, action, {
+        factionId: this.requireFaction(identity),
+        seat: identity.viewerSeat,
+        seats: this.seatedPlayers(),
+        reserved: new Set(this.reservations.keys()),
+        now,
+        phaseCooldownMs: this.phaseCooldownMs,
+      });
+    }
+    if (action.kind === 'deck-draw' || action.kind === 'deck-shuffle') {
+      const factionId = this.requireFaction(identity);
+      return deckCommand(this.snapshot, factionId, action);
+    }
+    if (isPeekAction(action)) {
+      return peekCommand(this.snapshot, this.requireFaction(identity), action);
+    }
+    if (isBattleAction(action)) {
+      return this.battleCommand(identity, action, now);
+    }
+    if (isFactionSetting(action)) {
+      return this.factionSettingCommand(identity, action, now);
+    }
+    if (isSeatedCommand(action)) {
+      return this.seatedCommand(identity, action, now);
+    }
+    this.assertTableSettled(action, now);
+    if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
+      return this.spiceReserveCommand(identity, action);
+    }
+    if (isPublicAction(action)) {
+      return this.publicCommand(identity, action);
+    }
+    return this.tableCommand(identity, action, now);
+  }
+
+  /** A reset waits for the battle to end and every private piece to return; a flip waits for the piece's last flip to finish. */
+  private assertTableSettled(action: RoomAction, now: number) {
+    /* Only a fixture has a demo table to go back to; a real game's table is the game. */
+    if (action.kind === 'reset' && this.snapshot.stage !== undefined) {
+      throw new GameRejection('A game in progress cannot be reset.');
+    }
+    if (
+      action.kind === 'reset' &&
+      (this.snapshot.battleState || Object.values(this.snapshot.factionInventories).some((pieces) => pieces.length))
+    ) {
+      throw new GameRejection('Finish the battle and return private pieces to the table before resetting the fixture.');
+    }
+    if (action.kind === 'flip' && (this.flipUntil.get(action.pieceId) ?? 0) > now) {
+      throw new GameRejection('Wait for that piece to finish flipping.');
+    }
+  }
+
+  private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    const next = battleCommand(this.snapshot, factionId, action, now, {
+      board: this.board(),
+      reserved: new Set(this.reservations.keys()),
+    });
+    /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
+    if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
+      this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
+    }
+    if (action.kind !== 'hand-take' && action.kind !== 'hand-play') {
+      return next;
+    }
+    /* A played card is taken from the hand it left: one merged onto a pile no longer exists on the table under its own id. */
+    const pieces =
+      action.kind === 'hand-take' ? next.factionInventories[factionId] : this.snapshot.factionInventories[factionId];
+    return concealCards(
+      next,
+      (pieces ?? []).filter((piece) => piece.id === action.pieceId),
+      true
+    );
+  }
+
+  /** A plain table command: the piece move or phase change itself, kept clear of every other player's carry. */
+  private tableCommand(identity: Identity, action: TableAction, now: number): StoredSnapshot {
+    this.assertPhaseChange(action, now);
+    const raw = this.viewerTable(identity.viewerSeat);
+    const guarded = this.table(identity);
+    const guardedNext = this.nextTable(guarded, action, identity);
+    // Any command touching a reserved donor or target must be rejected, even
+    // when the acting player owns the carry in another tab.
+    if (!['reset', 'phase'].includes(action.kind)) {
+      this.assertReservationsUnchanged(guarded, guardedNext);
+    }
+    const table = action.kind === 'reset' ? guardedNext : this.restoreReservationLocks(raw, guardedNext);
+    const phase = this.nextPhase(action);
+    const next = nextSnapshot(this.snapshot, table, phase, action.kind === 'reset');
+    const controls = this.snapshot.controls ?? emptyPublicControls();
+    return {
+      ...next,
+      ...biddingAfterTable(this.snapshot, next, now),
+      ...movementAfterTable(this.snapshot, next),
+      controls: {
+        ...controls,
+        seats: this.seatedPlayers(),
+        ready: phase !== this.snapshot.phase || action.kind === 'reset' ? [] : controls.ready,
+        phaseChangedAt: phase !== this.snapshot.phase ? now : controls.phaseChangedAt,
+      },
+    };
+  }
+
+  finishSetupCleanup(
+    snapshot = this.snapshot,
+    completedCarryId?: string,
+    clearAll = false
+  ): StoredSnapshot | undefined {
+    if (!snapshot.pendingTraitors.length) {
+      return;
+    }
+    const reserved = new Set<string>();
+    const remainingCarries = clearAll ? [] : this.carries.values();
+    for (const carry of remainingCarries) {
+      if (carry.id === completedCarryId || !this.carryMatches(carry, snapshot)) {
+        continue;
+      }
+      for (const pieceId of carry.versions.keys()) {
+        reserved.add(pieceId);
+      }
+    }
+    const next = gatherTraitors(snapshot, reserved);
+    return next === snapshot ? undefined : next;
+  }
+
+  /** A reset rebuilds the fixture's table, with its dealt deck when the room has one. */
+  private nextTable(guarded: TableState, action: TableAction, identity: Identity): TableState {
+    /* A drawn tech token lands in front of the drawing seat's station, as a spice withdrawal does. */
+    if (action.kind === 'tech-token-draw') {
+      return drawTechTokenInState(
+        guarded,
+        seatSubject(identity.viewerSeat),
+        stationFront(this.snapshot.roster, identity.viewerSeat),
+        hostRandomInt
+      );
+    }
+    if (action.kind !== 'reset') {
+      return applyPieceAction(guarded, action, this.snapshot.phase, seatSubject(identity.viewerSeat), this.phases());
+    }
+    const fresh = applyPieceAction(
+      guarded,
+      action,
+      this.snapshot.phase,
+      seatSubject(identity.viewerSeat),
+      this.phases()
+    );
+    return this.fixtureDeck ? dealFixtureDeck(fresh, this.fixtureDeck) : fresh;
+  }
+
+  private spiceReserveCommand(identity: Identity, action: SpiceReserveAction): StoredSnapshot {
+    const factionId = this.factionFor(identity.userId);
+    if (!factionId || !Object.hasOwn(this.snapshot.factionBanks, factionId)) {
+      throw new GameRejection("Only the faction's current player can use its spice reserve.");
+    }
+    const balance = this.snapshot.factionBanks[factionId];
+    const table = this.viewerTable(identity.viewerSeat);
+    /* A withdrawal packs into its territory around what other players carry, as a drop does; their temporary locks are then put back as stored. */
+    const change =
+      action.kind === 'bank-withdraw'
+        ? withdrawSpice(
+            this.table(identity),
+            this.snapshot.roster,
+            balance,
+            action.amount,
+            identity.viewerSeat,
+            action.position
+          )
+        : collectSpice(table, balance, action.pieceId);
+    const settled = action.kind === 'bank-withdraw' ? this.restoreReservationLocks(table, change.table) : change.table;
+    const next = nextSnapshot(this.snapshot, accepted(settled, action.kind, `${factionId} ${change.message}`));
+    return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
+  }
+
+  private assertPhaseChange(action: PieceAction, now: number) {
+    if (action.kind !== 'phase') {
+      return;
+    }
+    const phase = this.nextPhase(action);
+    const controls = this.snapshot.controls ?? emptyPublicControls();
+    if (phase !== this.snapshot.phase) {
+      requirePhaseCooldownElapsed(controls.phaseChangedAt, this.phaseCooldownMs, now);
+    }
+    /* Going back would close Determine winner under its player just as going on would. */
+    if (phase < this.snapshot.phase && this.snapshot.ending) {
+      throw new GameRejection('The winner is being determined. Declare or cancel it before going back a phase.');
+    }
+    /* Going back would leave the battle open in a phase that has no battles, its marker hidden and the next phase still held. */
+    if (phase < this.snapshot.phase && this.snapshot.battleState) {
+      throw new GameRejection('A battle is still open. Resolve or cancel it before going back a phase.');
+    }
+    if (phase <= this.snapshot.phase) {
+      return;
+    }
+    const { refusal } = phaseGate({
+      ...this.snapshot,
+      battle: this.snapshot.battleState,
+      ready: controls.ready,
+      seats: this.seatedPlayers(),
+      predictions: this.snapshot.privatePredictions,
+    });
+    if (refusal) {
+      throw new GameRejection(refusal);
+    }
+  }
+
+  publicCommand(identity: Identity, action: PublicAction, contents?: StoredSpawnContents): StoredSnapshot {
+    this.assertPlaying();
+    this.player(identity);
+    return publicControlsCommand(
+      {
+        snapshot: this.snapshot,
+        seats: this.seatedPlayers(),
+        viewerTable: () => this.viewerTable(identity.viewerSeat),
+        phases: this.phases(),
+      },
+      identity,
+      action,
+      contents
+    );
+  }
+
+  private assertCommand(identity: Identity, action: PieceAction, expectedRevision: number) {
+    this.player(identity);
+    this.assertRevision(action, expectedRevision);
+    if ('pieceId' in action) {
+      this.available(action.pieceId);
+      if (this.snapshot.table.pieces.find((piece) => piece.id === action.pieceId)?.inventory) {
+        throw new GameRejection('Drag this item onto the table before changing it.');
+      }
+    }
+  }
+
+  private assertReservationsUnchanged(before: TableState, after: TableState) {
+    for (const reserved of this.reservations.keys()) {
+      const original = before.pieces.find((piece) => piece.id === reserved);
+      const updated = after.pieces.find((piece) => piece.id === reserved);
+      if (JSON.stringify(original) !== JSON.stringify(updated)) {
+        throw new GameRejection('Finish the carry before changing that piece.');
+      }
+    }
+  }
+
+  private nextPhase(action: PieceAction): number {
+    if (action.kind === 'reset') {
+      return 0;
+    }
+    return action.kind === 'phase' ? stepPhase(this.snapshot.phase, action.direction) : this.snapshot.phase;
+  }
+
+  /** The turn this game plays: its composed list, or the standard nine on a fixture. */
+  private phases() {
+    return this.snapshot.phases ?? STANDARD_PHASES;
+  }
+
+  private restoreReservationLocks(
+    raw: TableState,
+    guardedNext: TableState,
+    heldToo: ReadonlySet<string> = new Set()
+  ): TableState {
+    const table = {
+      ...guardedNext,
+      pieces: guardedNext.pieces.map((piece) => {
+        const original = raw.pieces.find((candidate) => candidate.id === piece.id);
+        const held = this.reservations.has(piece.id) || heldToo.has(piece.id);
+        return held && original ? { ...piece, locked: original.locked } : piece;
+      }),
+    };
+    return table;
+  }
+
+  private carryMatches(carry: Carry, snapshot: StoredSnapshot) {
+    return [...carry.versions].every(([pieceId, version]) => snapshot.versions[pieceId] === version);
+  }
+
+  private invalidateChangedCarries(snapshot: StoredSnapshot) {
+    for (const [id, carry] of this.carries) {
+      if (!this.carryMatches(carry, snapshot)) {
+        this.remove(id);
+      }
+    }
+  }
+
+  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = hostNow()) {
+    this.updateFlipDeadlines(snapshot, now);
+    this.snapshot = snapshot;
+    this.settledRevision = snapshot.revision;
+    this.invalidateChangedCarries(snapshot);
+    this.retireRiders(snapshot);
+    if (clearAll) {
+      for (const id of this.carries.keys()) {
+        this.remove(id);
+      }
+    } else if (carryId) {
+      this.remove(carryId);
+    }
+  }
+
+  private updateFlipDeadlines(snapshot: GameSnapshot, now: number) {
+    for (const piece of snapshot.table.pieces) {
+      this.updateFlipDeadline(piece, now);
+    }
+    for (const id of this.flipUntil.keys()) {
+      if (!snapshot.table.pieces.some((piece) => piece.id === id)) {
+        this.flipUntil.delete(id);
+      }
+    }
+  }
+
+  private updateFlipDeadline(piece: TablePiece, now: number) {
+    const before = this.snapshot.table.pieces.find((candidate) => candidate.id === piece.id);
+    const revision = piece.flipRevision ?? 0;
+    const previousRevision = before?.flipRevision ?? 0;
+    if (before && revision === previousRevision + 1) {
+      this.flipUntil.set(piece.id, now + PIECE_FLIP_DURATION_MS);
+    } else if (!before || revision !== previousRevision) {
+      this.flipUntil.delete(piece.id);
+    }
+  }
+
+  cancel(identity: Identity, id: string) {
+    const carry = this.carries.get(id);
+    if (carry && carry.connectionId !== identity.connectionId) {
+      throw new GameRejection('That carry belongs to another connection.');
+    }
+    if (carry) {
+      this.remove(id);
+    }
+  }
+
+  /** Puts every carried piece back, as a table review pauses the table. */
+  cancelCarries() {
+    for (const id of this.carries.keys()) {
+      this.remove(id);
+    }
+  }
+
+  renew(identity: Identity, id: string, now = hostNow()) {
+    this.carry(identity, id).lastSeen = now;
+  }
+
+  /**
+   * Returns whether the pointer appeared, moved, changed identity or went away.
+   * A resend at the same position refreshes `updatedAt` for the sweep and returns false.
+   */
+  pointer(identity: Identity, position: Vector3Tuple | null, now = hostNow(), sourceSeq?: number) {
+    this.player(identity);
+    if (position === null) {
+      return this.pointers.delete(identity.connectionId);
+    }
+    const previous = this.pointers.get(identity.connectionId);
+    const changed =
+      !previous ||
+      !samePointerIdentity(previous, identity) ||
+      previous.position.some((value, index) => value !== position[index]);
+    this.pointers.set(identity.connectionId, {
+      connectionId: identity.connectionId,
+      viewerSeat: identity.viewerSeat,
+      displayName: identity.displayName,
+      ...(identity.avatarUrl === undefined ? {} : { avatarUrl: identity.avatarUrl }),
+      color: identity.color,
+      position,
+      updatedAt: now,
+      ...(sourceSeq === undefined ? {} : { sourceSeq }),
+    });
+    return changed;
+  }
+
+  /** Updates the label of a parked hand when its player changes their profile. */
+  refreshPointerIdentity(identity: Identity) {
+    const pointer = this.pointers.get(identity.connectionId);
+    if (pointer && !samePointerIdentity(pointer, identity)) {
+      this.pointer(identity, pointer.position, pointer.updatedAt, pointer.sourceSeq);
+    }
+  }
+
+  clearActivity(connectionId: string) {
+    for (const carry of this.carries.values()) {
+      if (carry.connectionId === connectionId) {
+        this.remove(carry.id);
+      }
+    }
+    this.pointers.delete(connectionId);
+  }
+
+  disconnect(connectionId: string) {
+    this.clearActivity(connectionId);
+    this.usedCarryIds.delete(connectionId);
+  }
+
+  sweep(now = hostNow()): boolean {
+    const carriesChanged = this.sweepCarries(now);
+    const pointersChanged = this.sweepPointers(now);
+    return carriesChanged || pointersChanged;
+  }
+
+  sweepCarries(now = hostNow()): boolean {
+    let changed = false;
+    for (const carry of this.carries.values()) {
+      if (now - carry.lastSeen > 8000) {
+        this.remove(carry.id);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  private sweepPointers(now: number): boolean {
+    let changed = false;
+    for (const pointer of this.pointers.values()) {
+      if (now - pointer.updatedAt > 3000) {
+        this.pointers.delete(pointer.connectionId);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  private remove(id: string) {
+    this.carries.delete(id);
+    for (const [pieceId, owner] of this.reservations) {
+      if (owner === id) {
+        this.reservations.delete(pieceId);
+      }
+    }
+  }
+
+  publicCarries(): PublicCarry[] {
+    return [...this.carries.values()].flatMap((carry) => this.publicCarry(carry));
+  }
+
+  private publicCarry(carry: Carry): PublicCarry[] {
+    const held = heldPieceFor(this.viewerTable(carry.viewerSeat), carry.draft);
+    if (!held) {
+      return [];
+    }
+    return [
+      {
+        id: carry.id,
+        connectionId: carry.connectionId,
+        viewerSeat: carry.viewerSeat,
+        displayName: carry.displayName,
+        ...(carry.avatarUrl === undefined ? {} : { avatarUrl: carry.avatarUrl }),
+        color: carry.color,
+        held,
+        withdrawnCounts: this.withdrawnCounts(carry),
+        reservedIds: [...carry.versions.keys()],
+        ...(carry.riders ? { riderIds: [...carry.riders.keys()] } : {}),
+        expiresAt: carry.lastSeen + 8000,
+        sourceSeq: carry.seq,
+      },
+    ];
+  }
+
+  private withdrawnCounts(carry: Carry): PublicCarry['withdrawnCounts'] {
+    const counts: PublicCarry['withdrawnCounts'] = {};
+    for (const withdrawal of carry.draft.withdrawals) {
+      counts[withdrawal.sourcePieceId] = (counts[withdrawal.sourcePieceId] ?? 0) + 1;
+    }
+    const canonical = this.snapshot.table.pieces.find((piece) => piece.id === carry.draft.pieceId);
+    if (canonical) {
+      counts[canonical.id] = canonical.items.length;
+    }
+    return counts;
+  }
+}

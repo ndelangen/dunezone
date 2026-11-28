@@ -4,9 +4,9 @@ import {
   PLAY_DIRECTORY_RETRY_MS,
   playPublishSummaryResultSchema,
 } from '../../src/shared/play/directory';
+import type { GameSession } from '../../src/shared/play/engine/session';
 import type { GameDiagnostics } from './diagnostics';
 import type { gameHttpClient } from './gameHttpClient';
-import type { GameSession } from './session';
 
 /** What delivering the room's directory summary needs from its room. */
 export type DirectoryRoom = {

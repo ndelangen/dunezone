@@ -1,7 +1,6 @@
+import type { HistoryRow } from '@shared/play/engine/sessionHistory';
 import type { Viewer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
-
-import type { HistoryRow } from '../../../../../../workers/game/sessionHistory';
 
 /*
  * The slice of a Durable Object's SQL storage that the game Worker's seating, seat requests and trading run on, held in memory,

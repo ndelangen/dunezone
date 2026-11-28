@@ -1,8 +1,8 @@
 import { expect, test } from 'vite-plus/test';
 
+import type { GameSession } from '../../src/shared/play/engine/session';
 import { redactReportData } from '../../src/shared/play/reportRedaction';
 import { bugReportExport } from './bugReportExport';
-import type { GameSession } from './session';
 
 test('keeps game token definitions and artwork in the export while stripping authentication and account fields', () => {
   const token = { front: '/image/token/atreides', back: '/image/token/atreides-back' };

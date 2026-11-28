@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import type { StoredSnapshot } from '@shared/play/engine/state';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
@@ -11,7 +12,6 @@ import { innermostPoint, restsInside, tableTerritories } from '@shared/play/terr
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
-import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { openControl } from './controls.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';

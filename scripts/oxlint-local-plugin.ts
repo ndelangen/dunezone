@@ -377,6 +377,100 @@ const noWallClockRule: Rule = {
   },
 };
 
+const ENGINE_HOST_RULE_NAME = 'engine-host-only';
+
+/**
+ * Keeps the game engine's clock and randomness with its host (#2856): an engine file reads time, random numbers and UUIDs through `src/shared/play/engine/host.ts`, which the Worker and the browser each install, never from the runtime's own `Date`, `Math.random`, `performance` or `crypto`.
+ * A Date built from a value stays legal, since it reads no clock.
+ */
+const engineHostOnlyRule: Rule = {
+  meta: {
+    name: ENGINE_HOST_RULE_NAME,
+    messages: {
+      ambient:
+        "The game engine takes the clock and randomness from its host. Use hostNow, hostRandomInt or hostRandomUUID from './host'.",
+    },
+  },
+  create(context) {
+    const GLOBAL_OBJECTS = new Set(['globalThis', 'self', 'window']);
+    const AMBIENT = new Set(['crypto', 'Date', 'Math', 'performance']);
+    /* `Date.now` and `Date['now']` name the same property. */
+    const propertyName = (node: LintNode): string | undefined => {
+      if (node.type !== 'MemberExpression') {
+        return undefined;
+      }
+      if (!node.computed) {
+        return node.property.type === 'Identifier' ? node.property.name : undefined;
+      }
+      return node.property.type === 'Literal' && typeof node.property.value === 'string'
+        ? node.property.value
+        : undefined;
+    };
+    const keyName = (entry: LintNode) => {
+      if (entry.type !== 'Property') {
+        return undefined;
+      }
+      if (entry.key.type === 'Identifier' && !entry.computed) {
+        return entry.key.name;
+      }
+      return entry.key.type === 'Literal' && typeof entry.key.value === 'string' ? entry.key.value : undefined;
+    };
+    /* `Date`, or `globalThis.Date` and the like, so a spelling through the global object is caught too. */
+    const ambient = (node: LintNode): string | undefined => {
+      if (node.type === 'Identifier') {
+        return AMBIENT.has(node.name) ? node.name : undefined;
+      }
+      const name = propertyName(node);
+      return node.type === 'MemberExpression' &&
+        node.object.type === 'Identifier' &&
+        GLOBAL_OBJECTS.has(node.object.name) &&
+        name &&
+        AMBIENT.has(name)
+        ? name
+        : undefined;
+    };
+    const reads = (name: string | undefined, property: string | undefined) =>
+      name === 'crypto' ||
+      (name === 'Date' && property === 'now') ||
+      (name === 'Math' && property === 'random') ||
+      (name === 'performance' && property === 'now');
+    return {
+      MemberExpression(node) {
+        if (reads(ambient(node.object), propertyName(node))) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+      /* `const { now } = Date` or `const { randomUUID } = crypto` takes the same reading out by another route. */
+      /* `const { crypto } = globalThis` takes one of the sources itself off the global object. */
+      VariableDeclarator(node) {
+        if (node.id.type !== 'ObjectPattern' || !node.init) {
+          return;
+        }
+        const keys = node.id.properties.map(keyName);
+        const name = ambient(node.init);
+        const fromGlobal =
+          node.init.type === 'Identifier' &&
+          GLOBAL_OBJECTS.has(node.init.name) &&
+          keys.some((key) => key && AMBIENT.has(key));
+        const fromSource = name && (name !== 'Math' || keys.includes('random'));
+        if (fromGlobal || fromSource) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+      NewExpression(node) {
+        if (ambient(node.callee) === 'Date' && node.arguments.length === 0) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+      CallExpression(node) {
+        if (ambient(node.callee) === 'Date') {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+    };
+  },
+};
+
 const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
 
 const ALTERNATIVE_OVERLAYS =
@@ -991,6 +1085,7 @@ export default {
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
+    [ENGINE_HOST_RULE_NAME]: engineHostOnlyRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
     [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,

@@ -104,7 +104,7 @@ export const JOB_INPUTS = {
   /* Builds the whole application for the publisher's assets, so everything counts but what no build or publisher check reads. */
   publisher_release: {
     include: ['**'],
-    /* The tutorial runs the game Worker's table in the page, so the build reads workers/game too, all but its tests. */
+    /* The tutorial runs the game engine under src/shared in the page; the build reads no Worker host code, but workers/game stays counted, all but its tests. */
     exclude: [...NOT_THE_BUILD, 'workers/game/**/*.test.*'],
   },
   /* The generators, the production build, the generated-source drift check and the local Convex isolation proof. */

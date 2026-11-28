@@ -1,9 +1,8 @@
+import type { StoredSnapshot } from '@shared/play/engine/state';
 import { seatAngleOf } from '@shared/play/setupLayout';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { troopFactionOf } from '@shared/play/troopReserves';
-
-import type { StoredSnapshot } from '../../../../../workers/game/state';
 
 type StoredPiece = StoredSnapshot['table']['pieces'][number];
 

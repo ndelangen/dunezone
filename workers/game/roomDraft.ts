@@ -1,10 +1,10 @@
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import type { SetAsideJudgement } from '../../src/shared/play/engine/drafting';
+import type { GameSession } from '../../src/shared/play/engine/session';
+import { NotReady, readinessProblem } from '../../src/shared/play/engine/session';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { GameCatalogue } from './catalogue';
 import type { GameDiagnostics } from './diagnostics';
-import type { SetAsideJudgement } from './drafting';
-import type { GameSession } from './session';
-import { NotReady, readinessProblem } from './session';
 
 /** What the draft needs from its room. */
 export type DraftRoom = {
