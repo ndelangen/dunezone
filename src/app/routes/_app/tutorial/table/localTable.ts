@@ -88,6 +88,7 @@ export class LocalTable {
   private spawnContents: StoredSpawnContents | undefined;
   /* The asset each catalogue selection captured, by its picker key, so the guide follows a request and its pieces by what was asked for. */
   private readonly captured = new Map<string, string>();
+  private readonly closeStorage: () => void;
 
   constructor(start: TableStart) {
     this.opening = start;
@@ -95,7 +96,9 @@ export class LocalTable {
     this.seat = start.viewers[start.seat] ? start.seat : 'seat-1';
     const learner = start.viewers[this.seat]!;
     this.learner = learner.userId;
-    this.session = new GameSession(pageStorage(), undefined, undefined, {
+    const { storage, close } = pageStorage();
+    this.closeStorage = close;
+    this.session = new GameSession(storage, undefined, undefined, {
       board: () => this.board,
       waitsAtTable: true,
       keepsRecordedTurn: true,
@@ -490,6 +493,12 @@ export class LocalTable {
   /** Stops the deadline timer when the page leaves. */
   dispose() {
     clearTimeout(this.deadlineTimer);
+  }
+
+  /** Ends the table for good, as a Reset does to the table it replaces: the timer stops and its database is freed. */
+  close() {
+    this.dispose();
+    this.closeStorage();
   }
 
   /** A recorded deadline that ran out before the table opened falls due as it opens. */

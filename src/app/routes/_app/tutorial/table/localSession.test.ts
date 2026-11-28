@@ -73,6 +73,26 @@ describe('a tutorial table before the deal', () => {
     expect(table.viewer('seat-1').userId).not.toBe(table.viewer('seat-2').userId);
   });
 
+  test('closes trading once, then waits at the table without rewriting it', () => {
+    for (const entry of deal()) {
+      act({ kind: 'draft-pick', factionId: entry.factionId }, entry.seat);
+    }
+    for (const entry of deal()) {
+      act({ kind: 'draft-ready', ready: true }, entry.seat);
+    }
+    for (const entry of deal()) {
+      act({ kind: 'swap-ready', round: stored().swapping!.round, seat: entry.seat, ready: true }, entry.seat);
+    }
+    expect(table.refusal).toBeUndefined();
+    expect(stored().swapping?.closed).toBe(true);
+    const settled = stored();
+    sent = [];
+    table.receive({ type: 'sync' }, table.seat);
+    table.receive({ type: 'sync' }, table.seat);
+    expect(stored()).toBe(settled);
+    expect(sent).toHaveLength(2);
+  });
+
   test('seats a spectator once a player approves their request', () => {
     table.viewAs(SPECTATOR_SEAT);
     act({ kind: 'seat-request' }, SPECTATOR_SEAT);

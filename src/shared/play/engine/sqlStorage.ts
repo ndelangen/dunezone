@@ -1,7 +1,7 @@
 /*
  * The slice of Durable Object storage the engine uses (`sql.exec` and `transactionSync`), over any SQLite a host has.
  * The Worker hands the engine its Durable Object's own storage; a browser host (the tutorial, Play / Sandbox) runs SQLite
- * compiled to WebAssembly, and a test runs Node's, so every host answers the session's statements with the same SQL engine.
+ * compiled to plain JavaScript (sql.js's asm.js build), so every host answers the session's statements with the same SQL engine.
  */
 
 type Row = Record<string, SqlStorageValue>;

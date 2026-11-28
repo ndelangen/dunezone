@@ -167,7 +167,6 @@ export function readinessProblem(readiness: CaptureReadiness): string | undefine
   return problem && `${problem.subject}, ${problem.reason}`;
 }
 
-/** Owns game state and its durable transitions; the host owns connections and delivery. */
 /** What a host that runs a game without the catalogue behind it supplies in its place. */
 export type SessionOptions = Readonly<{
   /* The board the table plays on, when the host reads it itself; the captured ruleset's otherwise. */
@@ -180,6 +179,7 @@ export type SessionOptions = Readonly<{
 
 const WAITS_AT_TABLE: Pick<SetupSupply, 'enter'> = { enter: (snapshot) => snapshot };
 
+/** Owns game state and its durable transitions; the host owns connections and delivery. */
 export class GameSession {
   private readonly actors: ActorDirectory;
   private readonly log: PublicLog;
@@ -492,8 +492,9 @@ export class GameSession {
       return;
     }
     if (swapping.closed) {
+      /* A table that waits at the table stays closed and swapping once trading ends; there is no setup table left to build. */
       const filled = room.snapshot.roster?.seats.every((seat) => this.actors.holderOf(seat.id));
-      if (!filled) {
+      if (!filled || this.options.waitsAtTable) {
         return;
       }
     }
@@ -1401,7 +1402,7 @@ export class GameSession {
     if (stage !== undefined && stage !== 'finished' && this.reviews.running()?.step !== step) {
       throw new GameRejection('Replay opens once the game is finished.');
     }
-    if (step > this.history.steps) {
+    if (!Number.isInteger(step) || step < 0 || step > this.history.steps) {
       throw new GameRejection('Unknown history step.');
     }
     /*
