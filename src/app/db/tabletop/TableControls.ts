@@ -26,6 +26,16 @@ type TableControlsHost = {
 /* What the viewer may do as a table is shown: whether they act, whether they handle the table's pieces, and whether a look back in time shows. */
 export type ControlsAccess = { canInteract: boolean; canHandleTable: boolean; showsHistory: boolean };
 
+/* A viewer who does not handle the table's pieces gets none of their controls. */
+const NO_HANDLING = {
+  spiceReserveControls: undefined,
+  spiceBlowControls: undefined,
+  deckControls: undefined,
+  deleteControls: undefined,
+  handControls: undefined,
+  peekControls: undefined,
+} as const;
+
 /* Each faction a deck can deal to, with its token art for the deal ring. */
 function dealRecipients(snapshot: GameSnapshot) {
   const artwork = snapshot.factionArtwork ?? {};
@@ -68,19 +78,26 @@ export class TableControls {
 
   /* The controls a table shows, for `displayed`, the table as this viewer sees it. */
   forTable(displayed: GameSnapshot, { canInteract, canHandleTable, showsHistory }: ControlsAccess) {
-    const supports = this.host.supportsCommand;
     return {
-      spiceReserveControls: canHandleTable && displayed.bank ? this.spiceReserve : undefined,
-      /* Placing spice from a spice card is for whoever handles the table, once play has begun. */
-      spiceBlowControls:
-        canHandleTable && displayed.stage === 'play' && supports('spice-blow') ? this.spiceBlows.controls : undefined,
-      deckControls: canHandleTable && supports('deck-draw') ? this.deckControls(displayed) : undefined,
-      deleteControls: canHandleTable && supports('delete') ? this.removal : undefined,
-      handControls: canHandleTable && supports('hand-take') ? this.taking : undefined,
+      ...(canHandleTable ? this.handlingControls(displayed) : NO_HANDLING),
       allianceControls: this.allianceControls(canInteract && !showsHistory, displayed),
       peek: this.peeks.shown(displayed, showsHistory),
-      peekControls: canHandleTable && displayed.bank ? this.peeks.controls : undefined,
       closePeek: canInteract && displayed.peek ? this.peeks.closer(displayed.peek.piece.id) : undefined,
+    };
+  }
+
+  /* The controls for handling the table's pieces, each where the table and its connection offer it. */
+  private handlingControls(displayed: GameSnapshot) {
+    const supports = this.host.supportsCommand;
+    const bank = Boolean(displayed.bank);
+    return {
+      spiceReserveControls: bank ? this.spiceReserve : undefined,
+      /* Placing spice from a spice card is for whoever handles the table, once play has begun. */
+      spiceBlowControls: displayed.stage === 'play' && supports('spice-blow') ? this.spiceBlows.controls : undefined,
+      deckControls: supports('deck-draw') ? this.deckControls(displayed) : undefined,
+      deleteControls: supports('delete') ? this.removal : undefined,
+      handControls: supports('hand-take') ? this.taking : undefined,
+      peekControls: bank ? this.peeks.controls : undefined,
     };
   }
 

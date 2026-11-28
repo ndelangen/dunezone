@@ -493,7 +493,10 @@ export class CarryController {
     const held = heldPieceFor(this.requireTable().state, carry.draft);
     /* The room never counts back, so a carry stops turning at its cap rather than send a count it refuses. */
     const unrevealed = (stepId: string) => this.host.snapshot().predictions?.[stepId]?.revealedAt === null;
-    if (!held || !canFlipInHand(held, unrevealed) || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+    if (!held || (carry.draft.flips ?? 0) >= CARRY_FLIPS_LIMIT) {
+      return null;
+    }
+    if (!canFlipInHand(held, unrevealed)) {
       return null;
     }
     /* A piece still turning over in hand finishes that turn before it takes another, as one on the table does. */
