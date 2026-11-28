@@ -4,9 +4,9 @@ import { applyTerritoryTint, isTerritoryTintAction } from '@shared/play/territor
 import type { TerritoryTintAction } from '@shared/play/territoryTints';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { tintedSnapshot } from '../../../play/panels/tints/TerritoryTintsPanel.stories.fixture';
 import { openPanel } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand } from './game.stories.fixture';
-import { tintedSnapshot } from './panels/tints/TerritoryTintsPanel.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -14,7 +14,7 @@ const meta = testingPreview.meta({
   title: 'Play/Territory tints',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

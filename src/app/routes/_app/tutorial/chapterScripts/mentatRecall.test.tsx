@@ -55,14 +55,14 @@ const recallFrame = () => {
 };
 
 test('the retained live hand and a loading recalled inventory cannot complete the inventory task', () => {
-  document.body.innerHTML = '<div data-window="hand"><output aria-label="Spice reserve balance">10</output></div>';
+  document.body.innerHTML = '<div data-panel="hand"><output aria-label="Spice reserve balance">10</output></div>';
   const root = recallFrame();
   const step = stepAt('recalled-hand', () => viewWith(running()));
   const watch = step.begin(undefined as never);
   try {
     expect(step.done(watch, undefined as never)).toBe(false);
     root.innerHTML =
-      '<div data-window="hand"><output aria-label="Spice reserve balance">10</output><span aria-label="Loading recalled inventory"></span></div>';
+      '<div data-panel="hand"><output aria-label="Spice reserve balance">10</output><span aria-label="Loading recalled inventory"></span></div>';
     expect(step.done(watch, undefined as never)).toBe(false);
     root.querySelector('span')!.remove();
     expect(step.done(watch, undefined as never)).toBe(true);
@@ -73,7 +73,7 @@ test('the retained live hand and a loading recalled inventory cannot complete th
 
 test('an early return can be followed by another recall that finishes at the newest checkpoint, with no leftover ballot timer', () => {
   const root = recallFrame();
-  root.innerHTML = '<div data-window="recall-history" data-side="right"><div role="slider"></div></div>';
+  root.innerHTML = '<div data-panel="recall-history" data-side="right"><div role="slider"></div></div>';
   let view = viewWith(running());
   const players = people();
   const step = stepAt('shared-history', () => view, players);
@@ -100,7 +100,7 @@ test('an early return can be followed by another recall that finishes at the new
 test('chat advances on a newly saved submitted message, and a replacement recall needs a new submission', () => {
   const root = recallFrame();
   root.innerHTML =
-    '<div data-window="recall-chat"><div aria-label="Conversation history"><span data-saved-own-message>Sent</span></div><form></form></div>';
+    '<div data-panel="recall-chat"><div aria-label="Conversation history"><span data-saved-own-message>Sent</span></div><form></form></div>';
   let view = viewWith(running());
   const step = stepAt('recall-chat', () => view);
   const watch = step.begin(undefined as never);
@@ -132,7 +132,7 @@ test('chat advances on a newly saved submitted message, and a replacement recall
 
 test('leaving the chat task removes its submit listener', () => {
   const root = recallFrame();
-  root.innerHTML = '<div data-window="recall-chat"><div aria-label="Conversation history"></div><form></form></div>';
+  root.innerHTML = '<div data-panel="recall-chat"><div aria-label="Conversation history"></div><form></form></div>';
   const step = stepAt('recall-chat', () => viewWith(running()));
   const watch = step.begin(undefined as never);
   step.finish?.(watch);
@@ -146,7 +146,7 @@ test.each([
   '<div role="img" aria-label="Atreides Battle Loss Counter: preview unavailable"></div>',
 ])('the later tracker task recognizes its inventory with %s', (image) => {
   const root = recallFrame();
-  root.innerHTML = `<div data-window="hidden-zone">${image}</div>`;
+  root.innerHTML = `<div data-panel="hidden-zone">${image}</div>`;
   let view = viewWith(running('recall', 0));
   const step = stepAt('later-counter', () => view);
   const watch = step.begin(undefined as never);
@@ -161,13 +161,13 @@ test.each([
 
 test('history already at the newest checkpoint finishes the step once it is pinned right', () => {
   const root = recallFrame();
-  root.innerHTML = '<div data-window="recall-history"><div role="slider"></div></div>';
+  root.innerHTML = '<div data-panel="recall-history"><div role="slider"></div></div>';
   const view = viewWith(running('recall-1', 23));
   const step = stepAt('shared-history', () => view);
   const watch = step.begin(undefined as never);
   try {
     expect(step.done(watch, undefined as never)).toBe(false);
-    root.querySelector('[data-window="recall-history"]')!.setAttribute('data-side', 'right');
+    root.querySelector('[data-panel="recall-history"]')!.setAttribute('data-side', 'right');
     expect(step.done(watch, undefined as never)).toBe(true);
   } finally {
     step.finish?.(watch);

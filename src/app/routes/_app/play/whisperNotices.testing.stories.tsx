@@ -19,7 +19,7 @@ const meta = testingPreview.meta({
   title: 'Play/Whisper notices',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],

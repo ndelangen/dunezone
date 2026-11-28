@@ -3,7 +3,7 @@ import { removalThreshold } from '@shared/play/removal';
 
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { FACTION_INFO } from '../../play/compass/windows';
+import { FACTION_INFO } from '../../../../play/compass/panels';
 import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, pressEnter, task } from './guideChecks';
 
@@ -21,12 +21,12 @@ const BALLOTS = [
 /* How long each player takes to vote, so the learner sees each ballot land. */
 const BALLOT_INTERVAL_MS = 1500;
 
-/* The red icon in the toolbar under a player's name in their faction information; another player's window does not count. */
+/* The red icon in the toolbar under a player's name in their faction information; another player's panel does not count. */
 const startButton = (seat: string | undefined) =>
   seat === undefined
     ? null
     : document.querySelector<HTMLElement>(
-        `[data-window="${FACTION_INFO}"] [data-faction-info-seat="${seat}"] [aria-label="Start removal vote"]`
+        `[data-panel="${FACTION_INFO}"] [data-faction-info-seat="${seat}"] [aria-label="Start removal vote"]`
       );
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
@@ -44,7 +44,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         "Someone disputes what happened at the start of Storm. Let's check together.\n\nPress {Space}, type Game log and confirm with {Enter} to see public events and phase changes.",
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
-      done: () => document.querySelector('[data-window="game-log"]') !== null,
+      done: () => document.querySelector('[data-panel="game-log"]') !== null,
     }),
     task({
       id: 'open',
@@ -54,7 +54,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector(`[data-window^="player:"] header button[aria-label="${QUIET} info"]`) ??
+          document.querySelector(`[data-panel^="player:"] header button[aria-label="${QUIET} info"]`) ??
           document.querySelector(`[aria-label*=", ${QUIET}"]`),
       },
       begin: () => undefined,
@@ -73,7 +73,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'majority',
       task: 'How a vote is decided',
       detail: `Removing a player needs more than half the seats to vote Remove. With ${playerCount()} players, that means ${removalThreshold(playerCount())} votes.\n\nThe player being removed cannot vote. A vote fails if enough players choose Keep, and removal is unavailable with fewer than three players.\n\nPress {Enter} to let the others vote.`,
-      anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
+      anchor: { kind: 'page', element: element(`[data-panel="${FACTION_INFO}"]`) },
       ...pressEnter(),
     }),
     task({
@@ -81,7 +81,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Watch the others vote',
       detail:
         'Players can choose Remove or Keep, or withdraw their vote. The vote ends as soon as the result is decided.\n\nIf it fails, start another removal vote to continue this exercise.',
-      anchor: { kind: 'page', element: element(`[data-window="${FACTION_INFO}"]`) },
+      anchor: { kind: 'page', element: element(`[data-panel="${FACTION_INFO}"]`) },
       begin: () => voteInTurn(players, vote, seatOf),
       done: () => vote() === undefined && !seated(),
       finish: (stop) => stop(),
@@ -93,15 +93,15 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         "The Harkonnen seat is open. Its faction and pieces stay for a replacement, and a seated player can approve their request to join.\n\nLet's check the record. Press {Space}, type Audit and confirm with {Enter} to see the removal vote and the player leaving their seat.",
       anchor: { kind: 'page', element: element('[data-compass-launcher]') },
       begin: () => undefined,
-      done: () => document.querySelector('[data-window="audit"]') !== null,
+      done: () => document.querySelector('[data-panel="audit"]') !== null,
     }),
     task({
       id: 'read-audit',
       task: 'Take a look at the record',
       detail:
         'The Audit log records who requested the vote, how players voted and when the player left. Take your time reading it.\n\nPress {Enter} when you are ready to finish.',
-      anchor: { kind: 'page', element: element('[data-window="audit"]') },
-      ...pressEnter(() => document.querySelector('[data-window="audit"]') !== null),
+      anchor: { kind: 'page', element: element('[data-panel="audit"]') },
+      ...pressEnter(() => document.querySelector('[data-panel="audit"]') !== null),
     }),
   ];
 }

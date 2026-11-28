@@ -9,19 +9,19 @@ import {
   closePieceMenu,
   closeUpShown,
   element,
-  openedWindow,
+  openedPanel,
   tableDeck,
   task,
   viaCompass,
-  windowShown,
+  panelShown,
 } from './guideChecks';
 
 /*
  * "Your hand and spice": a card goes from the table into the player's hand and back out,
- * and spice comes out of their reserve, all through the Hand & spice window.
+ * and spice comes out of their reserve, all through the Hand & spice panel.
  */
 
-const HAND_CARD = '[data-window="hand"] [data-group="card:Treachery"] [aria-label$=" from hand"]';
+const HAND_CARD = '[data-panel="hand"] [data-group="card:Treachery"] [aria-label$=" from hand"]';
 
 const treacheryCards = (snapshot: GameSnapshot) =>
   (snapshot.hand ?? []).filter(
@@ -82,7 +82,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Open your hand',
       detail: "Press {H} to open Hand & spice. Only you can see what's in your hand.",
       anchor: { kind: 'page', element: viaCompass('hand') },
-      ...openedWindow(windowShown('hand')),
+      ...openedPanel(panelShown('hand')),
     }),
     task({
       id: 'close-up',
@@ -96,7 +96,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Reorder your cards',
       detail:
         'Drag a card to another position in the Treachery row. The other cards will make room for it.\n\nThis only changes the order in your hand.',
-      anchor: { kind: 'page', element: element('[data-window="hand"] [data-group="card:Treachery"]') },
+      anchor: { kind: 'page', element: element('[data-panel="hand"] [data-group="card:Treachery"]') },
       begin: () => ({ order: cardOrder(snapshot()) }),
       done: (start) => {
         const order = cardOrder(snapshot());
@@ -144,7 +144,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Take spice from your reserve',
       detail:
         'Need spice on the table? Your reserve is at the top of Hand & spice.\n\nChoose an amount, then grab the spice token preview and drag it onto the table. You decide exactly where it goes.',
-      anchor: { kind: 'page', element: element('[data-window="hand"] [aria-label="Spice reserve balance"]') },
+      anchor: { kind: 'page', element: element('[data-panel="hand"] [aria-label="Spice reserve balance"]') },
       begin: reserve,
       done: (start) => reserve() < start,
     }),

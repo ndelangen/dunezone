@@ -13,6 +13,7 @@ function files(directory: string): string[] {
 }
 const paths = [
   ...files(join(root, 'src/app/routes/_app/play')),
+  ...files(join(root, 'src/app/play')),
   ...files(join(root, 'src/app/widgets/tabletop')),
   join(root, 'src/app/ui/control/RadialMenu.module.css'),
   join(root, 'src/app/ui/theme.ts'),

@@ -13,9 +13,9 @@ export const trackerMeta = {
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
       /* Each story starts from a fresh tracker, not the one the story before it filled in. */
-      const { forgetTrackers } = await import('./panels/treacheryTracker/trackerStore');
+      const { forgetTrackers } = await import('../../../play/panels/treacheryTracker/trackerStore');
       forgetTrackers();
     },
   ],

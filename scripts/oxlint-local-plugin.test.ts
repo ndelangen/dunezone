@@ -54,7 +54,7 @@ function hasStdout(error: unknown): error is { stdout: string } {
  */
 const FIXTURE_ROOT = 'src/__lint-fixtures__';
 /* A folder of Play client code, so a probe there is scoped like the files the wall-clock ban guards. */
-const PLAY_FIXTURE_ROOT = 'src/app/routes/_app/play/multiplayer';
+const PLAY_FIXTURE_ROOT = 'src/app/play/table';
 
 async function lintDiagnostics(fileName: string, source: string, root = FIXTURE_ROOT): Promise<string> {
   const tree = mkdtempSync(join(tmpdir(), 'oxlint-probe-'));

@@ -2,9 +2,9 @@ import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { setChatNotices } from '../../../play/notices/chatNotices';
+import { factionTokenSpot } from '../../../play/notices/noticeEvents';
 import { gameMeta } from './game.stories.fixture';
-import { setChatNotices } from './multiplayer/chatNotices';
-import { factionTokenSpot } from './multiplayer/noticeEvents';
 import {
   askViewer,
   biddingReachesViewer,
@@ -35,7 +35,7 @@ const meta = testingPreview.meta({
   title: 'Play/Soft notifications',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],

@@ -7,9 +7,9 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { element, phaseOf, pressEnter, task } from './guideChecks';
 import { openRecallHistory, recallHand } from './mentatRecallOpening';
 
-/* Normal windows stay mounted during recall; only this controller shows the historical contents. */
+/* Normal panels stay mounted during recall; only this controller shows the historical contents. */
 const RECALL = '[data-recall-controls="true"]';
-const panel = (key: string) => document.querySelector(`${RECALL} [data-window="${key}"]`);
+const panel = (key: string) => document.querySelector(`${RECALL} [data-panel="${key}"]`);
 const historySlider = () => panel('recall-history')?.querySelector('[role="slider"]');
 const newestStep = (snapshot: () => GameSnapshot) => snapshot().reviewCheckpoints!.at(-1)!.step;
 const selectedStep = (snapshot: () => GameSnapshot) => snapshot().review?.step;
@@ -39,7 +39,7 @@ function answerProposals(snapshot: () => GameSnapshot, players: TablePlayers, st
   return () => clearInterval(timer);
 }
 
-/* While recall is closed, the arrow leads back to its restored request window or Controls. */
+/* While recall is closed, the arrow leads back to its restored request panel or Controls. */
 function recallAnchor(snapshot: () => GameSnapshot, anchor: GuideTask['anchor']): GuideTask['anchor'] {
   if (anchor.kind !== 'page') {
     return anchor;
@@ -49,7 +49,7 @@ function recallAnchor(snapshot: () => GameSnapshot, anchor: GuideTask['anchor'])
     element: () =>
       reviewRunning(snapshot().review)
         ? anchor.element()
-        : (document.querySelector('[data-window="review"]') ?? document.querySelector('[data-compass-launcher]')),
+        : (document.querySelector('[data-panel="review"]') ?? document.querySelector('[data-compass-launcher]')),
   };
 }
 
@@ -107,11 +107,11 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector('[data-window="hand"] [aria-label="Pin to the bottom left"]') ??
+          document.querySelector('[data-panel="hand"] [aria-label="Pin to the bottom left"]') ??
           document.querySelector('[data-own-token]'),
       },
       begin: () => undefined,
-      done: () => document.querySelector('[data-side="left"][data-window="hand"]') !== null,
+      done: () => document.querySelector('[data-side="left"][data-panel="hand"]') !== null,
     }),
     task({
       id: 'review-propose',
@@ -121,7 +121,7 @@ function openingTasks(snapshot: () => GameSnapshot): GuideTask[] {
       anchor: {
         kind: 'page',
         element: () =>
-          document.querySelector('[data-window="review"]') ?? document.querySelector('[data-compass-launcher]'),
+          document.querySelector('[data-panel="review"]') ?? document.querySelector('[data-compass-launcher]'),
       },
       begin: () => undefined,
       done: () => selectedStep(snapshot) === 0,
@@ -294,7 +294,7 @@ function conversationTasks(snapshot: () => GameSnapshot, players: TablePlayers):
         document.addEventListener(
           'submit',
           (event) => {
-            if (event.target instanceof Element && event.target.closest(`${RECALL} [data-window="recall-chat"]`)) {
+            if (event.target instanceof Element && event.target.closest(`${RECALL} [data-panel="recall-chat"]`)) {
               watch.saved = sentMessages();
               watch.submitted = true;
             }

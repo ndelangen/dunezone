@@ -63,10 +63,10 @@ function place(anchor: GuideAnchor, shown: Box, table: TableLens | null): Target
   return table && point ? table.project(point, shown) : null;
 }
 
-/* The play table's open windows, which the arrow goes round rather than across. */
-const openWindows = (): Box[] =>
-  [...document.querySelectorAll('[data-window]')]
-    .map((window) => window.getBoundingClientRect())
+/* The play table's open panels, which the arrow goes round rather than across. */
+const openPanels = (): Box[] =>
+  [...document.querySelectorAll('[data-panel]')]
+    .map((panel) => panel.getBoundingClientRect())
     .filter((box) => box.width > 0 && box.height > 0);
 
 /* The window right of the rail. */
@@ -103,7 +103,7 @@ function aim(
   badge: DOMRect,
   rail: DOMRect,
   spot: Target | null,
-  windows: readonly Box[] = []
+  panels: readonly Box[] = []
 ) {
   const flip = (box: DOMRect) => new DOMRect(box.y, box.x, box.height, box.width);
   const along = spot && {
@@ -121,8 +121,8 @@ function aim(
   const drop = Math.max(0, (along?.y ?? 0) - edges.bottom);
   const steep = along ? clamp(midway, along.x - drop, along.x + drop) : midway;
   const preferred = clamp(steep, edges.left + margin, edges.right - margin);
-  /* Open windows are turned onto their side with the rest, and the arrow leaves from wherever it can reach its spot without crossing one. */
-  const obstacles = windows.map((box) => ({ left: box.top, top: box.left, right: box.bottom, bottom: box.right }));
+  /* Open panels are turned onto their side with the rest, and the arrow leaves from wherever it can reach its spot without crossing one. */
+  const obstacles = panels.map((box) => ({ left: box.top, top: box.left, right: box.bottom, bottom: box.right }));
   const root = {
     x: along ? clearRoot(edges, preferred, along, obstacles, margin) : preferred,
     y: edges.bottom,
@@ -236,7 +236,7 @@ export function TutorialGuide({
       const box = rail.current?.getBoundingClientRect();
       /* With no number showing, as once the chapter is done, the arrow-less outline still needs a box to draw from. */
       if (box) {
-        aim([fill.current, edge.current], badge ?? box, box, spot, spot ? openWindows() : []);
+        aim([fill.current, edge.current], badge ?? box, box, spot, spot ? openPanels() : []);
       }
     };
     /* Once the chapter is done the rail stays, without its arrow. */

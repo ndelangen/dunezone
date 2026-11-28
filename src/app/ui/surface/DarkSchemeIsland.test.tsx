@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';
+import { stubMatchMedia } from '@app/play/table/jsdom.test.fixture';
 
 import { appContentTheme } from '../theme';
 import { DarkSchemeIsland, StableMantineContext } from './DarkSchemeIsland';

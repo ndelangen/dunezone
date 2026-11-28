@@ -1,0 +1,110 @@
+import { describe, expect, test } from 'vite-plus/test';
+
+import { initialPanelFocus, nextPanelFocus } from './panelFocus';
+import type { PanelFocusInput, PanelFocusState } from './panelFocus';
+
+const TABS: Record<string, string | null> = {
+  storm: 'phase',
+  choam: 'spice',
+  bidding: 'hand',
+  blow: null,
+  battle: 'battle',
+};
+
+/* Plays renders through the reducer, as the hook does, and returns the focus after each one. */
+function play(state: PanelFocusState, renders: readonly Partial<PanelFocusInput>[]) {
+  const seen: (string | null)[] = [];
+  for (const render of renders) {
+    const phase = render.phase ?? 'play:1:storm';
+    state = nextPanelFocus(state, {
+      playback: false,
+      phase,
+      phaseTab: TABS[phase.split(':')[2] ?? ''] ?? null,
+      events: [],
+      ...render,
+    });
+    seen.push(state.focus?.token ?? null);
+  }
+  return seen;
+}
+
+describe('the panels follow the live table', () => {
+  test('each seat request opens Seats & spectators once; one withdrawn never makes an older one still waiting look new', () => {
+    const request = (id: string) => ({ key: 'seats', token: `seat-request:${id}` });
+    const tokens = play(initialPanelFocus('play:1:blow', true), [
+      { phase: 'play:1:blow', events: [request('a')] },
+      { phase: 'play:1:blow', events: [request('a'), request('b')] },
+      { phase: 'play:1:blow', events: [request('a')] },
+      { phase: 'play:1:blow', events: [request('a'), request('c')] },
+    ]);
+    expect(tokens[0]).toMatch(/^seat-request:a#/);
+    expect(tokens[1]).toMatch(/^seat-request:b#/);
+    expect(tokens[2]).toBe(tokens[1]);
+    expect(tokens[3]).toMatch(/^seat-request:c#/);
+  });
+
+  test('the phase the table loaded on opens nothing, and a later return to it opens its panel', () => {
+    const tokens = play(initialPanelFocus('play:1:choam', true), [
+      { phase: 'play:1:choam' },
+      { phase: 'play:1:bidding' },
+      { phase: 'play:1:choam' },
+    ]);
+    expect(tokens[0]).toBeNull();
+    expect(tokens[1]).toMatch(/^phase:play:1:bidding#/);
+    expect(tokens[2]).toMatch(/^phase:play:1:choam#/);
+  });
+
+  test('a table loaded during setup opens the first phase’s tab when play begins', () => {
+    const [token] = play(initialPanelFocus('setup:1:storm', false), [{ phase: 'play:1:storm' }]);
+    expect(token).toMatch(/^phase:play:1:storm#/);
+  });
+
+  test('returning to a phase whose tab was the last one opened opens it again', () => {
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
+      { phase: 'play:1:storm' },
+      { phase: 'play:1:blow' },
+      { phase: 'play:1:storm' },
+    ]);
+    expect(tokens[0]).toMatch(/^phase:play:1:storm#/);
+    expect(tokens[1]).toBe(tokens[0]);
+    expect(tokens[2]).toMatch(/^phase:play:1:storm#/);
+    expect(tokens[2]).not.toBe(tokens[0]);
+  });
+
+  test('browsing a replay and coming back to live opens nothing', () => {
+    const result = { key: 'result', token: 'ending-1' };
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
+      { phase: 'play:1:battle', events: [result] },
+      { phase: 'play:1:storm', playback: true, events: [null] },
+      { phase: 'play:1:battle', events: [result] },
+    ]);
+    expect(tokens[0]).toMatch(/^ending-1#/);
+    expect(tokens[2]).toBe(tokens[0]);
+  });
+
+  test('a live game that moved on during a replay opens nothing on return, and the next change does', () => {
+    const tokens = play(initialPanelFocus('play:1:mentat', true), [
+      { phase: 'play:1:storm' },
+      { phase: 'play:1:storm', playback: true },
+      { phase: 'play:1:bidding' },
+      { phase: 'play:1:battle', events: [{ key: 'battle', token: 'battle-2' }] },
+    ]);
+    expect(tokens[2]).toBe(tokens[0]);
+    expect(tokens[3]).toMatch(/^battle-2#/);
+  });
+
+  test('an event wins over the phase change it arrives with, and goes again only when it comes back', () => {
+    const battle = { key: 'battle', token: 'battle-7' };
+    const tokens = play(initialPanelFocus('play:1:blow', true), [
+      { phase: 'play:1:battle', events: [battle] },
+      { phase: 'play:1:battle', events: [battle] },
+      { phase: 'play:1:battle', events: [null] },
+      { phase: 'play:1:battle', events: [battle] },
+    ]);
+    expect(tokens[0]).toMatch(/^battle-7#/);
+    expect(tokens[1]).toBe(tokens[0]);
+    expect(tokens[2]).toBe(tokens[0]);
+    expect(tokens[3]).toMatch(/^battle-7#/);
+    expect(tokens[3]).not.toBe(tokens[0]);
+  });
+});

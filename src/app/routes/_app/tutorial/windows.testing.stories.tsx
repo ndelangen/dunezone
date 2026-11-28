@@ -4,7 +4,7 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chapterGlobals, chapterParameters, playChapter } from './chapterStory';
 
 /*
- * "Panels", as its page serves it: the compass on Space, a window in the middle, two slots to pin it in,
+ * "Panels", as its page serves it: the compass on Space, a panel in the middle, two slots to pin it in,
  * with the rail beside the table giving one task at a time. Its art comes from the recorded tutorial setup.
  */
 

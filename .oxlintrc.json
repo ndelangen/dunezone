@@ -600,14 +600,20 @@
        * The override sets a rule no broader override sets, and replacement is per rule, so the src-wide
        * import bans still apply here; scripts/oxlint-local-plugin.test.ts bites each of them in a Play file.
        */
-      "files": ["src/app/routes/_app/play/**"],
+      "files": ["src/app/routes/_app/play/**", "src/app/play/**"],
       "excludeFiles": [
         "src/app/routes/_app/play/**/*.test.ts",
         "src/app/routes/_app/play/**/*.test.tsx",
         "src/app/routes/_app/play/**/*.test.fixture.ts",
         "src/app/routes/_app/play/**/*.stories.tsx",
         "src/app/routes/_app/play/**/*.stories.fixture.ts",
-        "src/app/routes/_app/play/**/*.stories.fixture.tsx"
+        "src/app/routes/_app/play/**/*.stories.fixture.tsx",
+        "src/app/play/**/*.test.ts",
+        "src/app/play/**/*.test.tsx",
+        "src/app/play/**/*.test.fixture.ts",
+        "src/app/play/**/*.stories.tsx",
+        "src/app/play/**/*.stories.fixture.ts",
+        "src/app/play/**/*.stories.fixture.tsx"
       ],
       "rules": {
         "local/no-wall-clock": "error"

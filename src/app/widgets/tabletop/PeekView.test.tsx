@@ -10,7 +10,7 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
-import { stubMatchMedia } from '../../routes/_app/play/multiplayer/jsdom.test.fixture';
+import { stubMatchMedia } from '../../play/table/jsdom.test.fixture';
 import { PeekView } from './PeekView';
 import { TabletopSessionProvider } from './TabletopContext';
 

@@ -10,7 +10,7 @@ const meta = testingPreview.meta({
   title: 'Play/Ready Up',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

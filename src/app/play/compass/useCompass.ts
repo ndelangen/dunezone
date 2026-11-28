@@ -1,0 +1,197 @@
+import { useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+
+import { TOP_VIEW } from '../../widgets/tabletop/playView';
+import type { TableView } from '../../widgets/tabletop/playView';
+import type { CompassProps } from './Compass';
+import type { Spot } from './compassSpots';
+import type { CompassTable } from './compassTable';
+import { tilesOf } from './compassTiles';
+import { KEYBOARD_SHORTCUTS } from './panels';
+import type { CompassPanel } from './panels';
+import { commandsOf, SHORTCUTS, useShortcutKeys } from './shortcuts';
+import type { Shortcut } from './shortcuts';
+import { candidatesOf, rankSuggestions } from './suggestions';
+import type { Suggestion } from './suggestions';
+import { useCompassKeys } from './useCompassKeys';
+import { useHeldSuggestion } from './useHeldSuggestion';
+
+/*
+ * The compass itself: where it points, what was typed into its search, which suggestion the cursor is on, and what
+ * confirming opens. Its keys are wired here too, so the controls around it only open it and draw it.
+ */
+
+type CompassInputs = Readonly<{
+  open: boolean;
+  onOpen: (open: boolean) => void;
+  /** A board gesture holds the table, and Space stays with it. */
+  inert: boolean;
+  openable: readonly CompassPanel[];
+  table: CompassTable | null;
+  onView: (view: TableView) => void;
+  /** Opens a panel over the table. */
+  onShow: (key: string, seat?: string) => void;
+  /** Shows or hides the keyboard shortcuts cheat sheet, wherever it stands; absent when the table has none. */
+  onToggleSheet?: () => void;
+}>;
+
+/* A suggestion a key or press can confirm; a key already let go holds nothing, so it never starts a destructive countdown. */
+function confirmable(suggestion: Suggestion | undefined, letGo: boolean): suggestion is Suggestion {
+  if (!suggestion || suggestion.disabled) {
+    return false;
+  }
+  return !letGo || !suggestion.held;
+}
+
+export function useCompass({ open, onOpen, inert, openable, table, onView, onShow, onToggleSheet }: CompassInputs) {
+  const [spot, setSpot] = useState<Spot>('hub');
+  const [query, setQuery] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [refused, setRefused] = useState(0);
+  const input = useRef<HTMLInputElement>(null);
+  const { held, hold, release } = useHeldSuggestion();
+
+  const openCompass = () => {
+    onOpen(true);
+    setSpot('hub');
+    setQuery('');
+    setCursor(0);
+  };
+  /* The hold is let go by the keys alone: Space's keyup ends it, so closing never needs to touch it. */
+  const close = () => {
+    release();
+    onOpen(false);
+  };
+  const show = (key: string, seat?: string) => {
+    close();
+    onShow(key, seat);
+  };
+  const tiles = tilesOf(openable, table);
+  const commands = commandsOf(table);
+  const chooseSpot: Dispatch<SetStateAction<Spot>> = (next) => {
+    release();
+    setSpot((current) => {
+      const target = typeof next === 'function' ? next(current) : next;
+      return target === 'ally' && tiles.ally.hidden ? 'table' : target;
+    });
+  };
+  /* A panel an arm opens shows the arm's letter in the search too. */
+  const shortcuts = {
+    ...Object.fromEntries(
+      Object.values(tiles).flatMap((tile) => (tile.panel ? [[tile.panel.key, SHORTCUTS[tile.spot]]] : []))
+    ),
+    ...(onToggleSheet ? { [KEYBOARD_SHORTCUTS]: SHORTCUTS.help } : {}),
+  };
+  const suggestions = rankSuggestions(
+    candidatesOf(openable, {
+      open: show,
+      players: table?.players ?? [],
+      nextPhase: table?.nextPhase,
+      clearChats: table?.clearChats,
+      nudge: table?.nudge,
+      spiceBlow: table?.spiceBlow,
+      token: table?.token,
+      commands,
+      shortcuts,
+      view: onView,
+      close,
+      /* Only a seated player is told which of their actions recall holds; an observer has none to hold. */
+      frozen: Boolean(table?.recall?.seated),
+    }),
+    query
+  );
+  /* Opens what the compass points at; a tile with nothing behind it shakes instead. */
+  /* A destructive suggestion counts down while held; anything else runs at once. */
+  const runOrHold = (suggestion: Suggestion) => (suggestion.held ? hold(suggestion) : suggestion.run());
+  /* Moving the cursor, typing or steering elsewhere lets go of a held suggestion. */
+  const steerCursor: Dispatch<SetStateAction<number>> = (next) => {
+    release();
+    setCursor(next);
+  };
+  const type = (next: string) => {
+    release();
+    setQuery(next);
+  };
+  const confirm = (at: Spot = spot, letGo = false) => {
+    if (at === 'hub' && !query.trim()) {
+      close();
+      return;
+    }
+    if (at === 'hub' || at === 'search') {
+      const suggestion = suggestions[cursor];
+      if (confirmable(suggestion, letGo)) {
+        runOrHold(suggestion);
+      }
+      return;
+    }
+    const tile = tiles[at];
+    if (tile.disabled || !tile.panel) {
+      setRefused((count) => count + 1);
+      return;
+    }
+    show(tile.panel.key);
+  };
+  /* A letter opens its arm's panel, as confirming the tile would, or runs its command; one the table lacks is left to the table. */
+  const shortcut = (pressed: Shortcut) => {
+    /* ? shows the cheat sheet, and hides it again even pinned; without the sheet it falls through to nothing. */
+    if (pressed === 'help' && onToggleSheet) {
+      onToggleSheet();
+      return true;
+    }
+    if (pressed in tiles) {
+      const tile = tiles[pressed as keyof typeof tiles];
+      if (tile.panel && !tile.disabled) {
+        onShow(tile.panel.key);
+        return true;
+      }
+      return false;
+    }
+    const command = commands[pressed as keyof typeof commands];
+    if (command) {
+      command.run();
+      return true;
+    }
+    /* U is the top-down camera's key, and back, whenever it has no token to flip up. */
+    if (pressed === 'faceUp') {
+      onView(TOP_VIEW.id);
+      return true;
+    }
+    return false;
+  };
+  useShortcutKeys(!open && !inert, shortcut);
+  useCompassKeys({
+    open,
+    inert,
+    spot,
+    query,
+    cursor,
+    suggestions: suggestions.length,
+    input,
+    onOpen: openCompass,
+    onClose: close,
+    onSpot: chooseSpot,
+    onCursor: steerCursor,
+    onConfirm: confirm,
+    onLetGo: () => confirm(spot, true),
+    onRelease: release,
+  });
+
+  const props: CompassProps = {
+    tiles,
+    suggestions,
+    spot,
+    query,
+    cursor,
+    refused,
+    input,
+    onSpot: chooseSpot,
+    held,
+    onQuery: type,
+    onCursor: steerCursor,
+    onConfirm: confirm,
+    onHold: hold,
+    onRelease: release,
+    onClose: close,
+  };
+  return { openCompass, show, props };
+}

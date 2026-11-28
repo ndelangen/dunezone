@@ -21,8 +21,8 @@
 
 /* Every section runs to the window's sides, so the rules between them span the whole window. */
 .tracker > * {
-  margin-inline: calc(-1 * var(--window-body-pad-inline, 0px));
-  padding-inline: var(--window-body-pad-inline, 0px);
+  margin-inline: calc(-1 * var(--panel-body-pad-inline, 0px));
+  padding-inline: var(--panel-body-pad-inline, 0px);
 }
 
 .section + .section,

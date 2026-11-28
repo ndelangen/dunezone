@@ -21,12 +21,12 @@ const meta = testingPreview.meta({
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });
 
-/** A player's public information in their window: the faction's name opens its page, with the leaders it starts with, in a new browser tab. */
+/** A player's public information in their panel: the faction's name opens its page, with the leaders it starts with, in a new browser tab. */
 export const Info = meta.story({
   decorators: [seatFactionsResolve],
   beforeEach: install(() => productTransport('seat-2', playingSnapshot())),

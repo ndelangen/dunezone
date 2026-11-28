@@ -40,13 +40,13 @@ export const PlayedThrough = meta.story({
     const step = (title: string, timeout = 30_000) =>
       waitForFrame(() => expect(currentStep(canvasElement)).toContain(title), { timeout });
     await page.findByRole('banner', { name: 'Chapter 21: Moderation and disputes' }, { timeout: 60_000 });
-    const openWindow = async (name: string) => {
+    const openPanel = async (name: string) => {
       await userEvent.keyboard(' ');
       await userEvent.type(await page.findByRole('textbox', { name: 'Search controls' }), name);
       await userEvent.keyboard('{Enter}');
     };
     await step('Check what happened', 60_000);
-    await openWindow('Game log');
+    await openPanel('Game log');
     await step('Open player details', 60_000);
 
     const token = await waitFor(
@@ -63,7 +63,7 @@ export const PlayedThrough = meta.story({
     const info = await waitFor(
       () => {
         const found = document.querySelector<HTMLElement>(
-          `[data-window^="player:"] header button[aria-label="${HARKONNEN} info"]`
+          `[data-panel^="player:"] header button[aria-label="${HARKONNEN} info"]`
         );
         if (!found) {
           throw new Error('The Harkonnen chat has no info button yet.');
@@ -90,7 +90,7 @@ export const PlayedThrough = meta.story({
       { timeout: 20_000, interval: 1000 }
     );
     await step('Read the Audit record');
-    await openWindow('Audit');
+    await openPanel('Audit');
     await step('Take a look at the record');
     await waitForFrame(() => expect(finishTransitions(page.getByRole('group', { name: 'Audit' }))).toBeVisible());
     await expect(page.queryByRole('dialog', { name: 'Chapter complete, congratulations!' })).toBeNull();

@@ -5,7 +5,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { openPanel, WAIT, windowNamed } from './controls.stories.fixture';
+import { openPanel, WAIT, panelNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { factionPhaseSnapshot } from './phases.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
@@ -18,7 +18,7 @@ const meta = testingPreview.meta({
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });
@@ -118,8 +118,8 @@ export const FactionPhase = meta.story({
     await waitForPhase(() => expect(page.getByRole('button', { name: /^Controls/ })).toBeVisible());
     await openTab(page, 'Phase');
     await waitForPhase(() => expect(page.getByRole('region', { name: 'Guild negotiations' })).toBeInTheDocument());
-    const phaseHelp = within(windowNamed(page, 'Phase')!).getByRole('img', { name: 'Help' });
-    /* The kit's HelpMark story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the window's (?) carries the phase's description and its instructions. */
+    const phaseHelp = within(panelNamed(page, 'Phase')!).getByRole('img', { name: 'Help' });
+    /* The kit's HelpMark story owns timed tooltip display, since a slow frame here can outlast it; this page checks that the panel's (?) carries the phase's description and its instructions. */
     await expect(phaseHelp).toHaveAccessibleDescription(
       'Guild negotiations, instructions and actions. Agree any shipment deals before bidding opens. Previous moves the tracker back. Pieces and storm stay put.'
     );

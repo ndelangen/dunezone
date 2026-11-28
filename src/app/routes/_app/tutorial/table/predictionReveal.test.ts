@@ -3,7 +3,7 @@ import { expect, test, vi } from 'vite-plus/test';
 
 import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableSession } from '@app/db/tabletop/TableSession';
-import { predictionReveal } from '@app/routes/_app/play/panels/result/useResultPanel';
+import { predictionReveal } from '@app/play/panels/result/useResultPanel';
 
 import setup from '../setup/setup.json';
 import { startAt } from '../setup/tutorialSetup';

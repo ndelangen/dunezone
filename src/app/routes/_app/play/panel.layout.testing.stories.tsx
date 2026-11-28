@@ -13,15 +13,15 @@ const meta = testingPreview.meta({
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });
 
 /**
- * The windows the compass opens: one at a time in the centre, Hand and Spice as one, and the header's phase controls outside them all.
+ * The panels the compass opens: one at a time in the centre, Hand and Spice as one, and the header's phase controls outside them all.
  */
-export const Windows = meta.story({
+export const Panels = meta.story({
   beforeEach: install(() =>
     productTransport('seat-2', {
       ...initialSnapshot(),
@@ -65,7 +65,7 @@ export const Windows = meta.story({
     await openTab(page, 'Settings');
     await expect(await page.findByRole('textbox', { name: 'Last turn' })).toBeVisible();
     await openTab(page, 'Hand');
-    /* The phase controls stay in the header, outside the windows. */
+    /* The phase controls stay in the header, outside the panels. */
     await expect(page.getByRole('group', { name: 'Phase navigation' }).closest('header')).not.toBeNull();
   },
 });
@@ -90,8 +90,8 @@ export const SchemeIsland = meta.story({
     await expect(view.getComputedStyle(island).getPropertyValue('--mantine-color-dark-7').trim()).toBe(
       view.getComputedStyle(root).getPropertyValue('--mantine-color-dark-7').trim()
     );
-    /* The window's ink, which its frame sets for everything inside it. */
-    await expect(tablePaint[0]).toBe(view.getComputedStyle(balance.closest('[data-window]')!).color);
+    /* The panel's ink, which its frame sets for everything inside it. */
+    await expect(tablePaint[0]).toBe(view.getComputedStyle(balance.closest('[data-panel]')!).color);
     const deck = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-deck')!;
     const glass = paintedColor(island, 'rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha))');
     const menu = await openPieceMenu(canvasElement.ownerDocument, deck, 'Deck actions');

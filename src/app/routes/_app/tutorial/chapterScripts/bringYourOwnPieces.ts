@@ -5,7 +5,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript, TablePlayers } from './chapterScript';
-import { element, openedWindow, task, windowShown } from './guideChecks';
+import { element, openedPanel, task, panelShown } from './guideChecks';
 
 /*
  * "Bring your own pieces": the Shared table inventory, where the pieces live that belong to no seat,
@@ -14,7 +14,7 @@ import { element, openedWindow, task, windowShown } from './guideChecks';
  * captured from the catalogue as a real game captures it.
  */
 
-const SHARED = '[data-window="shared"]';
+const SHARED = '[data-panel="shared"]';
 const SEARCH = `${SHARED} input[name="catalogue-search"]`;
 /* How long the request waits before another player approves it, so the learner sees it waiting first. */
 const APPROVAL_DELAY_MS = 1800;
@@ -38,8 +38,8 @@ const findHMS = () =>
   hmsOption() ??
   document.querySelector(SEARCH) ??
   document.querySelector(`${SHARED} [aria-label="Add pointer tokens from the catalogue"]`);
-/* New lines join the bottom of the window's list, below what it shows, so the step scrolls its line into view. */
-const showInWindow = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
+/* New lines join the bottom of the panel's list, below what it shows, so the step scrolls its line into view. */
+const showInPanel = (selector: string) => document.querySelector(selector)?.scrollIntoView({ block: 'nearest' });
 
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   const shared = () =>
@@ -61,7 +61,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       detail:
         "Want to bring your own pieces into a game? Let's start with the shared inventory.\n\nPress {Space}, type Shared and confirm with {Enter}. It holds pieces available to everyone.",
       anchor: { kind: 'page', element: element('[aria-label="Search controls"], [data-compass-launcher]') },
-      ...openedWindow(windowShown('shared')),
+      ...openedPanel(panelShown('shared')),
     }),
     task({
       id: 'take',
@@ -95,7 +95,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
         "Another player will approve HMS in a moment. You can't approve your own request, and any player can dismiss one instead.",
       anchor: { kind: 'page', element: element(`${SHARED} [data-spawn-request]`) },
       begin: () => {
-        showInWindow(`${SHARED} [data-spawn-request]`);
+        showInPanel(`${SHARED} [data-spawn-request]`);
         return approveSoon(snapshot, players);
       },
       done: () => hms().length > 0,
@@ -106,7 +106,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       task: 'Put HMS on the table',
       detail: 'Drag HMS from the Shared table inventory onto the table.',
       anchor: { kind: 'page', element: element(`${SHARED} [aria-label^="Drag HMS"]`) },
-      begin: () => showInWindow(`${SHARED} [aria-label^="Drag HMS"]`),
+      begin: () => showInPanel(`${SHARED} [aria-label^="Drag HMS"]`),
       done: () => hms().some((piece) => !piece.inventory),
     }),
   ];

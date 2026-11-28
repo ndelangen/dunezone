@@ -1,0 +1,62 @@
+import type { GameSnapshot } from '@shared/play/protocol';
+import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { fn } from 'storybook/test';
+
+import { STORYBOOK_NOW } from '@db/storybook';
+
+import { removalSnapshot } from '../../../routes/_app/play/game.stories.fixture';
+import { capturedFactions, factions, playingSnapshot } from '../../../routes/_app/play/product.stories.fixture';
+import { seatTrade } from '../../drafting/Swapping';
+import { panelMeta, tableOf } from '../PanelFrame.stories.fixture';
+import { PANEL_INFO } from '../panelInfo';
+import { FactionInfoPanel } from './FactionInfoPanel';
+import type { FactionInfoPanelProps } from './FactionInfoPanel';
+import { factionInfoProps } from './useFactionInfoPanel';
+
+/** Where the panel's actions go: the table's commands, which the panel's props and header model call with what they name. */
+export const actions = { onBallot: fn(), onStartRemoval: fn(), onAlliance: fn(), onTrade: fn() };
+
+/**
+ * The panel's props as the table hands them for one seat of this snapshot, seen from the viewer's seat, with spied actions.
+ * The faction's captured sheet and page come from the story factions, as a real game reads them.
+ */
+export function factionInfoArgs(
+  snapshot: GameSnapshot,
+  seat = 'seat-1',
+  viewer = 'seat-2',
+  { captured = true } = {}
+): FactionInfoPanelProps {
+  const factionId = snapshot.roster!.seats.find((entry) => entry.id === seat)?.faction?.id;
+  const table = tableOf(snapshot, viewer);
+  return factionInfoProps(table, seat, {
+    error: null,
+    details: captured && factionId ? capturedFactions()[factionId] : undefined,
+    slug: factions.find((entry) => entry.slug === factionId)?.slug,
+    now: STORYBOOK_NOW,
+    trade: seatTrade(table, seat, STORYBOOK_NOW, actions.onTrade),
+    ...actions,
+  })!;
+}
+
+/** The six-seat game mid-play, with seat 6's player gone and the seat open. */
+export function vacantSnapshot() {
+  const snapshot = playingSnapshot();
+  snapshot.controls!.players = snapshot.controls!.players.filter((player) => player.seat !== 'seat-6');
+  return snapshot;
+}
+
+export const observerArgs = () => factionInfoArgs(playingSnapshot(), 'seat-1', SPECTATOR_SEAT);
+export { removalSnapshot };
+
+export const factionInfoPanelMeta = {
+  ...panelMeta(PANEL_INFO.factionInfo),
+  component: FactionInfoPanel,
+  args: factionInfoArgs(playingSnapshot()),
+};
+
+/** Seat 1's panel when its faction's rules keep the Treachery tracker. */
+export function treacheryTrackerArgs(): FactionInfoPanelProps {
+  const args = factionInfoArgs(playingSnapshot());
+  const details = args.details!;
+  return { ...args, details: { ...details, rules: { ...details.rules, treacheryTracker: true } } };
+}

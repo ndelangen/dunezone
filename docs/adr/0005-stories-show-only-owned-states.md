@@ -4,12 +4,12 @@
 
 ## Context
 
-Every kit component has stories, and so do the widgets, the Play windows, the shell, every page and
+Every kit component has stories, and so do the widgets, the Play panels, the shell, every page and
 every Rulebook block editor. Each level is covered, yet the levels keep showing each other's states
 again. A page story hovers three toolbar actions to read their tooltips and watch them close. Another
 holds Publish for five real seconds to prove that a hold-to-confirm action waits for the hold, which
 `useHoldToConfirm` already proves. A toolbar capture shows its Save tooltip open and its status list
-unfolded. A Play story about one window's content renders the whole table to reach it.
+unfolded. A Play story about one panel's content renders the whole table to reach it.
 
 Each repeat costs something. Chromatic bills the capture (ADR-0004). The story shard spends seconds on
 it. The play breaks when a kit component changes its timing or its fade, though the composed
@@ -18,7 +18,7 @@ at once.
 
 Norbert named the rule behind all of this on 27 Oct 2026: "We do not need to show button's active
 states, because buttons are their own component, and their states are already covered in THEIR
-stories." And about a story of the Alliances window: "do not mix signals in stories, when a story is
+stories." And about a story of the Alliances panel: "do not mix signals in stories, when a story is
 about Offering, do not show an extended offer from another player." The first remark is about
 ownership and the second about focus. ADR-0004 decided what kind a story is. This record decides what
 a story is about.
@@ -89,7 +89,7 @@ not repetition.
 
 When a piece leaves the route and becomes a widget, a Picker or a Play panel, its states and their
 stories move with it in the same pull request. The page keeps only the wiring. The Play panels'
-overhaul (#2579) is this move for the Play windows.
+overhaul (#2579) is this move for the Play panels.
 
 ### One signal per story
 
@@ -183,7 +183,7 @@ moving never loses a check. A child the app uses that has no stories of its own,
 - An audit on 27 Oct 2026 read all 1,243 stories. Outside the kit it found 18 stories in 12 files that
   hover or read a tooltip, about a dozen that drive a hold-to-confirm action's own mechanics, 20
   candidates that drive Escape or arrow keys inside a kit menu or listbox, about 124 Play page stories
-  that show one window's content (which #2579 is moving to panel stories), a handful of composed
+  that show one panel's content (which #2579 is moving to panel stories), a handful of composed
   captures of a child's open or pending state, and several stories that mix two signals. Most of the
   kit is clean already, because each kit component is the owner of what it shows.
 - Chromatic captures fall as composed captures of child states go, and the story shards get faster as
@@ -193,7 +193,7 @@ moving never loses a check. A child the app uses that has no stories of its own,
 - Kit tooltips publish their words as accessible descriptions. `HelpMark` and `IconAction` already do,
   so the composed stories that use them can move today.
 - New Play panel stories follow this from the start: args-only panel stories, one signal each, and
-  page stories reduced to the round trip per window.
+  page stories reduced to the round trip per panel.
 
 ## Considered options
 

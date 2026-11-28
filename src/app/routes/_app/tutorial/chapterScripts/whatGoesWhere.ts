@@ -19,7 +19,7 @@ import type * as BoardChecks from './whatGoesWhereBoard';
  * "What goes where": turn 1 played through Shipment and Movement, one phase at a time, so each phase shows where on the table it happens.
  * Every step is one press of Next phase, one move at the place that phase uses, or a look at that place: the Spice deck on the
  * right, the Treachery deck on the left, the Tleilaxu Tanks below the board and the reserves at the player's seat (Norbert,
- * 2026-10-26: one thread, and never two presses of Next phase for one step). Moving the camera is chapter 6's, the windows chapter 9's.
+ * 2026-10-26: one thread, and never two presses of Next phase for one step). Moving the camera is chapter 6's, the panels chapter 9's.
  */
 
 /* The phase the table is at, counted from the start of the game, and where a phase falls in the first turn. */

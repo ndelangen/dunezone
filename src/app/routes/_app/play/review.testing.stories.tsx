@@ -11,7 +11,7 @@ const meta = testingPreview.meta({
   title: 'Play/Panels/Mentat recall',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });
@@ -42,7 +42,7 @@ export const RecallFooter = meta.story({
     await expect(hand.getByLabelText('Spice reserve balance')).toBeVisible();
     await expect(hand.queryByRole('button', { name: /^(?:Drag|Withdraw spice)/ })).toBeNull();
     await userEvent.click(chat);
-    const frame = canvasElement.ownerDocument.querySelector('[data-window="recall-chat"]')!;
+    const frame = canvasElement.ownerDocument.querySelector('[data-panel="recall-chat"]')!;
     await expect(within(frame as HTMLElement).getByRole('img', { name: 'Help' })).toHaveAccessibleDescription(
       'This chat is separate from table chat. All messages and drafts disappear when this recall closes.'
     );
@@ -74,7 +74,7 @@ export const AskingShowsTheCheckpointToEveryone = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Ask the table to recall' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-propose', step: newest.step } });
     const vote = await page.findByRole('group', { name: 'Mentat recall vote' });
-    /* The proposer withdraws in the Mentat recall window, which the header links to, not in the header. */
+    /* The proposer withdraws in the Mentat recall panel, which the header links to, not in the header. */
     await expect(within(vote).getByRole('status')).toHaveTextContent(/^You ask to Mentat recall /);
     await expect(within(vote).queryByRole('button', { name: 'Withdraw' })).toBeNull();
     await expect(within(vote).getByRole('button', { name: 'Mentat recall' })).toBeVisible();
@@ -114,8 +114,8 @@ export const AnsweringAProposal = meta.story({
   },
 });
 
-/* The header's Mentat recall link opens the closed Mentat recall window, where the vote can be read in full. */
-export const HeaderLinkOpensTheRecallWindow = meta.story({
+/* The header's Mentat recall link opens the closed Mentat recall panel, where the vote can be read in full. */
+export const HeaderLinkOpensTheRecallPanel = meta.story({
   beforeEach: install(() =>
     reviewTransport('seat-2', reviewOf(reviewableSnapshot(), bidding, 'seat-1'), { agreeAfterMs: null })
   ),
@@ -123,9 +123,9 @@ export const HeaderLinkOpensTheRecallWindow = meta.story({
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
     const vote = await page.findByRole('group', { name: 'Mentat recall vote' }, { timeout: 30_000 });
-    await expect(document.querySelector('[data-window="review"]')).toBeNull();
+    await expect(document.querySelector('[data-panel="review"]')).toBeNull();
     await userEvent.click(within(vote).getByRole('button', { name: 'Mentat recall' }));
-    await waitFor(() => expect(document.querySelector('[data-window="review"]')).not.toBeNull());
+    await waitFor(() => expect(document.querySelector('[data-panel="review"]')).not.toBeNull());
   },
 });
 
@@ -154,7 +154,7 @@ export const SharedHistoryKeepsTheLiveLayout = meta.story({
     await expect(await page.findByRole('button', { name: 'Next phase' }, { timeout: 30_000 })).toBeVisible();
     await openTab(page, 'Game log');
     await userEvent.click(page.getByRole('button', { name: 'Pin to the bottom right' }));
-    const original = canvasElement.ownerDocument.querySelector('[data-window="game-log"]');
+    const original = canvasElement.ownerDocument.querySelector('[data-panel="game-log"]');
     await openTab(page, 'Mentat recall');
     await userEvent.click(page.getByRole('button', { name: 'Ask the table to recall' }));
     (session.transport as ReturnType<typeof reviewTransport>).othersAgree();

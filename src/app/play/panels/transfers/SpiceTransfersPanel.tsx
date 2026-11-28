@@ -1,0 +1,58 @@
+import { Group, List, Stack, Text } from '@mantine/core';
+import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, ChevronsRight } from 'lucide-react';
+
+export type SpiceTransfersPanelProps = Readonly<{
+  /** The transfers on show, newest first, each as its line reads. */
+  transfers: readonly Readonly<{ key: number; text: string }>[];
+  /** The heading is only for assistive technology inside a game's panel. */
+  hiddenHeading: boolean;
+  /** Older transfers follow this page. */
+  more: boolean;
+  /** This is the newest page. */
+  latest: boolean;
+  onEarlier: () => void;
+  onLatest: () => void;
+}>;
+
+/** The table's public spice transfers, newest first, with older pages a click away. */
+export function SpiceTransfersPanel({
+  transfers,
+  hiddenHeading,
+  more,
+  latest,
+  onEarlier,
+  onLatest,
+}: SpiceTransfersPanelProps) {
+  return (
+    <Section hiddenHeading={hiddenHeading} title="Public spice transfers">
+      <Stack gap="xs">
+        {transfers.length === 0 ? (
+          <Text size="sm">No spice transfers yet.</Text>
+        ) : (
+          <Text size="xs" c="dimmed">
+            Newest first
+          </Text>
+        )}
+        <List type="ordered" size="sm">
+          {transfers.map((transfer) => (
+            <List.Item key={transfer.key}>{transfer.text}</List.Item>
+          ))}
+        </List>
+        <Group>
+          {more && (
+            <LabeledAction icon={<ChevronLeft size={16} />} onClick={onEarlier}>
+              Earlier spice transfers
+            </LabeledAction>
+          )}
+          {!latest && (
+            <LabeledAction icon={<ChevronsRight size={16} />} onClick={onLatest}>
+              Latest spice transfers
+            </LabeledAction>
+          )}
+        </Group>
+      </Stack>
+    </Section>
+  );
+}

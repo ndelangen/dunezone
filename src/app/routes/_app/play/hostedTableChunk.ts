@@ -8,5 +8,5 @@ export const loadHostedTable = () => {
     ({ preloadTableChunks }) => preloadTableChunks(),
     () => {}
   );
-  return import('./multiplayer/HostedTable');
+  return import('../../../play/table/HostedTable');
 };

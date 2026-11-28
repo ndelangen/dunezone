@@ -110,7 +110,7 @@ async function enterRecall(driver: ChapterDriver) {
   await step('Ask to recall Storm');
   await askToRecallStorm();
   await step('Agree to recall');
-  /* The header links Mentat recall to its window, where the proposer withdraws. */
+  /* The header links Mentat recall to its panel, where the proposer withdraws. */
   await userEvent.click(
     within(page.getByRole('group', { name: 'Mentat recall vote' })).getByRole('button', { name: 'Mentat recall' })
   );
@@ -143,7 +143,7 @@ async function inspectFirstInventory({ step, recall, sideTable, counterPosition 
 }
 
 /*
- * Returning before the chapter is done resumes play with the normal panels and puts the request window back, while the rail keeps its task.
+ * Returning before the chapter is done resumes play with the normal panels and puts the request panel back, while the rail keeps its task.
  * A new recall of the newest checkpoint, voted on by the task's practice players, then lets that task finish.
  */
 async function returnAndRecallLatest({ step, page, document, recall, recallStarts }: ChapterDriver) {
@@ -151,7 +151,7 @@ async function returnAndRecallLatest({ step, page, document, recall, recallStart
   await userEvent.click(page.getByRole('button', { name: 'Return to the game' }));
   const ask = await page.findByRole('button', { name: 'Ask the table to recall' });
   await expect(document.querySelector('[data-recall-controls="true"]')).toBeNull();
-  await expect(document.querySelector('[data-side="left"][data-window="hand"]')).toBeVisible();
+  await expect(document.querySelector('[data-side="left"][data-panel="hand"]')).toBeVisible();
   await expect(document.querySelector('[data-state="current"]')).toHaveTextContent('Inspect your recalled hand');
   (await page.findByRole('slider', { name: 'Checkpoint' })).focus();
   await userEvent.keyboard('{End}');
@@ -209,7 +209,7 @@ async function chatAndReturn({ step, recall, page, document }: ChapterDriver) {
   await page.findByRole('dialog', {}, { timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Next phase', hidden: true })).toBeVisible();
   await expect(page.getByText('Spice Blow', { exact: true })).toBeVisible();
-  await expect(document.querySelector('[data-side="left"][data-window="hand"]')).toBeVisible();
+  await expect(document.querySelector('[data-side="left"][data-panel="hand"]')).toBeVisible();
   await expect(document.querySelector('[data-recall-controls="true"]')).toBeNull();
 }
 

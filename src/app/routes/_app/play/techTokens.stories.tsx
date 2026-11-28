@@ -1,9 +1,9 @@
 import preview from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { withTechTokens } from '../../../play/hand/HeldTechTokens.stories.fixture';
 import { VIEWER, alliancesSnapshot } from './alliances.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
-import { withTechTokens } from './multiplayer/HeldTechTokens.stories.fixture';
 import { productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
@@ -11,7 +11,7 @@ const meta = preview.meta({
   title: 'Play/Tech tokens',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });
