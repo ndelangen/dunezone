@@ -20,7 +20,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
-import { GameLink } from './GameLink';
+import { GameLink } from '../../../play/table/GameLink';
 import { loadHostedTable } from './hostedTableChunk';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 

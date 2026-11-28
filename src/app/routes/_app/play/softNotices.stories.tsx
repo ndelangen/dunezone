@@ -28,7 +28,7 @@ const meta = preview.meta({
   title: 'Play/Soft notifications',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],

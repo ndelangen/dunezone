@@ -24,7 +24,7 @@ const meta = preview.meta({
   tags: ['!test'],
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
   decorators: [...gameMeta.decorators, holdNotices],

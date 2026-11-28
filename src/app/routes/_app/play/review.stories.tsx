@@ -4,8 +4,8 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { expect, within } from 'storybook/test';
 
+import { agreedBattle } from '../../../play/panels/battles/BattleHistoryPanel.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
-import { agreedBattle } from './panels/battles/BattleHistoryPanel.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 import {
@@ -21,7 +21,7 @@ const meta = preview.meta({
   title: 'Play/Panels/Mentat recall',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

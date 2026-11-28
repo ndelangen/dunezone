@@ -6,9 +6,9 @@ import { cleanup, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
-import { FACTION_INFO } from '../../play/compass/windows';
-import { stubMatchMedia } from '../../play/multiplayer/jsdom.test.fixture';
-import { FactionInfoPanel } from '../../play/panels/factionInfo/FactionInfoPanel';
+import { FACTION_INFO } from '../../../../play/compass/panels';
+import { FactionInfoPanel } from '../../../../play/panels/factionInfo/FactionInfoPanel';
+import { stubMatchMedia } from '../../../../play/table/jsdom.test.fixture';
 import type { TablePlayers } from './chapterScript';
 import { moderation } from './moderation';
 
@@ -70,11 +70,11 @@ test('the first step waits for the Harkonnen player’s information, not another
   const steps = moderation.tasks(() => view, players);
   const open = steps.find((step) => step.id === 'open')!;
   const start = steps.find((step) => step.id === 'start')!;
-  /* The window body the table renders, named as it names a seat, so the guide reads what a player sees rather than markup of its own. */
+  /* The panel body the table renders, named as it names a seat, so the guide reads what a player sees rather than markup of its own. */
   const info = (seatId: string, faction: string) =>
     render(
       <MantineProvider theme={appContentTheme} forceColorScheme="light">
-        <div data-window={FACTION_INFO}>
+        <div data-panel={FACTION_INFO}>
           <FactionInfoPanel
             error={null}
             vote={null}

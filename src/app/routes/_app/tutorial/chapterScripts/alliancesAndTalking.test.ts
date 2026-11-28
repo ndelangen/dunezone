@@ -46,7 +46,7 @@ test('a chapter opened at Switch sides still has the offer to accept', () => {
 
 test('opening Alliances without a standing offer does not finish Read an alliance offer', () => {
   const alliances = document.createElement('div');
-  alliances.dataset['window'] = 'alliances';
+  alliances.dataset['panel'] = 'alliances';
   const step = game.step('incoming');
   /* The offer was made as the step began; take it back to stand for one the table refused. */
   const standing = game.snapshot().alliances!.offers.find((offer) => offer.to === mine())!;

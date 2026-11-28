@@ -19,8 +19,8 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
-    windowOf,
-    pinWindow,
+    panelOf,
+    pinPanel,
     growSlot,
     uncover,
     point,
@@ -166,7 +166,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     assert.equal(spices(a)[0].items.length, 7);
     await collect(b, spices(b)[0]);
     assert.equal(required(requireView(b).snapshot.bank, 'bank').balance, startingSpice + 7);
-    await pinWindow(b, 'Spice', 'left');
+    await pinPanel(b, 'Spice', 'left');
     await growSlot(b, 'left');
     await b.page.getByRole('region', { name: 'Spice reserve' }).scrollIntoViewIfNeeded();
     await capture(b, 'after-own-spice-reserve-and-public-transfers');
@@ -225,7 +225,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
       'Disposal was not public.'
     );
     assert.equal(required(requireView(observer).snapshot.spiceTransfers, 'spiceTransfers')[0].amount, 3);
-    await pinWindow(observer, 'Spice transfers', 'left');
+    await pinPanel(observer, 'Spice transfers', 'left');
     await growSlot(observer, 'left');
     await observer.page.getByRole('region', { name: 'Public spice transfers' }).scrollIntoViewIfNeeded();
     await capture(observer, 'after-observer-public-transfers');
@@ -249,7 +249,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
     assert.deepEqual(requireView(tab).snapshot.bank, requireView(b).snapshot.bank);
     /* A Mentat recall the players agree to sends everyone the same public checkpoint with only their own seat's private contents. */
     await openTab(tab, 'Mentat recall');
-    await windowOf(tab, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
+    await panelOf(tab, 'Mentat recall').getByRole('button', { name: 'Ask the table to recall' }).click();
     await a.page.getByRole('group', { name: 'Mentat recall vote' }).getByRole('button', { name: 'Agree' }).click();
     await until(
       () => tab.rawMessages.some((message) => message.type === 'history'),
@@ -362,7 +362,7 @@ export async function verifyPrivateSpiceReserves(toolkit: HostedToolkit) {
         `${who.label}'s table remounted.`
       );
       assert.equal(
-        await windowOf(who, who === observer ? 'Spice transfers' : 'Spice').count(),
+        await panelOf(who, who === observer ? 'Spice transfers' : 'Spice').count(),
         1,
         `${who.label} lost the Spice window.`
       );

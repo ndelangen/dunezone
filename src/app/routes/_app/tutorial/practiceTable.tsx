@@ -11,10 +11,10 @@ import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 
-import { CompassEpochContext } from '../play/compass/compassEpoch';
-import { RememberedContext } from '../play/compass/useRemembered';
-import HostedTable from '../play/multiplayer/HostedTable';
-import type { GameIdentity } from '../play/multiplayer/StageHeader';
+import { CompassEpochContext } from '../../../play/compass/compassEpoch';
+import { RememberedContext } from '../../../play/compass/useRemembered';
+import HostedTable from '../../../play/table/HostedTable';
+import type { GameIdentity } from '../../../play/table/StageHeader';
 import type { TablePlayers } from './chapterScripts/chapterScript';
 import { withOrigin } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';

@@ -76,7 +76,7 @@ describe('assert-breakpoints', () => {
   test('the window chrome passes on the ladder with each step on its wider side, whichever side of the comparison names the width', async () => {
     const result = await gate((root) => {
       appendFileSync(
-        join(root, 'app/routes/_app/play/dune-play.css'),
+        join(root, 'app/play/table/dune-play.css'),
         block('(30rem <= width < 62rem)') + block('(width >= 48rem)') + block('(48rem > width)')
       );
     });

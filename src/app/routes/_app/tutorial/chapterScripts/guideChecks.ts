@@ -17,9 +17,9 @@ export type Piece = GameSnapshot['table']['pieces'][number];
 export const at = (piece: { position: readonly number[] } | undefined) =>
   piece ? (piece.position as Vector3Tuple) : null;
 export const element = (selector: string) => () => document.querySelector(selector);
-/** The button with exactly this text inside a window, rather than the window's own frame buttons that come first. */
-export const buttonIn = (windowKey: string, text: string) => (): HTMLButtonElement | null =>
-  [...document.querySelectorAll<HTMLButtonElement>(`[data-window="${windowKey}"] button`)].find(
+/** The button with exactly this text inside a panel, rather than the panel's own frame buttons that come first. */
+export const buttonIn = (panelKey: string, text: string) => (): HTMLButtonElement | null =>
+  [...document.querySelectorAll<HTMLButtonElement>(`[data-panel="${panelKey}"] button`)].find(
     (button) => (button.textContent?.trim() || button.getAttribute('aria-label')) === text
   ) ?? null;
 
@@ -32,14 +32,14 @@ export const sentSince = (players: TablePlayers, seen: number, matches: (action:
     .slice(seen)
     .some(({ action }) => matches(action));
 
-/** Whether a compass window shows, in the centre or pinned in a slot. */
-export const windowShown = (key: string) => () => document.querySelector(`[data-window="${key}"]`) !== null;
+/** Whether a compass panel shows, in the centre or pinned in a slot. */
+export const panelShown = (key: string) => () => document.querySelector(`[data-panel="${key}"]`) !== null;
 
 /*
- * A window task counts the player opening that window from the moment the task starts, so one left open by an earlier
+ * A panel task counts the player opening that panel from the moment the task starts, so one left open by an earlier
  * run does not count until it is closed and opened again.
  */
-export const openedWindow = (open: () => boolean) => ({
+export const openedPanel = (open: () => boolean) => ({
   begin: () => ({ was: open(), closed: false }),
   done: (watch: { was: boolean; closed: boolean }) => {
     const shown = open();
@@ -218,7 +218,7 @@ export const holdsAll = (stack: Piece, itemIds: Iterable<string>) =>
 
 /*
  * A press outside a piece's ring menu closes it, as a press anywhere else on the page would; a step that ends in the ring leaves it shut.
- * It is sent only while a ring is open, so no other window listener ever takes it for the player's own press.
+ * It is sent only while a ring is open, so no other panel listener ever takes it for the player's own press.
  */
 export const closePieceMenu = () => {
   if (document.querySelector('[data-radial-menu]')) {

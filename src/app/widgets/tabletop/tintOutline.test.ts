@@ -5,7 +5,7 @@ import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { describe, expect, it } from 'vitest';
 
-import { territoryTintPresets } from '../../routes/_app/play/panels/tints/territoryTintPresets';
+import { territoryTintPresets } from '../../play/panels/tints/territoryTintPresets';
 
 type Point = readonly [number, number];
 

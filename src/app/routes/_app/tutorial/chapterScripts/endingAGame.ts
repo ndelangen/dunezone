@@ -41,7 +41,7 @@ function tasks(snapshot: () => GameSnapshot): GuideTask[] {
       task: 'Declare the result',
       detail:
         'Agree on the winner with the other players first.\n\nIn the Result panel, leave Faction selected, choose a Winning faction and press Declare. This records the result immediately, without a vote.',
-      anchor: { kind: 'page', element: element('[data-window="result"]') },
+      anchor: { kind: 'page', element: element('[data-panel="result"]') },
       begin: () => undefined,
       done: () => snapshot().stage === 'finished',
     }),

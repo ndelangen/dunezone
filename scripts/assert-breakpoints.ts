@@ -28,7 +28,7 @@ const WINDOW_CHROME = new Map([
   ['app/styles/page.css', 'the document background'],
   ['app/styles/tokens.css', 'the responsive spacing scale'],
   ['app/ui/layout/PageLayout.module.css', 'the page frame, sized with the artwork band'],
-  ['app/routes/_app/play/dune-play.css', 'the play route, which fills the window'],
+  ['app/play/table/dune-play.css', 'the play route, which fills the window'],
 ]);
 
 const root = process.env.BREAKPOINTS_ROOT ?? 'src';

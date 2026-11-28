@@ -13,7 +13,7 @@ const meta = testingPreview.meta({
   title: 'Play/Bribes',
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

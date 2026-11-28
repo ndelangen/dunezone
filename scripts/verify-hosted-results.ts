@@ -27,7 +27,7 @@ export async function verifyResults({
   act,
   converged,
   openTab,
-  windowOf,
+  panelOf,
   capture,
   until,
   passed,
@@ -38,7 +38,7 @@ export async function verifyResults({
   const everyone: HostedPeer[] = [a, b, observer];
   const stage = (who: HostedPeer) => requireView(who).snapshot.stage;
   /* The end of the game opens the Result window once for everyone; the finished result also heads the phase chip. */
-  const bar = (who: HostedPeer) => windowOf(who, 'Result');
+  const bar = (who: HostedPeer) => panelOf(who, 'Result');
   const header = (who: HostedPeer) => who.page.locator('.seated-header');
   const winner = factionOf(a);
   const gameId = currentGameId();

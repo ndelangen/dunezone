@@ -41,7 +41,7 @@ const step = (snapshot: () => GameSnapshot, captured: string | undefined, id: st
 
 /* An owner, bundle or deck with HMS in its name lists in the same search, so only the token's own row is HMS. */
 test('finding HMS waits for the token-pointer row to be picked, not a row named for it', () => {
-  document.body.innerHTML = `<div data-window="shared">
+  document.body.innerHTML = `<div data-panel="shared">
     <div role="option" data-spawn-asset="bundle/hms-pack" data-combobox-active>HMS pack</div>
     <div role="option" data-spawn-asset="token-pointer/hms">HMS</div>
     <button aria-label="Request"></button>

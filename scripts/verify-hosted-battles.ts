@@ -19,7 +19,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     converged,
     focus,
     openTab,
-    pinWindow,
+    pinPanel,
     growSlot,
     point,
     coverAt,
@@ -114,7 +114,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     /* The Battle window in the centre can sit over the near rim, so it closes for the right-click and opens again after. */
     await who.page.mouse.move(10, 10);
     await who.page.keyboard.press('Escape');
-    await who.page.locator('[data-window][data-side="centre"]').waitFor({ state: 'detached' });
+    await who.page.locator('[data-panel][data-side="centre"]').waitFor({ state: 'detached' });
     const cover = await coverAt(who, at);
     assert.equal(cover, null, `${who.label}: the piece to take is covered by ${cover}.`);
     await who.page.mouse.click(at.x, at.y, { button: 'right' });
@@ -182,7 +182,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     until,
     converged,
     capture,
-    pinWindow,
+    pinPanel,
     growSlot,
   });
   await act(a, 'Ready for battle');
@@ -293,9 +293,9 @@ async function verifySupport({
   until,
   converged,
   capture,
-  pinWindow,
+  pinPanel,
   growSlot,
-}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinWindow' | 'growSlot'> & {
+}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinPanel' | 'growSlot'> & {
   a: HostedPeer;
   b: HostedPeer;
   observer: HostedPeer;
@@ -328,7 +328,7 @@ async function verifySupport({
   /* B's view is read once it holds A's commit; before then it would show no reveal whatever the commit sent (#1481). */
   await converged([a, b]);
   assert.equal(required(requireView(b).snapshot.battle, 'battle').revealed, undefined);
-  await pinWindow(a, 'Battle plan', 'left');
+  await pinPanel(a, 'Battle plan', 'left');
   await growSlot(a, 'left');
   await capture(a, 'after-battle-private-plan');
   await capture(observer, 'after-battle-observer-preparation');

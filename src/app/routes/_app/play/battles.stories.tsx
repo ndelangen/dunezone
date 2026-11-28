@@ -5,7 +5,7 @@ import { expect, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
 import { battleSetup, readiness, revealedPieces } from './battles.stories.fixture';
-import { openPanel, unpinWindow, windowNamed } from './controls.stories.fixture';
+import { openPanel, unpinPanel, panelNamed } from './controls.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { settled } from './playing.stories.fixture';
 
@@ -48,8 +48,8 @@ export const RevealedPiecesStill = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const plans = /^House (Harkonnen|Atreides) plan,/;
-    /* The viewer is a side, so the Battle window opens with its own plan's wheel; the two on the table are the reveal. */
-    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('[data-window]'));
+    /* The viewer is a side, so the Battle panel opens with its own plan's wheel; the two on the table are the reveal. */
+    const revealed = () => page.getAllByLabelText(plans).filter((plan) => !plan.closest('[data-panel]'));
     await settled(() => expect(revealed()).toHaveLength(2));
     await expect(animatedIn(page.getAllByLabelText(plans))).toEqual([]);
     for (const plan of revealed()) {
@@ -120,15 +120,15 @@ export const MarkerOutlinesItsTerritory = meta.story({
 
 /**
  * With the Battle plan closed, a player on a side finds it again from the Hand and from the battle on the table (#2984).
- * Opening the Hand puts the planner away, as the centre holds one window.
+ * Opening the Hand puts the planner away, as the centre holds one panel.
  */
 export const PlannerClosedHints = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     /* The battle opens the planner for a side's player; closing it is what the hints answer. */
-    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    await unpinPanel(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
     const page = await openPanel(canvasElement, 'Hand');
-    const hand = within(windowNamed(page, 'Hand')!);
+    const hand = within(panelNamed(page, 'Hand')!);
     await settled(() => expect(hand.getByRole('button', { name: 'Open battle plan' })).toBeVisible());
     /* The callout draws in the table's own frame, which can land after the Hand's: wait for both hints, not only the first. */
     await settled(() => expect(page.getAllByRole('button', { name: 'Open battle plan' })).toHaveLength(2));

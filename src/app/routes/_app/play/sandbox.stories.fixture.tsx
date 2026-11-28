@@ -16,13 +16,13 @@ import { troopFactionOf } from '@shared/play/troopReserves';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
+import { dreamrulesTechTokenPieces } from '../../../play/panels/inventory/techTokens.stories.fixture';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
 import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
 import { chapter, journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { waitForTableOpen } from './mapView.stories.fixture';
-import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
 import { dealtTroopsOf, withMessyReserves } from './troopReserves.stories.fixture';

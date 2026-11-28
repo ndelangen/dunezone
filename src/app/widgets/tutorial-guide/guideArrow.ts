@@ -9,7 +9,7 @@
 
 export type Point = Readonly<{ x: number; y: number }>;
 export type Edges = Readonly<{ left: number; right: number; bottom: number }>;
-/** A box on the page the arrow should not cross, such as an open window. */
+/** A box on the page the arrow should not cross, such as an open panel. */
 export type Obstacle = Readonly<{ left: number; top: number; right: number; bottom: number }>;
 /** Where the arrow points: a spot, and the half size of the thing there, so the gap is kept from its edge, not its middle. */
 export type Target = Readonly<{ x: number; y: number; halfWidth: number; halfHeight: number }>;

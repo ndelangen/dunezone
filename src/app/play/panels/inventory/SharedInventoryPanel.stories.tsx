@@ -1,0 +1,24 @@
+import preview from '@sb/preview';
+
+import { SharedInventoryPanel } from './SharedInventoryPanel';
+import { inventoryArgs, inPanel } from './SharedInventoryPanel.stories.fixture';
+
+/*
+ * The Shared table inventory panel's content alone, in a panel's frame: a shelf for every type the catalogue can add,
+ * each with its own +, its pieces on one row that scrolls sideways. Hover a tech token for what it does.
+ */
+const meta = preview.meta({
+  title: 'Play/Panels/Shared table inventory',
+  component: SharedInventoryPanel,
+  decorators: [inPanel],
+  globals: { motion: 'on' },
+  args: inventoryArgs(),
+});
+
+/** A Treachery deck, faction tokens and the seven Dreamrules tech tokens; the other shelves are empty. */
+export const Shelves = meta.story({});
+
+/** What an observer sees: the same shelves and pieces, with no add, draw or drag handle. */
+export const Observer = meta.story({
+  args: { inventory: { ...inventoryArgs().inventory, observing: true } },
+});

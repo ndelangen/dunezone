@@ -10,7 +10,7 @@ const meta = preview.meta({
   ...gameMeta,
   title: 'Play/Playing/Voice',
   beforeEach: install(() => productTransport('seat-1', playingSnapshot('seat-1'))),
-  loaders: [async () => await import('./multiplayer/HostedTable')],
+  loaders: [async () => await import('../../../play/table/HostedTable')],
 });
 
 export const SharedInvite = meta.story({

@@ -1,12 +1,12 @@
 import type { GuideTask } from '@app/widgets/tutorial-guide/TutorialGuide';
 
 import type { ChapterScript } from './chapterScript';
-import { element as first, openedWindow, task, viaCompass, windowShown } from './guideChecks';
+import { element as first, openedPanel, task, viaCompass, panelShown } from './guideChecks';
 
 /*
- * "Panels": Space opens a compass over the table, a window opens in the middle,
+ * "Panels": Space opens a compass over the table, a panel opens in the middle,
  * and it can be pinned to the bottom-left or bottom-right slot to stay open while the player plays.
- * Each window also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
+ * Each panel also has a letter of its own, which the compass shows beside it, so the chapter ends on one.
  * Every task is read from the screen, so it moves on only once the player has done it with the controls.
  */
 
@@ -17,9 +17,9 @@ const compassOpen = () => document.querySelector(COMPASS) !== null;
  * so these tasks say which keys to press and the arrow comes once the compass is open.
  */
 const inCompass = (selector: string) => () => document.querySelector(`${COMPASS} ${selector}`);
-/* Where a window shows: in the middle of the table or in one of the two slots. */
-const windowAt = (where: 'centre' | 'left' | 'right', key: string) =>
-  document.querySelector(`[data-side="${where}"][data-window="${key}"]`) !== null;
+/* Where a panel shows: in the middle of the table or in one of the two slots. */
+const panelAt = (where: 'centre' | 'left' | 'right', key: string) =>
+  document.querySelector(`[data-side="${where}"][data-panel="${key}"]`) !== null;
 const slotHeight = (side: 'left' | 'right') =>
   document.querySelector(`[data-side="${side}"]`)?.getBoundingClientRect().height ?? 0;
 const RESIZE_GRIP = '[data-side="right"] button[aria-label^="Resize"]';
@@ -50,10 +50,10 @@ const showing = (view: string) =>
 
 const nothing = () => undefined;
 /*
- * A window's (?) explains it on hover or focus. The task counts once the player has pointed at one or tabbed onto it
+ * A panel's (?) explains it on hover or focus. The task counts once the player has pointed at one or tabbed onto it
  * and then moved away again, so it does not tick over while they are still reading (Norbert, 2026-10-25).
  */
-const HELP = '[data-window] [aria-label="Help"]';
+const HELP = '[data-panel] [aria-label="Help"]';
 const readHelp = () => ({
   begin: () => {
     const watch = { reading: false, read: false, stop: new AbortController() };
@@ -79,8 +79,8 @@ const readHelp = () => ({
   finish: (watch: { stop: AbortController }) => watch.stop.abort(),
 });
 
-/* The compass and the hand it opens, what the window is for, and pinning it into a slot. */
-const windowTasks = (): GuideTask[] => [
+/* The compass and the hand it opens, what the panel is for, and pinning it into a slot. */
+const panelTasks = (): GuideTask[] => [
   task({
     id: 'open-compass',
     task: 'Find your controls',
@@ -95,7 +95,7 @@ const windowTasks = (): GuideTask[] => [
     detail: 'Your hand is on the left. Press {←}, then {Space} to open it.',
     anchor: { kind: 'page', element: viaCompass('hand') },
     begin: nothing,
-    done: () => windowAt('centre', 'hand'),
+    done: () => panelAt('centre', 'hand'),
   }),
   task({
     id: 'help',
@@ -112,7 +112,7 @@ const windowTasks = (): GuideTask[] => [
       'Want your hand close by? Use the left pin beside the panel title to keep it open in the bottom left.\n\nUnpinned panels close when you click the table.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom left"]') },
     begin: nothing,
-    done: () => windowAt('left', 'hand'),
+    done: () => panelAt('left', 'hand'),
   }),
 ];
 
@@ -124,7 +124,7 @@ const slotTasks = (): GuideTask[] => [
     detail: 'Press {Space}, {→}, then {Space} to open table chat.\n\nEveryone at the table can read these messages.',
     anchor: { kind: 'page', element: inCompass('[data-spot="table"]') },
     begin: nothing,
-    done: () => windowAt('centre', 'table-chat'),
+    done: () => panelAt('centre', 'table-chat'),
   }),
   task({
     id: 'pin-chat',
@@ -133,7 +133,7 @@ const slotTasks = (): GuideTask[] => [
       'Use the right pin beside the chat title.\n\nThe bottom left and bottom right can each hold 1 panel, so pinning a new one there replaces the old one.',
     anchor: { kind: 'page', element: first('[aria-label="Pin to the bottom right"]') },
     begin: nothing,
-    done: () => windowAt('right', 'table-chat'),
+    done: () => panelAt('right', 'table-chat'),
   }),
   task({
     id: 'resize',
@@ -166,11 +166,11 @@ const slotTasks = (): GuideTask[] => [
     detail:
       "Here's a quicker way back to chat. Click the table, then press {G}.\n\nEach panel has a shortcut shown in the controls. You can also hold {Space}, tap a direction and release it to open a panel.",
     anchor: { kind: 'page', element: first('[data-compass-launcher]') },
-    ...openedWindow(windowShown('table-chat')),
+    ...openedPanel(panelShown('table-chat')),
   }),
 ];
 
-const tasks = () => [...windowTasks(), ...slotTasks()];
+const tasks = () => [...panelTasks(), ...slotTasks()];
 
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [

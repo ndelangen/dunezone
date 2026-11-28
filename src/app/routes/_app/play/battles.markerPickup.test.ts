@@ -4,7 +4,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { PerspectiveCamera } from 'three';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
-import { useBeaconCarry } from './multiplayer/useBeaconCarry';
+import { useBeaconCarry } from '../../../play/battle/useBeaconCarry';
 
 afterEach(() => {
   cleanup();

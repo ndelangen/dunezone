@@ -18,7 +18,7 @@ import {
   revealedPieces,
   observedRevealedPieces,
 } from './battles.stories.fixture';
-import { expectNoControl, openPanel, unpinWindow, WAIT, windowNamed } from './controls.stories.fixture';
+import { expectNoControl, openPanel, unpinPanel, WAIT, panelNamed } from './controls.stories.fixture';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
 import { battleStory, expectBattleCalloutPlacement, openTab, settled } from './playing.stories.fixture';
 import { productTransport } from './product.stories.fixture';
@@ -380,7 +380,7 @@ export const PlanArtwork = meta.story({
 });
 
 /**
- * Dragging a leader along its row moves it in the player's own order, which the room keeps for the Hand & spice window too;
+ * Dragging a leader along its row moves it in the player's own order, which the room keeps for the Hand & spice panel too;
  * the row shows the new order at once.
  */
 export const ReorderLeaders = meta.story({
@@ -408,19 +408,19 @@ export const ReorderLeaders = meta.story({
   },
 });
 
-/** A participant sees their planner open once, then keeps the window they chose across battle updates. */
+/** A participant sees their planner open once, then keeps the panel they chose across battle updates. */
 export const FocusOnce = meta.story({
   beforeEach: battleSetup('preparing'),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await settled(() => expect(windowNamed(page, 'Battle plan')).toBeVisible());
-    await unpinWindow(page, 'Battle plan');
+    await settled(() => expect(panelNamed(page, 'Battle plan')).toBeVisible());
+    await unpinPanel(page, 'Battle plan');
     await openTab(page, 'Hand');
     const snapshot = battleStory('preparing');
     snapshot.revision = 1;
     session.transport.deliver(session.transport.view(snapshot));
-    await settled(() => expect(windowNamed(page, 'Hand')).toBeVisible());
-    await expect(windowNamed(page, 'Battle plan')).toBeNull();
+    await settled(() => expect(panelNamed(page, 'Hand')).toBeVisible());
+    await expect(panelNamed(page, 'Battle plan')).toBeNull();
   },
 });
 
@@ -618,7 +618,7 @@ export const Resolved = meta.story({
     session.transport.deliver(
       session.transport.view({ ...snapshot, phase: snapshot.phase + 1, revision: snapshot.revision + 1 })
     );
-    await settled(() => expect(windowNamed(page, 'Battles')).toBeVisible());
+    await settled(() => expect(panelNamed(page, 'Battles')).toBeVisible());
     await openTab(page, 'Phase');
     await expectNoControl(page, 'Battle plan');
     await openTab(page, 'Battles');
@@ -768,11 +768,11 @@ export const PlannerHintOpensPlan = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('preparing'))),
   play: async ({ canvasElement }) => {
     /* The battle opens the planner for a side's player; closing it is what the hints answer. */
-    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    await unpinPanel(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
     const page = await openPanel(canvasElement, 'Hand');
-    const hand = within(windowNamed(page, 'Hand')!);
+    const hand = within(panelNamed(page, 'Hand')!);
     await userEvent.click(await hand.findByRole('button', { name: 'Open battle plan' }, WAIT));
-    await waitFor(() => expect(windowNamed(page, 'Battle plan')).toBeVisible(), WAIT);
+    await waitFor(() => expect(panelNamed(page, 'Battle plan')).toBeVisible(), WAIT);
     await waitFor(() => expect(page.queryAllByRole('button', { name: 'Open battle plan' })).toHaveLength(0));
   },
 });
@@ -787,7 +787,7 @@ export const PlannerHintNeedsASide = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const page = await openPanel(canvasElement, 'Hand');
-    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await waitFor(() => expect(panelNamed(page, 'Hand')).toBeVisible(), WAIT);
     await expect(page.queryByRole('button', { name: 'Battle plan' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
   },
@@ -797,9 +797,9 @@ export const PlannerHintNeedsASide = meta.story({
 export const PlannerHintEndsWithPlanning = meta.story({
   beforeEach: install(() => productTransport('seat-2', battleStory('countdown'))),
   play: async ({ canvasElement }) => {
-    await unpinWindow(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
+    await unpinPanel(await openPanel(canvasElement, 'Battle plan'), 'Battle plan');
     const page = await openPanel(canvasElement, 'Hand');
-    await waitFor(() => expect(windowNamed(page, 'Hand')).toBeVisible(), WAIT);
+    await waitFor(() => expect(panelNamed(page, 'Hand')).toBeVisible(), WAIT);
     await expect(page.queryByRole('button', { name: 'Open battle plan' })).toBeNull();
   },
 });

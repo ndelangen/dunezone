@@ -1,0 +1,212 @@
+// @vitest-environment jsdom
+
+import { MantineProvider, mergeThemeOverrides } from '@mantine/core';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { appContentTheme } from '@ui/theme';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
+
+import { ChatBar } from './ChatBar';
+import { CompassTableContext } from './compassTable';
+import type { CompassPlayer, CompassTable } from './compassTable';
+import { FACTION_INFO, KEYBOARD_SHORTCUTS } from './panels';
+import { setShortcutsButton } from './shortcutsButton';
+
+/* jsdom has no matchMedia, which Mantine asks for. */
+window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  dispatchEvent: vi.fn(),
+}));
+
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+);
+afterEach(cleanup);
+
+const player = (seat: string, own: boolean): CompassPlayer => ({
+  seat,
+  name: own ? 'Me' : 'Them',
+  factionName: own ? 'Atreides' : 'Fremen',
+  token: null,
+  unread: 0,
+  own,
+  canConverse: true,
+  attention: false,
+  ally: false,
+});
+
+function renderBar(
+  players: readonly CompassPlayer[],
+  hasHand = true,
+  recall?: CompassTable['recall'],
+  sheet?: Readonly<{ onToggle: () => void; open: boolean }>
+) {
+  const onShow = vi.fn();
+  const table: CompassTable = {
+    players,
+    recall,
+    tableChat: null,
+    chat: () => null,
+    factionInfo: () => null,
+    nextPhase: null,
+    token: null,
+  };
+  render(
+    <MantineProvider>
+      <CompassTableContext.Provider value={table}>
+        <ChatBar
+          inert={false}
+          hasHand={hasHand}
+          onToggleShortcuts={sheet?.onToggle}
+          isOpen={(key) => Boolean(sheet?.open) && key === KEYBOARD_SHORTCUTS}
+          onOpenCompass={vi.fn()}
+          onShow={onShow}
+        />
+      </CompassTableContext.Provider>
+    </MantineProvider>
+  );
+  return onShow;
+}
+
+test('the own token sits left of the Controls button and opens Hand & spice', () => {
+  const onShow = renderBar([player('seat-1', true), player('seat-2', false)]);
+  const own = screen.getByRole('button', { name: 'Hand & spice, you are playing as Atreides' });
+  const launcher = screen.getByRole('button', { name: /Controls/ });
+  expect(own.compareDocumentPosition(launcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.click(own);
+  expect(onShow).toHaveBeenCalledWith('hand');
+});
+
+test('recall puts the own hand left of Controls and only the recall chat to its right', () => {
+  const onShow = renderBar([{ ...player('seat-1', true), vote: 'removal' }, player('seat-2', false)], true, {
+    id: 'one',
+    context: 'Storm',
+    loading: false,
+    seated: true,
+    panels: [],
+    chat: { unread: 2 },
+  });
+  const own = screen.getByRole('button', { name: 'Your recalled hand, you are playing as Atreides' });
+  const launcher = screen.getByRole('button', { name: /Controls/ });
+  const chat = screen.getByRole('button', { name: 'Recall chat, 2 unread' });
+  expect(own.compareDocumentPosition(launcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(launcher.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getAllByRole('button')).toHaveLength(3);
+  fireEvent.click(own);
+  expect(onShow).toHaveBeenLastCalledWith('hand');
+  fireEvent.click(chat);
+  expect(onShow).toHaveBeenLastCalledWith('recall-chat');
+});
+
+test('an observing recall has no private hand or chat control', () => {
+  renderBar([player('seat-2', false)], false, {
+    id: 'one',
+    context: 'Storm',
+    loading: false,
+    seated: true,
+    panels: [],
+  });
+  expect(screen.getAllByRole('button')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: /Controls/ })).toBeTruthy();
+});
+
+test('a spectator has no own token', () => {
+  renderBar([player('seat-2', false)]);
+  expect(screen.queryByRole('button', { name: /you are playing as/ })).toBeNull();
+});
+
+test('before the table has a Hand & spice panel the own token opens their own Faction info (#2987)', () => {
+  const onShow = renderBar([player('seat-1', true)], false);
+  fireEvent.click(screen.getByRole('button', { name: /^Faction info, you are playing as/ }));
+  expect(onShow).toHaveBeenCalledWith(FACTION_INFO, 'seat-1');
+});
+
+/* jsdom has no layout with which to keep an anchored tooltip attached. */
+const testTheme = mergeThemeOverrides(appContentTheme, {
+  components: { Tooltip: { defaultProps: { hideDetached: false, transitionProps: { duration: 0 } } } },
+});
+
+function renderChats() {
+  const onShow = vi.fn();
+  const result = render(
+    <MantineProvider theme={testTheme} forceColorScheme="dark">
+      <CompassTableContext
+        value={{
+          players: [
+            {
+              seat: 'seat-1',
+              name: 'Paul',
+              factionName: 'Atreides',
+              token: null,
+              unread: 2,
+              own: false,
+              canConverse: true,
+              attention: false,
+              ally: true,
+            },
+          ],
+          tableChat: { unread: 3 },
+          chat: () => null,
+          factionInfo: () => null,
+          nextPhase: null,
+          token: null,
+        }}
+      >
+        <ChatBar inert={false} hasHand={false} isOpen={() => false} onOpenCompass={vi.fn()} onShow={onShow} />
+      </CompassTableContext>
+    </MantineProvider>
+  );
+  return { ...result, onShow };
+}
+
+test('chat tokens use the shared tooltip on hover and keep unread names and click actions', async () => {
+  const { container, onShow } = renderChats();
+  const chat = screen.getByRole('button', { name: 'Table chat, 3 unread' });
+  fireEvent.mouseEnter(chat);
+  expect((await screen.findByRole('tooltip')).textContent).toBe('Table chat · Space →');
+  expect(screen.getByRole('tooltip').className).toContain('mantine-Tooltip-tooltip');
+  expect(container.querySelector('[data-tip], [data-tooltip], [title]')).toBeNull();
+  fireEvent.click(chat);
+  expect(onShow).toHaveBeenCalledWith('table-chat');
+});
+
+test('keyboard focus exposes the player, faction and ally shortcut through the same tooltip', async () => {
+  renderChats();
+  const player = screen.getByRole('button', { name: 'Paul, Atreides, 2 unread' });
+  fireEvent.focus(player);
+  expect((await screen.findByRole('tooltip')).textContent).toBe('Paul · Atreides · ally · Space → →');
+});
+
+test('the keyboard shortcuts button sits left of the own token, shows the sheet pressed and toggles it', () => {
+  const onToggle = vi.fn();
+  renderBar([player('seat-1', true)], true, undefined, { onToggle, open: true });
+  const button = screen.getByRole('button', { name: 'Keyboard shortcuts' });
+  const own = screen.getByRole('button', { name: /you are playing as Atreides/ });
+  expect(button.compareDocumentPosition(own) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(button.getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(button);
+  expect(onToggle).toHaveBeenCalledOnce();
+});
+
+test('the keyboard shortcuts button stays off the bar without a sheet, or once the viewer turns it off', () => {
+  renderBar([player('seat-1', true)]);
+  expect(screen.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull();
+  cleanup();
+  setShortcutsButton(false);
+  try {
+    renderBar([player('seat-1', true)], true, undefined, { onToggle: vi.fn(), open: false });
+    expect(screen.queryByRole('button', { name: 'Keyboard shortcuts' })).toBeNull();
+  } finally {
+    setShortcutsButton(true);
+  }
+});

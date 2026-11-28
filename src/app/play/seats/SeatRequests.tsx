@@ -1,0 +1,665 @@
+import { Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { idleBidding } from '@shared/play/bidding';
+import type { PublicControls } from '@shared/play/inventory';
+import { seatLabel, seatSubject } from '@shared/play/participation';
+import type { SeatAction } from '@shared/play/participation';
+import { rosterSeat } from '@shared/play/schema';
+import { Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { HoldAction } from '@ui/control/HoldAction';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Armchair, ChevronLeft, ChevronRight, Radio, Settings, X } from 'lucide-react';
+import { memo, useId, useState } from 'react';
+import type { ReactNode } from 'react';
+
+import type { TableProjection, TableSession } from '../../db/tabletop/TableSession';
+import {
+  setBoardSkin,
+  setPlanetShading,
+  useBoardSkin,
+  usePlanetShading,
+} from '../../widgets/tabletop/boardSkinPreference';
+import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../widgets/tabletop/boardSkins';
+import type { BoardSkin } from '../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../widgets/tabletop/cameraFollowsPhase';
+import { setPointerNames, usePointerNames } from '../../widgets/tabletop/pointerNames';
+import {
+  setTableLighting,
+  TABLE_LIGHTING_MAX,
+  TABLE_LIGHTING_MIN,
+  useTableLighting,
+} from '../../widgets/tabletop/tableLighting';
+import {
+  setTablePanSpeed,
+  TABLE_PAN_SPEED_MAX,
+  TABLE_PAN_SPEED_MIN,
+  useTablePanSpeed,
+} from '../../widgets/tabletop/tablePanSpeed';
+import { setTableVolume, TABLE_VOLUME_MAX, useTableVolume } from '../../widgets/tabletop/tableSounds';
+import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
+import { setAutoClearChats, useAutoClearChats } from '../notices/autoClearChats';
+import { setChatNotices, useChatNotices } from '../notices/chatNotices';
+import { publicControlsOf } from '../table/publicControls';
+import { isSpectator, offersActions } from '../table/tableFactions';
+import { TABLE_LABEL_OPTIONS, useTableLabels } from '../table/tableLabels';
+
+/*
+ * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
+ * Seats popover in the header (or the (+) in the drafting roster), every player approves in Seats & spectators (or the
+ * drafting roster), and giving up a seat is held in the game menu.
+ */
+
+type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
+
+export function seatWords(
+  table: TableProjection,
+  seat: string | null,
+  label: (seat: string) => string = seatLabel
+): string {
+  if (seat === null) {
+    return 'a seat';
+  }
+  const faction = rosterSeat(table.snapshot.roster, seat)?.faction?.name;
+  return faction ? `${label(seat)} (${faction})` : label(seat);
+}
+
+/** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
+export function openSeats(table: TableProjection): string[] {
+  const controls = publicControlsOf(table);
+  return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
+}
+
+/** The one button every bar action is: it waits while a seat command is on its way. */
+function SeatButton({
+  client,
+  table,
+  action,
+  emphasis,
+  icon,
+  children,
+}: BarProps &
+  Readonly<{
+    action: SeatAction;
+    emphasis?: 'standard' | 'strong';
+    icon: ReactNode;
+    children: string;
+  }>) {
+  return (
+    <LabeledAction
+      emphasis={emphasis}
+      icon={icon}
+      disabledReason={seatLockedReason(table)}
+      onClick={() => client.command(action)}
+    >
+      {children}
+    </LabeledAction>
+  );
+}
+
+type SeatNotice = Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode }>;
+
+type SeatRequest = PublicControls['seatRequests'][number];
+
+/** What a spectator's standing request says: the game is over, the seat it names was taken, or it waits for a player. */
+function ownRequestCopy(table: TableProjection, own: SeatRequest): Pick<SeatNotice, 'title' | 'context'> {
+  if (table.snapshot.stage === 'finished') {
+    return {
+      title: 'This game has finished',
+      context: 'Nobody can take a seat now. Withdraw the request to clear it.',
+    };
+  }
+  /* The table keeps a request for a seat someone else took, so it can be approved if that seat opens again. */
+  if (table.snapshot.stage !== 'drafting' && own.seat !== null && !openSeats(table).includes(own.seat)) {
+    return {
+      title: `${seatWords(table, own.seat, seatSubject)} is taken now`,
+      context: 'A player can approve you if it opens again. Withdraw to ask for another seat.',
+    };
+  }
+  return {
+    title: 'Waiting for a player to approve you',
+    context: `You asked for ${seatWords(table, own.seat)}. Any current player can approve; until then you keep watching.`,
+  };
+}
+
+/** A spectator's way into a running game: a request for a seat, or for the chosen open seat once the seating is fixed. */
+function seatOffer(
+  client: TableSession,
+  table: TableProjection,
+  chosen: string | null,
+  choose: (seat: string | null) => void
+): SeatNotice {
+  const drafting = table.snapshot.stage === 'drafting';
+  const open = openSeats(table);
+  const seated = publicControlsOf(table).seats.length;
+  const seatCount = table.snapshot.roster?.seatCount ?? seated;
+  /* A full game has nothing to ask for; the notice says so and grows back into a request when a seat opens. */
+  if (!drafting && open.length === 0) {
+    return { eyebrow: 'You are watching', title: `All ${seatCount} seats are taken` };
+  }
+  const selected = chosen && open.includes(chosen) ? chosen : (open[0] ?? null);
+  const request: SeatAction =
+    drafting || !selected ? { kind: 'seat-request' } : { kind: 'seat-request', seat: selected };
+  return {
+    eyebrow: 'You are watching',
+    title: 'Take a seat in this game?',
+    context: drafting
+      ? `${seated} ${seated === 1 ? 'player is' : 'players are'} drafting. One current player's approval seats you; until then you watch.`
+      : `${seated} of ${seatCount} seats are taken. One current player's approval seats you; until then you watch.`,
+    action: (
+      <Group gap="xs" wrap="wrap">
+        {!drafting && open.length > 1 && (
+          <Select
+            aria-label="Open seat"
+            data={open.map((seat) => ({ value: seat, label: seatWords(table, seat) }))}
+            value={selected}
+            onChange={choose}
+            allowDeselect={false}
+            comboboxProps={{ withinPortal: false }}
+          />
+        )}
+        {/* Keyed by the seat it asks for, so a press that began before that seat was taken never requests another. */}
+        <SeatButton
+          key={request.seat ?? 'any'}
+          client={client}
+          table={table}
+          action={request}
+          emphasis="strong"
+          icon={<Armchair size={16} />}
+        >
+          {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
+        </SeatButton>
+      </Group>
+    ),
+  };
+}
+
+/** What a spectator's seat says and the one action it offers, or nothing once there is nothing to say. */
+function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNotice | null {
+  const [chosen, setChosen] = useState<string | null>(null);
+  const stage = table.snapshot.stage;
+  if (!isSpectator(table) || !stage || stage === 'discarded') {
+    return null;
+  }
+  const own = publicControlsOf(table).seatRequests.find((request) => request.own);
+  if (own) {
+    return {
+      eyebrow: 'Seat requested',
+      ...ownRequestCopy(table, own),
+      action: (
+        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} icon={<X size={16} />}>
+          Withdraw
+        </SeatButton>
+      ),
+    };
+  }
+  return stage === 'finished' ? null : seatOffer(client, table, chosen, setChosen);
+}
+
+/**
+ * A spectator's seat, behind one action in the header toolbar beside the game menu (Norbert, 2026-10-02).
+ * The table keeps its panels for the controls, and the header keeps its one row.
+ */
+export function SeatPopover({
+  client,
+  table,
+  error,
+}: Readonly<{ client: TableSession; table: TableProjection; error: string | null }>) {
+  const notice = useSpectatorSeat(client, table);
+  /* The open state lives with the notice, so a seat that comes and goes never brings the popover back already open.
+     Playback shows a past snapshot, so its seat actions would be stale; the panels drop them then too. */
+  return notice && !table.playback ? <SeatNoticePopover notice={notice} error={error} /> : null;
+}
+
+function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; error: string | null }>) {
+  const [opened, setOpened] = useState(false);
+  const labelId = useId();
+  return (
+    <Popover
+      opened={opened}
+      onChange={setOpened}
+      position="bottom-end"
+      shadow="md"
+      width="min(340px, calc(100vw - 2rem))"
+      withArrow
+    >
+      <Popover.Target>
+        <IconAction
+          label="Seats"
+          emphasis="standard"
+          intent="neutral"
+          size="sm"
+          onClick={() => setOpened((current) => !current)}
+          icon={<Armchair size={15} aria-hidden />}
+        />
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack component="section" aria-labelledby={labelId} gap="sm">
+          {/* The copy is a polite status, so a change while it is open is heard, not only seen. */}
+          <Stack gap={2} role="status">
+            <Eyebrow id={labelId}>{notice.eyebrow}</Eyebrow>
+            <Text fw={700}>{notice.title}</Text>
+            {notice.context && (
+              <Text size="sm" c="dimmed">
+                {notice.context}
+              </Text>
+            )}
+          </Stack>
+          {/* A refused request shows beside the button that sent it. */}
+          {error && <FormError title="From the table">{error}</FormError>}
+          {notice.action}
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+/** Whether the viewer is the last player at a game in play, who ends it rather than leaving it empty. */
+function endsTheGame(table: TableProjection): boolean {
+  return table.snapshot.stage === 'play' && publicControlsOf(table).seats.length === 1;
+}
+
+/*
+ * The game menu's held seat item names what it costs: the game, a roster place, or a seat left open.
+ * The last player in play ends the game instead; a finished game keeps its result when its last player leaves.
+ */
+function leavingLabel(table: TableProjection): string {
+  const controls = publicControlsOf(table);
+  switch (true) {
+    case endsTheGame(table):
+      return 'Hold to end the game';
+    case controls.seats.length === 1 && table.snapshot.stage !== 'finished':
+      return 'Hold to leave and discard the game';
+    case table.snapshot.stage === 'drafting':
+      return 'Hold to give up your place';
+    default:
+      return 'Hold to give up your seat';
+  }
+}
+
+/** A player approves while the game runs live; a finished game takes no one until it continues. */
+export function approvable(table: TableProjection): boolean {
+  return !isSpectator(table) && !table.playback && table.snapshot.stage !== 'finished';
+}
+
+/* This viewer's table brightness; it stays in this browser and never reaches the game. */
+function TableLightingSlider() {
+  const lighting = useTableLighting();
+  const labelId = useId();
+  const percent = (value: number) => `${Math.round(value * 100)}%`;
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Table lighting
+      </Text>
+      <Slider
+        thumbLabel="Table lighting"
+        thumbValueText={percent}
+        min={TABLE_LIGHTING_MIN}
+        max={TABLE_LIGHTING_MAX}
+        step={0.05}
+        value={lighting}
+        onChange={setTableLighting}
+        label={percent}
+      />
+    </Stack>
+  );
+}
+
+/* How loud the table's sounds play for this viewer, pings, chat and the Ready reminder alike; 0 mutes them (#2982). */
+function TableVolumeSlider() {
+  const volume = useTableVolume();
+  const labelId = useId();
+  const percent = (value: number) => (value === 0 ? 'Muted' : `${Math.round(value * 100)}%`);
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Sound volume
+      </Text>
+      <Slider
+        thumbLabel="Sound volume"
+        thumbValueText={percent}
+        min={0}
+        max={TABLE_VOLUME_MAX}
+        step={0.05}
+        value={volume}
+        onChange={setTableVolume}
+        label={percent}
+      />
+    </Stack>
+  );
+}
+
+/*
+ * How fast this viewer's pan keys slide the view; it stays in this browser and never reaches the game.
+ * The slider runs on a log scale, so halving and doubling the speed are the same distance either side of the table's own.
+ */
+function TablePanSpeedSlider() {
+  const speed = useTablePanSpeed();
+  const labelId = useId();
+  /* The steps start at the slow end, so the one nearest the table's own speed snaps onto it. */
+  const toSpeed = (position: number) => (Math.abs(position) < 0.03 ? 1 : Math.exp(position));
+  const times = (position: number) => `${Number(toSpeed(position).toPrecision(2))}×`;
+  return (
+    <Stack role="group" aria-labelledby={labelId} gap={4} px="sm" py="xs" miw={200}>
+      <Text id={labelId} size="sm">
+        Pan speed
+      </Text>
+      <Slider
+        thumbLabel="Pan speed"
+        thumbValueText={times}
+        min={Math.log(TABLE_PAN_SPEED_MIN)}
+        max={Math.log(TABLE_PAN_SPEED_MAX)}
+        step={0.05}
+        value={Math.log(speed)}
+        onChange={(position) => setTablePanSpeed(toSpeed(position))}
+        label={times}
+      />
+    </Stack>
+  );
+}
+
+/* How this viewer's board draws its territory types; it stays in this browser and never reaches the game. */
+function BoardSkinItems() {
+  const skin = useBoardSkin();
+  return (
+    <>
+      <Menu.Divider />
+      <Menu.Label>Board skin</Menu.Label>
+      <Menu.RadioGroup value={skin} onChange={(value) => setBoardSkin(value as BoardSkin)}>
+        {BOARD_SKINS.map((value) => (
+          <Menu.RadioItem key={value} value={value}>
+            {BOARD_SKIN_LABELS[value]}
+          </Menu.RadioItem>
+        ))}
+      </Menu.RadioGroup>
+    </>
+  );
+}
+
+/* A choice this viewer turns on or off; it stays in this browser and never reaches the game. */
+function ViewerToggleItem({ label, on, set }: Readonly<{ label: string; on: boolean; set: (on: boolean) => void }>) {
+  return (
+    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => set(!on)}>
+      {label}
+    </Menu.CheckboxItem>
+  );
+}
+
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim. */
+function PlanetShadingItem() {
+  return <ViewerToggleItem label="Planet shading" on={usePlanetShading()} set={setPlanetShading} />;
+}
+
+/* Off, a new phase leaves the view this viewer set up instead of moving to the phase's own view. */
+function CameraFollowsPhaseItem() {
+  return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
+}
+
+/* Shows other players' names beside their pointer hands; on unless turned off (#2993). */
+function PointerNamesItem() {
+  return <ViewerToggleItem label="Pointer names" on={usePointerNames()} set={setPointerNames} />;
+}
+
+/* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
+function ShortcutsButtonItem() {
+  return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
+}
+
+/* The viewer's own chats clear at the start of each turn, logged as a clear by hand is; off unless turned on (#2674). */
+function AutoClearChatsItem() {
+  return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
+}
+
+/* Chat notifications on or off: the viewer owns the choice, kept in this browser; the notices own what they show while it is on (#2981). */
+function ChatNoticesItem() {
+  return <ViewerToggleItem label="Chat notifications" on={useChatNotices()} set={setChatNotices} />;
+}
+
+/* Pins the stack counts or piece names on; holding the key shows them for a moment. */
+function TableLabelItems() {
+  const labels = useTableLabels();
+  if (!labels) {
+    return null;
+  }
+  return (
+    <>
+      <Menu.Divider />
+      {TABLE_LABEL_OPTIONS.map((option) => (
+        <Menu.CheckboxItem
+          key={option.id}
+          checked={labels.pinned[option.id]}
+          onChange={() => labels.toggle(option.id)}
+          rightSection={
+            <Text size="xs" c="dimmed">
+              hold {option.key}
+            </Text>
+          }
+        >
+          {option.name}
+        </Menu.CheckboxItem>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The settings menu behind the gear at the right end of the header, in every stage, after the phase controls.
+ * It gives up the viewer's seat with a five-second hold, never a modal or a bar;
+ * a spectator has no seat to give up.
+ * While a result's confetti is on the table it also stops and clears it, for the whole table when a player clears it.
+ */
+export function GameMenu({
+  client,
+  table,
+  onClearConfetti,
+  sharing,
+  voice,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  onClearConfetti?: () => void;
+  sharing: ReactNode;
+  voice?: ReactNode;
+}>) {
+  const stage = table.snapshot.stage;
+  const spectator = isSpectator(table);
+  const ends = endsTheGame(table);
+  /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
+  const seated = !spectator && stage !== undefined && stage !== 'discarded';
+  /* The menu reads only these from the table, so it skips the updates that leave them alone. */
+  return (
+    <GameMenuView
+      client={client}
+      onClearConfetti={onClearConfetti}
+      sharing={sharing}
+      voice={voice && stage !== 'finished' && stage !== 'discarded' && !table.playback ? voice : null}
+      spectator={spectator}
+      bidTimed={
+        stage === 'play' && offersActions(table) ? (table.snapshot.bidding?.timed ?? idleBidding().timed) : null
+      }
+      bidTimingDisabled={!table.canInteract || !table.snapshot.bank}
+      seatKey={`${table.viewer.viewerSeat}:${ends ? 'end' : 'leave'}`}
+      seatLabel={seated ? leavingLabel(table) : 'Give up your seat'}
+      endsGame={ends}
+      seatDisabled={!seated || seatLocked(table)}
+    />
+  );
+}
+
+type GameMenuViewProps = Readonly<{
+  client: TableSession;
+  onClearConfetti: (() => void) | undefined;
+  sharing: ReactNode;
+  voice: ReactNode;
+  /** A spectator has no seat to give up and no chats of their own. */
+  spectator: boolean;
+  /** Whether bidding is timed, offered while the game is in play to a viewer who acts; null where it is not offered. */
+  bidTimed: boolean | null;
+  bidTimingDisabled: boolean;
+  /** The held item that gives up the viewer's seat, or ends the game for its last player. */
+  seatKey: string;
+  seatLabel: string;
+  endsGame: boolean;
+  seatDisabled: boolean;
+}>;
+
+const GameMenuView = memo(function GameMenuView({
+  client,
+  onClearConfetti,
+  sharing,
+  voice,
+  spectator,
+  bidTimed,
+  bidTimingDisabled,
+  seatKey,
+  seatLabel,
+  endsGame,
+  seatDisabled,
+}: GameMenuViewProps) {
+  return (
+    /* Sized to the room below the button and scrolled past it, so short windows still reach the lobby and seat actions. */
+    <Menu position="bottom-end" shadow="md" withinPortal middlewares={{ size: { padding: 8 } }}>
+      <Menu.Target>
+        <IconAction
+          label="Game menu"
+          emphasis="quiet"
+          intent="neutral"
+          size="lg"
+          icon={<Settings size={20} aria-hidden />}
+        />
+      </Menu.Target>
+      <Menu.Dropdown style={{ overflowY: 'auto' }}>
+        {sharing}
+        {voice ? (
+          /* Framed like the game link above it, so the voice button keeps the menu's inset and the game link's width. */
+          <Stack gap="xs" px="xs" pb="xs" maw={300}>
+            {voice}
+          </Stack>
+        ) : null}
+        <Menu.Divider />
+        <TableLightingSlider />
+        <TablePanSpeedSlider />
+        <TableVolumeSlider />
+        <CameraFollowsPhaseItem />
+        <BoardSkinItems />
+        <PlanetShadingItem />
+        <PointerNamesItem />
+        <TableLabelItems />
+        <ShortcutsButtonItem />
+        {!spectator && (
+          <>
+            <Menu.Divider />
+            <ChatNoticesItem />
+            <AutoClearChatsItem />
+          </>
+        )}
+        {bidTimed !== null && (
+          <Menu.CheckboxItem
+            checked={bidTimed}
+            disabled={bidTimingDisabled}
+            closeMenuOnClick={false}
+            rightSection={
+              <Text size="xs" c="dimmed">
+                20s + 5s
+              </Text>
+            }
+            onChange={(enabled) => client.command({ kind: 'bid-timing', enabled })}
+          >
+            Timed bidding
+          </Menu.CheckboxItem>
+        )}
+        <Menu.Divider />
+        <Menu.Item component={Link} to="/play">
+          Back to the lobby
+        </Menu.Item>
+        {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
+        {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
+        {/*
+         * Keyed by the seat and by what the hold does, so a hold started on one seat never departs the seat a trade moved the viewer to,
+         * a leave countdown never turns into ending the game when another player leaves, and the item is ready again once the game has ended.
+         */}
+        {!spectator && (
+          <HoldAction
+            shape="menu-item"
+            key={seatKey}
+            label={seatLabel}
+            verb={endsGame ? 'end' : 'leave'}
+            closeMenuOnClick={false}
+            disabled={seatDisabled}
+            onConfirm={() => client.command(endsGame ? { kind: 'result-end' } : { kind: 'seat-depart' })}
+          />
+        )}
+      </Menu.Dropdown>
+    </Menu>
+  );
+});
+
+/** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
+export function seatLocked(table: TableProjection): boolean {
+  return seatLockedReason(table) !== undefined;
+}
+
+/** Why a seat action waits, in the words its disabled button gives; nothing while it can run. */
+export function seatLockedReason(table: TableProjection): string | undefined {
+  if (table.seatCommandPending) {
+    return 'Your last seat action is still on its way.';
+  }
+  if (table.reconnecting) {
+    return 'Reconnecting to the table.';
+  }
+  return table.playback || table.historyPending ? 'Return to the live table first.' : undefined;
+}
+
+/**
+ * Playback in the header, in every stage, so leaving the Replay tab never hides the way back to live: it steps through the checkpoints and returns to the live table.
+ */
+export function StagePlayback({
+  client,
+  table,
+  error = null,
+}: Readonly<{ client: TableSession; table: TableProjection; error?: string | null }>) {
+  const { playback, historyPending } = table;
+  if (!playback || !table.snapshot.stage) {
+    return null;
+  }
+  /* A refused step keeps the checkpoint; its reason hangs under the controls that asked, whichever tab is open. */
+  return (
+    <Popover opened={Boolean(error)} position="bottom-end" withArrow withinPortal>
+      <Popover.Target>
+        <Group gap="xs" justify="flex-end" role="group" aria-label="Phase playback">
+          <Text size="sm" c="dimmed" role="status">
+            Playback checkpoint {playback.step} of {playback.lastStep}
+          </Text>
+          <LabeledAction
+            icon={<ChevronLeft size={16} />}
+            disabledReason={
+              historyPending ? 'Playback is loading.' : playback.step === 0 ? 'This is the first phase.' : undefined
+            }
+            onClick={() => client.requestHistory(playback.step - 1)}
+          >
+            Earlier phase
+          </LabeledAction>
+          <LabeledAction
+            icon={<ChevronRight size={16} />}
+            disabledReason={
+              historyPending
+                ? 'Playback is loading.'
+                : playback.step === playback.lastStep
+                  ? 'This is the last phase.'
+                  : undefined
+            }
+            onClick={() => client.requestHistory(playback.step + 1)}
+          >
+            Later phase
+          </LabeledAction>
+          <LabeledAction emphasis="strong" icon={<Radio size={16} />} onClick={client.resumeLive}>
+            Return to live
+          </LabeledAction>
+        </Group>
+      </Popover.Target>
+      <Popover.Dropdown maw={320}>{error && <FormError title="From the table">{error}</FormError>}</Popover.Dropdown>
+    </Popover>
+  );
+}

@@ -13,7 +13,7 @@ const meta = preview.meta({
   globals: { motion: 'on' },
   loaders: [
     async () => {
-      await import('./multiplayer/HostedTable');
+      await import('../../../play/table/HostedTable');
     },
   ],
 });

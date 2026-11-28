@@ -3,7 +3,7 @@ import { waitForFrame } from '@sb/storyWaits';
 import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
-import { windowNamed } from './controls.stories.fixture';
+import { panelNamed } from './controls.stories.fixture';
 import {
   draftingSnapshot,
   storyPlayer,
@@ -98,21 +98,21 @@ export const SpectatorAsksForASeat = meta.story({
   },
 });
 
-/** A spectator seated during drafting sees the Drafting window open, which they had nothing of while watching (#1666). */
+/** A spectator seated during drafting sees the Drafting panel open, which they had nothing of while watching (#1666). */
 export const SeatedSpectatorLandsOnDrafting = meta.story({
   beforeEach: install(() => productTransport('neutral', drafting())),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await shows(() => page.getByRole('button', { name: 'Take a seat' }));
     await shows(() => page.getByRole('button', { name: /^Controls/ }));
-    await expect(windowNamed(page, 'Drafting')).toBeNull();
+    await expect(panelNamed(page, 'Drafting')).toBeNull();
     const seated = session.transport.view({
       ...draftingSnapshot([SIX[0]!, SIX[1]!], 6),
       revision: drafting().revision + 1,
     });
     seated.viewer = { ...seated.viewer, viewerSeat: 'seat-2' };
     session.transport.deliver(seated);
-    await waitFor(() => expect(windowNamed(page, 'Drafting')).toBeVisible(), { timeout: 30_000 });
+    await waitFor(() => expect(panelNamed(page, 'Drafting')).toBeVisible(), { timeout: 30_000 });
   },
 });
 

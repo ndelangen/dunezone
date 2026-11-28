@@ -1,0 +1,489 @@
+/*
+ * The play shell's own chrome: what the kit has no concern for. The 3D scene and the labels it
+ * projects, the seated header's floating chips with the phase status, and the camera dial; the
+ * compass and its panels bring their own styles (compass/*.module.css). Everything inside a panel
+ * is the kit (Section, Eyebrow, Mantine controls) on the dark-scheme island the shell declares with
+ * data-scheme-dark; see tokens.css.
+ * Every class here is named by a source file under this route; check:css-orphans reads it. These
+ * rules are unlayered and Mantine's live in a layer, so a rule on a bare element name here would
+ * beat every kit component's own styling: elements are only ever reached through a chrome class.
+ */
+
+/* Ground: the near-black the table sits on, and the two accents the chrome keeps; ink comes from
+   the island. */
+.dune-play-shell {
+  --play-header-height: 5.2rem;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sand: var(--color-brand);
+  --cream-muted: var(--color-muted);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-ground);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* The stage under the shell: a one-cell grid that stacks the waiting frame under the shell until the renderer is ready.
+   It paints no ground while it waits, so the app's stars and its planet show through the waiting frame (TableWait).
+   The shell stays closed until then, and opens out of the planet: an iris that starts at the planet's own disc and
+   widens to the window, while the planet swells away behind it (AppBackground reads the stage's data-voyage). */
+.dune-play-stage {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.dune-play-stage > * {
+  grid-area: 1 / 1;
+  min-height: 0;
+}
+
+/* The waiting frame fades as the table opens over it. */
+.dune-play-wait[data-leaving] {
+  opacity: 0;
+  transition: opacity 700ms ease-out;
+}
+
+/*
+ * The planet rests by the window (beside a tutorial's rail, centred on the page beside it), while the shell starts right of
+ * that rail: the iris centres on the planet in the shell's own coordinates.
+ */
+.dune-play-stage {
+  --dune-play-planet-x: calc(50vw + var(--voyage-planet-x) - var(--page-layout-fullscreen-left, 0px));
+}
+
+.dune-play-stage:not([data-arrival="opening"], [data-arrival="open"]) .dune-play-shell {
+  clip-path: circle(0% at var(--dune-play-planet-x) var(--voyage-planet-y));
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
+  animation: dune-play-enter 1500ms ease-in-out;
+}
+
+/*
+ * The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it.
+ * The circle is a radial-gradient mask whose radius is a registered property the keyframes animate. A circular clip-path,
+ * animated or not, let Chromium clip the WebGL canvas inside only to the circle's bounding box, so the canvas's dark edges
+ * showed outside the circle; a mask makes the shell one surface, canvas included, and its edge can be feathered.
+ * The clipped shell never fades either; its ground eases in from clear, and its contents fade on their own.
+ */
+@property --dune-play-iris {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
+  --dune-play-iris: 150vmax;
+
+  clip-path: none;
+  mask-image: radial-gradient(
+    circle at var(--dune-play-planet-x) var(--voyage-planet-y),
+    var(--ui-black) calc(var(--dune-play-iris) - 1.5px),
+    transparent var(--dune-play-iris)
+  );
+}
+
+/* Once open, the shell drops its mask altogether. */
+.dune-play-stage[data-arrival="open"] .dune-play-shell {
+  mask-image: none;
+}
+
+@keyframes dune-play-enter {
+  from {
+    --dune-play-iris: calc(var(--voyage-planet-size) / 2);
+    background-color: transparent;
+  }
+  30% {
+    --dune-play-iris: calc(var(--voyage-planet-size) * 0.62);
+    background-color: var(--color-ground);
+  }
+  to {
+    --dune-play-iris: 150vmax;
+  }
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell > * {
+  animation: dune-play-enter-contents 1500ms ease-in-out;
+}
+
+@keyframes dune-play-enter-contents {
+  from {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* The stage's own rules carry the stage class and the ready attribute, so these repeat the stage class to outrank them. */
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell,
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
+  animation: none;
+  mask-image: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell,
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell > * {
+    animation: none;
+    mask-image: none;
+  }
+}
+
+:where(.dune-play-shell),
+:where(.dune-play-shell) * {
+  box-sizing: border-box;
+}
+
+/* Scene: the canvas and the labels the scene projects onto it. */
+:where(.dune-play-shell) .scene {
+  position: absolute;
+  inset: 0;
+}
+
+:where(.dune-play-shell) .scene canvas {
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+
+:where(.dune-play-shell) .scene--immersive {
+  z-index: 0;
+}
+
+/* While a board gesture is held, the chrome over the scene stops taking the pointer: the overlay, the header and the dial; the compass's own parts go inert. */
+:where(.dune-play-shell)[data-board-gesture-active="true"] :is(.seated-stage-overlay, .seated-header, .seated-camera),
+:where(.dune-play-shell)[data-board-gesture-active="true"]
+  :is(.seated-stage-overlay, .seated-header, .seated-camera)
+  * {
+  pointer-events: none !important;
+  user-select: none;
+}
+
+/* A stage's overlay over the scene, under the header: a layer, not a surface, so only what it draws takes the pointer. */
+:where(.dune-play-shell) .seated-stage-overlay {
+  position: absolute;
+  z-index: 7;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+:where(.dune-play-shell) .seated-stage-overlay > * {
+  pointer-events: auto;
+}
+
+/* Header: no bar of its own. The table runs to the top of the screen, and the phase with the game beside it (left) and
+   the phase and settings controls (right) float over it as chips. Only the chips take the pointer; the table shows
+   through between them. */
+:where(.dune-play-shell) .seated-header {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  pointer-events: none;
+}
+
+:where(.dune-play-shell) .seated-header__start {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* Connection recovery belongs to the table, separate from its phase and action controls. */
+:where(.dune-play-shell) .seated-connection {
+  position: absolute;
+  top: var(--space-md);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--ui-recess);
+  color: var(--color-text);
+  pointer-events: auto;
+}
+
+:where(.dune-play-shell) .seated-connection:empty {
+  display: none;
+}
+
+:where(.dune-play-shell) .seated-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgb(from var(--input-border) r g b / var(--input-border-alpha));
+  border-radius: 0.75rem;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+/* The alliances and the held tech tokens are pills of their own, so their chips draw no surface around them. */
+:where(.dune-play-shell) .seated-chip--bare {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* A chip with nothing in it (no game name, no alliances) takes no room. */
+:where(.dune-play-shell) .seated-chip:empty {
+  display: none;
+}
+
+:where(.dune-play-shell) .seated-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0.3rem 0.35rem;
+}
+
+/* Flat controls float over the table; the gap separates settings without another outline or divider. */
+:where(.dune-play-shell) .seated-toolbar {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+:where(.dune-play-shell) .seated-toolbar__settings {
+  display: flex;
+}
+
+:where(.dune-play-shell) .seated-phase-status {
+  color: var(--cream-muted);
+  font-size: 0.57rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* The phase's own live region lays its disc and words out in the chip as if it were not there. */
+:where(.dune-play-shell) .seated-phase-status__live {
+  display: contents;
+}
+
+:where(.dune-play-shell) .seated-phase-status__symbol {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+}
+
+:where(.dune-play-shell) .seated-phase-status__copy {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+:where(.dune-play-shell) .seated-phase-status strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-brand-strong);
+  /* The board's own display face, as the bidder and the battle wheel use it. */
+  font-family: "C_Advokat_Modern", serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* The camera dial in the table's top right corner, under the toolbar's chip (the compass measures where that ends as
+   --compass-camera-top): letters around a dot, a needle from the dot to the view the camera holds, a ring on the view
+   the phase recommends, and a caption naming what it moves. */
+:where(.dune-play-shell) .seated-camera {
+  position: absolute;
+  z-index: 1;
+  top: var(--compass-camera-top, calc(var(--play-header-height) + 0.5rem));
+  right: 1.1rem;
+}
+
+:where(.dune-play-shell) .camera-dial {
+  position: relative;
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, var(--button-neutral-bg), var(--mantine-color-dark-9));
+  box-shadow:
+    0 0 0 1px rgb(from var(--input-border) r g b / var(--input-border-alpha)),
+    0 8px 20px rgb(from var(--play-black) r g b / 0.5);
+}
+
+:where(.dune-play-shell) .camera-dial__needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.25rem;
+  height: 1.6rem;
+  margin-left: -0.125rem;
+  border-radius: 0.125rem;
+  background: var(--color-text);
+  transform-origin: 50% 0;
+  transition:
+    rotate 0.4s ease,
+    opacity 0.2s ease;
+}
+
+/* The hub is the top-down stop: its letter sits in the needle's pivot, and the needle goes while the camera looks straight down. */
+:where(.dune-play-shell) .camera-dial__hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: -0.6rem 0 0 -0.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-ink);
+  background: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+:where(.dune-play-shell) .camera-dial__hub:hover {
+  background: var(--color-white);
+}
+
+:where(.dune-play-shell) .camera-dial__hub:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.dune-play-shell) .camera-dial__hub[aria-pressed="true"] {
+  background: var(--sand);
+}
+
+:where(.dune-play-shell) .camera-dial[data-view="top"] .camera-dial__needle {
+  opacity: 0;
+}
+
+:where(.dune-play-shell) .camera-dial__view {
+  position: absolute;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin: -0.95rem 0 0 -0.95rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--cream-muted);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="map"] {
+  top: 18%;
+  left: 50%;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="left"] {
+  top: 50%;
+  left: 18%;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="right"] {
+  top: 50%;
+  left: 82%;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-view="bottom"] {
+  top: 82%;
+  left: 50%;
+}
+
+:where(.dune-play-shell) .camera-dial__view:hover {
+  color: var(--color-text);
+  background: rgb(from var(--play-white) r g b / 0.07);
+}
+
+:where(.dune-play-shell) .camera-dial__view:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.dune-play-shell) .camera-dial__view[data-phase-preferred] {
+  box-shadow: inset 0 0 0 1.5px var(--sand);
+}
+
+:where(.dune-play-shell) .camera-dial__view[aria-pressed="true"] {
+  color: var(--color-ink);
+  background: var(--sand);
+}
+
+:where(.dune-play-shell) .camera-dial__label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 0.35rem;
+  color: var(--cream-muted);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-shadow: 0 1px 3px var(--play-black);
+  text-transform: uppercase;
+  translate: -50% 0;
+}
+
+/* A 768px tablet keeps the header's chips side by side, since a step belongs to its wider side. */
+@media (width < 48rem) {
+  :where(.dune-play-shell) .seated-header {
+    z-index: 12;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  :where(.dune-play-shell) .scene--immersive {
+    top: 0;
+    height: auto;
+  }
+}
+
+/* The shell's transitions and smooth scrolling follow the site's Motion setting, like the iris above: off always stills them, on keeps them whatever the OS asks. */
+html[data-motion="reduce"] :where(.dune-play-shell),
+html[data-motion="reduce"] :where(.dune-play-shell) *,
+html[data-motion="reduce"] :where(.dune-play-shell) *::before,
+html[data-motion="reduce"] :where(.dune-play-shell) *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) :where(.dune-play-shell),
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *,
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *::before,
+  html:not([data-motion="ok"]) :where(.dune-play-shell) *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

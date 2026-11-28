@@ -35,6 +35,11 @@ export default defineMain({
       titlePrefix: 'Pages',
     },
     {
+      /* The Play table client sits beside the routes it serves, and its stories keep the Pages/Play titles they had there. */
+      directory: '../src/app/play',
+      titlePrefix: 'Pages',
+    },
+    {
       directory: '../src/game/assets/faction',
       titlePrefix: 'Game Assets/Faction',
     },
