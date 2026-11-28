@@ -153,6 +153,7 @@ export class LocalTable {
           .map((entry) => entry.sequence)
       ),
     });
+    this.noteWatchers();
     this.settleDirectory();
   }
 
@@ -176,6 +177,13 @@ export class LocalTable {
 
   private seatOf(userId: string): Viewer['viewerSeat'] {
     return this.session.seatFor(userId) ?? SPECTATOR_SEAT;
+  }
+
+  /** Tells the session who watches, as the Worker does with its connections, so every view lists the table's spectators. */
+  private noteWatchers() {
+    this.session.refreshViewers(
+      Object.values(this.opening.viewers).map((viewer) => ({ ...viewer, viewerSeat: this.seatOf(viewer.userId) }))
+    );
   }
 
   /** Every seat a player sits in; the spectator watches and acts for no one. */
@@ -394,6 +402,7 @@ export class LocalTable {
         this.session.clearActivity(before.connectionId);
       }
     }
+    this.noteWatchers();
     /* The page keeps the seat it shows, unless that is the learner's, who may have moved, or a seat the command emptied. */
     if (followsLearner || !this.session.holderOf(this.seat)) {
       this.seat = this.seatOf(this.learner);

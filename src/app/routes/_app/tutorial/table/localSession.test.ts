@@ -93,6 +93,17 @@ describe('a tutorial table before the deal', () => {
     expect(sent).toHaveLength(2);
   });
 
+  test('names the watching spectator in every view, and no longer once they are seated', () => {
+    const watcher = table.viewer(SPECTATOR_SEAT);
+    expect(table.frame('seat-1').snapshot.controls?.spectators.map((entry) => entry.name)).toEqual([
+      watcher.displayName,
+    ]);
+    table.viewAs(SPECTATOR_SEAT);
+    act({ kind: 'seat-request' }, SPECTATOR_SEAT);
+    act({ kind: 'seat-approve', requestId: stored().controls!.seatRequests[0]!.id }, 'seat-1');
+    expect(table.frame('seat-1').snapshot.controls?.spectators).toEqual([]);
+  });
+
   test('seats a spectator once a player approves their request', () => {
     table.viewAs(SPECTATOR_SEAT);
     act({ kind: 'seat-request' }, SPECTATOR_SEAT);

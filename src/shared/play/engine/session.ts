@@ -311,7 +311,7 @@ export class GameSession {
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs,
-      () => this.board().definition
+      () => this.board()?.definition
     );
     /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
     const dealt = new Map<string, readonly string[] | undefined>();
@@ -325,9 +325,15 @@ export class GameSession {
     return room;
   }
 
-  /* The board the table plays on: the one the game captured with its ruleset; a fixture, or a game retained before ruleset boards, plays on the bundled Arrakis. */
-  private board() {
-    return this.options.board?.() ?? this.captures.ruleset()?.board ?? arrakisBoardCapture;
+  /*
+   * The board the table plays on: the one the game captured with its ruleset; a fixture, or a game retained before ruleset boards, plays on the bundled Arrakis.
+   * A host that holds its own board answers for it, and until it has read one the table plays on none.
+   */
+  private board(): BoardCapture | undefined {
+    if (this.options.board) {
+      return this.options.board();
+    }
+    return this.captures.ruleset()?.board ?? arrakisBoardCapture;
   }
 
   private isHostedFixture(metadata: Metadata) {
@@ -1029,7 +1035,7 @@ export class GameSession {
   }
   /* A spice blow's territory takes its name from the captured board, never from the page, so the log says where the spice went. */
   private namedOnBoard<Action extends PieceAction>(action: Action): Action {
-    const board = action.kind === 'spice-blow' ? this.board().definition : undefined;
+    const board = action.kind === 'spice-blow' ? this.board()?.definition : undefined;
     if (action.kind !== 'spice-blow' || !board) {
       return action;
     }
