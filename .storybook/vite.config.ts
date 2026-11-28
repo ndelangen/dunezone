@@ -71,6 +71,8 @@ export default defineConfig({
       ...convexWorkerOptimizeDeps.include,
       /* Hold helpers must be bundled before the first story starts. */
       '@sinonjs/fake-timers',
+      /* A testing story reaches it late in a run, and discovering it then reloads the page mid-run. */
+      '@testing-library/react',
       /* Prebundle the browser-only table before its lazy route is opened. */
       '@react-three/drei/webgpu',
       '@react-three/fiber/webgpu',
