@@ -75,6 +75,8 @@ export default defineConfig({
       '@react-three/drei/webgpu',
       '@react-three/fiber/webgpu',
       'three',
+      /* The tutorial's SQLite, prebundled so opening a chapter does not reload the page mid-run. */
+      'sql.js/dist/sql-asm-memory-growth.js',
     ],
     /* The prebundled table runs the same fiber and drei code as the build. */
     rolldownOptions: { plugins: [threeRendererStackTreeShaking()] },

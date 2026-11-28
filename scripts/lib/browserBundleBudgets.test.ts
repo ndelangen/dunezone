@@ -26,6 +26,15 @@ describe('browser JavaScript budgets', () => {
     expect(() => inspectBrowserJavaScript({ three: chunk(1_096_885, [...three, '/src/page.tsx']) })).toThrow('500000');
   });
 
+  test('permits the sql.js build only in a chunk of its own', () => {
+    const sqlite = ['/project/node_modules/sql.js/dist/sql-asm-memory-growth.js'];
+    expect(inspectBrowserJavaScript({ sqlite: chunk(1_358_982, sqlite) })[0]).toContain('1358982/1400000');
+    expect(() => inspectBrowserJavaScript({ sqlite: chunk(1_400_001, sqlite) })).toThrow('1400000');
+    expect(() => inspectBrowserJavaScript({ sqlite: chunk(1_358_982, [...sqlite, '/src/page.tsx']) })).toThrow(
+      '500000'
+    );
+  });
+
   test('identifies the Draco asset by its bytes and rejects a substituted oversized asset', () => {
     const source = readFileSync(new URL('../examples/jsm/libs/draco/draco_decoder.js', import.meta.resolve('three')));
     const asset = { type: 'asset', fileName: 'public/draco_decoder.js', source } as unknown as Rolldown.OutputAsset;
