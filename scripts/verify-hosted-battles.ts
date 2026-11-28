@@ -295,7 +295,7 @@ async function verifySupport({
   capture,
   pinPanel,
   growSlot,
-}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinWindow' | 'growSlot'> & {
+}: Pick<HostedToolkit, 'until' | 'converged' | 'capture' | 'pinPanel' | 'growSlot'> & {
   a: HostedPeer;
   b: HostedPeer;
   observer: HostedPeer;
