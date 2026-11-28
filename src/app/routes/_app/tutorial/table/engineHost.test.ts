@@ -43,7 +43,7 @@ test('the browser host signs as Node does, for any key and message', () => {
 
 test('the browser host draws integers in [0, max) and refuses a range Node refuses', () => {
   const seen = new Set(Array.from({ length: 400 }, () => browserEngineHost.randomInt(4)));
-  expect([...seen].toSorted()).toEqual([0, 1, 2, 3]);
+  expect([...seen].toSorted((a, b) => a - b)).toEqual([0, 1, 2, 3]);
   expect(() => browserEngineHost.randomInt(0)).toThrow(RangeError);
   expect(() => browserEngineHost.randomInt(2 ** 32 + 1)).toThrow(RangeError);
 });

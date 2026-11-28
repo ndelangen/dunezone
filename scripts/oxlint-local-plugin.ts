@@ -392,26 +392,59 @@ const engineHostOnlyRule: Rule = {
     },
   },
   create(context) {
-    const named = (node: LintNode, name: string) => node.type === 'Identifier' && node.name === name;
+    const GLOBAL_OBJECTS = new Set(['globalThis', 'self', 'window']);
+    const AMBIENT = new Set(['crypto', 'Date', 'Math', 'performance']);
+    const propertyName = (node: LintNode) =>
+      node.type === 'MemberExpression' && !node.computed && node.property.type === 'Identifier'
+        ? node.property.name
+        : undefined;
+    /* `Date`, or `globalThis.Date` and the like, so a spelling through the global object is caught too. */
+    const ambient = (node: LintNode): string | undefined => {
+      if (node.type === 'Identifier') {
+        return AMBIENT.has(node.name) ? node.name : undefined;
+      }
+      const name = propertyName(node);
+      return node.type === 'MemberExpression' &&
+        node.object.type === 'Identifier' &&
+        GLOBAL_OBJECTS.has(node.object.name) &&
+        name &&
+        AMBIENT.has(name)
+        ? name
+        : undefined;
+    };
+    const reads = (name: string | undefined, property: string | undefined) =>
+      name === 'crypto' ||
+      (name === 'Date' && property === 'now') ||
+      (name === 'Math' && property === 'random') ||
+      (name === 'performance' && property === 'now');
     return {
       MemberExpression(node) {
-        const property = !node.computed && node.property.type === 'Identifier' ? node.property.name : undefined;
-        if (
-          named(node.object, 'crypto') ||
-          (named(node.object, 'Date') && property === 'now') ||
-          (named(node.object, 'Math') && property === 'random') ||
-          (named(node.object, 'performance') && property === 'now')
-        ) {
+        if (reads(ambient(node.object), propertyName(node))) {
           context.report({ node, messageId: 'ambient' });
         }
       },
+      /* `const { now } = Date` or `const { randomUUID } = crypto` takes the same reading out by another route. */
+      VariableDeclarator(node) {
+        const name = node.init ? ambient(node.init) : undefined;
+        if (node.id.type === 'ObjectPattern' && name && name !== 'Math') {
+          context.report({ node, messageId: 'ambient' });
+        }
+        if (node.id.type === 'ObjectPattern' && name === 'Math') {
+          const keys = node.id.properties.map((entry) =>
+            entry.type === 'Property' && entry.key.type === 'Identifier' ? entry.key.name : undefined
+          );
+          if (keys.includes('random')) {
+            context.report({ node, messageId: 'ambient' });
+          }
+        }
+      },
       NewExpression(node) {
-        if (named(node.callee, 'Date') && node.arguments.length === 0) {
+        if (ambient(node.callee) === 'Date' && node.arguments.length === 0) {
           context.report({ node, messageId: 'ambient' });
         }
       },
       CallExpression(node) {
-        if (named(node.callee, 'Date')) {
+        if (ambient(node.callee) === 'Date') {
           context.report({ node, messageId: 'ambient' });
         }
       },
