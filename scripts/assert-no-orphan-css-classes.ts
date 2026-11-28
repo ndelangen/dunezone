@@ -35,7 +35,16 @@ function filesUnder(root: string, extensions: string[]) {
 
 /* `src/app` now contains the interface kit at `src/app/ui`, so one walk covers both. */
 const cssFiles = filesUnder('src/app', ['.module.css']);
-const routeStylesheets = filesUnder('src/app/routes', ['.css']).filter((file) => !file.endsWith('.module.css'));
+/* The Play table client keeps its plain stylesheet beside the table rather than in a route, so it is read here too. */
+const plainStylesheets = [...filesUnder('src/app/routes', ['.css']), ...filesUnder('src/app/play', ['.css'])].filter(
+  (file) => !file.endsWith('.module.css')
+);
+/* Where a plain stylesheet's classes may be named: its own folder, or for the Play table's, the whole client and the Play routes it serves. */
+function literalScopes(cssFile: string): string[] {
+  return cssFile.startsWith('src/app/play/')
+    ? ['src/app/play/', 'src/app/routes/_app/play/']
+    : [`${dirname(cssFile)}/`];
+}
 const sourceFiles = filesUnder('src', ['.ts', '.tsx']);
 
 /**
@@ -132,7 +141,7 @@ for (const cssFile of cssFiles) {
   }
 }
 
-for (const cssFile of routeStylesheets) {
+for (const cssFile of plainStylesheets) {
   const imported = sourceFiles.some((source) =>
     [...readFileSync(source, 'utf8').matchAll(/import\s+'([^']+\.css)'/g)].some(
       (match) => resolve(dirname(source), match[1]).slice(process.cwd().length + 1) === cssFile
@@ -142,11 +151,11 @@ for (const cssFile of routeStylesheets) {
     unimported.push(cssFile);
     continue;
   }
-  /* The stylesheet's folder is the route; a class named whole inside a string literal under it is
+  /* The stylesheet's folder is its scope; a class named whole inside a string literal under it is
      live. Only literals count, so a comment or a label that happens to use the word keeps nothing
      alive. Class names are word characters and hyphens, so the name goes into the pattern unescaped. */
   const routeLiterals = sourceFiles
-    .filter((source) => source.startsWith(`${dirname(cssFile)}/`))
+    .filter((source) => literalScopes(cssFile).some((scope) => source.startsWith(scope)))
     .flatMap((source) => stringLiterals(readFileSync(source, 'utf8')));
   for (const name of definedClasses(readFileSync(cssFile, 'utf8'))) {
     const whole = new RegExp(`(^|[^\\w-])${name}(?![\\w-])`);
@@ -164,7 +173,7 @@ const sections: [heading: string, rows: string[]][] = [
 const report = sections.filter(([, rows]) => rows.length > 0);
 
 if (report.length === 0) {
-  console.log(`CSS clean: ${cssFiles.length} modules and ${routeStylesheets.length} route stylesheets, no orphans.`);
+  console.log(`CSS clean: ${cssFiles.length} modules and ${plainStylesheets.length} plain stylesheets, no orphans.`);
   process.exit(0);
 }
 

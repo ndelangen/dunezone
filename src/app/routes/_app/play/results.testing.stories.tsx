@@ -101,7 +101,7 @@ export const StoppedDeclaringKeepsGameReachable = meta.story({
 function coverOf(hit: Element | null) {
   const frame = hit?.closest('[data-panel]');
   const label = hit?.closest('[aria-label]')?.getAttribute('aria-label');
-  return `${hit?.tagName ?? 'nothing'} ${label ?? ''} in ${frame ? `the ${frame.getAttribute('data-side')} window` : 'no window'}`;
+  return `${hit?.tagName ?? 'nothing'} ${label ?? ''} in ${frame ? `the ${frame.getAttribute('data-side')} panel` : 'no panel'}`;
 }
 
 /* The ancestors a finger can scroll, nearest first, as overflow hidden is not. */
@@ -135,9 +135,7 @@ export const DeclaringOnAPhone = meta.story({
       const covered = !declare.contains(canvasElement.ownerDocument.elementFromPoint(box.left + 4, box.top + 4));
       if (box.bottom > view.innerHeight || covered) {
         const scrollers = touchScrollers(declare);
-        await expect(scrollers, 'Declare sits below the window with nothing to scroll it into view').not.toHaveLength(
-          0
-        );
+        await expect(scrollers, 'Declare sits below the panel with nothing to scroll it into view').not.toHaveLength(0);
         /* Each scroller scrolls to Declare, not to its end: the section first and then the panel around it. */
         for (const scroller of scrollers) {
           const bottom = Math.min(scroller.getBoundingClientRect().bottom, view.innerHeight);

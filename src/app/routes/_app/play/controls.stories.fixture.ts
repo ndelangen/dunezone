@@ -22,7 +22,7 @@ export function panelNamed(page: Page, name: string) {
 
 /** Unpins a panel the table placed in a slot by itself, which takes it off the table until it is opened again. */
 export async function unpinPanel(page: Page, name: string) {
-  const frame = await waitFor(() => panelNamed(page, name) ?? Promise.reject(new Error(`No ${name} window.`)));
+  const frame = await waitFor(() => panelNamed(page, name) ?? Promise.reject(new Error(`No ${name} panel.`)));
   await userEvent.click(within(frame).getByRole('button', { name: 'Unpin' }));
   await waitFor(() => expect(panelNamed(page, name)).toBeNull());
 }

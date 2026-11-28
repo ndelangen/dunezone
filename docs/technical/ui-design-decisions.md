@@ -136,7 +136,7 @@ the glass as fallback, so every tooltip on the island is a warm mineral card wit
 titled one takes the pale sand title, and nothing outside the island changes. A panel's guidance lives
 behind the (?) in its header, the kit's `HelpMark`: hovering or focusing it shows the one-line
 description and the full help under it, and the compass's search shows the description as each
-window's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
+panel's hint. Play is desktop-only for the beta, so a touch path to that guidance is out of scope
 until touch is.
 
 Hover labels use Mantine `Tooltip`; floating panes use Mantine `Popover`, `HoverCard` or `Menu`

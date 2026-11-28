@@ -54,7 +54,7 @@ These eight swatches belong to `playUiColors`. None comes from an artwork file o
 | `#D7C299` | `stationGround` | The small circular pad at each player station. It is procedural geometry beneath the faction token. Same renderer. |
 | `#C92A2A` | `stormSector` | The translucent sector overlay under the moving storm marker. Same renderer. |
 | `#FFA8A8` | `stormEdge` | The outline of that sector overlay. These two reds do not recolour [`storm-marker.webp`](../../src/app/widgets/tabletop/assets/storm-marker.webp). |
-| `#1971C2` | `territoryBlue` | Default tint in the "Fremen deployment" territory-overlay preset. It is independent of the Fremen faction's authored colour. [`territoryTintPresets.ts`](../../src/app/routes/_app/play/multiplayer/territoryTintPresets.ts). |
+| `#1971C2` | `territoryBlue` | Default tint in the "Fremen deployment" territory-overlay preset. It is independent of the Fremen faction's authored colour. [`territoryTintPresets.ts`](../../src/app/play/panels/tints/territoryTintPresets.ts). |
 | `#171511` | `territoryBlack` | Default tint in the "Shield Wall destroyed" territory-overlay preset. Same preset module. |
 
 ## Neutral rendering utilities
