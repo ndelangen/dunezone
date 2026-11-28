@@ -389,16 +389,14 @@ export class LocalTable {
     const held = message.type === 'drop' && viewer.viewerSeat === this.seat ? room.heldFor(message.carryId) : null;
     const followsLearner = this.seat === this.seatOf(this.learner);
     const seated = this.seats().map((seat) => this.viewer(seat));
-    if (!this.session.execute(viewer, message, this.spawnContents)) {
-      /* A resent draft command finishes a deal its first send committed the readiness for but could not complete. */
-      if (message.type === 'command' && isDraftAction(message.action)) {
-        this.dealIfReady();
-      }
-      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
-      return;
-    }
+    const committed = this.session.execute(viewer, message, this.spawnContents);
+    /* A completed draft deals at once; a resent draft command finishes a deal its first send could not complete. */
     if (message.type === 'command' && isDraftAction(message.action)) {
       this.dealIfReady();
+    }
+    if (!committed) {
+      this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
+      return;
     }
     /* As the Worker refreshes its viewers, a player the command moved or unseated lets go of what they carried. */
     for (const before of seated) {
