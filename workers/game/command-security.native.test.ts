@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { tokenPage } from './native-catalogue.fixture.ts';
@@ -8,7 +9,6 @@ import type { NativeConnection, NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.ts';
-import { storedSnapshotSchema } from './state';
 
 const SPECTATOR = 'Spectators can watch but cannot change the table or publish a cursor.';
 

@@ -1,0 +1,674 @@
+import type { Board } from '../../boards/schema';
+import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../battle';
+import type { BattleAction, BattlePlanInput, BattleFace, Disclosure, StoredBattlePlan } from '../battle';
+import { isBattleCard, isBattleLeader } from '../battle';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  KISS_DIAL_CAP,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+} from '../battleDialing';
+import { nextSnapshot, requireAccepted } from '../commands';
+import type { StoredPiece, Vector3Tuple } from '../model';
+import { phaseAt } from '../phases';
+import { tableForViewer } from '../protocol';
+import { GameRejection } from '../rejection';
+import { SPECTATOR_SEAT } from '../schema';
+import { BOARD_RADIUS, restingPositionAt } from '../tableGeometry';
+import { clampPositionToTable, nearestCollisionFreePosition, restingAmongLeaders } from '../tablePhysics';
+import { playFromHandSettled } from '../tableState';
+import { isTechToken, takeableIntoHand } from '../techToken';
+import { keepsInsideTerritory, territoryAtTable } from '../territoryPlacement';
+import { hostRandomUUID } from './host';
+import { orderablePieces, revised } from './state';
+import type { StoredSnapshot, StoredBattle } from './state';
+
+type BattleActor = { snapshot: StoredSnapshot; battle: StoredBattle; factionId: string };
+type BattleSide = BattleActor & { side: 0 | 1 };
+
+const refuse = (message: string): never => {
+  throw new GameRejection(message);
+};
+function commit(snapshot: StoredSnapshot, changes: Partial<StoredSnapshot>, pieces = snapshot.table.pieces) {
+  return { ...revised(snapshot, pieces), ...changes };
+}
+function sideFor(battle: StoredBattle, factionId: string): 0 | 1 {
+  const side = battle.sides.findIndex((side) => side?.factionId === factionId);
+  if (side !== 0 && side !== 1) {
+    return refuse('Only a faction in the battle can change its plan or outcome.');
+  }
+  return side;
+}
+function sum(a: number, b: number) {
+  const result = a + b;
+  if (!Number.isSafeInteger(result)) {
+    return refuse('The declared count is too large.');
+  }
+  return result;
+}
+
+/** Exact support uses bounded binary groups, including zero-cost and negative-strength faces. */
+function allocations(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, limit: number) {
+  let states = new Map<number, { gain: number; supported: number[] }>([
+    [0, { gain: 0, supported: troops.map(() => 0) }],
+  ]);
+  troops.forEach((troop, index) => {
+    const face = faces.get(troop.faceId)!;
+    let remaining = sum(troop.undialed, troop.dialed);
+    for (let batch = 1; remaining > 0; batch *= 2) {
+      const quantity = Math.min(batch, remaining);
+      remaining -= quantity;
+      const cost = quantity * face.supportCost;
+      const gain = quantity * (face.supportedStrength - face.strength);
+      const next = new Map(states);
+      for (const [spent, allocation] of states) {
+        const total = spent + cost;
+        if (total > limit) {
+          continue;
+        }
+        const previous = next.get(total);
+        if (!previous || allocation.gain + gain > previous.gain) {
+          const supported = [...allocation.supported];
+          supported[index] += quantity;
+          next.set(total, { gain: allocation.gain + gain, supported });
+        }
+      }
+      /* A pathological declaration fails explicitly before consuming unbounded Worker memory. */
+      if (next.size > 100_000) {
+        return refuse('This support calculation is too large. Reduce the declaration.');
+      }
+      states = next;
+    }
+  });
+  return states;
+}
+
+function supportMaxTroops(
+  troops: BattlePlanInput['troops'],
+  faces: Map<string, BattleFace>,
+  spice: number,
+  before: StoredBattlePlan
+) {
+  const states = allocations(troops, faces, spice);
+  if (!states.has(spice)) {
+    const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
+    if (!troopEdit) {
+      return refuse('That exact amount of spice cannot support these troops.');
+    }
+    spice = [...states.keys()].reduce((highest, value) => Math.max(highest, value), 0);
+  }
+  const allocation = states.get(spice)!;
+  troops.forEach((troop, index) => {
+    const total = sum(troop.undialed, troop.dialed);
+    troop.dialed = allocation.supported[index];
+    troop.undialed = total - troop.dialed;
+  });
+  return spice;
+}
+
+function declaredStrength(troops: BattlePlanInput['troops'], faces: Map<string, BattleFace>, adjustment: number) {
+  const strength = troops.reduce((total, troop) => {
+    const face = faces.get(troop.faceId)!;
+    return total + troop.undialed * face.strength + troop.dialed * face.supportedStrength;
+  }, adjustment);
+  if (!Number.isFinite(strength)) {
+    return refuse('The declared strength is too large.');
+  }
+  return strength;
+}
+
+function supportedPlan(input: BattlePlanInput, before: StoredBattlePlan) {
+  const faces = new Map(before.faces.filter((face) => face.capable).map((face) => [face.id, face]));
+  const flat = dialsFlat(before.dialing);
+  const troops = !flat && input.mode !== before.mode ? [] : input.troops.map((troop) => ({ ...troop }));
+  if (
+    new Set(troops.map((troop) => troop.faceId)).size !== troops.length ||
+    troops.some((troop) => !faces.has(troop.faceId))
+  ) {
+    return refuse('Choose each eligible troop face once.');
+  }
+  if (flat) {
+    return flatPlan(input, before, troops);
+  }
+  let spice = input.mode !== before.mode ? 0 : input.spice;
+  if (input.mode === 'custom') {
+    spice = troops.reduce((total, troop) => sum(total, troop.dialed * faces.get(troop.faceId)!.supportCost), 0);
+  } else {
+    spice = supportMaxTroops(troops, faces, spice, before);
+  }
+  const strength = declaredStrength(troops, faces, input.adjustment);
+  return { ...input, troops, spice, strength, faces: before.faces, dialing: before.dialing };
+}
+
+/**
+ * A plan under Basic, GF9 2.0 or KISS: every troop fights at full strength, so there is one count per face and nothing to support.
+ * GF9 2.0 takes the spice the player spends on spice strength;
+ * KISS works out the spice the dial costs.
+ */
+function flatPlan(input: BattlePlanInput, before: StoredBattlePlan, declared: BattlePlanInput['troops']) {
+  const troops = declared.map(({ faceId, undialed, dialed }) => ({
+    faceId,
+    undialed: sum(undialed, dialed),
+    dialed: 0,
+  }));
+  const free = dialsFree(troops, before.faces);
+  const dial = flatStrength(troops, before.faces);
+  let spice = 0;
+  let bonus = 0;
+  if (before.dialing === 'gf92') {
+    const choices = spiceStrengthChoices(dial, free);
+    spice = input.spice;
+    if (!choices.includes(spice)) {
+      /* A smaller dial takes the spice strength down with it, as far as the dial still reaches. */
+      const troopEdit = JSON.stringify(troops) !== JSON.stringify(before.troops) && spice === before.spice;
+      if (!troopEdit) {
+        return refuse('Spice strength costs 2, 4 or 8 spice, and the dial must reach as much.');
+      }
+      spice = choices.findLast((choice) => choice <= spice) ?? 0;
+    }
+    bonus = spiceStrength(dial, spice, free);
+  } else if (before.dialing === 'kiss') {
+    if (dial > KISS_DIAL_CAP) {
+      return refuse(`The dial stops at ${KISS_DIAL_CAP}.`);
+    }
+    spice = kissSpice(troops, before.faces);
+  }
+  const strength = dial + bonus + input.adjustment;
+  if (!Number.isFinite(strength)) {
+    return refuse('The declared strength is too large.');
+  }
+  return { ...input, mode: 'max' as const, troops, spice, strength, faces: before.faces, dialing: before.dialing };
+}
+
+function selectedPlanPieces(plan: BattlePlanInput, available: StoredPiece[]) {
+  const ids = [...plan.leaderIds, ...plan.cardIds];
+  if (new Set(ids).size !== ids.length) {
+    return refuse('A piece can only be committed once.');
+  }
+  const pieces = ids.map(
+    (id) => available.find((piece) => piece.id === id) ?? refuse('That piece is not in your inventory.')
+  );
+  if (pieces.some((piece) => piece.items.length !== 1)) {
+    return refuse('Separate each card or leader before committing it.');
+  }
+  return pieces;
+}
+/* A card an older plan already holds stays allowed, so the player can take such cards out one at a time. */
+function validateCardSlots(pieces: StoredPiece[], plan: BattlePlanInput, before: StoredBattlePlan) {
+  const added = (piece: StoredPiece) => plan.cardIds.includes(piece.id) && !before.cardIds.includes(piece.id);
+  if (pieces.some((piece) => added(piece) && !isBattleCard(piece))) {
+    return refuse('Only Treachery cards go into a battle plan.');
+  }
+}
+function validateLeaderSlot(pieces: StoredPiece[], plan: BattlePlanInput) {
+  const leaders = pieces.filter((piece) => plan.leaderIds.includes(piece.id));
+  if (leaders.some((leader) => !isBattleLeader(leader))) {
+    return refuse('Choose a leader token for the leader slot.');
+  }
+}
+function reservedBalance({ snapshot, factionId }: BattleActor, before: StoredBattlePlan, plan: BattlePlanInput) {
+  const balance = sum(snapshot.factionBanks[factionId] ?? 0, before.spice) - plan.spice;
+  if (balance < 0) {
+    return refuse('There is not enough spice in the spice reserve for this plan.');
+  }
+  return balance;
+}
+
+const dialOf = ({ mode, troops, spice, adjustment }: BattlePlanInput) =>
+  JSON.stringify([mode, troops, spice, adjustment]);
+/** A part shown to everyone before the reveal stays as it was shown, so the reveal cannot contradict it. */
+function keepDisclosed(before: StoredBattlePlan, plan: BattlePlanInput) {
+  const { disclosed } = before;
+  if (disclosed.leader && plan.leaderIds.join() !== before.leaderIds.join()) {
+    return refuse('Your leaders are revealed. Hide them before changing them.');
+  }
+  if (disclosed.cardIds.some((id) => !plan.cardIds.includes(id))) {
+    return refuse('A revealed card stays in your plan until you hide it.');
+  }
+  if (disclosed.dial && dialOf(plan) !== dialOf(before)) {
+    return refuse('Your dial is revealed. Hide it before changing it.');
+  }
+}
+
+function editPlan({ snapshot, battle, side, factionId }: BattleSide, input: BattlePlanInput) {
+  if (battle.stage !== 'preparing' || battle.sides[side]!.ready) {
+    return refuse('Undo Ready before editing your plan.');
+  }
+  const before = battle.plans[side]!;
+  const plan = { ...supportedPlan(input, before), disclosed: before.disclosed };
+  keepDisclosed(before, plan);
+  const available = [...(snapshot.factionInventories[factionId] ?? []), ...before.pieces];
+  const pieces = selectedPlanPieces(plan, available);
+  validateCardSlots(pieces, plan, before);
+  validateLeaderSlot(pieces, plan);
+  const balance = reservedBalance({ snapshot, battle, factionId }, before, plan);
+  const ids = pieces.map((piece) => piece.id);
+  /* A plan may be disclosed and is revealed onto the table, so its pieces leave their private hidden zone spots behind. */
+  battle.plans[side] = { ...plan, pieces: pieces.map(({ hiddenZone: _spot, ...piece }) => piece) };
+  return commit(snapshot, {
+    battleState: battle,
+    factionBanks: { ...snapshot.factionBanks, [factionId]: balance },
+    factionInventories: {
+      ...snapshot.factionInventories,
+      [factionId]: available.filter((piece) => !ids.includes(piece.id)),
+    },
+  });
+}
+
+/* Why a part cannot be shown or hidden now, or nothing when it can. */
+function disclosureRefusal(
+  { disclosed, leaderIds, cardIds }: StoredBattlePlan,
+  disclosure: Disclosure,
+  shown: boolean
+) {
+  const showing =
+    disclosure.element === 'card' ? disclosed.cardIds.includes(disclosure.cardId) : disclosed[disclosure.element];
+  if (showing === shown) {
+    return shown ? 'That part of your plan is already revealed.' : 'That part of your plan is not revealed.';
+  }
+  if (!shown) {
+    return null;
+  }
+  if (disclosure.element === 'card') {
+    return cardIds.includes(disclosure.cardId) ? null : 'Choose a card in your plan.';
+  }
+  return disclosure.element === 'leader' && !leaderIds.length ? 'Choose a leader before revealing it.' : null;
+}
+
+function toggled(disclosed: StoredBattlePlan['disclosed'], disclosure: Disclosure, shown: boolean) {
+  if (disclosure.element !== 'card') {
+    return { ...disclosed, [disclosure.element]: shown };
+  }
+  const others = disclosed.cardIds.filter((id) => id !== disclosure.cardId);
+  return { ...disclosed, cardIds: shown ? [...others, disclosure.cardId] : others };
+}
+
+/** Shows or hides one part of a faction's own plan for everyone ahead of the reveal; the table checks no faction's right to do so. */
+function disclose(
+  { snapshot, battle, side }: BattleSide,
+  { disclosure, shown }: Extract<BattleAction, { kind: 'battle-disclose' }>
+) {
+  if (battle.stage !== 'preparing') {
+    return refuse('Plans can only be revealed early while the battle is being prepared.');
+  }
+  const plan = battle.plans[side]!;
+  const refusal = disclosureRefusal(plan, disclosure, shown);
+  if (refusal) {
+    return refuse(refusal);
+  }
+  battle.plans[side] = { ...plan, disclosed: toggled(plan.disclosed, disclosure, shown) };
+  return commit(snapshot, { battleState: battle });
+}
+
+function cancelBattle(snapshot: StoredSnapshot, battle: StoredBattle) {
+  /* Revealed plans are already public and on the table, so ending the battle settles it: with the winner a side called, or as nobody's win when the sides called different winners or none. */
+  if (battle.stage === 'revealed') {
+    const calls = new Set(battle.sides.flatMap((side) => (side?.choice ? [side.choice] : [])));
+    return resolveBattle(snapshot, battle, calls.size === 1 ? [...calls][0]! : 'none');
+  }
+  if (battle.stage !== 'preparing') {
+    return refuse('The battle can only be cancelled during preparation or after the reveal.');
+  }
+  const factionBanks = { ...snapshot.factionBanks };
+  const factionInventories = { ...snapshot.factionInventories };
+  battle.sides.forEach((side, index) => {
+    if (!side) {
+      return;
+    }
+    const plan = battle.plans[index]!;
+    factionBanks[side.factionId] = sum(factionBanks[side.factionId] ?? 0, plan.spice);
+    factionInventories[side.factionId] = [...(factionInventories[side.factionId] ?? []), ...plan.pieces];
+  });
+  return commit(snapshot, { battleState: null, factionBanks, factionInventories });
+}
+
+function takeIntoHand(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'hand-take' }>
+) {
+  const { pieceId } = action;
+  const inventory = snapshot.factionInventories[factionId] ?? [];
+  const piece = snapshot.table.pieces.find((piece) => piece.id === pieceId);
+  if (!piece || !takeableIntoHand(piece)) {
+    return refuse('Choose one unlocked card, leader or tech token on the table.');
+  }
+  const { battleOverlay: _overlay, ...taken } = piece;
+  /*
+   * A hand forgets who peeked at its cards, so a card later played face down out of it cannot be told apart by its marks.
+   * A tech token is public, so it goes into the hand face up even if it lay turned over, and everyone keeps seeing which one is held.
+   */
+  const techToken = isTechToken(piece);
+  const stored = {
+    ...taken,
+    items: taken.items.map(({ peekedBy: _peekedBy, ...item }) => (techToken ? { ...item, faceUp: true } : item)),
+  };
+  return commit(
+    snapshot,
+    {
+      factionInventories: { ...snapshot.factionInventories, [factionId]: [...inventory, stored] },
+    },
+    snapshot.table.pieces.filter((piece) => piece.id !== pieceId)
+  );
+}
+
+/** A faction's hand and the piece of it an action names; a piece not in the hand is refused. */
+function handPiece(snapshot: StoredSnapshot, factionId: string, pieceId: string) {
+  const inventory = snapshot.factionInventories[factionId] ?? [];
+  const piece = inventory.find((candidate) => candidate.id === pieceId);
+  if (!piece) {
+    return refuse('That piece is not in your inventory.');
+  }
+  return { inventory, piece };
+}
+
+/*
+ * A leader leaves the hand face down under new identities, as a card leaves under new handles:
+ * the ids it carried while it lay face up, or out of an earlier battle's reveal, would otherwise tell everyone which leader it is.
+ * A card keeps its ids, since the room retires its handles, and a tech token is public.
+ */
+function unseen(piece: StoredPiece, items: StoredPiece['items']): Pick<StoredPiece, 'id' | 'items'> {
+  if (piece.kind === 'card' || isTechToken(piece)) {
+    return { id: piece.id, items };
+  }
+  return { id: hostRandomUUID(), items: items.map((item) => ({ ...item, id: hostRandomUUID() })) };
+}
+
+function playFromHand(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'hand-play' }>,
+  table: BattleTable
+) {
+  const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
+  /* How often it was flipped or shuffled on the table before it was taken would tell it apart too, so it leaves without those counts. */
+  const { hiddenZone: _spot, flipRevision: _flips, shuffleRevision: _shuffles, ...leaving } = piece;
+  /* A card or leader leaves the hand face down; a tech token is public, so it lands as it lay in the hand. */
+  const items = isTechToken(piece) ? piece.items : piece.items.map((item) => ({ ...item, faceUp: false }));
+  const leavingHand = { ...leaving, inventory: undefined, ...unseen(piece, items) };
+  const factionInventories = {
+    ...snapshot.factionInventories,
+    [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
+  };
+  /*
+   * A piece played from hand settles as a carried one would: on an anchor, or packed into its territory by the game's own board.
+   * Pieces other players are carrying are locked while it settles, so packing goes round them; their own locks are put back after.
+   */
+  const viewed = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const guarded = {
+    ...viewed,
+    board: table.board,
+    pieces: viewed.pieces.map((piece) => (table.reserved.has(piece.id) ? { ...piece, locked: true } : piece)),
+  };
+  const settled = playFromHandSettled(
+    guarded,
+    { ...leavingHand, position: restingPositionAt(action.position, piece) },
+    action.position
+  );
+  if (settled) {
+    const next = requireAccepted(guarded, settled);
+    const restored = next.pieces.map((piece) => {
+      const original = viewed.pieces.find((candidate) => candidate.id === piece.id);
+      return table.reserved.has(piece.id) && original ? { ...piece, locked: original.locked } : piece;
+    });
+    return { ...nextSnapshot(snapshot, { ...next, pieces: restored }), factionInventories };
+  }
+  const position = nearestCollisionFreePosition(
+    piece,
+    clampPositionToTable(piece, action.position),
+    snapshot.table.pieces,
+    keepsInsideTerritory(guarded, leavingHand, viewed.pieces)
+  );
+  if (!position) {
+    return refuse('There is no clear space for that object.');
+  }
+  const played = {
+    ...leavingHand,
+    position: restingAmongLeaders(piece, restingPositionAt(position, piece), snapshot.table.pieces),
+  };
+  return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
+}
+
+/* The last piece arranged lies on top, so a move puts it at the end of the hand; nothing on the table changes. */
+function arrangeHiddenZone(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: Extract<BattleAction, { kind: 'hand-zone' }>
+) {
+  const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
+  const { hiddenZone: _spot, ...plain } = piece;
+  const arranged = action.at ? { ...plain, hiddenZone: action.at } : plain;
+  return commit(snapshot, {
+    factionInventories: {
+      ...snapshot.factionInventories,
+      [factionId]: [...inventory.filter((candidate) => candidate.id !== piece.id), arranged],
+    },
+  });
+}
+
+/*
+ * The faction's own order of what it holds: its plain hand and its planned pieces, stored apart from the inventory.
+ * Pieces the stored order does not name yet follow in the order they are held, and the new order names only what is held now.
+ */
+function orderHand(snapshot: StoredSnapshot, factionId: string, action: Extract<BattleAction, { kind: 'hand-order' }>) {
+  const held = orderablePieces(snapshot, factionId).map((piece) => piece.id);
+  const stored = snapshot.handOrders[factionId] ?? [];
+  const rank = (id: string) => (stored.includes(id) ? stored.indexOf(id) : stored.length + held.indexOf(id));
+  const order = held.toSorted((a, b) => rank(a) - rank(b)).filter((id) => id !== action.pieceId);
+  if (!held.includes(action.pieceId) || (action.before !== null && !order.includes(action.before))) {
+    return refuse('Choose two pieces of your hand to order.');
+  }
+  order.splice(action.before === null ? order.length : order.indexOf(action.before), 0, action.pieceId);
+  return commit(snapshot, {
+    handOrders: { ...snapshot.handOrders, [factionId]: order },
+    ...planInOrder(snapshot, factionId, order),
+  });
+}
+
+/* The faction's plan takes its leaders and cards in the hand's order too, so the wheel lays them out as every window lists them. */
+function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonly string[]) {
+  const battle = snapshot.battleState;
+  const side = battle?.sides.findIndex((candidate) => candidate?.factionId === factionId) ?? -1;
+  const plan = battle?.plans[side];
+  if (!battle || battle.stage === 'revealed' || !plan) {
+    return {};
+  }
+  /* Pieces shown to everyone stay where they were shown, as a plan edit keeps them; the others take the free places in the player's order. */
+  const sorted = (ids: readonly string[], shown: (id: string) => boolean) => {
+    const free = ids.filter((id) => !shown(id)).toSorted((a, b) => order.indexOf(a) - order.indexOf(b));
+    return ids.map((id) => (shown(id) ? id : free.shift()!));
+  };
+  const plans: typeof battle.plans = [...battle.plans];
+  const leaderIds = sorted(plan.leaderIds, () => plan.disclosed.leader);
+  const cardIds = sorted(plan.cardIds, (id) => plan.disclosed.cardIds.includes(id));
+  /* The pieces too, as an edit commits them: leaders first, then cards; the public wheel and the disclosure draw from them. */
+  const pieces = [...leaderIds, ...cardIds].map((id) => plan.pieces.find((piece) => piece.id === id)!);
+  plans[side as 0 | 1] = { ...plan, leaderIds, cardIds, pieces };
+  return { battleState: { ...battle, plans } };
+}
+
+/* The territory under the battle marker, which names the battle and is highlighted while it lasts. */
+function battleTerritory(anchor: Vector3Tuple, board?: Board) {
+  const territory = territoryAtTable({ board }, anchor);
+  return territory ? { territory: territory.name, territoryId: territory.id } : { territory: 'Marked territory' };
+}
+
+function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>, board?: Board) {
+  if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
+    return refuse('Start a battle during the Battle phase when no battle is active.');
+  }
+  if (Math.hypot(action.anchor[0], action.anchor[2]) > BOARD_RADIUS) {
+    return refuse('Place the battle marker on the board.');
+  }
+  return commit(snapshot, {
+    battleState: {
+      id: hostRandomUUID(),
+      anchor: action.anchor,
+      ...battleTerritory(action.anchor, board),
+      stage: 'preparing',
+      sides: [null, null],
+      plans: [null, null],
+      deadline: null,
+    },
+  });
+}
+
+function claimSide({ snapshot, battle, factionId }: BattleActor, side: 0 | 1) {
+  if (battle.stage !== 'preparing' || battle.sides[side]) {
+    return refuse('Choose an empty side for a faction that is not already in this battle.');
+  }
+  if (battle.sides.some((entry) => entry?.factionId === factionId)) {
+    return refuse('Choose an empty side for a faction that is not already in this battle.');
+  }
+  battle.sides[side] = { factionId, ready: false, choice: null };
+  battle.plans[side] = emptyBattlePlan(snapshot.combatFaces[factionId] ?? [], snapshot.battleDialing);
+  return commit(snapshot, { battleState: battle });
+}
+
+function setReady(
+  { snapshot, battle, side }: BattleSide,
+  action: Extract<BattleAction, { kind: 'battle-ready' }>,
+  now: number
+) {
+  const { ready } = action;
+  if (battle.stage === 'revealed') {
+    return refuse('The battle has already revealed.');
+  }
+  if (battle.deadline !== null && now >= battle.deadline) {
+    return refuse('The battle has already revealed.');
+  }
+  if (battle.sides[side]!.ready === ready) {
+    return refuse('Your readiness already has that value.');
+  }
+  battle.sides[side]!.ready = ready;
+  const bothReady = battle.sides.every((entry) => entry?.ready);
+  battle.stage = bothReady ? 'countdown' : 'preparing';
+  battle.deadline = bothReady ? now + BATTLE_COUNTDOWN_MS : null;
+  return commit(snapshot, { battleState: battle });
+}
+
+function settleOverlayPiece(piece: StoredPiece, battle: StoredBattle, placed: StoredPiece[]) {
+  if (piece.battleOverlay !== battle.id) {
+    return piece;
+  }
+  const { battleOverlay: _overlay, ...rest } = piece;
+  const requested = clampPositionToTable(piece, [battle.anchor[0], 0, battle.anchor[2] + 0.7]);
+  const position = nearestCollisionFreePosition(piece, requested, placed) ?? requested;
+  const moved = { ...rest, position: restingAmongLeaders(piece, restingPositionAt(position, piece), placed) };
+  placed.push(moved);
+  return moved;
+}
+
+function resolveBattle(snapshot: StoredSnapshot, battle: StoredBattle, outcome: 'left' | 'none' | 'right') {
+  const result = {
+    id: battle.id,
+    anchor: battle.anchor,
+    territory: battle.territory,
+    factions: [battle.sides[0]!.factionId, battle.sides[1]!.factionId] as [string, string],
+    plans: battle.plans as [StoredBattlePlan, StoredBattlePlan],
+    outcome,
+    revision: snapshot.revision + 1,
+  };
+  const placed = snapshot.table.pieces.filter((piece) => piece.battleOverlay !== battle.id);
+  const pieces = snapshot.table.pieces.map((piece) => settleOverlayPiece(piece, battle, placed));
+  return commit(
+    snapshot,
+    { battleState: null, battleResults: [result, ...snapshot.battleResults].slice(0, 20) },
+    pieces
+  );
+}
+
+function chooseOutcome(
+  { snapshot, battle, side }: BattleSide,
+  action: Extract<BattleAction, { kind: 'battle-outcome' }>
+) {
+  const { outcome } = action;
+  if (battle.stage !== 'revealed') {
+    return refuse('Wait for the reveal before choosing an outcome.');
+  }
+  battle.sides[side]!.choice = outcome;
+  if (battle.sides.every((entry) => entry?.choice === outcome)) {
+    return resolveBattle(snapshot, battle, outcome);
+  }
+  return commit(snapshot, { battleState: battle });
+}
+
+function sideCommand(
+  actor: BattleActor,
+  action: Extract<BattleAction, { kind: 'battle-plan' | 'battle-ready' | 'battle-outcome' | 'battle-disclose' }>,
+  now: number
+) {
+  const battlingFaction = { ...actor, side: sideFor(actor.battle, actor.factionId) };
+  switch (action.kind) {
+    case 'battle-plan':
+      return editPlan(battlingFaction, action.plan);
+    case 'battle-ready':
+      return setReady(battlingFaction, action, now);
+    case 'battle-outcome':
+      return chooseOutcome(battlingFaction, action);
+    case 'battle-disclose':
+      return disclose(battlingFaction, action);
+  }
+}
+
+/** What the room knows of the table beyond the snapshot: the game's board, and the pieces players are carrying right now. */
+export type BattleTable = { board?: Board; reserved: ReadonlySet<string> };
+
+/** Room supplies current faction authority and guards physical carries before entering this transition. */
+export function battleCommand(
+  snapshot: StoredSnapshot,
+  factionId: string,
+  action: BattleAction,
+  now: number,
+  table: BattleTable
+): StoredSnapshot {
+  switch (action.kind) {
+    case 'hand-take':
+      return takeIntoHand(snapshot, factionId, action);
+    case 'hand-play':
+      return playFromHand(snapshot, factionId, action, table);
+    case 'hand-zone':
+      return arrangeHiddenZone(snapshot, factionId, action);
+    case 'hand-order':
+      return orderHand(snapshot, factionId, action);
+    case 'battle-start':
+      return startBattle(snapshot, action, table.board);
+  }
+  const battle = structuredClone(snapshot.battleState);
+  if (!battle || battle.id !== action.battleId) {
+    return refuse('That battle has ended.');
+  }
+  if (action.kind === 'battle-cancel') {
+    return cancelBattle(snapshot, battle);
+  }
+  if (action.kind === 'battle-claim') {
+    return claimSide({ snapshot, battle, factionId }, action.side);
+  }
+  return sideCommand({ snapshot, battle, factionId }, action, now);
+}
+
+/** The caller persists this transition before exposing any revealed contents. */
+export function expireBattle(snapshot: StoredSnapshot, now: number): StoredSnapshot | undefined {
+  const battle = snapshot.battleState;
+  /* A finished game holds its countdown; continuing resumes it with the time it had left. */
+  if (!battle || battle.stage !== 'countdown' || snapshot.stage === 'finished') {
+    return;
+  }
+  if (battle.deadline === null || now < battle.deadline) {
+    return;
+  }
+  const revealed = { ...battle, stage: 'revealed' as const, deadline: null };
+  const pieces = battle.plans.flatMap((plan, side) =>
+    plan!.pieces.map((piece, index) => ({
+      ...piece,
+      inventory: undefined,
+      battleOverlay: battle.id,
+      items: piece.items.map((item) => ({ ...item, faceUp: true })),
+      position: restingPositionAt([battle.anchor[0] + (side ? 0.6 : -0.6), 0, battle.anchor[2] + index * 0.25], piece),
+    }))
+  );
+  return commit(snapshot, { battleState: revealed }, [...snapshot.table.pieces, ...pieces]);
+}

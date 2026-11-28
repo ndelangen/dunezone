@@ -1,3 +1,4 @@
+import type { StoredSnapshot } from '@shared/play/engine/state';
 import dreamrulesDecks from '@shared/play/fixtures/dreamrulesDecks.json';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
@@ -5,7 +6,6 @@ import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { GameSubscription } from '@db/tabletop/GameSubscription';
 
-import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { TableSession } from '../../../db/tabletop/TableSession';
 import { gameMeta, install } from '../../../routes/_app/play/game.stories.fixture';
 import { chapter, journeySteps, journeyViewers } from '../../../routes/_app/play/journey.stories.fixture';

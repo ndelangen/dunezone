@@ -1,4 +1,5 @@
 import type { PublicFaction } from '@shared/play/capture';
+import { storedSnapshotSchema } from '@shared/play/engine/state';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
@@ -6,7 +7,6 @@ import { isTroopStack } from '@shared/play/troop';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
-import { storedSnapshotSchema } from '../../../../../../workers/game/state';
 import type { ChapterScript } from '../chapterScripts/chapterScript';
 import type { RecordedDeal } from '../table/localSession';
 import type { TableStart } from '../table/localTable';

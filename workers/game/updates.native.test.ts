@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it } from 'vite-plus/test';
 
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { messageOf } from './native-runtime.fixture.ts';
 import type { NativeMessage } from './native-runtime.fixture.ts';
@@ -16,7 +17,6 @@ import {
   provision,
   syncView,
 } from './native-runtime.fixture.ts';
-import { storedSnapshotSchema } from './state';
 
 /* Every card face in the game reaches every page by design, as a sorted list that ties no face to a card; the rest of a frame must not. */
 const shown = (value: unknown) => JSON.stringify(value, (key, entry) => (key === 'cardFaces' ? undefined : entry));

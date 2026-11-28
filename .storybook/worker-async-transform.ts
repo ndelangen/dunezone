@@ -75,14 +75,12 @@ export const convexWorkerOptimizeDeps = {
     'convex-helpers/validators',
     'convex-test',
   ],
-  /* crypto-js's HMAC backs the `node:crypto` shim the Play sandbox story loads with the game table. */
+  /* crypto-js's HMAC signs card identities for the game engine's browser host, which the Play sandbox story loads with the game table. */
   include: ['@auth/core > cookie', 'zone.js', 'crypto-js/hmac-sha256'],
 };
 
 export const convexWorkerAliases = {
   'node:async_hooks': fileURLToPath(new URL('./async-hooks.ts', import.meta.url)),
-  /* The game Worker's table, which the Play sandbox story runs in the browser, imports Node's crypto. */
-  'node:crypto': fileURLToPath(new URL('../src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url)),
 };
 
 function isolateConvexTestStorageUrls(): Plugin {

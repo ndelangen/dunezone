@@ -33,6 +33,7 @@ import type { AssetSupply, RulesetSupply, RulesetCapture, FactionCapture } from 
 import type { factionDefinitionSchema } from '../../src/shared/play/capture';
 import { playPublishSummaryRequestSchema } from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import type { StoredSnapshot, storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
 import { playSendNudgeRequestSchema } from '../../src/shared/play/nudges';
@@ -49,7 +50,6 @@ import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatP
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import arrakisOfficialGeometry from '../../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
-import type { StoredSnapshot, storedSnapshotSchema } from './state';
 
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
 export type NativeView = RoomView & Partial<ServerClock>;

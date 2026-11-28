@@ -3,6 +3,7 @@ type BattlePlan = Extract<PieceAction, { kind: 'battle-plan' }>['plan'];
 import { afterEach, describe, expect, it } from 'vite-plus/test';
 
 import type { FactionInput } from '../../src/shared/factions/schema';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { draftingRuntime } from './native-drafting.fixture.ts';
@@ -10,7 +11,6 @@ import type { NativeConnection } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import type { NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import { accepted, admitPlayer, eventually, seat, sendCommand, syncView } from './native-runtime.fixture.ts';
-import { storedSnapshotSchema } from './state';
 
 /*
  * Authored troop battle values travel from a faction's definition, through its capture at assignment

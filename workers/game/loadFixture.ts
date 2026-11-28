@@ -1,12 +1,12 @@
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { fixtureSnapshot } from '../../src/shared/play/engine/fixture';
+import type { FixturePlan } from '../../src/shared/play/engine/fixture';
 import type { LoadProfile } from '../../src/shared/play/loadProfile';
 import workload from '../../src/shared/play/loadWorkload.json';
 import type { TablePiece } from '../../src/shared/play/model';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
 import { tableSeatCountSchema } from '../../src/shared/play/schema';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { fixtureSnapshot } from './fixture';
-import type { FixturePlan } from './fixture';
 
 export const LOAD_SEATS = Array.from({ length: workload.players }, (_, index) => `load-seat-${index + 1}`);
 

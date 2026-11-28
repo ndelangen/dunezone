@@ -1,7 +1,7 @@
+import { STORED_DISPLAY_NAME_LENGTH } from '../../src/shared/play/engine/actors';
+import type { PassProfile } from '../../src/shared/play/engine/actors';
 import type { ClientMessage, PingSound, PublicPointer, Viewer } from '../../src/shared/play/protocol';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { STORED_DISPLAY_NAME_LENGTH } from './actors';
-import type { PassProfile } from './actors';
 import type { HeldPass } from './seatPasses';
 
 /* One game room socket as the room tracks it, its rate limits, and the messages the room tells apart before dispatch. */

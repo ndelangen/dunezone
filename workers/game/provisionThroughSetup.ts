@@ -1,9 +1,9 @@
 import { provisionPlaceholderId } from '../../src/shared/play/admission';
+import type { GameSession } from '../../src/shared/play/engine/session';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { rosterSeat } from '../../src/shared/play/schema';
 import { setupReadyRequired, setupStep } from '../../src/shared/play/setup';
 import type { SetupState } from '../../src/shared/play/setup';
-import type { GameSession } from './session';
 
 /** What provisioning a game to play needs from its room. */
 export type ProvisioningRoom = {

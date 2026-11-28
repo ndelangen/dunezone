@@ -1,11 +1,11 @@
 import { emptySnapshot } from '@shared/play/commands';
 import { emptyDraft } from '@shared/play/drafting';
+import { storedSnapshotSchema } from '@shared/play/engine/state';
 import { normalizePlayGameSlug } from '@shared/play/gameNamePolicy';
 import { emptyPublicControls } from '@shared/play/inventory';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { isTableSeatCount } from '@shared/play/tableSettings';
 
-import { storedSnapshotSchema } from '../../../../../../workers/game/state';
 import type { LobbyState } from '../chapterScripts/chapterScript';
 import { startAt } from '../setup/tutorialSetup';
 import type { TutorialSetup } from '../setup/tutorialSetup';

@@ -1,5 +1,17 @@
 import { dealSeats, draftGates, isDraftAction, resolveFactionPool } from '@shared/play/drafting';
 import type { DraftAction } from '@shared/play/drafting';
+import { ActorDirectory } from '@shared/play/engine/actors';
+import { applyDraftAction, dealtSnapshot } from '@shared/play/engine/drafting';
+import { hostRandomInt } from '@shared/play/engine/host';
+import { PublicLog, logContext } from '@shared/play/engine/log';
+import { ownRequests, Participation } from '@shared/play/engine/participation';
+import { RemovalVotes } from '@shared/play/engine/removal';
+import { TableReviews } from '@shared/play/engine/review';
+import { SessionHistory } from '@shared/play/engine/sessionHistory';
+import type { SetupSupply } from '@shared/play/engine/setup';
+import { SpiceLedger } from '@shared/play/engine/spiceLedger';
+import type { StoredSnapshot } from '@shared/play/engine/state';
+import { Swapping } from '@shared/play/engine/swapping';
 import { isSeatAction } from '@shared/play/participation';
 import type { SeatAction } from '@shared/play/participation';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
@@ -10,20 +22,8 @@ import type { TableRoster } from '@shared/play/schema';
 import { isSwapAction } from '@shared/play/swapping';
 import type { SwapAction } from '@shared/play/swapping';
 
-import { ActorDirectory } from '../../../../../../workers/game/actors';
-import { applyDraftAction, dealtSnapshot } from '../../../../../../workers/game/drafting';
-import { PublicLog, logContext } from '../../../../../../workers/game/log';
-import { ownRequests, Participation } from '../../../../../../workers/game/participation';
-import { RemovalVotes } from '../../../../../../workers/game/removal';
-import { TableReviews } from '../../../../../../workers/game/review';
-import { SessionHistory } from '../../../../../../workers/game/sessionHistory';
-import type { SetupSupply } from '../../../../../../workers/game/setup';
-import { SpiceLedger } from '../../../../../../workers/game/spiceLedger';
-import type { StoredSnapshot } from '../../../../../../workers/game/state';
-import { Swapping } from '../../../../../../workers/game/swapping';
 import { MemorySql } from './memorySql';
 import type { MemoryActor } from './memorySql';
-import { randomInt } from './nodeCrypto';
 
 /*
  * The part of the game Worker's session that comes before the table: who sits where, the draft and its deal, trading, and seat requests.
@@ -210,7 +210,7 @@ export class LocalSession {
     if (!gates.minimumMet || !gates.allReady || !gates.enoughFactions) {
       return snapshot;
     }
-    const random = (n: number) => randomInt(n);
+    const random = (n: number) => hostRandomInt(n);
     const factions = resolveFactionPool(draft, seated.length, random);
     if (!factions) {
       return snapshot;

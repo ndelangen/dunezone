@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { hostedFixturePlan } from '../../src/shared/play/engine/fixture';
+import { applyPatch, diff } from '../../src/shared/play/engine/history';
+import { Room } from '../../src/shared/play/engine/room';
+import { RoomProjection } from '../../src/shared/play/engine/state';
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS, phaseAt, TABLE_PHASES, tableProgressFor } from '../../src/shared/play/phases';
 import { POINTER_TOKEN_TYPE } from '../../src/shared/play/pointerToken';
@@ -10,11 +14,7 @@ import { isSpicePiece } from '../../src/shared/play/spice';
 import { createSpiceStack, spiceBankSlot } from '../../src/shared/play/spiceBank';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { TABLE_SECTOR_COUNT } from '../../src/shared/play/tableSettings';
-import { hostedFixturePlan } from './fixture';
-import { applyPatch, diff } from './history';
 import { LOAD_SEATS, loadSnapshot } from './loadFixture';
-import { Room } from './room';
-import { RoomProjection } from './state';
 
 const alice = {
   connectionId: 'alice-connection',

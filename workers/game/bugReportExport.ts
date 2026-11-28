@@ -1,5 +1,5 @@
+import type { GameSession } from '../../src/shared/play/engine/session';
 import { redactReportData } from '../../src/shared/play/reportRedaction';
-import type { GameSession } from './session';
 
 export function bugReportExport(session: GameSession, identity: { gameId: string; gitSha: string; versionId: string }) {
   return {

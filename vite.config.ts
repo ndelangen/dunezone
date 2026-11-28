@@ -98,27 +98,6 @@ function sandboxWorkerAsyncInDevelopment(): PluginOption {
 }
 
 /*
- * The tutorial runs the game Worker's table in the browser, so in the client build that table's Node crypto imports
- * resolve to a Web Crypto slice. Nothing else is redirected: the server build and the tests keep Node's own.
- */
-function gameTableCryptoInBrowser(): PluginOption {
-  const slice = fileURLToPath(new URL('./src/app/routes/_app/tutorial/table/nodeCrypto.ts', import.meta.url));
-  return {
-    name: 'dunezone:game-table-crypto-in-browser',
-    enforce: 'pre',
-    resolveId(source, importer) {
-      if (
-        source === 'node:crypto' &&
-        importer?.includes('/workers/game/') &&
-        this.environment.config.consumer === 'client'
-      ) {
-        return slice;
-      }
-    },
-  };
-}
-
-/*
  * App modules whose top level only declares: schemas, data helpers and UI components.
  * Rolldown keeps a module whose top level calls a function (such as `z.object()`) even when nothing uses its exports, so every page carried every domain's schemas through the route definitions.
  * Marked side-effect free, an unused one drops out; once any of its exports is used it keeps its statements, including the static-property and registry assignments under `src/app/ui`.
@@ -179,6 +158,8 @@ const config = defineConfig({
     css: { include: [/\.module\.css(?:\?.*)?$/, /\.css\?inline$/], modules: { classNameStrategy: 'scoped' } },
     /* The script tests that launch Chromium run through vitest.browser-launch.config.ts, where a browser is installed. */
     exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**', 'tools/**', ...browserLaunchTests],
+    /* The game engine reads its clock and randomness from a host; the unit tests run it on the Worker's (#2856). */
+    setupFiles: ['workers/game/engineHost.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],
@@ -299,7 +280,6 @@ const config = defineConfig({
   },
   plugins: withoutRouteSplittingInVitest([
     unsyncedMediaPreview(fileURLToPath(new URL('.', import.meta.url))),
-    gameTableCryptoInBrowser(),
     sandboxAsyncHooksInBrowser(),
     sandboxWorkerAsyncInDevelopment(),
     unusedMantineImportOnServer(),

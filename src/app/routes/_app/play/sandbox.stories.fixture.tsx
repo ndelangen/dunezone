@@ -1,6 +1,8 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { boardPointToTable } from '@shared/boards/tableTerritories';
+import { storedSnapshotSchema } from '@shared/play/engine/state';
+import type { StoredSnapshot } from '@shared/play/engine/state';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { StoredPiece } from '@shared/play/model';
@@ -14,8 +16,6 @@ import { troopFactionOf } from '@shared/play/troopReserves';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
-import { storedSnapshotSchema } from '../../../../../workers/game/state';
-import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { dreamrulesTechTokenPieces } from '../../../play/panels/inventory/techTokens.stories.fixture';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';

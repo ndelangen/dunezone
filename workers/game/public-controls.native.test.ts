@@ -6,6 +6,7 @@ import { publishingTokenFace } from '../../src/shared/assets/fixtures/publishing
 import { publishingTreacheryCard } from '../../src/shared/assets/fixtures/publishingTreacheryCard';
 import type { AssetSupply } from '../../src/shared/play/capture';
 import { assetSupplySchema } from '../../src/shared/play/capture';
+import { storedSnapshotSchema } from '../../src/shared/play/engine/state';
 import { spawnContentsSchema } from '../../src/shared/play/inventory';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
@@ -26,7 +27,6 @@ import {
   eventually,
   storedEventMessages,
 } from './native-runtime.fixture.ts';
-import { storedSnapshotSchema } from './state';
 
 function tokenPage(name = 'Recovery token') {
   return assetSupplySchema.parse({
