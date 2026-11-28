@@ -35,6 +35,23 @@ describe('browser JavaScript budgets', () => {
     );
   });
 
+  test("lets the bundler's small helpers and browser stand-ins sit beside sql.js, but no virtual module of code", () => {
+    const sqlite = '/project/node_modules/sql.js/dist/sql-asm-memory-growth.js';
+    const withModules = (modules: Record<string, number>) =>
+      ({
+        ...chunk(1_358_982),
+        modules: Object.fromEntries(Object.entries(modules).map(([id, renderedLength]) => [id, { renderedLength }])),
+      }) as Rolldown.OutputChunk;
+    expect(
+      inspectBrowserJavaScript({
+        sqlite: withModules({ [sqlite]: 1_358_000, '\0rolldown/runtime.js': 600, '__vite-browser-external:fs': 40 }),
+      })[0]
+    ).toContain('1358982/1400000');
+    expect(() =>
+      inspectBrowserJavaScript({ sqlite: withModules({ [sqlite]: 1_158_000, '\0virtual:app-payload': 200_000 }) })
+    ).toThrow('500000');
+  });
+
   test('identifies the Draco asset by its bytes and rejects a substituted oversized asset', () => {
     const source = readFileSync(new URL('../examples/jsm/libs/draco/draco_decoder.js', import.meta.resolve('three')));
     const asset = { type: 'asset', fileName: 'public/draco_decoder.js', source } as unknown as Rolldown.OutputAsset;

@@ -89,8 +89,14 @@ describe('a tutorial table before the deal', () => {
     sent = [];
     table.receive({ type: 'sync' }, table.seat);
     table.receive({ type: 'sync' }, table.seat);
-    expect(stored()).toBe(settled);
+    /* Each sync shows the same settled table: still trading, still closed, at the same revision. */
+    expect(stored().revision).toBe(settled.revision);
+    expect(stored().stage).toBe(settled.stage);
+    expect(stored().swapping?.closed).toBe(true);
     expect(sent).toHaveLength(2);
+    for (const message of sent) {
+      expect(message).toMatchObject({ type: 'view', snapshot: { revision: settled.revision, stage: settled.stage } });
+    }
   });
 
   test('names the watching spectator in every view, and no longer once they are seated', () => {

@@ -34,7 +34,15 @@ export function pageStorage(image?: Uint8Array): PageStorage {
         statements.set(text, statement);
       }
       try {
-        statement.bind(bindings as (string | number | null)[]);
+        /* sql.js takes a blob as bytes and hands one back as bytes, where Durable Object storage speaks ArrayBuffer. */
+        statement.bind(
+          bindings.map((value) => (value instanceof ArrayBuffer ? new Uint8Array(value) : value)) as (
+            | string
+            | number
+            | null
+            | Uint8Array
+          )[]
+        );
         const rows: Record<string, SqlStorageValue>[] = [];
         let columns: string[] | undefined;
         while (statement.step()) {
@@ -42,7 +50,8 @@ export function pageStorage(image?: Uint8Array): PageStorage {
           const values = statement.get();
           const row: Record<string, SqlStorageValue> = {};
           for (let index = 0; index < columns.length; index++) {
-            row[columns[index]!] = values[index] as SqlStorageValue;
+            const value = values[index];
+            row[columns[index]!] = value instanceof Uint8Array ? value.slice().buffer : (value as SqlStorageValue);
           }
           rows.push(row);
         }
@@ -55,6 +64,7 @@ export function pageStorage(image?: Uint8Array): PageStorage {
   });
   /* A table left for good closes its database itself; the registry frees one a host never closed. */
   const token = {};
+  let closed = false;
   closes.register(storage, database, token);
   return {
     storage,
@@ -64,6 +74,10 @@ export function pageStorage(image?: Uint8Array): PageStorage {
       return database.export();
     },
     close: () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
       closes.unregister(token);
       forget();
       database.close();

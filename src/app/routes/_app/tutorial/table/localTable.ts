@@ -390,6 +390,10 @@ export class LocalTable {
     const followsLearner = this.seat === this.seatOf(this.learner);
     const seated = this.seats().map((seat) => this.viewer(seat));
     if (!this.session.execute(viewer, message, this.spawnContents)) {
+      /* A resent draft command finishes a deal its first send committed the readiness for but could not complete. */
+      if (message.type === 'command' && isDraftAction(message.action)) {
+        this.dealIfReady();
+      }
       this.deliver(this.frame(this.seat, own ? message.commandId : undefined));
       return;
     }
@@ -433,8 +437,13 @@ export class LocalTable {
     }
     const { seated, factions } = prepared;
     const recorded = this.opening.draft?.deal ?? [];
+    /* Each seat, station and faction once, as the seats table holds them; any other recording deals at random. */
+    const distinct = (values: readonly unknown[]) => new Set(values).size === values.length;
     const asRecorded =
       recorded.length === seated.length &&
+      distinct(recorded.map((entry) => entry.seat)) &&
+      distinct(recorded.map((entry) => entry.position)) &&
+      distinct(recorded.map((entry) => entry.factionId)) &&
       recorded.every((entry) => seated.includes(entry.seat) && factions.includes(entry.factionId));
     const deal = asRecorded ? [...recorded] : dealSeats(seated, factions, hostRandomInt);
     const tokens = Object.fromEntries(

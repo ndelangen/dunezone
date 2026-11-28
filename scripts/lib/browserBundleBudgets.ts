@@ -29,12 +29,17 @@ function isThreeWebGpuChunk(file: Rolldown.OutputChunk): boolean {
   return modules.length === 3 && new Set(modules).size === 3 && modules.every((kind) => kind !== undefined);
 }
 
-/* Vite's empty stand-ins for the Node built-ins sql.js names but never loads in a browser, and the bundler's own helpers. */
-const isBrowserStub = (id: string) => id.startsWith('\0') || id.includes('__vite-browser-external');
+/* The largest helper the bundler adds beside sql.js; a virtual module bigger than this is code, and counts as such. */
+const STUB_BYTES = 4096;
+
+/* Vite's empty stand-ins for the Node built-ins sql.js names but never loads in a browser, and the bundler's own small helpers. */
+function isBrowserStub(id: string, module: Rolldown.RenderedModule | undefined) {
+  return id.includes('__vite-browser-external') || (id.startsWith('\0') && (module?.renderedLength ?? 0) <= STUB_BYTES);
+}
 
 /* The chunk holds sql.js alone, so nothing else grows under its larger budget. */
 function isSqliteChunk(file: Rolldown.OutputChunk): boolean {
-  const modules = Object.keys(file.modules).filter((id) => !isBrowserStub(id));
+  const modules = Object.keys(file.modules).filter((id) => !isBrowserStub(id, file.modules[id]));
   return modules.length === 1 && SQLITE_BUILD.test(modules[0]!);
 }
 

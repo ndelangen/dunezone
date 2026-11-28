@@ -142,7 +142,7 @@ export function sandboxTransport(
     debuggingChanged();
     return sandbox.transport;
   }
-  sandbox.table?.dispose();
+  sandbox.table?.close();
   const table = new SandboxTable(place);
   table.open();
   sandbox.table = table;
@@ -159,7 +159,8 @@ export function sandboxTransport(
   sandbox.transport = {
     ...transport,
     dispose() {
-      sandbox.table?.dispose();
+      /* The debugger panel may still read the last table's room, which stays in memory once its database is freed. */
+      sandbox.table?.close();
       dispose();
       sandbox.transport = undefined;
     },
@@ -171,7 +172,7 @@ export function sandboxTransport(
 /** Starts the table again from a step, on the connection the page already holds. */
 function restart(place: SandboxStart) {
   const deliver = sandbox.table?.deliver;
-  sandbox.table?.dispose();
+  sandbox.table?.close();
   const table = new SandboxTable({ prepare: sandbox.table?.prepare, ...place });
   table.open();
   if (deliver) {
