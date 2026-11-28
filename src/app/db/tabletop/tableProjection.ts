@@ -294,3 +294,38 @@ export function storedProjection({ viewer, snapshot, serverNow }: StoredTable): 
     serverNow: () => serverNow,
   };
 }
+
+/* The last live table while a lost connection is restored: on screen as it was, with every action paused and nothing in hand. */
+export function pausedProjection(table: TableProjection, serverNow: () => number): TableProjection {
+  const state = { ...table.state, draftMove: null };
+  const renderedPieces = piecesOnPlates(renderedPiecesFor(state), state.pieces);
+  return {
+    ...table,
+    reconnecting: true,
+    canInteract: false,
+    canHandleTable: false,
+    seatCommandPending: false,
+    phaseCooling: false,
+    state,
+    renderedPieces,
+    selectedPiece: null,
+    affordances: [],
+    spiceReserveControls: undefined,
+    spiceBlowControls: undefined,
+    spiceGift: undefined,
+    deckControls: undefined,
+    handControls: undefined,
+    allianceControls: undefined,
+    deleteControls: undefined,
+    peek: null,
+    peekControls: undefined,
+    closePeek: undefined,
+    remoteCarriedIds: new Set(),
+    plateRiders: new Map(),
+    reservedPieceIds: new Set(),
+    gestureActivePieceId: null,
+    hoveredPieceId: null,
+    flippingPieceIds: new Map(),
+    serverNow,
+  };
+}

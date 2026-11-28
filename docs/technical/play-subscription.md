@@ -9,6 +9,15 @@ assembles patches and requests a fresh view when an update cannot apply. Old adm
 retired sockets cannot update the current subscription. A fresh full view is required before gameplay commands can resume.
 
 `TableSession` owns selection, unfinished carries, pending actions, playback and presentation.
+It is a thin facade: each interaction area keeps its state in a part of its own in
+`src/app/db/tabletop`, and the session routes the room's messages to them, gates and sends
+commands, and derives the one table the scene and panels read. `CarryController` holds the piece in
+hand (pick-up, moves, drops, spice gifts, troops back to reserves), `PieceTurns` and `PieceFlips`
+the turns and turn-overs of pieces at rest, `PeekState` the open deck, `SpiceBlowQueue` the Spice
+blow placements, `TablePlayback` history and the followed table review, `TableControls` the piece
+menu's controls, `CatalogueRequests` the spawn picker's captures, `MovementOrder` the dragged
+movement order, `BoardKeeper` the drawn board, and `TableKeeper` the copy a reload shows. Parts
+reach the session only through the callbacks it hands them.
 It reads the saved snapshot and viewer from the subscription. It receives command replies and
 complete views, never applies patches or manages reconnect timers. The subscription also reports
 command receipts that accompanied an unusable patch, so a pending catalogue capture or battle
