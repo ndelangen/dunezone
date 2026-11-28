@@ -72,7 +72,7 @@ import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { restoreCommand, withDeletions } from './deletions';
 import { dealFixtureDeck } from './fixture';
-import { hostNow, hostRandomUUID } from './host';
+import { hostNow, hostRandomInt, hostRandomUUID } from './host';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
 import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
@@ -811,7 +811,8 @@ export class Room {
       return drawTechTokenInState(
         guarded,
         seatSubject(identity.viewerSeat),
-        stationFront(this.snapshot.roster, identity.viewerSeat)
+        stationFront(this.snapshot.roster, identity.viewerSeat),
+        hostRandomInt
       );
     }
     if (action.kind !== 'reset') {

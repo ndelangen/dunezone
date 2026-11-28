@@ -475,7 +475,7 @@
                 "message": "The game engine also runs in the browser, which has no Workers runtime. The host supplies storage, sockets and alarms."
               },
               {
-                "group": ["node:*"],
+                "regex": "^(node:.*|(assert|async_hooks|buffer|child_process|cluster|console|constants|crypto|dgram|diagnostics_channel|dns|domain|events|fs|http|http2|https|inspector|module|net|os|path|perf_hooks|process|punycode|querystring|readline|repl|stream|string_decoder|sys|timers|tls|trace_events|tty|url|util|v8|vm|wasi|worker_threads|zlib)(/.*)?)$",
                 "message": "The game engine also runs in the browser, which has no Node built-ins. Its clock, randomness and signing come from its host (./host)."
               }
             ]

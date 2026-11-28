@@ -263,6 +263,8 @@ describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
     "import { DurableObject } from 'cloudflare:workers';\nexport const probe = DurableObject;\n",
     "import { randomInt } from 'node:crypto';\nexport const probe = randomInt;\n",
     "import { readFileSync } from 'node:fs';\nexport const probe = readFileSync;\n",
+    "import { randomUUID } from 'crypto';\nexport const probe = randomUUID;\n",
+    "import { readFile } from 'fs/promises';\nexport const probe = readFile;\n",
     "import { api } from '../../../../convex/_generated/api';\nexport const probe = api;\n",
     "import { GameSessionDurableObject } from '../../../../workers/game/index';\nexport const probe = GameSessionDurableObject;\n",
     "import { router } from '@app/router';\nexport const probe = router;\n",
@@ -287,6 +289,10 @@ describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
     'export const probe = window.performance.now();\n',
     'const { now } = Date;\nexport const probe = now();\n',
     'const { random } = Math;\nexport const probe = random();\n',
+    "export const probe = Date['now']();\n",
+    "export const probe = Math['random']();\n",
+    'const { crypto } = globalThis;\nexport const probe = crypto;\n',
+    'const { performance: clock } = self;\nexport const probe = clock;\n',
   ])('bites on an ambient clock or random source in an engine file: %s', async (source) => {
     const output = await lintDiagnostics('probe.ts', source, ENGINE_ROOT);
     expect(output.split('local(engine-host-only)').length - 1).toBe(1);
@@ -295,7 +301,7 @@ describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
   test('leaves a Date built from a value, and Math without its random source, alone', async () => {
     const output = await lintDiagnostics(
       'probe.ts',
-      'const { max } = Math;\nexport const probe = [new Date(0), max(1, 2), Math.floor(1.5)];\n',
+      "const { max } = Math;\nconst { location } = globalThis;\nexport const probe = [new Date(0), max(1, 2), Math['floor'](1.5), location];\n",
       ENGINE_ROOT
     );
     expect(output).not.toContain('engine-host-only');

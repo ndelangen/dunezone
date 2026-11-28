@@ -394,10 +394,27 @@ const engineHostOnlyRule: Rule = {
   create(context) {
     const GLOBAL_OBJECTS = new Set(['globalThis', 'self', 'window']);
     const AMBIENT = new Set(['crypto', 'Date', 'Math', 'performance']);
-    const propertyName = (node: LintNode) =>
-      node.type === 'MemberExpression' && !node.computed && node.property.type === 'Identifier'
-        ? node.property.name
+    /* `Date.now` and `Date['now']` name the same property. */
+    const propertyName = (node: LintNode): string | undefined => {
+      if (node.type !== 'MemberExpression') {
+        return undefined;
+      }
+      if (!node.computed) {
+        return node.property.type === 'Identifier' ? node.property.name : undefined;
+      }
+      return node.property.type === 'Literal' && typeof node.property.value === 'string'
+        ? node.property.value
         : undefined;
+    };
+    const keyName = (entry: LintNode) => {
+      if (entry.type !== 'Property') {
+        return undefined;
+      }
+      if (entry.key.type === 'Identifier' && !entry.computed) {
+        return entry.key.name;
+      }
+      return entry.key.type === 'Literal' && typeof entry.key.value === 'string' ? entry.key.value : undefined;
+    };
     /* `Date`, or `globalThis.Date` and the like, so a spelling through the global object is caught too. */
     const ambient = (node: LintNode): string | undefined => {
       if (node.type === 'Identifier') {
@@ -424,18 +441,20 @@ const engineHostOnlyRule: Rule = {
         }
       },
       /* `const { now } = Date` or `const { randomUUID } = crypto` takes the same reading out by another route. */
+      /* `const { crypto } = globalThis` takes one of the sources itself off the global object. */
       VariableDeclarator(node) {
-        const name = node.init ? ambient(node.init) : undefined;
-        if (node.id.type === 'ObjectPattern' && name && name !== 'Math') {
-          context.report({ node, messageId: 'ambient' });
+        if (node.id.type !== 'ObjectPattern' || !node.init) {
+          return;
         }
-        if (node.id.type === 'ObjectPattern' && name === 'Math') {
-          const keys = node.id.properties.map((entry) =>
-            entry.type === 'Property' && entry.key.type === 'Identifier' ? entry.key.name : undefined
-          );
-          if (keys.includes('random')) {
-            context.report({ node, messageId: 'ambient' });
-          }
+        const keys = node.id.properties.map(keyName);
+        const name = ambient(node.init);
+        const fromGlobal =
+          node.init.type === 'Identifier' &&
+          GLOBAL_OBJECTS.has(node.init.name) &&
+          keys.some((key) => key && AMBIENT.has(key));
+        const fromSource = name && (name !== 'Math' || keys.includes('random'));
+        if (fromGlobal || fromSource) {
+          context.report({ node, messageId: 'ambient' });
         }
       },
       NewExpression(node) {
