@@ -1,5 +1,3 @@
-import { createHmac } from 'node:crypto';
-
 import { z } from 'zod';
 
 import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../rulesets/battleDialing';
@@ -25,6 +23,7 @@ import { gameEndingSchema, gameResultSchema } from '../result';
 import { SPECTATOR_SEAT, storedPieceSchema, storedTableSchema, tableCountSchema, tableIdSchema } from '../schema';
 import { predictionSchema, predictionChoiceSchema } from '../setup';
 import { heldTechTokens } from '../techToken';
+import { engineHost } from './host';
 
 /** The board layout a stored game's positions are laid out for; a game stored on an earlier layout no longer opens. */
 const BOARD_LAYOUT = 4;
@@ -386,9 +385,7 @@ export class RoomProjection {
   constructor(private readonly secret: string) {}
 
   private cardId(id: string, handles: StoredSnapshot['cardHandles'] = {}) {
-    return `card-${createHmac('sha256', this.secret)
-      .update(handles[id] ?? id)
-      .digest('hex')}`;
+    return `card-${engineHost().hmacSha256(this.secret, handles[id] ?? id)}`;
   }
 
   piece(

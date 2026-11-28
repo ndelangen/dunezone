@@ -8,6 +8,7 @@ import { SPECTATOR_SEAT } from '../schema';
 import type { SwapAction, SwapOffer, SwappingState } from '../swapping';
 import { eventId } from '../tableState';
 import type { ActorDirectory } from './actors';
+import { hostNow } from './host';
 import type { PublicLog } from './log';
 import type { SetupSupply } from './setup';
 import type { StoredSnapshot } from './state';
@@ -88,7 +89,7 @@ export class Swapping {
    * A seat, removal or deletion change: its audit rows, then the trade settled around the new occupancy.
    * Each step reads the clock for itself, so a deadline passing between them is judged as it passes.
    */
-  settleParticipation(change: Omit<ParticipationChange, 'now'>, clock: () => number = Date.now): StoredSnapshot {
+  settleParticipation(change: Omit<ParticipationChange, 'now'>, clock: () => number = hostNow): StoredSnapshot {
     this.recordParticipation({ ...change, now: clock() });
     const { after, commandId, actor } = change;
     return this.reconcile(after, { commandId, now: clock(), actor });

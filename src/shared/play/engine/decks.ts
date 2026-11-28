@@ -1,5 +1,3 @@
-import { randomInt, randomUUID } from 'node:crypto';
-
 import { accepted, nextSnapshot } from '../commands';
 import { rosterFactionEventName } from '../factionLabels';
 import type { StoredPiece, TablePiece } from '../model';
@@ -8,6 +6,7 @@ import type { DeckAction } from '../protocol';
 import { GameRejection } from '../rejection';
 import { SPECTATOR_SEAT } from '../schema';
 import { labelForCount } from '../tableState';
+import { hostRandomInt, hostRandomUUID } from './host';
 import { seatedFaction } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -18,10 +17,10 @@ export function concealCards(snapshot: StoredSnapshot, pieces: TablePiece[], ret
   for (const piece of pieces) {
     if (piece.kind === 'card') {
       if (retirePieces) {
-        pieceHandles[piece.id] = randomUUID();
+        pieceHandles[piece.id] = hostRandomUUID();
       }
       for (const item of piece.items) {
-        cardHandles[item.id] = randomUUID();
+        cardHandles[item.id] = hostRandomUUID();
       }
     }
   }
@@ -40,7 +39,7 @@ export function shuffledCards(source: StoredPiece['items']): StoredPiece['items'
   /* A shuffle loses track of every card, so who peeked at which is forgotten with the order. */
   const items = source.map(({ peekedBy: _peekedBy, ...item }) => ({ ...item, faceUp: false }));
   for (let index = items.length - 1; index > 0; index--) {
-    const other = randomInt(index + 1);
+    const other = hostRandomInt(index + 1);
     [items[index], items[other]] = [items[other], items[index]];
   }
   return items;
@@ -73,7 +72,7 @@ function drawCards(snapshot: StoredSnapshot, deck: StoredPiece, recipient: strin
     .reverse()
     .map(({ peekedBy: _peekedBy, ...item }) => ({
       ...deck,
-      id: randomUUID(),
+      id: hostRandomUUID(),
       /* A dealt card is named as a card split off the deck would be, so a hand and the table agree. */
       label: labelForCount(deck, 1, rosterFactionNames(snapshot.roster)),
       owner: recipient,

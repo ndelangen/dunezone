@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 import { accepted, nextSnapshot } from '../commands';
 import {
   bannersOf,
@@ -20,6 +18,7 @@ import type { Viewer } from '../protocol';
 import { GameRejection } from '../rejection';
 import { SPECTATOR_SEAT } from '../schema';
 import { openSwapping } from '../swapping';
+import { hostRandomInt, hostRandomUUID } from './host';
 import type { StoredSnapshot } from './state';
 
 /*
@@ -29,7 +28,7 @@ import type { StoredSnapshot } from './state';
  */
 
 /** Unbiased picks from the platform's random source, in the shape the shared dealing helpers take. */
-export const unbiased = (n: number) => randomInt(n);
+export const unbiased = (n: number) => hostRandomInt(n);
 
 type ListChange = 'draft-pick' | 'draft-unpick' | 'draft-ban' | 'draft-unban';
 
@@ -313,7 +312,7 @@ export function dealtSnapshot(
   return {
     ...dealt,
     stage: 'swapping',
-    swapping: { ...openSwapping(crypto.randomUUID(), table.now), tokens: table.tokens },
+    swapping: { ...openSwapping(hostRandomUUID(), table.now), tokens: table.tokens },
     controls: { ...controls, ready: [], seats: table.seats },
   };
 }

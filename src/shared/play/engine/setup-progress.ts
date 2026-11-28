@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 import { SETUP_PHASE_TARGETS } from '../../factions/extraPhases';
 import { capturedDeclarations } from '../capture';
 import type { FactionCapture } from '../capture';
@@ -22,6 +20,7 @@ import { SHARED_ITEM_PLACEMENT_ANCHORS } from '../tableFurnitureLayout';
 import { restingPositionAt } from '../tableGeometry';
 import { isCollisionFreePosition } from '../tablePhysics';
 import { labelForCount } from '../tableState';
+import { hostRandomInt } from './host';
 import { dealPredictionCard } from './predictionCards';
 import { seatedFaction } from './state';
 import type { StoredSnapshot } from './state';
@@ -153,7 +152,7 @@ function randomStorm(snapshot: StoredSnapshot) {
     throw new GameRejection('Random storm placement is available only in Turn 1 Storm.');
   }
   return event(
-    { ...snapshot, table: { ...snapshot.table, stormSectorIndex: randomInt(18) } },
+    { ...snapshot, table: { ...snapshot.table, stormSectorIndex: hostRandomInt(18) } },
     'storm-random',
     'The storm was placed in a random sector.'
   );

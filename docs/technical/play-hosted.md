@@ -118,11 +118,15 @@ that connection remains live, so delayed messages cannot revive an old carry.
 The shared rules and geometry live in `src/shared/play`, and the Play route imports them as
 `@shared/play/<module>`. The game engine, the Room, the session and their domain stores, lives in
 `src/shared/play/engine` (#2852). Four hosts run it: the game Worker's rooms, the homepage table,
-the tutorial and Play / Sandbox, and each supplies its own storage. The Worker keeps only host code
-in `workers/game`: sockets, admission, HTTP, alarms and the Convex calls. An `.oxlintrc.json`
-override keeps the engine from importing a Workers runtime module, Worker host code, Convex, the app
-or a Node built-in other than `node:crypto`, which the browser build still swaps for a Web Crypto
-slice. `commands.ts`, `src/shared/play/engine/room.ts` and `history.ts` extend the
+the tutorial and Play / Sandbox, and each supplies its own storage. Each also installs an engine
+host (`src/shared/play/engine/host.ts`) for the clock, randomness and card-identity signing: the
+Worker's (`workers/game/engineHost.ts`) uses Node's crypto, the browser's
+(`src/app/routes/_app/tutorial/table/engineHost.ts`) Web Crypto and crypto-js, and unit tests run
+on the Worker's or install a fixed one. The Worker keeps only host code in `workers/game`: sockets,
+admission, HTTP, alarms and the Convex calls. An `.oxlintrc.json` override keeps the engine from
+importing a Workers runtime module, Worker host code, Convex, the app or a Node built-in, and
+`local/engine-host-only` keeps it from reading `Date`, `Math.random`, `performance` or `crypto`
+itself. `commands.ts`, `src/shared/play/engine/room.ts` and `history.ts` extend the
 accepted source implementation preserved in the
 [source history bundle](https://github.com/ndelangen/dunezone/releases/download/proof-assets/duneplay-source-e593e95.bundle)
 on the `proof-assets` release; the

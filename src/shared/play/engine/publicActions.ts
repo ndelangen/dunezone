@@ -1,5 +1,6 @@
 import type { StoredSpawnContents } from '../inventory';
 import type { ClientMessage, CommitMessage, DeckAction, Viewer } from '../protocol';
+import { hostNow } from './host';
 import type { StoredSnapshot } from './state';
 
 type Command = Extract<ClientMessage, { type: 'command' }>;
@@ -82,7 +83,7 @@ export class PublicActions {
       commit.viewer.displayName,
       JSON.stringify(action),
       contents,
-      Date.now()
+      hostNow()
     );
   }
 }

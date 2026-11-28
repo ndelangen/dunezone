@@ -7,6 +7,7 @@ import type { ActionKind } from './actionPolicy';
 import type { ActorDirectory } from './actors';
 import type { Patch } from './history';
 import { applyPatch, applyPatchInPlace, diff } from './history';
+import { hostNow } from './host';
 import { logContext } from './log';
 import type { SpiceLedger } from './spiceLedger';
 import type { StoredSnapshot } from './state';
@@ -195,7 +196,7 @@ export class SessionHistory {
       history.data,
       history.bytes
     );
-    this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, Date.now());
+    this.storage.sql.exec('INSERT INTO history_clocks VALUES(?,?)', history.step, hostNow());
     if (history.place) {
       this.storage.sql.exec('INSERT INTO history_places VALUES(?,?)', history.step, JSON.stringify(history.place));
     }

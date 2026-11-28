@@ -2,6 +2,7 @@ import { dealSeats, draftGates, isDraftAction, resolveFactionPool } from '@share
 import type { DraftAction } from '@shared/play/drafting';
 import { ActorDirectory } from '@shared/play/engine/actors';
 import { applyDraftAction, dealtSnapshot } from '@shared/play/engine/drafting';
+import { hostRandomInt } from '@shared/play/engine/host';
 import { PublicLog, logContext } from '@shared/play/engine/log';
 import { ownRequests, Participation } from '@shared/play/engine/participation';
 import { RemovalVotes } from '@shared/play/engine/removal';
@@ -23,7 +24,6 @@ import type { SwapAction } from '@shared/play/swapping';
 
 import { MemorySql } from './memorySql';
 import type { MemoryActor } from './memorySql';
-import { randomInt } from './nodeCrypto';
 
 /*
  * The part of the game Worker's session that comes before the table: who sits where, the draft and its deal, trading, and seat requests.
@@ -210,7 +210,7 @@ export class LocalSession {
     if (!gates.minimumMet || !gates.allReady || !gates.enoughFactions) {
       return snapshot;
     }
-    const random = (n: number) => randomInt(n);
+    const random = (n: number) => hostRandomInt(n);
     const factions = resolveFactionPool(draft, seated.length, random);
     if (!factions) {
       return snapshot;

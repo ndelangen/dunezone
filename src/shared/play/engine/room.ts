@@ -72,6 +72,7 @@ import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
 import { restoreCommand, withDeletions } from './deletions';
 import { dealFixtureDeck } from './fixture';
+import { hostNow, hostRandomUUID } from './host';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
 import { closeLostPeeks, closePeeksForNewPhase, peekCommand } from './peeks';
@@ -174,7 +175,7 @@ export class Room {
     this.current = closeLostPeeks(snapshot);
   }
   /* A new epoch tells pages their carries are gone; a room woken from hibernation resumes the old one, since it held none. */
-  epoch: string = crypto.randomUUID();
+  epoch: string = hostRandomUUID();
   /** The revision of the last commit that changed more than who is ready. */
   private settledRevision: number;
   readonly carries = new Map<string, Carry>();
@@ -289,7 +290,7 @@ export class Room {
     };
   }
 
-  begin(identity: Identity, input: CarryInput<'begin'>, now = Date.now()): DraftMove {
+  begin(identity: Identity, input: CarryInput<'begin'>, now = hostNow()): DraftMove {
     const { carryId: id, sourcePieceId: sourceId, expectedVersion, pickup } = input;
     this.assertTableAvailable();
     this.player(identity);
@@ -422,7 +423,7 @@ export class Room {
     return source;
   }
 
-  pose(identity: Identity, input: CarryInput<'pose'>, now = Date.now()): boolean {
+  pose(identity: Identity, input: CarryInput<'pose'>, now = hostNow()): boolean {
     const { carryId: id, seq, position, orientation } = input;
     const carry = this.carry(identity, id);
     if (seq <= carry.seq) {
@@ -439,7 +440,7 @@ export class Room {
   }
 
   /** Turns the held piece over in hand; the count only adds up, so a repeated message changes nothing. */
-  flip(identity: Identity, input: CarryInput<'flip'>, now = Date.now()): DraftMove {
+  flip(identity: Identity, input: CarryInput<'flip'>, now = hostNow()): DraftMove {
     const carry = this.carry(identity, input.carryId);
     const held = heldPieceFor(this.table(identity, input.carryId), carry.draft);
     if (!canFlipInHand(held, this.unrevealedPrediction)) {
@@ -459,7 +460,7 @@ export class Room {
     return carry ? (this.publicCarry(carry)[0]?.held ?? null) : null;
   }
 
-  take(identity: Identity, input: CarryInput<'take'>, now = Date.now()): DraftMove {
+  take(identity: Identity, input: CarryInput<'take'>, now = hostNow()): DraftMove {
     const { carryId: id, requestId, donorPieceId: donorId } = input;
     const carry = this.carry(identity, id);
     const previous = carry.takes.get(requestId);
@@ -533,7 +534,7 @@ export class Room {
     const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
     const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
-    return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
+    return { ...next, ...biddingAfterTable(this.snapshot, next, hostNow()) };
   }
 
   /** The reserves of the faction whose troops are held, when they are let go over that faction's own token. */
@@ -663,7 +664,7 @@ export class Room {
     return factionId;
   }
 
-  command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
+  command(identity: Identity, action: RoomAction, expectedRevision: number, now = hostNow()): StoredSnapshot {
     const applied = this.applyCommand(identity, action, expectedRevision, now);
     const next = withDeletions(this.snapshot, applied, action);
     /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
@@ -959,7 +960,7 @@ export class Room {
     }
   }
 
-  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = Date.now()) {
+  accept(snapshot: StoredSnapshot, carryId?: string, clearAll = false, now = hostNow()) {
     this.updateFlipDeadlines(snapshot, now);
     this.snapshot = snapshot;
     this.settledRevision = snapshot.revision;
@@ -1013,7 +1014,7 @@ export class Room {
     }
   }
 
-  renew(identity: Identity, id: string, now = Date.now()) {
+  renew(identity: Identity, id: string, now = hostNow()) {
     this.carry(identity, id).lastSeen = now;
   }
 
@@ -1021,7 +1022,7 @@ export class Room {
    * Returns whether the pointer appeared, moved, changed identity or went away.
    * A resend at the same position refreshes `updatedAt` for the sweep and returns false.
    */
-  pointer(identity: Identity, position: Vector3Tuple | null, now = Date.now(), sourceSeq?: number) {
+  pointer(identity: Identity, position: Vector3Tuple | null, now = hostNow(), sourceSeq?: number) {
     this.player(identity);
     if (position === null) {
       return this.pointers.delete(identity.connectionId);
@@ -1066,13 +1067,13 @@ export class Room {
     this.usedCarryIds.delete(connectionId);
   }
 
-  sweep(now = Date.now()): boolean {
+  sweep(now = hostNow()): boolean {
     const carriesChanged = this.sweepCarries(now);
     const pointersChanged = this.sweepPointers(now);
     return carriesChanged || pointersChanged;
   }
 
-  sweepCarries(now = Date.now()): boolean {
+  sweepCarries(now = hostNow()): boolean {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {

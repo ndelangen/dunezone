@@ -2,6 +2,7 @@
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import { propertyId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
+import { installEngineHost } from '@shared/play/engine/host';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { nextToMove, movementOrder } from '@shared/play/movement';
@@ -19,12 +20,11 @@ import setup from '../setup/setup.json';
 import spiceBlows from '../setup/spiceBlows.json';
 import { startAt } from '../setup/tutorialSetup';
 import type { TutorialSetup } from '../setup/tutorialSetup';
+import { browserEngineHost } from '../table/engineHost';
 import { LocalTable } from '../table/localTable';
 import type { TablePlayers } from './chapterScript';
 import { whatGoesWhere } from './whatGoesWhere';
 import { spiceBlow } from './whatGoesWhereBoard';
-
-vi.mock('../table/nodeCrypto', async (original) => ({ ...(await original<object>()), randomInt: () => 5 }));
 
 let table: LocalTable;
 let steps: GuideTask[];
@@ -83,6 +83,8 @@ const spiceStack = (count?: number) =>
   )!;
 
 beforeEach(async () => {
+  /* Every random pick lands on 5 where it can, so the random storm placement is known. */
+  installEngineHost({ ...browserEngineHost, randomInt: (max) => 5 % max });
   table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
   table.setBoard(arrakisBoardCapture);
   const players: TablePlayers = {
@@ -98,7 +100,10 @@ beforeEach(async () => {
   steps = whatGoesWhere.tasks(snapshot, players);
   await vi.dynamicImportSettled();
 });
-afterEach(() => table.dispose());
+afterEach(() => {
+  table.dispose();
+  installEngineHost(browserEngineHost);
+});
 
 test('the shipped spice lookup contains exactly the recorded cards and their printed values', () => {
   expect(spiceBlows).toEqual(tutorialSpiceBlows(catalogue.assetSupply['deck/dreamrules-spice-deck']));

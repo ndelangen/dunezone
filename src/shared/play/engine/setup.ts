@@ -11,6 +11,7 @@ import { cardBaySlotPositions } from '../tableFurnitureLayout';
 import { tableSeatAngles } from '../tableSettings';
 import type { CaptureStore } from './captures';
 import { concealCards, shuffledCards } from './decks';
+import { hostRandomUUID } from './host';
 import { initialSetup } from './setup-progress';
 import type { StoredSnapshot } from './state';
 
@@ -88,7 +89,7 @@ function suppliedSnapshot(
   const table = tableForViewer(next, SPECTATOR_SEAT);
   for (const { capture, angle } of factions) {
     const { token, reserves, hand, traitors } = factionSupply(capture, angle, {
-      id: () => crypto.randomUUID(),
+      id: () => hostRandomUUID(),
       shuffle: shuffledCards,
     });
     hand.push(...capture.extras.flatMap((slot) => slotPieces(slot, capture.faction.id)));
@@ -184,12 +185,12 @@ function slotPieces(
 
 function copyPiece(source: StoredPiece, owner: string): StoredPiece {
   const copy = structuredClone(source);
-  copy.id = crypto.randomUUID();
+  copy.id = hostRandomUUID();
   copy.owner = owner;
   copy.inventory = owner === 'shared' ? 'shared' : undefined;
   copy.items = copy.items.map((sourceItem) => ({
     ...sourceItem,
-    id: crypto.randomUUID(),
+    id: hostRandomUUID(),
     faceUp: source.kind !== 'card',
   }));
   if (copy.kind === 'card') {

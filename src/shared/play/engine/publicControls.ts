@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto';
-
 import { accepted, nextSnapshot } from '../commands';
 import { emptyPublicControls } from '../inventory';
 import type { PublicAction, StoredControls, StoredSpawnContents } from '../inventory';
@@ -9,6 +7,7 @@ import { phaseAt } from '../phases';
 import type { PhaseEntry } from '../phases';
 import type { Viewer } from '../protocol';
 import { GameRejection } from '../rejection';
+import { hostRandomInt, hostRandomUUID } from './host';
 import type { StoredSnapshot } from './state';
 
 /** What the room supplies for one public control: its table as of now, who is seated, and the table as this seat sees it. */
@@ -109,13 +108,13 @@ function spawnPieces(contents: StoredSpawnContents, requestId: string): TablePie
   return contents.pieces.map((piece, index) => {
     const items = piece.items.map((item, itemIndex) => ({
       ...item,
-      id: piece.kind === 'card' ? crypto.randomUUID() : `${requestId}-${index}-${itemIndex}`,
+      id: piece.kind === 'card' ? hostRandomUUID() : `${requestId}-${index}-${itemIndex}`,
       faceUp: piece.kind !== 'card',
     }));
     /* A new deck's hidden runtime order is independent of its public catalogue recipe. */
     if (piece.kind === 'card') {
       for (let cursor = items.length - 1; cursor > 0; cursor--) {
-        const other = randomInt(cursor + 1);
+        const other = hostRandomInt(cursor + 1);
         [items[cursor], items[other]] = [items[other], items[cursor]];
       }
     }

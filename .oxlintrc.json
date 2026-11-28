@@ -440,9 +440,10 @@
     {
       /*
        * The game engine (#2852) holds Play's rules, which four hosts run: the game Worker's rooms, the homepage table,
-       * the tutorial and Play / Sandbox. Each host supplies its own storage, clock and randomness, so an engine file
-       * imports only other shared modules and plain libraries: never a Workers runtime module, the Worker's host code,
-       * Convex, the app, or a Node built-in beyond the `node:crypto` the browser hosts still swap in (#2856 removes it).
+       * the tutorial and Play / Sandbox. Each host supplies its own storage, clock and randomness (`engine/host.ts`), so an
+       * engine file imports only other shared modules and plain libraries: never a Workers runtime module, the Worker's
+       * host code, Convex, the app or a Node built-in, and reads no clock, random source or crypto of its own
+       * (`local/engine-host-only`).
        * Restates the src/shared bans because an override replaces a rule's options for the files it matches.
        * Tests are outside the ban: they stand in for a host.
        */
@@ -474,12 +475,13 @@
                 "message": "The game engine also runs in the browser, which has no Workers runtime. The host supplies storage, sockets and alarms."
               },
               {
-                "group": ["node:*", "!node:crypto"],
-                "message": "The game engine also runs in the browser, which has no Node built-ins."
+                "group": ["node:*"],
+                "message": "The game engine also runs in the browser, which has no Node built-ins. Its clock, randomness and signing come from its host (./host)."
               }
             ]
           }
-        ]
+        ],
+        "local/engine-host-only": "error"
       }
     },
     {

@@ -7,6 +7,7 @@ import type { GameSnapshot } from '../protocol';
 import type { TableRoster } from '../schema';
 import { DEFAULT_TABLE_SEAT_COUNT } from '../tableSettings';
 import { shuffledCards } from './decks';
+import { hostRandomUUID } from './host';
 import { storedSnapshotSchema } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -55,7 +56,7 @@ export function dealFixtureDeck<Table extends { pieces: TablePiece[] }>(
   if (cards.length < 2 || !table.pieces.some((piece) => piece.id === FIXTURE_DECK_PIECE)) {
     return table;
   }
-  const items = shuffledCards(cards).map((item) => ({ ...item, id: crypto.randomUUID() }));
+  const items = shuffledCards(cards).map((item) => ({ ...item, id: hostRandomUUID() }));
   const loose = { ...items[items.length - 1]!, faceUp: true };
   return {
     ...table,

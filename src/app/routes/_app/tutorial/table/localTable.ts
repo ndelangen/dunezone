@@ -16,6 +16,7 @@ import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '@shared/play/review';
 
+import './engineHost';
 import { isSessionAction, LocalSession } from './localSession';
 import type { RecordedDeal } from './localSession';
 

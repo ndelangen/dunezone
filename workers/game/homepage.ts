@@ -25,6 +25,7 @@ import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/sh
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import './engineHost';
 import { clientAddress, clientKey } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';

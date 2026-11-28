@@ -14,6 +14,7 @@ import { rosterSeat } from '../schema';
 import { setupStep } from '../setup';
 import type { SpiceTransfer } from '../spiceReserve';
 import { deletionId } from './deletions';
+import { hostNow } from './host';
 import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
 
@@ -120,7 +121,7 @@ export class PublicLog {
       entry.template,
       JSON.stringify(entry.people ?? []),
       entry.context ?? this.context(),
-      entry.at ?? Date.now()
+      entry.at ?? hostNow()
     );
     return true;
   }

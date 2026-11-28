@@ -62,6 +62,7 @@ import {
 import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
+import { hostNow } from './host';
 import { logContext, PublicLog } from './log';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
@@ -371,7 +372,7 @@ export class GameSession {
     const snapshot = game
       ? storedSnapshotSchema.parse({
           ...creatorSeated(emptySnapshot(), roster),
-          draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? Date.now() : 0),
+          draft: emptyDraft(game.minimumPlayers, factions ?? [], factions ? hostNow() : 0),
           ...(game.lastTurn === undefined ? {} : { lastTurn: game.lastTurn }),
         })
       : this.fixturePlan.snapshot(roster, metadata.fixtureDeck);
@@ -383,7 +384,7 @@ export class GameSession {
       this.actors.install(roster);
       if (game) {
         this.actors.seatCreator(game.creator.userId, game.creator.displayName, CREATOR_SEAT, game.creator);
-        this.directory.stage(this.directorySummary(snapshot, Date.now(), metadata), Date.now());
+        this.directory.stage(this.directorySummary(snapshot, hostNow(), metadata), hostNow());
       }
     });
     this.metadata = metadata;
@@ -442,17 +443,17 @@ export class GameSession {
         return;
       }
     }
-    if (this.tradingDeadline > Date.now()) {
+    if (this.tradingDeadline > hostNow()) {
       return;
     }
     const next = this.storage.transactionSync(() => {
       const prior = room.snapshot;
       const result = this.withRoster(
-        this.swapping.reconcile(prior, { commandId: `deadline-${swapping.round}`, now: Date.now(), actor: null })
+        this.swapping.reconcile(prior, { commandId: `deadline-${swapping.round}`, now: hostNow(), actor: null })
       );
       this.log.recordStage(prior, result);
       this.writeState(result);
-      this.stageDirectory(result, Date.now());
+      this.stageDirectory(result, hostNow());
       return result;
     });
     room.accept(next);
@@ -504,7 +505,7 @@ export class GameSession {
     if (!this.room) {
       return;
     }
-    const next = expire(this.room.snapshot, Date.now());
+    const next = expire(this.room.snapshot, hostNow());
     if (!next) {
       return;
     }
@@ -512,7 +513,7 @@ export class GameSession {
     this.storage.transactionSync(() => {
       this.writeState(next);
       this.history.write(history);
-      this.stageDirectory(next, Date.now());
+      this.stageDirectory(next, hostNow());
     });
     this.history.accept(history.step, next);
     this.room.accept(next);
@@ -551,7 +552,7 @@ export class GameSession {
         const departed = this.participation.afterDeletion(userId, oldSeat, {
           snapshot: scrubbed,
           roster: this.actors.roster(this.seatCount()),
-          now: Date.now(),
+          now: hostNow(),
         });
         const settled = this.swapping.settleParticipation({
           before: scrubbed,
@@ -560,7 +561,7 @@ export class GameSession {
           actor: null,
           occupants,
         });
-        const voted = this.reconcileVotes(settled, Date.now());
+        const voted = this.reconcileVotes(settled, hostNow());
         const next = this.withRoster(
           this.spiceLedger.project({
             ...voted,
@@ -569,7 +570,7 @@ export class GameSession {
         );
         this.log.recordStage(scrubbed, next);
         this.writeState(next);
-        this.stageDirectory(next, Date.now());
+        this.stageDirectory(next, hostNow());
         return { snapshot: next, boundary: this.history.restore(this.history.steps) };
       })
     );
@@ -657,10 +658,10 @@ export class GameSession {
         occupants,
       });
       this.growStations();
-      const next = this.withRoster(this.reconcileVotes(applied, Date.now()));
+      const next = this.withRoster(this.reconcileVotes(applied, hostNow()));
       this.log.recordStage(this.room!.snapshot, next);
       this.writeState(next);
-      this.stageDirectory(next, Date.now());
+      this.stageDirectory(next, hostNow());
       this.recordReceipt(key, viewer, message, next.revision);
       return next;
     });
@@ -688,7 +689,7 @@ export class GameSession {
     const { key, viewer, message, next, history, contents, transfer } = commit;
     this.storage.transactionSync(() => {
       this.writeState(next);
-      this.stageDirectory(next, Date.now());
+      this.stageDirectory(next, hostNow());
       const result = next.battleResults[0];
       /* A command that changed nothing keeps the revision a just-settled battle's result was already stored under. */
       if (result && result.revision === next.revision && next.revision !== this.room!.snapshot.revision) {
@@ -840,10 +841,10 @@ export class GameSession {
           viewer,
           action,
           commandId: message.commandId,
-          now: Date.now(),
+          now: hostNow(),
         })
       );
-      const applied = this.reconcileVotes(swapped, Date.now());
+      const applied = this.reconcileVotes(swapped, hostNow());
       this.persistCommit({ key, viewer, message, next: applied });
       return applied;
     });
@@ -878,8 +879,8 @@ export class GameSession {
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
-      const applied = this.removal.apply(room.snapshot, viewer, action, Date.now());
-      const settled = this.withRoster(this.reconcileVotes(applied, Date.now()));
+      const applied = this.removal.apply(room.snapshot, viewer, action, hostNow());
+      const settled = this.withRoster(this.reconcileVotes(applied, hostNow()));
       this.persistCommit({ key, viewer, message, next: settled });
       return settled;
     });
@@ -892,7 +893,7 @@ export class GameSession {
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const next = this.storage.transactionSync(() => {
-      const now = Date.now();
+      const now = hostNow();
       const running = this.reviews.running();
       const applied = this.reviews.apply({
         snapshot: room.snapshot,
@@ -923,7 +924,7 @@ export class GameSession {
     room.assertRevision(message.action, message.expectedRevision);
     const action = message.action;
     const { next, history } = this.storage.transactionSync(() => {
-      const now = Date.now();
+      const now = hostNow();
       const settled = this.withRoster(
         this.reconcileVotes(
           applyResult(room.snapshot, viewer, action, now, () => this.actors.seats()),
@@ -951,7 +952,7 @@ export class GameSession {
       viewer,
       snapshot: room.snapshot,
       roster: this.actors.roster(this.seatCount()),
-      now: Date.now(),
+      now: hostNow(),
     });
     const next = this.persistSeatCommit(key, viewer, message, plan);
     this.reloadMetadata();
@@ -989,7 +990,7 @@ export class GameSession {
       room.snapshot,
       revealPlacedPredictions(
         this.withRoster(validatedSnapshot(room.snapshot, this.nextTableSnapshot(viewer, message, contents))),
-        Date.now()
+        hostNow()
       )
     );
     const transfer = this.spiceLedger.describe(
@@ -1070,7 +1071,7 @@ export class GameSession {
         seats: this.actors.seats(),
         tokens: this.assignmentTokens(deal),
         closeRosterRequests: (controls, now) => this.participation.closeRosterRequests(controls, now),
-        now: Date.now(),
+        now: hostNow(),
       })
     );
   }
@@ -1093,7 +1094,7 @@ export class GameSession {
       this.log.recordStage(stored, next);
       this.writeState(next);
       this.history.write(history);
-      this.stageDirectory(next, Date.now());
+      this.stageDirectory(next, hostNow());
       return { next, history };
     });
     this.reloadMetadata();
@@ -1383,7 +1384,7 @@ export class GameSession {
     }
     this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     const saved = this.storage.transactionSync(() => {
-      const now = Date.now();
+      const now = hostNow();
       const saved = this.conversations.save(viewer, request, now);
       if (!saved.inserted) {
         return saved;
@@ -1458,10 +1459,10 @@ export class GameSession {
     if (!this.metadata?.game || this.room?.snapshot.stage !== 'drafting' || !draft) {
       return;
     }
-    return { refresh: Date.now() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS };
+    return { refresh: hostNow() - draft.catalogueAt >= PLAY_DRAFT_CATALOGUE_TTL_MS };
   }
   updateDraftCatalogue(factions: DraftFaction[], setAside?: SetAsideJudgement) {
-    this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, Date.now(), setAside));
+    this.rewriteDraft((draft) => draftWithCatalogue(draft, factions, hostNow(), setAside));
   }
   /** The factions set aside now, for a catalogue refresh to judge again. */
   draftSetAside(): Readonly<Record<string, string>> {

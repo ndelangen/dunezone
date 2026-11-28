@@ -377,6 +377,48 @@ const noWallClockRule: Rule = {
   },
 };
 
+const ENGINE_HOST_RULE_NAME = 'engine-host-only';
+
+/**
+ * Keeps the game engine's clock and randomness with its host (#2856): an engine file reads time, random numbers and UUIDs through `src/shared/play/engine/host.ts`, which the Worker and the browser each install, never from the runtime's own `Date`, `Math.random`, `performance` or `crypto`.
+ * A Date built from a value stays legal, since it reads no clock.
+ */
+const engineHostOnlyRule: Rule = {
+  meta: {
+    name: ENGINE_HOST_RULE_NAME,
+    messages: {
+      ambient:
+        "The game engine takes the clock and randomness from its host. Use hostNow, hostRandomInt or hostRandomUUID from './host'.",
+    },
+  },
+  create(context) {
+    const named = (node: LintNode, name: string) => node.type === 'Identifier' && node.name === name;
+    return {
+      MemberExpression(node) {
+        const property = !node.computed && node.property.type === 'Identifier' ? node.property.name : undefined;
+        if (
+          named(node.object, 'crypto') ||
+          (named(node.object, 'Date') && property === 'now') ||
+          (named(node.object, 'Math') && property === 'random') ||
+          (named(node.object, 'performance') && property === 'now')
+        ) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+      NewExpression(node) {
+        if (named(node.callee, 'Date') && node.arguments.length === 0) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+      CallExpression(node) {
+        if (named(node.callee, 'Date')) {
+          context.report({ node, messageId: 'ambient' });
+        }
+      },
+    };
+  },
+};
+
 const SHARED_OVERLAYS_RULE_NAME = 'shared-overlays';
 
 const ALTERNATIVE_OVERLAYS =
@@ -991,6 +1033,7 @@ export default {
     [AI_TELLS_RULE_NAME]: noAiTellsRule,
     [STORY_DESCRIPTION_RULE_NAME]: noAiTellsInStoryDescriptionsRule,
     [WALL_CLOCK_RULE_NAME]: noWallClockRule,
+    [ENGINE_HOST_RULE_NAME]: engineHostOnlyRule,
     [TITLE_TOOLTIP_RULE_NAME]: noTitleTooltipRule,
     [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,

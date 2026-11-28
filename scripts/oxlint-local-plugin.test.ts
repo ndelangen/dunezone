@@ -261,6 +261,7 @@ describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
 
   test.each([
     "import { DurableObject } from 'cloudflare:workers';\nexport const probe = DurableObject;\n",
+    "import { randomInt } from 'node:crypto';\nexport const probe = randomInt;\n",
     "import { readFileSync } from 'node:fs';\nexport const probe = readFileSync;\n",
     "import { api } from '../../../../convex/_generated/api';\nexport const probe = api;\n",
     "import { GameSessionDurableObject } from '../../../../workers/game/index';\nexport const probe = GameSessionDurableObject;\n",
@@ -276,9 +277,27 @@ describe('game engine boundary', { timeout: TEST_BUDGET_MS }, () => {
     expect(restricted(await lintDiagnostics('probe.ts', source, ENGINE_ROOT))).toBe(0);
   });
 
+  test.each([
+    'export const probe = Date.now();\n',
+    'export const probe = new Date();\n',
+    'export const probe = Math.random();\n',
+    'export const probe = crypto.randomUUID();\n',
+    'export const probe = performance.now();\n',
+  ])('bites on an ambient clock or random source in an engine file: %s', async (source) => {
+    const output = await lintDiagnostics('probe.ts', source, ENGINE_ROOT);
+    expect(output.split('local(engine-host-only)').length - 1).toBe(1);
+  });
+
+  test('leaves a Date built from a value alone', async () => {
+    const output = await lintDiagnostics('probe.ts', 'export const probe = new Date(0);\n', ENGINE_ROOT);
+    expect(output).not.toContain('engine-host-only');
+  });
+
   test('leaves engine tests free to stand in for a host', async () => {
-    const source = "import { DatabaseSync } from 'node:sqlite';\nexport const probe = DatabaseSync;\n";
-    expect(restricted(await lintDiagnostics('probe.test.ts', source, ENGINE_ROOT))).toBe(0);
+    const source = "import { DatabaseSync } from 'node:sqlite';\nexport const probe = [DatabaseSync, Date.now()];\n";
+    const output = await lintDiagnostics('probe.test.ts', source, ENGINE_ROOT);
+    expect(restricted(output)).toBe(0);
+    expect(output).not.toContain('engine-host-only');
   });
 });
 

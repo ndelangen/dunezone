@@ -2,6 +2,7 @@ import type { GameSnapshot, Viewer } from '../protocol';
 import { SPECTATOR_SEAT } from '../schema';
 import type { TableRoster } from '../schema';
 import { anonymizeHistory, scrubRequesters } from './anonymizeHistory';
+import { hostNow } from './host';
 import { DELETED_USER } from './log';
 import type { PublicLog, SeatCause } from './log';
 
@@ -120,7 +121,7 @@ export class ActorDirectory {
       displayName,
       seat,
       event,
-      Date.now(),
+      hostNow(),
       change.cause,
       change.approver?.userId ?? null,
       change.approver?.displayName ?? null,
@@ -441,7 +442,7 @@ export class ActorDirectory {
 
   /** The creator takes the first seat at creation, before anyone connects. */
   seatCreator(userId: string, displayName: string, seat: string, profile: PlayerProfile) {
-    this.create(userId, { ...profile, userId, displayName, issuedAt: Date.now() }, seat);
+    this.create(userId, { ...profile, userId, displayName, issuedAt: hostNow() }, seat);
   }
 
   private create(userId: string, profile: PassProfile, seat: Viewer['viewerSeat']): Actor {

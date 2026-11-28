@@ -22,6 +22,7 @@ import { clampPositionToTable, nearestCollisionFreePosition, restingAmongLeaders
 import { playFromHandSettled } from '../tableState';
 import { isTechToken, takeableIntoHand } from '../techToken';
 import { keepsInsideTerritory, territoryAtTable } from '../territoryPlacement';
+import { hostRandomUUID } from './host';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
@@ -373,7 +374,7 @@ function unseen(piece: StoredPiece, items: StoredPiece['items']): Pick<StoredPie
   if (piece.kind === 'card' || isTechToken(piece)) {
     return { id: piece.id, items };
   }
-  return { id: crypto.randomUUID(), items: items.map((item) => ({ ...item, id: crypto.randomUUID() })) };
+  return { id: hostRandomUUID(), items: items.map((item) => ({ ...item, id: hostRandomUUID() })) };
 }
 
 function playFromHand(
@@ -504,7 +505,7 @@ function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { k
   }
   return commit(snapshot, {
     battleState: {
-      id: crypto.randomUUID(),
+      id: hostRandomUUID(),
       anchor: action.anchor,
       ...battleTerritory(action.anchor, board),
       stage: 'preparing',

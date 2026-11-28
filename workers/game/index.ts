@@ -2,6 +2,7 @@ import { describeCardDraw } from '../../src/shared/play/cardDraw';
 import type { CardDraw } from '../../src/shared/play/cardDraw';
 export { HomepageRoom } from './homepage';
 export { BiddingTable } from './biddingTable';
+import './engineHost';
 import { biddingTableResponse } from './biddingTable';
 export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
